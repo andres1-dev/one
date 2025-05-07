@@ -12,40 +12,7 @@
             }
         });
 
-const API_URL = (async () => {
-      const apiKey = 'AIzaSyAn6o3jTwxe2ahhT-Aj03BWAS2ccE3NlE4';
-      const fetchSheet = async (id, range) => {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${range}?key=${apiKey}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Error al obtener ${range}`);
-        return (await res.json()).values || [];
-      };
-      const parseJSON = str => {
-        try { return str ? JSON.parse(str) : null; } catch { return null; }
-      };
 
-      const [main, comp] = await Promise.all([
-        fetchSheet('133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI', 'DATA2!A2:S'),
-        fetchSheet('1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE', 'DATA!C2:C')
-      ]);
-
-      const compParsed = comp.map(r => parseJSON(r[0]));
-      return main.map(row => {
-        const doc = row[0]?.toString();
-        const compMatch = compParsed.find(c => c?.Documento === doc);
-        return {
-          A: row[0], FECHA: row[1], TALLER: row[2], LINEA: row[3],
-          AUDITOR: row[4], ESCANER: row[5], LOTE: row[6], REFPROV: row[7],
-          DESCRIPCIÓN: row[8], CANTIDAD: row[9], REFERENCIA: row[10],
-          TIPO: row[11], PVP: row[12], PRENDA: row[13], GENERO: row[14],
-          PROVEEDOR: row[15], ANEXOS: parseJSON(row[16]), HR: parseJSON(row[17]),
-          Clientes: compMatch ? compMatch.Clientes : null
-        };
-      });
-    })();
-
-        // URL de la API
-        /*const API_URL = "https://script.google.com/macros/s/AKfycbxvAb-hl2No_otFOvqSdFIgrDg1RU0Jh2JHB2kYyqksYi_to9gspsps3bbHLLj87JbG/exec";*/
 
         
         // Datos almacenados para exportación
