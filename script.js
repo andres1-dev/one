@@ -1,4 +1,4 @@
-
+<script>
         // Configuración de Toast
         const Toast = Swal.mixin({
             toast: true,
@@ -617,3 +617,4 @@ function loadData() {
                 });
             }
         }
+</script>
