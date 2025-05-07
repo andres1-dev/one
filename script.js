@@ -42,11 +42,7 @@
         };
       });
     })();
-
-        // URL de la API
-        /*const API_URL = "https://script.google.com/macros/s/AKfycbxvAb-hl2No_otFOvqSdFIgrDg1RU0Jh2JHB2kYyqksYi_to9gspsps3bbHLLj87JbG/exec";*/
-
-        
+   
         // Datos almacenados para exportación
         let allData = [];
         let processedRows = [];
