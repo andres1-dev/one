@@ -832,12 +832,12 @@
 
                         const textosAnexos = otrosAnexos.map(anexo => {
                             const cantidad = parseInt(anexo.CANTIDAD) || 1;
-                            const plural = cantidad > 1 ? 's' : '';
+                            const plural = cantidad > 1 ? 'ES' : '';
                             const tipo = anexo.TIPO ? anexo.TIPO.toUpperCase() : '';
                             const talla = anexo.TALLA ? `TALLA ${anexo.TALLA.toUpperCase()}` : '';
                             const color = anexo.COLOR ? `COLOR ${anexo.COLOR.toUpperCase()}` : '';
 
-                            let partes = [`<strong>${cantidad}</strong> UND${plural}`];
+                            let partes = [`<strong>${cantidad}</strong> UNDIDAD${plural}`];
                             if (tipo) partes.push(tipo);
                             if (talla) partes.push(talla);
                             if (color) partes.push(color);
