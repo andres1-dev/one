@@ -295,10 +295,13 @@
                     // Parsear y mapear datos
                     const mainParsed = mainRaw.map(r => parseJSON(r[0])).filter(Boolean);
                     /*const distribucionParsed = distribucionRaw.map(r => parseJSON(r[0])).filter(Boolean);*/
-                    const distribucionParsed = distribucionRaw.map(r => ({
-                        ...parseJSON(r[0]),  // Datos originales de la columna C
-                        colaborador: r[2]    // Datos de la columna E
-                    })).filter(Boolean);
+const distribucionParsed = distribucionRaw.map(r => {
+    const data = parseJSON(r[0]); // Datos JSON de la columna C
+    return {
+        ...data,
+        Colaborador: r[2] || '' // Datos directos de la columna E
+    };
+}).filter(Boolean);
 
                     // Convertir la tabla de clientes a un diccionario
                     const clientesHeader = ['id', 'razonSocial', 'nombreCorto', 'tipoCliente', 'estado', 'direccion', 'telefono', 'email', 'tipoEmpresa'];
@@ -333,7 +336,8 @@
                             DESCRIPCION: item['DESCRIPCIÓN'],
                             DISTRIBUCION: {
                                 Documento: doc,
-                                Clientes: clientesCompletos
+                                Clientes: clientesCompletos,
+                                Colaborador: distribucionMatch?.Colaborador || '' // También disponible aquí
                             }
                         };
                     });
