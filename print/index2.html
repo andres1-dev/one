@@ -286,7 +286,7 @@
                     };
 
                     // Obtener datos
-                    /*const [mainRaw, distribucionRaw, clientesRaw] = await Promise.all([
+                    const [mainRaw, distribucionRaw, clientesRaw] = await Promise.all([
                         fetchSheet('133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI', 'COMPLETOS!S2:S'),
                         fetchSheet('1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE', 'DATA!C2:E'),
                         fetchSheet('1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE', 'CLIENTES!A2:J')
@@ -294,27 +294,11 @@
 
                     // Parsear y mapear datos
                     const mainParsed = mainRaw.map(r => parseJSON(r[0])).filter(Boolean);
-                    */
-                    
                     /*const distribucionParsed = distribucionRaw.map(r => parseJSON(r[0])).filter(Boolean);*/
-
-                    /*
                     const distribucionParsed = distribucionRaw.map(r => ({
                         ...parseJSON(r[0]),  // Datos originales de la columna C
                         colaborador: r[2]    // Datos de la columna E
-                    })).filter(Boolean);*/
-
-const [distribucionRaw, clientesRaw, colaboradoresRaw] = await Promise.all([
-    fetchSheet('1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE', 'DATA!C2:C'),
-    fetchSheet('1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE', 'CLIENTES!A2:J'),
-    fetchSheet('1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE', 'DATA!E2:E') // Columna E
-]);
-
-// Luego combínalos:
-const distribucionParsed = distribucionRaw.map((r, i) => ({
-    ...parseJSON(r[0]),
-    colaborador: colaboradoresRaw[i]?.[0] || ''
-})).filter(Boolean);
+                    })).filter(Boolean);
 
                     // Convertir la tabla de clientes a un diccionario
                     const clientesHeader = ['id', 'razonSocial', 'nombreCorto', 'tipoCliente', 'estado', 'direccion', 'telefono', 'email', 'tipoEmpresa'];
