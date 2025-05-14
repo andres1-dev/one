@@ -329,11 +329,11 @@
                         return {
                             ...item,
                             REC: item.A,
+                            COLABORADOR: distribucionMatch?.Colaborador || '', // Asegurar esta línea
                             DESCRIPCION: item['DESCRIPCIÓN'],
                             DISTRIBUCION: {
                                 Documento: doc,
                                 Clientes: clientesCompletos,
-                                Colaborador: distribucionMatch?.colaborador || ''  // Nuevo campo
                             }
                         };
                     });
