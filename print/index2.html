@@ -1139,7 +1139,7 @@ function buscarPorREC() {
         // Verificar si tiene colaborador asignado
         if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
             document.getElementById("resultado").innerHTML = `
-                <div style="color: var(--danger); padding: 1rem; background-color: #fee2e2; border-radius: var(--radius);">
+                <div style="color: var(--danger); padding: 1rem; background-color: #dbeafe; border-radius: var(--radius);">
                     <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene colaborador/responsable asignado.</p>
                     <p>Por favor, asigne un colaborador en la hoja DATA antes de imprimir.</p>
                 </div>
@@ -1162,7 +1162,7 @@ function buscarPorREC() {
         }
         
         document.getElementById("resultado").innerHTML = `
-            <div style="color: var(--secondary-dark); padding: 1rem; background-color: #dcfce7; border-radius: var(--radius);">
+            <div style="color: var(--secondary-dark); padding: 1rem; background-color: #dbeafe; border-radius: var(--radius);">
                 <p>Documento ${recBuscado} encontrado. Se abrió la plantilla de impresión.</p>
                 <p>Colaborador asignado: <strong>${resultado.COLABORADOR}</strong></p>
             </div>
