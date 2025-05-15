@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Consulta e Impresión</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --secondary: #10b981;
+            --secondary-dark: #059669;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --radius: 0.5rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .card {
+            background-color: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .input-group {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            color: var(--text-light);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            color: var(--text);
+            background-color: var(--card);
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--text-light);
+        }
+
+        .btn {
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--radius);
+            border: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--secondary-dark);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-icon {
+            font-size: 0.875rem;
+        }
+
+        .info-text {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-container {
+            border-radius: var(--radius);
+            background-color: var(--primary-light);
+            padding: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .result-text {
+            color: var(--primary-dark);
+            font-size: 0.95rem;
+        }
+
+        .loader {
+            display: none;
+            width: 28px;
+            height: 28px;
+            border: 3px solid var(--primary-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            margin: 1.5rem auto;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+            
+            .search-container {
+                flex-direction: column;
+            }
+            
+            .btn-group {
+                width: 100%;
+            }
+            
+            .btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+        <div class="card">
+            <div class="card-header">
+<h1 class="card-title">
+    <i class="fas fa-tags" style="margin-right: 12px; color: gray;"></i>
+    Consulta e Impresión de Documentos SISPRO
+</h1>
+
+            </div>
+            
+            <div class="card-body">
+                <div class="search-container">
+                    <div class="input-group">
+                        <i class="fas fa-search input-icon"></i>
+                        <input type="text" id="recInput" placeholder="Ingrese un documento para buscar..." />
+                    </div>
+                    <button onclick="buscarPorREC()" class="btn btn-primary">
+                        <i class="fas fa-search btn-icon"></i> Buscar
+                    </button>
+                </div>
+                
+                <div class="info-text">
+                    Para búsqueda múltiple, separar los documentos con comas (ejemplo: 1234, 5678, 9012)
+                </div>
+                
+                <div class="btn-group">
+
+                    <button onclick="buscarMultiplesRECs()" class="btn btn-secondary" disabled>
+                        <i class="fas fa-copy btn-icon"></i> Imprimir Múltiples (Solo Principal)
+                    </button>
+
+                    <button onclick="imprimirSoloClientes()" class="btn btn-secondary">
+                        <i class="fas fa-users btn-icon"></i> Imprimir Solo Clientes
+                    </button>
+
+                    <button onclick="buscarPorREC()" class="btn btn-secondary" disabled>
+                        <i class="fas fa-print btn-icon"></i> Imprimir Todo (Completo)
+                    </button>
+                    
+                    <!-- <button onclick="buscarPorREC()" class="btn btn-secondary">
+                        <i class="fas fa-print btn-icon"></i> Imprimir Todo (Completo)
+                    </button>
+                    <button onclick="buscarMultiplesRECs()" class="btn btn-secondary">
+                        <i class="fas fa-copy btn-icon"></i> Imprimir Múltiples (Solo Principal)
+                    </button> -->
+
+                </div>
+                
+                
+                <div class="loader" id="loader"></div>
+                
+                <div class="result-container" id="resultado">
+                    <p class="result-text">Ingrese un documento para buscar información.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            &copy; 2025 Andrés Mendoza
+        </div>
+    </div>
+
+    <script>
+        let datosGlobales = [];
+
+        // Función para cargar los datos desde la API
+        async function cargarDatos() {
+            document.getElementById("loader").style.display = "block";
+            document.getElementById("resultado").innerHTML = "<p>Cargando datos...</p>";
+
+            try {
+                const API_URL = (async () => {
+                    const apiKey = 'AIzaSyAn6o3jTwxe2ahhT-Aj03BWAS2ccE3NlE4';
+                    const fetchSheet = async (id, range) => {
+                        const url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${range}?key=${apiKey}`;
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error(`Error al obtener ${range}`);
+                        return (await res.json()).values || [];
+                    };
+
+                    const parseJSON = str => {
+                        try { return str ? JSON.parse(str) : null; } catch { return null; }
+                    };
+
+                    // Obtener datos
+                    const [mainRaw, distribucionRaw, clientesRaw] = await Promise.all([
+                        fetchSheet('133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI', 'DATA2!S2:S'),
+                        fetchSheet('1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE', 'DATA!C2:E'),
+                        fetchSheet('1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE', 'CLIENTES!A2:J')
+                    ]);
+
+                    // Parsear y mapear datos
+                    const mainParsed = mainRaw.map(r => parseJSON(r[0])).filter(Boolean);
+                    /*const distribucionParsed = distribucionRaw.map(r => parseJSON(r[0])).filter(Boolean);*/
+const distribucionParsed = distribucionRaw.map(r => {
+    const data = parseJSON(r[0]); // Datos JSON de la columna C
+    return {
+        ...data,
+        Colaborador: r[2] || '' // Datos directos de la columna E
+    };
+}).filter(Boolean);
+
+                    // Convertir la tabla de clientes a un diccionario
+                    const clientesHeader = ['id', 'razonSocial', 'nombreCorto', 'tipoCliente', 'estado', 'direccion', 'telefono', 'email', 'tipoEmpresa'];
+                    const clientesDict = {};
+                    for (const row of clientesRaw) {
+                        const cliente = {};
+                        clientesHeader.forEach((key, i) => cliente[key] = row[i] || '');
+                        clientesDict[cliente.id] = cliente;
+                    }
+
+                    // Combinar todo
+                    const resultadoFinal = mainParsed.map(item => {
+                        const doc = item?.A?.toString();
+                        const distribucionMatch = distribucionParsed.find(d => d?.Documento === doc);
+
+                        // Enriquecer los datos de cada cliente
+                        const clientesCompletos = {};
+                        if (distribucionMatch?.Clientes) {
+                            for (const [nombre, cliente] of Object.entries(distribucionMatch.Clientes)) {
+                                const clienteInfo = clientesDict[cliente.id] || {};
+                                clientesCompletos[nombre] = {
+                                    ...cliente,
+                                    ...clienteInfo,
+                                };
+                            }
+                        }
+
+                        return {
+                            ...item,
+                            REC: item.A,
+                            COLABORADOR: distribucionMatch?.Colaborador || '', // Asegurar esta línea
+                            DESCRIPCION: item['DESCRIPCIÓN'],
+                            DISTRIBUCION: {
+                                Documento: doc,
+                                Clientes: clientesCompletos,
+                                Colaborador: distribucionMatch?.Colaborador || '' // También disponible aquí
+                            }
+                        };
+                    });
+
+                    return resultadoFinal;
+                })();
+
+                datosGlobales = await API_URL;
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("resultado").innerHTML = "<p>Datos cargados. Ingrese un documento para buscar.</p>";
+            } catch (error) {
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("resultado").innerHTML = `<p>Error al cargar datos: ${error.message}</p>`;
+            }
+        }
+
+        // Función para buscar múltiples RECs e imprimir solo las plantillas principales
+        function buscarMultiplesRECs() {
+            let recsInput = document.getElementById("recInput").value;
+            if (!recsInput) {
+                document.getElementById("resultado").innerHTML = "<p>Ingrese uno o más documentos para buscar.</p>";
+                return;
+            }
+            
+            // Separar los RECs por comas y limpiar espacios
+            let recsArray = recsInput.split(',')
+                .map(rec => rec.trim())
+                .filter(rec => rec !== '');
+            
+            if (recsArray.length === 0) {
+                document.getElementById("resultado").innerHTML = "<p>No se ingresaron documentos válidos.</p>";
+                return;
+            }
+            
+            document.getElementById("resultado").innerHTML = `<p>Buscando ${recsArray.length} documento...</p>`;
+            
+            // Buscar cada REC y abrir solo la plantilla principal
+            recsArray.forEach(rec => {
+                let resultado = datosGlobales.find(item => item.REC == rec);
+                
+                if (resultado) {
+                    // Usamos modo: 'completo' pero con soloImpresionPrincipal: true para mostrar todas las distribuciones
+                    abrirPlantillaImpresion(resultado, { 
+                        modo: 'completo', 
+                        soloImpresionPrincipal: true 
+                    });
+                    document.getElementById("resultado").innerHTML += `<p>REC ${rec} encontrado. Se abrió la plantilla principal.</p>`;
+                } else {
+                    document.getElementById("resultado").innerHTML += `<p>No se encontró el documento ${rec}.</p>`;
+                }
+            });
+        }
+
+        // Función principal unificada para abrir plantillas de impresión
+        function abrirPlantillaImpresion(datos, options = {}) {
+            const {
+                modo = 'completo', // 'completo' | 'principal' | 'cliente'
+                clienteNombre = null,
+                soloPrincipal = false,
+                soloImpresionPrincipal = false // Nuevo parámetro para impresión múltiple
+            } = options;
+
+            const isModoCliente = modo === 'cliente';
+            const isModoPrincipal = modo === 'principal' || soloPrincipal;
+            
+            // Configuración común
+            const currentSearchKey = datos.REC || '';
+            
+            // Configuración específica para cliente
+            const clienteData = isModoCliente ? datos.DISTRIBUCION.Clientes[clienteNombre] : null;
+            const clienteId = isModoCliente ? (clienteData.id || '') : '';
+            const qrData = isModoCliente ? `REC${currentSearchKey}-${clienteId}` : `REC${currentSearchKey}`;
+            
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
+            const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=REC${currentSearchKey}&code=Code128&dpi=300&dataseparator=`;
+            
+            // Abrir ventana
+            const ventana = window.open('', '_blank');
+            const titulo = isModoCliente 
+                ? `Separación REC${datos.REC} - ${clienteNombre}`
+                : `Separación REC${datos.REC}`;
+            
+            // Generar HTML
+            ventana.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${titulo}</title>
+                    <style>
+                        @page {
+                            size: letter;
+                            margin: 0.5cm;
+                        }
+
+                        tr:nth-child(even):not(:last-child) {
+                            background-color: #f8fafc;
+                        }
+
+                        tr:last-child {
+                            background-color: white !important;
+                        }
+
+                        @media screen {
+                            tr:hover {
+                                background-color: #e3f2fd;
+                            }
+                        }
+
+                        @media print {
+                            tr:nth-child(even):not(:last-child) {
+                                background-color: #f8fafc !important;
+                                -webkit-print-color-adjust: exact;
+                                print-color-adjust: exact;
+                            }
+                            
+                            tr:last-child {
+                                background-color: white !important;
+                            }
+
+                            td, th {
+                                -webkit-print-color-adjust: exact;
+                                print-color-adjust: exact;
+                            }
+                            
+                            table {
+                                page-break-inside: auto !important;
+                            }
+                            
+                            thead {
+                                display: table-header-group !important;
+                            }
+                            
+                            tbody {
+                                display: table-row-group !important;
+                            }
+                            
+                            tr {
+                                page-break-inside: avoid !important;
+                                page-break-after: auto !important;
+                            }
+                            
+                            th {
+                                position: relative !important;
+                                top: auto !important;
+                            }
+                        }
+
+                        .info-grid .info-item:nth-child(1) .info-value,
+                        .info-grid .info-item:nth-child(2) .info-value,
+                        .info-grid .info-item:nth-child(3) .info-value {
+                            font-weight: bold;
+                            font-size: 11pt;
+                        }
+
+                        .info-grid .info-item:nth-child(4) .info-value,
+                        .info-grid .info-item:nth-child(5) .info-value {
+                            border-left: 4px solid #3498db;
+                            padding-left: 8px;
+                        }
+
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            width: 7.5in;
+                            margin: 0 auto;
+                            padding: 10px;
+                            font-size: 10pt;
+                            line-height: 1.4;
+                            color: #333;
+                        }
+                        .header-container {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 10px;
+                            page-break-after: avoid;
+                            border-bottom: 2px solid #eee;
+                            padding-bottom: 10px;
+                        }
+                        .info-container {
+                            flex: 1;
+                            min-width: 0;
+                        }
+                        .codes-container {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: flex-end;
+                            margin-left: 15px;
+                        }
+                        .qr-container {
+                            text-align: center;
+                            margin-bottom: 10px;
+                        }
+                        .qr-code {
+                            width: 120px;
+                            height: 120px;
+                            padding: 5px;
+                            background: white;
+                        }
+                        .barcode {
+                            height: 60px;
+                            margin-top: 0px;
+                        }
+                        .title-section {
+                            text-align: center;
+                            margin-bottom: 10px;
+                        }
+                        .main-title {
+                            font-size: 12pt;
+                            margin: 5px 0;
+                            color: #555;
+                            font-weight: normal;
+                        }
+                        .provider-name {
+                            font-weight: bold;
+                            font-size: 16pt;
+                            margin: 5px 0;
+                            color: #2c3e50;
+                            text-transform: uppercase;
+                        }
+                        .subtitle {
+                            font-size: 11pt;
+                            margin: 5px 0;
+                            color: #7f8c8d;
+                            font-style: italic;
+                        }
+                        .info-grid {
+                            display: grid;
+                            grid-template-columns: repeat(3, 1fr);
+                            gap: 8px;
+                            margin: 10px 0;
+                            font-size: 9pt;
+                        }
+                        .info-grid2 {
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 8px;
+                            margin: 10px 0;
+                            font-size: 9pt;
+                        }
+                        .info-item {
+                            display: flex;
+                            align-items: center;
+                        }
+                        .info-label {
+                            font-weight: 600;
+                            min-width: 70px;
+                            color: #34495e;
+                        }
+                        .info-value {
+                            flex: 1;
+                            padding-left: 5px;
+                            border-left: 1px solid #eee;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin: 10px 0;
+                            font-size: 9pt;
+                            page-break-inside: avoid;
+                        }
+                        th, td {
+                            border: 1px solid #ddd;
+                            padding: 5px;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #f8f9fa;
+                            font-weight: 600;
+                            color: #2c3e50;
+                            position: sticky;
+                            top: 0;
+                        }
+                        .section-title {
+                            font-weight: bold;
+                            font-size: 11pt;
+                            margin: 10px 0 5px 0;
+                            color: #2c3e50;
+                            padding: 5px 10px;
+                            background-color: #f8f9fa;
+                            border-left: 4px solid #3498db;
+                        }
+                        .total-row {
+                            font-weight: bold;
+                            background-color: #f8f9fa;
+                        }
+                        .code-display {
+                            font-weight: bold;
+                            text-align: center;
+                            margin-top: 3px;
+                        }
+                        .percentage-label {
+                            font-size: 8pt;
+                            color: #7f8c8d;
+                            font-weight: normal;
+                            display: block;
+                        }
+                        @media print {
+                            body {
+                                padding: 0;
+                            }
+                            .no-print {
+                                display: none;
+                            }
+                            .header-container {
+                                border-bottom-color: #ccc;
+                            }
+                        }
+                        .footer {
+                            margin-top: 15px;
+                            font-size: 8pt;
+                            color: #777;
+                            text-align: right;
+                        }
+                        tr.total td {
+                            font-weight: bold !important;
+                            color: #2c3e50;
+                        }
+                        tr.total td:nth-child(4) {
+                            font-weight: bold !important;
+                            color: #2c3e50;
+                        }
+                        th.total-header {
+                            font-weight: bold !important;
+                            color: #2c3e50;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header-container">
+                        <div class="info-container">
+                            <div class="title-section">
+                                <div class="main-title">Separación de terceros para:</div>
+                                <div class="provider-name">${
+                                    isModoCliente 
+                                        ? clienteData.razonSocial || clienteNombre 
+                                        : datos.PROVEEDOR || 'Proveedor no especificado'
+                                }</div>
+                                <div class="subtitle">${datos.DESCRIPCION || 'Sin descripción'}</div>
+                            </div>
+                            
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <div class="info-label">Referencia:</div>
+                                    <div class="info-value">${datos.REFERENCIA || ''}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">RefProv:</div>
+                                    <div class="info-value">${datos.REFPROV || ''}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Lote:</div>
+                                    <div class="info-value">${datos.LOTE || ''}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Género:</div>
+                                    <div class="info-value">${datos.GENERO || ''}</div>
+                                </div>
+                                <div class="info-item"> 
+                                    <div class="info-label">PVP:</div>
+                                    <div class="info-value">
+                                        ${(() => {
+                                            let pvpStr = datos.PVP || '';
+                                            let pvpNum = parseInt(pvpStr.replace('$', '').replace(/\./g, '').trim());
+                                            if (pvpNum <= 39900) return `${pvpStr} Linea`;
+                                            if (pvpNum >= 40000 && pvpNum <= 60000) return `${pvpStr} Moda`;
+                                            if (pvpNum >= 60000) return `${pvpStr} Pronta`;
+                                            return `${pvpStr}`;
+                                        })()}
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Tipo:</div>
+                                    <div class="info-value">
+                                        ${isModoCliente 
+                                            ? (clienteData.tipoCliente === "Empresa" 
+                                                ? clienteData.tipoCliente + " " + (clienteData.tipoEmpresa || '') 
+                                                : clienteData.tipoCliente || '')
+                                            : datos.TIPO || ''}
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Fecha:</div>
+                                    <div class="info-value">${datos.FECHA}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Prenda:</div>
+                                    <div class="info-value">${datos.PRENDA || ''}</div>
+                                </div>
+                                ${isModoCliente ? `
+                                <div class="info-item">
+                                    <div class="info-label">Porcentaje:</div>
+                                    <div class="info-value">${clienteData.porcentaje || ''}</div>
+                                </div>` : ''}
+                            </div>
+
+                            <div class="info-grid2">
+                                <div class="info-item">
+                                    <div class="info-label">Línea:</div>
+                                    <div class="info-value">${datos.LINEA || ''}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Auditor:</div>
+                                    <div class="info-value">${datos.AUDITOR || ''}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Escáner:</div>
+                                    <div class="info-value">${datos.ESCANER || ''}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Taller:</div>
+                                    <div class="info-value">${datos.TALLER || ''}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="codes-container">
+                            <div class="qr-container">
+                                <img src="${qrCodeUrl}" class="qr-code" alt="Código QR">
+                                <div class="code-display">${qrData}</div>
+                            </div>
+                            <div class="barcode-container">
+                                <img src="${barcodeUrl}" class="barcode" alt="Código de barras">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="footer">
+                        ${isModoCliente 
+                            ? `Responsable: <span class="info-value">${datos.COLABORADOR || ''}</span> &nbsp;|&nbsp; ` 
+                            : ''}
+                        Impreso: ${new Date().toLocaleString('es-ES', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric', 
+                            hour: '2-digit', 
+                            minute: '2-digit', 
+                            second: '2-digit' 
+                        })}
+                    </div>
+            `);
+
+            // Sección de anexos
+            if (datos.ANEXOS && Array.isArray(datos.ANEXOS) && datos.ANEXOS.length > 0) {
+                const mostrarAnexosCompletos = !isModoCliente || 
+                                              (isModoCliente && clienteData.tipoEmpresa && 
+                                               clienteData.tipoEmpresa.includes("Principal"));
+                
+                if (mostrarAnexosCompletos) {
+                    const anexosFiltrados = datos.ANEXOS.filter(anexo => 
+                        anexo.TIPO === "PENDIENTES" || anexo.TIPO === "PROMO");
+                    
+                    const otrosAnexos = datos.ANEXOS.filter(anexo => 
+                        anexo.TIPO !== "PENDIENTES" && anexo.TIPO !== "PROMO");
+
+                    if (anexosFiltrados.length > 0) {
+                        let totalAnexos = 0;
+                        ventana.document.write(`
+                            <div class="section">
+                                <div class="section-title">ANEXOS (${anexosFiltrados.length})</div>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Referencia</th>
+                                            <th>Talla</th>
+                                            <th>Color</th>
+                                            <th>Tipo</th>
+                                            <th>Cantidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`);
+                        
+                        anexosFiltrados.forEach(anexo => {
+                            totalAnexos += parseInt(anexo.CANTIDAD) || 0;
+                            ventana.document.write(`
+                                        <tr>
+                                            <td>${anexo.DOCUMENTO || '-'}</td>
+                                            <td>${anexo.TALLA || '-'}</td>
+                                            <td>${anexo.COLOR || '-'}</td>
+                                            <td>${anexo.TIPO || '-'}</td>
+                                            <td>${anexo.CANTIDAD || '0'}</td>
+                                        </tr>`);
+                        });
+                        
+                        ventana.document.write(`
+                                        <tr class="total">
+                                            <td colspan="3">TOTAL ANEXOS</td>
+                                            <td>${anexosFiltrados.length}</td>
+                                            <td>${totalAnexos}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>`);
+                    }
+                    
+                    if (otrosAnexos.length > 0) {
+                        ventana.document.write(`
+                            <div style="padding: 8px 15px 15px 15px; background-color: #ffffff; border-radius: 4px; border-left: 4px solid #3498db; text-align: left;">
+                                <p style="margin: 0; line-height: 1.3; text-transform: uppercase;">
+                                    <strong>OBSERVACIONES:</strong> `);
+
+                        const textosAnexos = otrosAnexos.map(anexo => {
+                            const cantidad = parseInt(anexo.CANTIDAD) || 1;
+                            const plural = cantidad > 1 ? 'ES' : '';
+                            const tipo = anexo.TIPO ? anexo.TIPO.toUpperCase() : '';
+                            const talla = anexo.TALLA ? `TALLA ${anexo.TALLA.toUpperCase()}` : '';
+                            const color = anexo.COLOR ? `COLOR ${anexo.COLOR.toUpperCase()}` : '';
+
+                            let partes = [`<strong>${cantidad}</strong> UNIDAD${plural}`];
+                            if (tipo) partes.push(tipo);
+                            if (talla) partes.push(talla);
+                            if (color) partes.push(color);
+
+                            return partes.join(', ');
+                        });
+
+                        ventana.document.write(textosAnexos.join('; ') + '.');
+
+                        ventana.document.write(`</p>
+                            </div>`);
+                    }
+                }
+            }
+
+            // Sección de distribución
+            if (datos.DISTRIBUCION && datos.DISTRIBUCION.Clientes) {
+                if (isModoCliente) {
+                    // Distribución para cliente específico
+                    let totalUnidadesCliente = 0;
+                    
+                    if (clienteData.distribucion) {
+                        totalUnidadesCliente = clienteData.distribucion.reduce((total, item) => total + (parseInt(item.cantidad) || 0), 0);
+                        
+                        const distribucionOrdenada = [...clienteData.distribucion].sort((a, b) => {
+                            const sizeA = parseSize(a.talla);
+                            const sizeB = parseSize(b.talla);
+                            if (sizeA.rank !== sizeB.rank) return sizeA.rank - sizeB.rank;
+                            if (sizeA.numPart !== null && sizeB.numPart !== null) {
+                                if (sizeA.numPart !== sizeB.numPart) return sizeA.numPart - sizeB.numPart;
+                            }
+                            return a.color.localeCompare(b.color, "es", { sensitivity: "base" });
+                        });
+
+                        ventana.document.write(`
+                            <div class="section">
+                                <div class="section-title">DISTRIBUCIÓN (${totalUnidadesCliente}) ${clienteNombre} </div>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Código</th>
+                                            <th>Color</th>
+                                            <th>Talla</th>
+                                            <th>Cantidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`);
+                        
+                        distribucionOrdenada.forEach(item => {
+                            ventana.document.write(`
+                                        <tr>
+                                            <td>${item.codigo}</td>
+                                            <td>${item.color}</td>
+                                            <td>${item.talla}</td>
+                                            <td>${item.cantidad}</td>
+                                        </tr>`);
+                        });
+                        
+                        ventana.document.write(`
+                                        <tr class="total">
+                                            <td colspan="3">TOTAL</td>
+                                            <td>${totalUnidadesCliente}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>`);
+                    }
+                } else {
+                    // Distribución completa
+                    let clientes = Object.keys(datos.DISTRIBUCION.Clientes);
+                    let principales = [], secundarias = [], mayoristas = [];
+                    let distribucionFinal = {};
+                    let porcentajes = {};
+
+                    clientes.forEach(cliente => {
+                        porcentajes[cliente] = datos.DISTRIBUCION.Clientes[cliente].porcentaje || '';
+                        let tipo = datos.DISTRIBUCION.Clientes[cliente].tipoEmpresa || "";
+                        if (tipo.includes("Principal")) principales.push(cliente);
+                        else if (tipo.includes("Secundaria")) secundarias.push(cliente);
+                        else mayoristas.push(cliente);
+                    });
+
+                    // Cambio clave: si es soloImpresionPrincipal, mostramos todos los clientes
+                    let clientesOrdenados = (isModoPrincipal && !soloImpresionPrincipal) 
+                        ? principales 
+                        : [...principales, ...secundarias, ...mayoristas];
+
+                    // Procesar distribución
+                    clientesOrdenados.forEach(cliente => {
+                        datos.DISTRIBUCION.Clientes[cliente].distribucion.forEach(({ codigo, color, talla, cantidad }) => {
+                            let key = `${codigo}-${talla}`;
+                            if (!distribucionFinal[key]) {
+                                distribucionFinal[key] = { codigo, color, talla, cantidadTotal: 0 };
+                                clientesOrdenados.forEach(c => distribucionFinal[key][c] = 0);
+                            }
+                            distribucionFinal[key].cantidadTotal += cantidad;
+                            distribucionFinal[key][cliente] += cantidad;
+                        });
+                    });
+
+                    const todasLasFilas = Object.values(distribucionFinal).sort((a, b) => {
+                        const sizeA = parseSize(a.talla);
+                        const sizeB = parseSize(b.talla);
+                        if (sizeA.rank !== sizeB.rank) return sizeA.rank - sizeB.rank;
+                        if (sizeA.numPart !== null && sizeB.numPart !== null) {
+                            if (sizeA.numPart !== sizeB.numPart) return sizeA.numPart - sizeB.numPart;
+                        }
+                        return a.color.localeCompare(b.color, "es", { sensitivity: "base" });
+                    });
+
+                    ventana.document.write(`
+                        <div class="section">
+                            <div class="section-title">DISTRIBUCIÓN (${clientesOrdenados.length})</div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Color</th>
+                                        <th>Talla</th>
+                                        <th>Total</th>`);
+                    
+                    clientesOrdenados.forEach(cliente => {
+                        ventana.document.write(`<th>${cliente}${porcentajes[cliente] ? '<br>' + porcentajes[cliente] : ''}</th>`);
+                    });
+                    
+                    ventana.document.write(`</tr>
+                                </thead>
+                                <tbody>`);
+
+                    let totalPorCliente = {};
+                    todasLasFilas.forEach(row => {
+                        ventana.document.write(`<tr>
+                                    <td>${row.codigo}</td>
+                                    <td>${row.color}</td>
+                                    <td>${row.talla}</td>
+                                    <td>${row.cantidadTotal}</td>`);
+                        
+                        clientesOrdenados.forEach(cliente => {
+                            ventana.document.write(`<td>${row[cliente]}</td>`);
+                            totalPorCliente[cliente] = (totalPorCliente[cliente] || 0) + row[cliente];
+                        });
+                        
+                        ventana.document.write(`</tr>`);
+                    });
+
+                    let totalGeneral = Object.values(totalPorCliente).reduce((sum, val) => sum + val, 0);
+                    ventana.document.write(`<tr class="total">
+                                <td colspan="3">TOTALES</td>
+                                <td>${totalGeneral}</td>`);
+                    
+                    clientesOrdenados.forEach(cliente => {
+                        ventana.document.write(`<td>${totalPorCliente[cliente]}</td>`);
+                    });
+                    
+                    ventana.document.write(`</tr>
+                                </tbody>
+                            </table>
+                        </div>`);
+                }
+            }
+
+            // Cierre del documento
+            ventana.document.write(`
+                <div class="no-print" style="text-align: center; margin-top: 15px;">
+                    <button onclick="window.print()" style="padding: 8px 15px; font-size: 10pt; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Imprimir</button>
+                    <button onclick="window.close()" style="padding: 8px 15px; font-size: 10pt; margin-left: 10px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Cerrar</button>
+                </div>
+                </body>
+                </html>
+            `);
+
+            ventana.document.close();
+        }
+
+        // Función para parsear tallas
+        /*function parseSize(size) {
+            const sizeOrder = { 
+                "XXXS": 1, "XXS": 2, "XS": 3, "S": 4, 
+                "M": 5, "L": 6, "XL": 7, "XXL": 8, "XXXL": 9 
+            };
+            const match = size ? size.match(/^(\d+)?([A-Z]+)?$/) : [null, null, null];
+
+            return {
+                numPart: match && match[1] ? parseInt(match[1]) : null,
+                rank: match && match[2] ? (sizeOrder[match[2]] || 99) : 99,
+                textPart: match && match[2] ? match[2] : ""
+            };
+        }*/
+
+function parseSize(size) {
+    const sizeOrder = { 
+        "XXXS": 1, "XXS": 2, "XS": 3, "S": 4, 
+        "M": 5, "L": 6, "XL": 7, "XXL": 8, "XXXL": 9 
+    };
+
+    // Match formatos: "3XL", "XXS", "M", etc.
+    const match = size ? size.match(/^(\d+)?(XXXS|XXS|XS|S|M|L|XL|XXL|XXXL|XS|XL)?$/) : [null, null, null];
+
+    // Si es tipo clásico como "XS", "XXL"
+    if (match && !match[1] && match[2]) {
+        return {
+            numPart: null,
+            rank: sizeOrder[match[2]] || 99,
+            textPart: match[2]
+        };
+    }
+
+    // Si es tipo nuevo como "2XL", "3XS"
+    if (match && match[1] && match[2]) {
+        const num = parseInt(match[1]);
+        const text = match[2];
+
+        let rank = 99;
+
+        if (text === "XS") {
+            rank = 4 - num; // 1XS = XS (3), 2XS = XXS (2), 3XS = XXXS (1)
+        } else if (text === "XL") {
+            rank = 6 + num; // 1XL = XL (7), 2XL = XXL (8), etc.
+        } else {
+            rank = sizeOrder[text] || 99;
+        }
+
+        return {
+            numPart: num,
+            rank,
+            textPart: text
+        };
+    }
+
+    // Si no coincide con nada
+    return {
+        numPart: null,
+        rank: 99,
+        textPart: ""
+    };
+}
+
+        /**function buscarPorREC() {
+            let recBuscado = document.getElementById("recInput").value;
+            if (!recBuscado) {
+                document.getElementById("resultado").innerHTML = "<p>Ingrese un documento para buscar.</p>";
+                return;
+            }
+            
+            // Verificar si es una búsqueda múltiple (contiene comas)
+            if (recBuscado.includes(',')) {
+                buscarMultiplesRECs();
+                return;
+            }
+            
+            let resultado = datosGlobales.find(item => item.REC == recBuscado);
+            
+            if (resultado) {
+                // Abrir plantilla completa con todas las sub-plantillas
+                abrirPlantillaImpresion(resultado);
+                
+                // Para cada cliente, abrir su plantilla individual
+                if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
+                    const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
+                    clientes.forEach(cliente => {
+                        abrirPlantillaImpresion(resultado, { 
+                            modo: 'cliente', 
+                            clienteNombre: cliente 
+                        });
+                    });
+                }
+                
+                document.getElementById("resultado").innerHTML = `<p>documento ${recBuscado} encontrado. Se abrió la plantilla de impresión.</p>`;
+            } else {
+                document.getElementById("resultado").innerHTML = "<p>No se encontró el documento especificado.</p>";
+            }
+        }*/
+
+function buscarPorREC() {
+    let recBuscado = document.getElementById("recInput").value;
+    if (!recBuscado) {
+        document.getElementById("resultado").innerHTML = "<p>Ingrese un documento para buscar.</p>";
+        return;
+    }
+
+    // Verificar si es una búsqueda múltiple
+    if (recBuscado.includes(',')) {
+        buscarMultiplesRECs();
+        return;
+    }
+
+    let resultado = datosGlobales.find(item => item.REC == recBuscado);
+
+    if (resultado) {
+        // Verificar si tiene colaborador asignado
+        if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
+            document.getElementById("resultado").innerHTML = `
+                <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
+                    <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene colaborador/responsable asignado.</p>
+                    <p>Por favor, asigne un colaborador en la hoja DATA antes de imprimir.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Abrir plantilla completa con todas las sub-plantillas
+        abrirPlantillaImpresion(resultado);
+
+        // Para cada cliente, abrir su plantilla individual
+        if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
+            const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
+            clientes.forEach(cliente => {
+                abrirPlantillaImpresion(resultado, { 
+                    modo: 'cliente', 
+                    clienteNombre: cliente 
+                });
+            });
+        }
+
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--secondary-dark); padding: 1rem; border-radius: var(--radius);">
+                <p>Documento ${recBuscado} encontrado. Se abrió la plantilla de impresión.</p>
+                <p>Colaborador asignado: <strong>${resultado.COLABORADOR}</strong></p>
+            </div>
+        `;
+    } else {
+        document.getElementById("resultado").innerHTML = "<p>No se encontró el documento especificado.</p>";
+    }
+}
+
+        
+function imprimirSoloClientes() {
+    let recBuscado = document.getElementById("recInput").value;
+    if (!recBuscado) {
+        document.getElementById("resultado").innerHTML = "<p>Ingrese un documento para buscar.</p>";
+        return;
+    }
+
+    // Verificar si es una búsqueda múltiple
+    if (recBuscado.includes(',')) {
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
+                <p>Esta función solo funciona con un documento a la vez.</p>
+            </div>
+        `;
+        return;
+    }
+
+    let resultado = datosGlobales.find(item => item.REC == recBuscado);
+
+    if (resultado) {
+        // Verificar si tiene colaborador asignado
+        if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
+            document.getElementById("resultado").innerHTML = `
+                <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
+                    <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene colaborador/responsable asignado.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Verificar si tiene clientes asignados
+        if (!resultado.DISTRIBUCION || !resultado.DISTRIBUCION.Clientes || Object.keys(resultado.DISTRIBUCION.Clientes).length === 0) {
+            document.getElementById("resultado").innerHTML = `
+                <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
+                    <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene clientes asignados.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Abrir solo las plantillas de clientes
+        const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
+        clientes.forEach(cliente => {
+            abrirPlantillaImpresion(resultado, { 
+                modo: 'cliente', 
+                clienteNombre: cliente 
+            });
+        });
+
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--secondary-dark); padding: 1rem; border-radius: var(--radius);">
+                <p>Documento ${recBuscado} - Impresión iniciada para:</p>
+                <ul>
+                    ${clientes.map(cliente => `<li>${cliente}</li>`).join('')}
+                </ul>
+                <p>Total clientes: <strong>${clientes.length}</strong></p>
+            </div>
+        `;
+    } else {
+        document.getElementById("resultado").innerHTML = "<p>No se encontró el documento especificado.</p>";
+    }
+}
+
+
+
+        // Cargar los datos al iniciar la página
+        window.onload = cargarDatos;
+    </script>
+</body>
+</html>
