@@ -1051,7 +1051,7 @@ const distribucionParsed = distribucionRaw.map(r => {
             };
         }*/
 
-function parseSize(size) {
+/**function parseSize(size) {
     const sizeOrder = { 
         "XXXS": 1, "XXS": 2, "XS": 3, "S": 4, 
         "M": 5, "L": 6, "XL": 7, "XXL": 8, "XXXL": 9 
@@ -1097,7 +1097,67 @@ function parseSize(size) {
         rank: 99,
         textPart: ""
     };
+}*/
+
+        function parseSize(size) {
+    const sizeOrder = { 
+        "XXXS": 1, "XXS": 2, "XS": 3, "S": 4, 
+        "M": 5, "L": 6, "XL": 7, "XXL": 8, "XXXL": 9 
+    };
+
+    // Expresión regular para capturar tallas como "3XL", "XXS", "M", etc.
+    const match = size ? size.match(/^(\d+)?(XXXS|XXS|XS|S|M|L|XL|XXL|XXXL)?$/) : [null, null, null];
+
+    // Si es tipo clásico como "XS", "XXL"
+    if (match && !match[1] && match[2]) {
+        return {
+            numPart: null,
+            rank: sizeOrder[match[2]] || 99,
+            textPart: match[2]
+        };
+    }
+
+    // Si es tipo nuevo como "2XL", "3XS", también considera tallas numéricas
+    if (match && match[1] && match[2]) {
+        const num = parseInt(match[1]);
+        const text = match[2];
+
+        let rank = 99;
+
+        if (text === "XS") {
+            rank = 4 - num; // 1XS = XS (3), 2XS = XXS (2), 3XS = XXXS (1)
+        } else if (text === "XL") {
+            rank = 6 + num; // 1XL = XL (7), 2XL = XXL (8), etc.
+        } else {
+            rank = sizeOrder[text] || 99;
+        }
+
+        return {
+            numPart: num,
+            rank,
+            textPart: text
+        };
+    }
+
+    // Si solo es un número, asigna un rango basado en el número
+    if (match && match[1] && !match[2]) {
+        const num = parseInt(match[1]);
+
+        return {
+            numPart: num,
+            rank: num,
+            textPart: ""
+        };
+    }
+
+    // Si no coincide con nada, devuelve un valor por defecto
+    return {
+        numPart: null,
+        rank: 99,
+        textPart: ""
+    };
 }
+
 
         /**function buscarPorREC() {
             let recBuscado = document.getElementById("recInput").value;
