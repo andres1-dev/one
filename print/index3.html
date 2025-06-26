@@ -428,7 +428,7 @@ const distribucionParsed = distribucionRaw.map(r => {
             
             const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
             //const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=REC${currentSearchKey}&code=Code128&dpi=300&dataseparator=`;
-            const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
+            const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=REC${currentSearchKey}&code=Code128&dpi=300&dataseparator=`;
             
             // Abrir ventana
             const ventana = window.open('', '_blank');
