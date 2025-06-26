@@ -435,8 +435,9 @@ const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=
 const barcodeElement = document.querySelector('.barcode');
 
 if (barcodeElement) {
-  barcodeElement.src = barcodeUrl;
   barcodeElement.style.height = isModoCliente ? '35px' : '60px';
+  barcodeElement.style.maxHeight = '60px'; // para prevenir que se pase
+  barcodeElement.style.width = 'auto';     // mantener proporción
 }
             
             const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
@@ -573,8 +574,11 @@ if (barcodeElement) {
                             margin-top: 0px;
                         }*/
 .barcode {
-  margin-top: 0px;
   display: block;
+  margin-top: 0px;
+  max-height: 60px;
+  height: auto; /* Deja que el JS lo controle */
+  width: auto;
 }
 
                         .title-section {
