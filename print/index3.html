@@ -424,12 +424,9 @@ const distribucionParsed = distribucionRaw.map(r => {
             // Configuración específica para cliente
             const clienteData = isModoCliente ? datos.DISTRIBUCION.Clientes[clienteNombre] : null;
             const clienteId = isModoCliente ? (clienteData.id || '') : '';
-            //const qrData = isModoCliente ? `REC${currentSearchKey}-${clienteId}` : `REC${currentSearchKey}`;//
-
-const qrData = isModoCliente
-  ? `REC${currentSearchKey}-${clienteId}`
-  : `REC${currentSearchKey}`;
-
+            const qrData = isModoCliente ? `REC${currentSearchKey}-${clienteId}` : `REC${currentSearchKey}`;
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
+            
 const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
 
 const barcodeElement = document.querySelector('.barcode');
@@ -439,13 +436,7 @@ if (barcodeElement) {
   barcodeElement.style.maxHeight = '60px'; // para prevenir que se pase
   barcodeElement.style.width = 'auto';     // mantener proporción
 }
-            
-            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
-
-            
-            
-            //const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=REC${currentSearchKey}&code=Code128&dpi=300&dataseparator=`;
-            //const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
+        
             
             // Abrir ventana
             const ventana = window.open('', '_blank');
@@ -576,7 +567,7 @@ if (barcodeElement) {
 .barcode {
   display: block;
   margin-top: 0px;
-  max-height: 60px;
+  max-height: 35px;
   height: auto; /* Deja que el JS lo controle */
   width: auto;
 }
