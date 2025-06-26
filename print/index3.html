@@ -556,6 +556,10 @@ const distribucionParsed = distribucionRaw.map(r => {
                             height: 35px;
                             margin-top: 0px;
                         }
+/* Aplicar altura específica si no es cliente */
+:not(.isModoCliente) .barcode {
+    height: 60px;
+}
                         .title-section {
                             text-align: center;
                             margin-bottom: 10px;
