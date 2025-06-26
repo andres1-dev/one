@@ -424,11 +424,27 @@ const distribucionParsed = distribucionRaw.map(r => {
             // Configuración específica para cliente
             const clienteData = isModoCliente ? datos.DISTRIBUCION.Clientes[clienteNombre] : null;
             const clienteId = isModoCliente ? (clienteData.id || '') : '';
-            const qrData = isModoCliente ? `REC${currentSearchKey}-${clienteId}` : `REC${currentSearchKey}`;
+            //const qrData = isModoCliente ? `REC${currentSearchKey}-${clienteId}` : `REC${currentSearchKey}`;//
+
+const qrData = isModoCliente
+  ? `REC${currentSearchKey}-${clienteId}`
+  : `REC${currentSearchKey}`;
+
+const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
+
+const barcodeElement = document.querySelector('.barcode');
+
+if (barcodeElement) {
+  barcodeElement.src = barcodeUrl;
+  barcodeElement.style.height = isModoCliente ? '35px' : '60px';
+}
             
             const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
+
+            
+            
             //const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=REC${currentSearchKey}&code=Code128&dpi=300&dataseparator=`;
-            const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
+            //const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
             
             // Abrir ventana
             const ventana = window.open('', '_blank');
@@ -552,14 +568,15 @@ const distribucionParsed = distribucionRaw.map(r => {
                             padding: 5px;
                             background: white;
                         }
-                        .barcode {
+                        /*.barcode {
                             height: 60px;
                             margin-top: 0px;
-                        }
-/* Aplicar altura específica si no es cliente */
-:not(.isModoCliente) .barcode {
-    height: 35px;
+                        }*/
+.barcode {
+  margin-top: 0px;
+  display: block;
 }
+
                         .title-section {
                             text-align: center;
                             margin-bottom: 10px;
