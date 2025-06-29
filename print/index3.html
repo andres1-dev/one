@@ -734,7 +734,7 @@ if (barcodeElement) {
                                             let pvpStr = datos.PVP || '';
                                             let pvpNum = parseInt(pvpStr.replace('$', '').replace(/\./g, '').trim());
                                             if (pvpNum <= 39900) return `${pvpStr} Linea`;
-                                            if (pvpNum >= 40000 && pvpNum <= 60000) return `${pvpStr} Moda`;
+                                            if (pvpNum >= 40000 && pvpNum <= 59900) return `${pvpStr} Moda`;
                                             if (pvpNum >= 60000) return `${pvpStr} Pronta`;
                                             return `${pvpStr}`;
                                         })()}
