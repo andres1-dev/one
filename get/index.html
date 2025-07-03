@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Datos Unificado</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .loading {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #downloadBtn {
+            background-color: #28a745;
+        }
+        #downloadBtn:hover {
+            background-color: #218838;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sistema de Gestión de Datos Unificado</h1>
+    <div id="status" class="status loading">Cargando datos iniciales...</div>
+    <div id="timeInfo" class="info" style="display: none;"></div>
+    
+    <div class="button-container">
+        <button id="refreshBtn" onclick="loadData()">Actualizar Datos</button>
+        <button id="downloadBtn" onclick="downloadJson()" disabled>Descargar JSON</button>
+    </div>
+
+    <script>
+        // Configuración de las hojas de cálculo
+        const sheetsConfig = [
+            {
+                id: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
+                name: "DataBase",
+                type: "processed"
+            },
+            {
+                id: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+                name: "DATA2",
+                type: "preformatted",
+                jsonColumn: "S"
+            }
+        ];
+        
+        const apiKey = "AIzaSyAn6o3jTwxe2ahhT-Aj03BWAS2ccE3NlE4";
+        let jsonData = [];
+        let loadStartTime;
+
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function showTimeInfo(message) {
+            const timeDiv = document.getElementById('timeInfo');
+            timeDiv.textContent = message;
+            timeDiv.style.display = 'block';
+        }
+
+        function parseHRData(hrString) {
+            if (!hrString) return [];
+            
+            hrString = hrString.trim();
+            const entries = hrString.split('☬').filter(e => e.trim() !== '');
+            
+            return entries.map(entry => {
+                const parts = entry.split('∞');
+                if (parts.length !== 4) return null;
+                
+                return {
+                    codigo: parts[0].trim(),
+                    color: parts[1].trim(),
+                    talla: parts[2].trim(),
+                    cantidad: parseInt(parts[3].trim()) || 0
+                };
+            }).filter(entry => entry !== null);
+        }
+
+        function downloadJson() {
+            if (jsonData.length === 0) {
+                alert("No hay datos para descargar");
+                return;
+            }
+
+            const dataStr = JSON.stringify(jsonData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `datos_unificados_${new Date().toISOString().slice(0,10)}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+
+        async function getSheetData(sheetConfig) {
+            try {
+                const response = await axios.get(
+                    `https://sheets.googleapis.com/v4/spreadsheets/${sheetConfig.id}/values/${sheetConfig.name}?key=${apiKey}`
+                );
+                return response.data.values || [];
+            } catch (error) {
+                console.error(`Error al obtener datos de ${sheetConfig.name}:`, error);
+                return [];
+            }
+        }
+
+        async function processFirstSheet(rows) {
+            const result = [];
+            const processedLotes = new Set();
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length < 226) continue;
+
+                if (row[27] !== "FULL") continue;
+
+                const lote = row[8];
+                if (!lote || processedLotes.has(lote)) continue;
+                processedLotes.add(lote);
+
+                // Procesar ANEXOS
+                const anexos = rows
+                    .filter(r => r.length > 225 && r[8] === lote && r[27] !== "FULL")
+                    .flatMap(r => {
+                        const hrEntries = parseHRData(r[225]);
+                        return hrEntries.map(hr => ({
+                            "DOCUMENTO": r[0] || "",
+                            "TALLA": hr.talla,
+                            "COLOR": hr.color,
+                            "TIPO": r[27] || "",
+                            "CANTIDAD": hr.cantidad
+                        }));
+                    });
+
+                // Procesar HR del documento principal
+                const hrData = parseHRData(row[225]).map(hr => [
+                    hr.codigo,
+                    hr.color,
+                    hr.talla,
+                    hr.cantidad
+                ]);
+
+                const proveedor = row[3] === "LINEA ANGELES" ? 
+                    "TEXTILES Y CREACIONES LOS ANGELES SAS" : 
+                    "TEXTILES Y CREACIONES EL UNIVERSO SAS";
+
+                const item = {
+                    //"A": row[0] || "",
+                    "A": (row[0] || "").replace(/^REC/, ""),
+                    "FECHA": row[1] || "",
+                    "TALLER": row[2] || "",
+                    "LINEA": row[3] || "",
+                    "AUDITOR": row[4] || "",
+                    "ESCANER": row[5] || "",
+                    "LOTE": parseInt(lote || "0"),
+                    "REFPROV": row[6] || "",
+                    "DESCRIPCIÓN": row[9] || "",
+                    "CANTIDAD": parseInt(row[18] || "0"),
+                    "REFERENCIA": row[26] || "",
+                    "TIPO": row[27] || "",
+                    "PVP": row[217] || "",
+                    "PRENDA": row[29] || "",
+                    "GENERO": row[30] || "",
+                    "PROVEEDOR": proveedor,
+                    "ANEXOS": anexos,
+                    "HR": hrData,
+                    "BOLSAS": parseInt(row[219] || "0"),
+                    "FUENTE": "DataBase"
+                };
+
+                result.push(item);
+            }
+
+            return result;
+        }
+
+        async function processSecondSheet(rows) {
+            const result = [];
+            const jsonColumnIndex = 18; // Columna S (0-based index: 18)
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length <= jsonColumnIndex) continue;
+
+                try {
+                    const jsonItem = JSON.parse(row[jsonColumnIndex]);
+                    jsonItem.FUENTE = "DATA2";
+                    result.push(jsonItem);
+                } catch (e) {
+                    console.error("Error al parsear JSON de la fila", i, ":", e);
+                }
+            }
+
+            return result;
+        }
+
+        async function loadAndProcessData() {
+            try {
+                loadStartTime = performance.now();
+                updateStatus("Conectando con Google Sheets...", "loading");
+                document.getElementById('downloadBtn').disabled = true;
+                
+                // Obtener datos de ambas hojas en paralelo
+                const [firstSheetData, secondSheetData] = await Promise.all([
+                    getSheetData(sheetsConfig[0]),
+                    getSheetData(sheetsConfig[1])
+                ]);
+
+                // Procesar ambas hojas
+                const [processedFirst, processedSecond] = await Promise.all([
+                    processFirstSheet(firstSheetData),
+                    processSecondSheet(secondSheetData)
+                ]);
+
+                // Unificar los datos
+                jsonData = [...processedFirst, ...processedSecond];
+                
+                const loadEndTime = performance.now();
+                const loadTime = ((loadEndTime - loadStartTime) / 1000).toFixed(2);
+                
+                updateStatus(`Datos cargados correctamente (${jsonData.length} registros)`, "success");
+                showTimeInfo(`Tiempo de carga: ${loadTime} segundos | ${processedFirst.length} de DataBase + ${processedSecond.length} de DATA2`);
+                document.getElementById('downloadBtn').disabled = false;
+                
+                console.log("Datos unificados:", jsonData);
+                
+            } catch (error) {
+                updateStatus("Error: " + error.message, "error");
+                console.error("Error al procesar datos:", error);
+            }
+        }
+
+        function loadData() {
+            document.getElementById('refreshBtn').disabled = true;
+            loadAndProcessData().finally(() => {
+                document.getElementById('refreshBtn').disabled = false;
+            });
+        }
+
+        // Cargar datos automáticamente al iniciar
+        window.onload = loadData;
+    </script>
+</body>
+</html>
