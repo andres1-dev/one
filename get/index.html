@@ -3,21 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión de Datos Unificado</title>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>Generador de JSON Unificado</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
             text-align: center;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            min-width: 120px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #downloadBtn {
+            background-color: #0f9d58;
+        }
+        #downloadBtn:hover {
+            background-color: #0b8043;
         }
         .status {
-            margin: 20px 0;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 4px;
+            margin: 15px 0;
             font-weight: bold;
+            text-align: center;
         }
         .loading {
             background-color: #fff3cd;
@@ -31,142 +77,157 @@
             background-color: #f8d7da;
             color: #721c24;
         }
-        .info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            margin: 10px 0;
+        .stats {
+            background-color: #e2e3e5;
+            color: #383d41;
             padding: 10px;
-            border-radius: 5px;
-        }
-        button {
-            background-color: #4285f4;
-            color: white;
-            border: none;
-            padding: 10px 15px;
             border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 10px;
+            margin: 10px 0;
+            text-align: center;
+            font-size: 14px;
         }
-        button:hover {
-            background-color: #3367d6;
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 13px;
         }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+            display: none;
         }
-        #downloadBtn {
-            background-color: #28a745;
-        }
-        #downloadBtn:hover {
-            background-color: #218838;
-        }
-        .button-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <h1>Sistema de Gestión de Datos Unificado</h1>
-    <div id="status" class="status loading">Cargando datos iniciales...</div>
-    <div id="timeInfo" class="info" style="display: none;"></div>
-    
-    <div class="button-container">
-        <button id="refreshBtn" onclick="loadData()">Actualizar Datos</button>
-        <button id="downloadBtn" onclick="downloadJson()" disabled>Descargar JSON</button>
+    <div class="container">
+        <h1>Generador de JSON Unificado</h1>
+        <p class="subtitle">Datos combinados de múltiples fuentes</p>
+        
+        <div class="button-group">
+            <button id="loadBtn" onclick="loadData()">Actualizar Datos</button>
+            <button id="downloadBtn" onclick="downloadJson()" disabled>Descargar JSON</button>
+        </div>
+        
+        <div class="loader" id="loader"></div>
+        <div id="status" class="status">Cargando datos iniciales...</div>
+        <div id="stats" class="stats" style="display: none;"></div>
+        
+        <h3>Vista previa del JSON:</h3>
+        <pre id="jsonPreview">Los datos aparecerán aquí...</pre>
     </div>
 
     <script>
         // Configuración de las hojas de cálculo
-        const sheetsConfig = [
-            {
-                id: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
-                name: "DataBase",
-                type: "processed"
-            },
-            {
-                id: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
-                name: "DATA2",
-                type: "preformatted",
-                jsonColumn: "S"
-            }
-        ];
-        
-        const apiKey = "AIzaSyAn6o3jTwxe2ahhT-Aj03BWAS2ccE3NlE4";
-        let jsonData = [];
+        const sheetsConfig = {
+            apiKey: "AIzaSyAn6o3jTwxe2ahhT-Aj03BWAS2ccE3NlE4",
+            sheets: [
+                {
+                    id: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
+                    name: "DataBase",
+                    range: "DataBase!A:ZZ"
+                },
+                {
+                    id: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+                    name: "DATA2",
+                    range: "DATA2!S:S",
+                    jsonColumn: true
+                },
+                {
+                    id: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE",
+                    name: "Distribucion",
+                    range: "DATA!C:E"
+                },
+                {
+                    id: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE",
+                    name: "Clientes",
+                    range: "CLIENTES!A:J"
+                }
+            ]
+        };
+
+        let unifiedData = [];
         let loadStartTime;
 
-        function updateStatus(message, type) {
+        // Mostrar/ocultar loader
+        function showLoader(show) {
+            document.getElementById('loader').style.display = show ? 'block' : 'none';
+        }
+
+        // Actualizar estado en la UI
+        function updateStatus(message, type = "") {
             const statusDiv = document.getElementById('status');
             statusDiv.textContent = message;
             statusDiv.className = `status ${type}`;
         }
 
-        function showTimeInfo(message) {
-            const timeDiv = document.getElementById('timeInfo');
-            timeDiv.textContent = message;
-            timeDiv.style.display = 'block';
+        // Mostrar estadísticas
+        function showStats(message) {
+            const statsDiv = document.getElementById('stats');
+            statsDiv.textContent = message;
+            statsDiv.style.display = 'block';
         }
 
+        // Obtener datos de una hoja
+        async function fetchSheetData(sheet) {
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}/values/${sheet.range}?key=${sheetsConfig.apiKey}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Error ${response.status}`);
+                return (await response.json()).values || [];
+            } catch (error) {
+                console.error(`Error al obtener ${sheet.name}:`, error);
+                throw error;
+            }
+        }
+
+        // Parsear datos HR
         function parseHRData(hrString) {
             if (!hrString) return [];
-            
-            hrString = hrString.trim();
-            const entries = hrString.split('☬').filter(e => e.trim() !== '');
-            
-            return entries.map(entry => {
-                const parts = entry.split('∞');
-                if (parts.length !== 4) return null;
-                
-                return {
-                    codigo: parts[0].trim(),
-                    color: parts[1].trim(),
-                    talla: parts[2].trim(),
-                    cantidad: parseInt(parts[3].trim()) || 0
-                };
-            }).filter(entry => entry !== null);
+            return hrString.trim().split('☬')
+                .filter(e => e.trim() !== '')
+                .map(entry => {
+                    const parts = entry.split('∞');
+                    return parts.length === 4 ? {
+                        codigo: parts[0].trim(),
+                        color: parts[1].trim(),
+                        talla: parts[2].trim(),
+                        cantidad: parseInt(parts[3].trim()) || 0
+                    } : null;
+                })
+                .filter(entry => entry !== null);
         }
 
-        function downloadJson() {
-            if (jsonData.length === 0) {
-                alert("No hay datos para descargar");
-                return;
-            }
+        // Procesar datos de DataBase
+        function processDataBase(rows, distribucionData) {
+            const distribucionParsed = distribucionData.map(r => {
+                try {
+                    const data = r[0] ? JSON.parse(r[0]) : null;
+                    return data ? { ...data, Colaborador: r[2] || '' } : null;
+                } catch (e) {
+                    console.error("Error al parsear distribución:", e);
+                    return null;
+                }
+            }).filter(Boolean);
 
-            const dataStr = JSON.stringify(jsonData, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            
-            const exportFileDefaultName = `datos_unificados_${new Date().toISOString().slice(0,10)}.json`;
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-        }
-
-        async function getSheetData(sheetConfig) {
-            try {
-                const response = await axios.get(
-                    `https://sheets.googleapis.com/v4/spreadsheets/${sheetConfig.id}/values/${sheetConfig.name}?key=${apiKey}`
-                );
-                return response.data.values || [];
-            } catch (error) {
-                console.error(`Error al obtener datos de ${sheetConfig.name}:`, error);
-                return [];
-            }
-        }
-
-        async function processFirstSheet(rows) {
             const result = [];
             const processedLotes = new Set();
 
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
-                if (!row || row.length < 226) continue;
-
-                if (row[27] !== "FULL") continue;
+                if (!row || row.length < 226 || row[27] !== "FULL") continue;
 
                 const lote = row[8];
                 if (!lote || processedLotes.has(lote)) continue;
@@ -175,32 +236,20 @@
                 // Procesar ANEXOS
                 const anexos = rows
                     .filter(r => r.length > 225 && r[8] === lote && r[27] !== "FULL")
-                    .flatMap(r => {
-                        const hrEntries = parseHRData(r[225]);
-                        return hrEntries.map(hr => ({
-                            "DOCUMENTO": r[0] || "",
-                            "TALLA": hr.talla,
-                            "COLOR": hr.color,
-                            "TIPO": r[27] || "",
-                            "CANTIDAD": hr.cantidad
-                        }));
-                    });
+                    .flatMap(r => parseHRData(r[225]).map(hr => ({
+                        "DOCUMENTO": r[0] || "",
+                        "TALLA": hr.talla,
+                        "COLOR": hr.color,
+                        "TIPO": r[27] || "",
+                        "CANTIDAD": hr.cantidad
+                    })));
 
-                // Procesar HR del documento principal
-                const hrData = parseHRData(row[225]).map(hr => [
-                    hr.codigo,
-                    hr.color,
-                    hr.talla,
-                    hr.cantidad
-                ]);
+                // Buscar distribución
+                const docNumber = (row[0] || "").replace(/^REC/, "");
+                const distribucionMatch = distribucionParsed.find(d => d?.Documento === docNumber);
 
-                const proveedor = row[3] === "LINEA ANGELES" ? 
-                    "TEXTILES Y CREACIONES LOS ANGELES SAS" : 
-                    "TEXTILES Y CREACIONES EL UNIVERSO SAS";
-
-                const item = {
-                    //"A": row[0] || "",
-                    "A": (row[0] || "").replace(/^REC/, ""),
+                result.push({
+                    "REC": docNumber,
                     "FECHA": row[1] || "",
                     "TALLER": row[2] || "",
                     "LINEA": row[3] || "",
@@ -208,91 +257,167 @@
                     "ESCANER": row[5] || "",
                     "LOTE": parseInt(lote || "0"),
                     "REFPROV": row[6] || "",
-                    "DESCRIPCIÓN": row[9] || "",
+                    "DESCRIPCION": row[9] || "",
                     "CANTIDAD": parseInt(row[18] || "0"),
                     "REFERENCIA": row[26] || "",
                     "TIPO": row[27] || "",
                     "PVP": row[217] || "",
                     "PRENDA": row[29] || "",
                     "GENERO": row[30] || "",
-                    "PROVEEDOR": proveedor,
+                    "PROVEEDOR": row[3] === "LINEA ANGELES" ? 
+                        "TEXTILES Y CREACIONES LOS ANGELES SAS" : 
+                        "TEXTILES Y CREACIONES EL UNIVERSO SAS",
                     "ANEXOS": anexos,
-                    "HR": hrData,
+                    "HR": parseHRData(row[225]),
                     "BOLSAS": parseInt(row[219] || "0"),
+                    "DISTRIBUCION": {
+                        "Documento": docNumber,
+                        "Clientes": distribucionMatch?.Clientes || {},
+                        "Colaborador": distribucionMatch?.Colaborador || ""
+                    },
                     "FUENTE": "DataBase"
-                };
-
-                result.push(item);
+                });
             }
 
             return result;
         }
 
-        async function processSecondSheet(rows) {
-            const result = [];
-            const jsonColumnIndex = 18; // Columna S (0-based index: 18)
+        // Procesar datos de clientes
+        function processClientesData(clientesData) {
+            const header = ['id', 'razonSocial', 'nombreCorto', 'tipoCliente', 'estado', 
+                           'direccion', 'telefono', 'email', 'tipoEmpresa', 'notas'];
+            const dict = {};
+            
+            clientesData.forEach(row => {
+                const cliente = {};
+                header.forEach((key, i) => cliente[key] = row[i] || '');
+                if (cliente.id) dict[cliente.id] = cliente;
+            });
 
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                if (!row || row.length <= jsonColumnIndex) continue;
+            return dict;
+        }
 
+        // Procesar datos de DATA2
+        function processDATA2(data2Rows, distribucionData, clientesDict) {
+            const distribucionParsed = distribucionData.map(r => {
                 try {
-                    const jsonItem = JSON.parse(row[jsonColumnIndex]);
-                    jsonItem.FUENTE = "DATA2";
-                    result.push(jsonItem);
+                    const data = r[0] ? JSON.parse(r[0]) : null;
+                    return data ? { ...data, Colaborador: r[2] || '' } : null;
                 } catch (e) {
-                    console.error("Error al parsear JSON de la fila", i, ":", e);
+                    console.error("Error al parsear distribución:", e);
+                    return null;
                 }
-            }
+            }).filter(Boolean);
 
-            return result;
+            return data2Rows
+                .filter(row => row && row.length > 0)
+                .map(row => {
+                    try {
+                        const item = JSON.parse(row[0]);
+                        if (!item) return null;
+                        
+                        const doc = item?.A?.toString();
+                        const distribucionMatch = distribucionParsed.find(d => d?.Documento === doc);
+
+                        // Enriquecer clientes
+                        const clientesCompletos = {};
+                        if (distribucionMatch?.Clientes) {
+                            Object.entries(distribucionMatch.Clientes).forEach(([nombre, cliente]) => {
+                                clientesCompletos[nombre] = { ...cliente, ...(clientesDict[cliente.id] || {}) };
+                            });
+                        }
+
+                        return {
+                            ...item,
+                            "REC": item.A,
+                            "COLABORADOR": distribucionMatch?.Colaborador || '',
+                            "DESCRIPCION": item['DESCRIPCIÓN'] || item['DESCRIPCION'] || '',
+                            "DISTRIBUCION": {
+                                "Documento": doc,
+                                "Clientes": clientesCompletos,
+                                "Colaborador": distribucionMatch?.Colaborador || ''
+                            },
+                            "FUENTE": "DATA2"
+                        };
+                    } catch (e) {
+                        console.error("Error al parsear DATA2:", e);
+                        return null;
+                    }
+                })
+                .filter(Boolean);
         }
 
-        async function loadAndProcessData() {
+        // Función principal para cargar datos
+        async function loadData() {
             try {
-                loadStartTime = performance.now();
-                updateStatus("Conectando con Google Sheets...", "loading");
+                showLoader(true);
+                updateStatus("Cargando datos...", "loading");
+                document.getElementById('loadBtn').disabled = true;
                 document.getElementById('downloadBtn').disabled = true;
-                
-                // Obtener datos de ambas hojas en paralelo
-                const [firstSheetData, secondSheetData] = await Promise.all([
-                    getSheetData(sheetsConfig[0]),
-                    getSheetData(sheetsConfig[1])
+                loadStartTime = performance.now();
+
+                // Obtener datos en paralelo
+                const [dataBaseRows, data2Rows, distribucionData, clientesData] = await Promise.all([
+                    fetchSheetData(sheetsConfig.sheets[0]),
+                    fetchSheetData(sheetsConfig.sheets[1]),
+                    fetchSheetData(sheetsConfig.sheets[2]),
+                    fetchSheetData(sheetsConfig.sheets[3])
                 ]);
 
-                // Procesar ambas hojas
-                const [processedFirst, processedSecond] = await Promise.all([
-                    processFirstSheet(firstSheetData),
-                    processSecondSheet(secondSheetData)
-                ]);
+                // Procesar datos
+                const clientesDict = processClientesData(clientesData);
+                const dataBaseProcessed = processDataBase(dataBaseRows, distribucionData);
+                const data2Processed = processDATA2(data2Rows, distribucionData, clientesDict);
+                unifiedData = [...dataBaseProcessed, ...data2Processed];
 
-                // Unificar los datos
-                jsonData = [...processedFirst, ...processedSecond];
+                // Calcular estadísticas
+                const loadTime = ((performance.now() - loadStartTime) / 1000).toFixed(2);
+                const withDistribution = unifiedData.filter(item => 
+                    item.DISTRIBUCION && Object.keys(item.DISTRIBUCION.Clientes).length > 0
+                ).length;
+
+                // Actualizar UI
+                updateStatus("Datos cargados correctamente", "success");
+                showStats(
+                    `Tiempo: ${loadTime}s | Registros: ${unifiedData.length} | ` +
+                    `DataBase: ${dataBaseProcessed.length} | DATA2: ${data2Processed.length} | ` +
+                    `Con distribución: ${withDistribution}`
+                );
                 
-                const loadEndTime = performance.now();
-                const loadTime = ((loadEndTime - loadStartTime) / 1000).toFixed(2);
-                
-                updateStatus(`Datos cargados correctamente (${jsonData.length} registros)`, "success");
-                showTimeInfo(`Tiempo de carga: ${loadTime} segundos | ${processedFirst.length} de DataBase + ${processedSecond.length} de DATA2`);
                 document.getElementById('downloadBtn').disabled = false;
-                
-                console.log("Datos unificados:", jsonData);
+                document.getElementById('jsonPreview').textContent = 
+                    JSON.stringify(unifiedData.slice(0, 2), null, 2) + 
+                    `\n\n... (mostrando 2 de ${unifiedData.length} registros)`;
                 
             } catch (error) {
-                updateStatus("Error: " + error.message, "error");
-                console.error("Error al procesar datos:", error);
+                updateStatus(`Error: ${error.message}`, "error");
+                console.error("Error:", error);
+            } finally {
+                showLoader(false);
+                document.getElementById('loadBtn').disabled = false;
             }
         }
 
-        function loadData() {
-            document.getElementById('refreshBtn').disabled = true;
-            loadAndProcessData().finally(() => {
-                document.getElementById('refreshBtn').disabled = false;
-            });
+        // Descargar JSON
+        function downloadJson() {
+            if (!unifiedData.length) {
+                alert("No hay datos para descargar");
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify(unifiedData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `datos_unificados_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // Cargar datos automáticamente al iniciar
-        window.onload = loadData;
+        window.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
