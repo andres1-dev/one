@@ -220,17 +220,32 @@
         };
         
         // Función para inicializar Flatpickr
-        const initializeFlatpickr = () => {
-            flatpickr(dateRangeInput, {
-                mode: "range",
-                locale: "es",
-                dateFormat: "Y-m-d",
-                allowInput: true,
-                onClose: function(selectedDates, dateStr, instance) {
-                    applyFilters();
-                }
-            });
-        };
+const initializeFlatpickr = () => {
+    flatpickr(dateRangeInput, {
+        mode: "range",
+        locale: "es",
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        onChange: function(selectedDates, dateStr, instance) {
+            console.log("Fecha seleccionada:", dateStr); // Debug
+            applyFilters();
+        }
+    });
+};
+
+const debugDates = () => {
+    if (!allData || allData.length === 0) return;
+    
+    console.group("Depuración de fechas");
+    console.log("Primeras 10 fechas en los datos:");
+    allData.slice(0, 10).forEach((item, index) => {
+        console.log(`Registro ${index + 1}:`, item.FECHA, "| Tipo:", typeof item.FECHA);
+    });
+    
+    const dateRange = $(dateRangeInput).val();
+    console.log("Valor actual del filtro:", dateRange);
+    console.groupEnd();
+};
         
         // Función para inicializar Select2
         const initializeSelect2 = () => {
@@ -323,57 +338,61 @@
         };
         
         // Función para aplicar los filtros
-        const applyFilters = () => {
-            if (!dataTable) return;
+const applyFilters = () => {
+    if (!dataTable) return;
 
-            // Limpiar todos los filtros anteriores
-            $.fn.dataTable.ext.search = [];
-            dataTable.columns().search('');
+    // Limpiar todos los filtros anteriores
+    $.fn.dataTable.ext.search = [];
+    dataTable.columns().search('');
 
-            // Obtener valores de los filtros
-            const proveedor = $('#proveedor-filter').val();
-            const linea = $('#linea-filter').val();
-            const escaner = $('#escaner-filter').val();
-            const gestor = $('#gestor-filter').val();
-            const clase = $('#clase-filter').val();
-            const dateRange = $(dateRangeInput).val();
+    // Obtener valores de los filtros
+    const proveedor = $('#proveedor-filter').val();
+    const linea = $('#linea-filter').val();
+    const escaner = $('#escaner-filter').val();
+    const gestor = $('#gestor-filter').val();
+    const clase = $('#clase-filter').val();
+    const dateRange = $(dateRangeInput).val();
 
-            // Aplicar filtros de columnas
-            if (proveedor) dataTable.column(16).search(proveedor);
-            if (linea) dataTable.column(3).search(linea);
-            if (escaner) dataTable.column(5).search(escaner);
-            if (gestor) dataTable.column(15).search(gestor);
-            if (clase) dataTable.column(17).search(clase);
+    // Aplicar filtros de columnas
+    if (proveedor) dataTable.column(16).search(proveedor);
+    if (linea) dataTable.column(3).search(linea);
+    if (escaner) dataTable.column(5).search(escaner);
+    if (gestor) dataTable.column(15).search(gestor);
+    if (clase) dataTable.column(17).search(clase);
 
-            // Filtro de rango de fechas
-            if (dateRange) {
-                const dates = dateRange.split(' to ');
-                const startDate = dates[0];
-                const endDate = dates[1] || dates[0];
+    // Filtro de rango de fechas
+    if (dateRange) {
+        const dates = dateRange.split(' to ');
+        const startDate = dates[0];
+        const endDate = dates[1] || dates[0];
 
-                // Validar formato de fechas
-                if (!isValidDate(startDate) || (endDate && !isValidDate(endDate))) {
-                    console.error("Formato de fecha inválido");
-                    return;
-                }
+        console.log("Filtrando entre:", startDate, "y", endDate); // Debug
 
-                // Función de filtrado
-                $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                    const dateStr = data[1]; // Columna de fecha
-                    
-                    if (!dateStr || !isValidDate(dateStr)) return false;
-                    
-                    // Comparación directa de strings en formato YYYY-MM-DD
-                    return dateStr >= startDate && dateStr <= (endDate || startDate);
-                });
+        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+            const dateStr = data[1]; // Columna de fecha
+            
+            if (!dateStr) {
+                console.log("Fecha vacía en registro:", data); // Debug
+                return false;
             }
+            
+            // Comparación directa de strings (formato YYYY-MM-DD)
+            const isInRange = dateStr >= startDate && dateStr <= endDate;
+            
+            if (!isInRange) {
+                console.log("Fecha fuera de rango:", dateStr, "Registro:", data); // Debug
+            }
+            
+            return isInRange;
+        });
+    }
 
-            // Aplicar todos los filtros
-            dataTable.draw();
+    // Aplicar todos los filtros
+    dataTable.draw();
 
-            // Actualizar resumen
-            updateSummary(dataTable.rows({ search: 'applied' }).data().toArray());
-        };
+    // Actualizar resumen
+    updateSummary(dataTable.rows({ search: 'applied' }).data().toArray());
+};
         
         // Función para actualizar el resumen
         const updateSummary = (data) => {
@@ -402,32 +421,27 @@
         };
         
         // Función principal para cargar y mostrar datos
-        const loadAndDisplayData = async () => {
-            toggleLoading(true);
-            hideError();
-            
-            try {
-                const data = await getCombinedData();
-                allData = data;
-                
-                // DEBUG: Mostrar ejemplos de fechas
-                console.log("Primeras 5 fechas en datos:", data.slice(0, 5).map(item => item.FECHA));
-                
-                // Inicializar la tabla
-                initializeDataTable(data);
-                
-                // Poblar los filtros
-                populateFilters(data);
-                
-                // Actualizar el resumen con todos los datos
-                updateSummary(data);
-            } catch (error) {
-                console.error("Error al cargar datos:", error);
-                showError(`Error al cargar datos: ${error.message}`);
-            } finally {
-                toggleLoading(false);
-            }
-        };
+const loadAndDisplayData = async () => {
+    toggleLoading(true);
+    hideError();
+    
+    try {
+        const data = await getCombinedData();
+        allData = data;
+        
+        // Debug: Verificar fechas
+        debugDates();
+        
+        initializeDataTable(data);
+        populateFilters(data);
+        updateSummary(data);
+    } catch (error) {
+        console.error("Error al cargar datos:", error);
+        showError(`Error al cargar datos: ${error.message}`);
+    } finally {
+        toggleLoading(false);
+    }
+};
         
         // Evento para el botón de actualización
         refreshBtn.addEventListener('click', loadAndDisplayData);
