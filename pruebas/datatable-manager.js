@@ -1,4 +1,7 @@
 // datatable-manager.js
+
+
+
 let dataTable;
 let flatpickrInstance;
 
@@ -7,26 +10,21 @@ export const initializeDataTable = (data) => {
         dataTable.destroy();
     }
     
-    // Configuración simple de Flatpickr (solo fechas)
     flatpickrInstance = flatpickr("#filterFecha", {
         mode: "range",
         locale: "es",
-        dateFormat: "Y-m-d",
+        dateFormat: "d/m/Y",  // Cambiado a formato día/mes/año
         onClose: function(selectedDates) {
             if (selectedDates.length === 1) {
-                // Filtra un día específico
                 filterByExactDate(selectedDates[0]);
             } else if (selectedDates.length === 2) {
-                // Filtra por rango
                 filterByDateRange(selectedDates[0], selectedDates[1]);
             } else {
-                // Limpiar filtro
                 dataTable.search('').draw();
             }
         }
     });
     
-    // Configuración mínima de DataTable
     dataTable = $('#data-table').DataTable({
         data: data,
         columns: [
@@ -34,12 +32,14 @@ export const initializeDataTable = (data) => {
             { 
                 title: "Fecha", 
                 data: "FECHA",
-                render: function(data, type) {
-                    if (type === 'sort' || type === 'filter') return data;
-                    return data ? new Date(data).toLocaleDateString('es-ES') : '';
+                render: function(data) {
+                    if (!data) return '';
+                    // Parsear la fecha directamente sin conversión de zona horaria
+                    const parts = data.split(/-|\//);
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
                 }
             },
-            { title: "Taller", data: "TALLER" },
+                        { title: "Taller", data: "TALLER" },
             { title: "Línea", data: "LINEA" },
             { title: "Auditor", data: "AUDITOR" },
             { title: "Escáner", data: "ESCANER" },
@@ -62,7 +62,12 @@ export const initializeDataTable = (data) => {
             {
                 extend: 'excel',
                 text: '<i class="fas fa-file-excel me-1"></i> Excel',
-                className: 'btn btn-sm btn-success'
+                className: 'btn btn-sm btn-success',
+                customize: function(xlsx) {
+                    // Asegurar que las fechas en Excel sean correctas
+                    const sheet = xlsx.xl.worksheets['sheet1.xml'];
+                    $('row c[r^="B"]', sheet).attr('s', '2'); // Formato fecha
+                }
             },
             {
                 extend: 'csv',
@@ -74,16 +79,14 @@ export const initializeDataTable = (data) => {
         order: [[1, 'desc']]
     });
     
-    // Función para filtrar por fecha exacta
     function filterByExactDate(date) {
-        const dateStr = flatpickrInstance.formatDate(date, "Y-m-d");
-        dataTable.columns(1).search(dateStr).draw();
+        const formattedDate = formatDateForFilter(date);
+        dataTable.columns(1).search(formattedDate, true, false).draw();
     }
     
-    // Función para filtrar por rango de fechas
     function filterByDateRange(startDate, endDate) {
-        const startStr = flatpickrInstance.formatDate(startDate, "Y-m-d");
-        const endStr = flatpickrInstance.formatDate(endDate, "Y-m-d");
+        const startStr = formatDateForFilter(startDate);
+        const endStr = formatDateForFilter(endDate);
         
         $.fn.dataTable.ext.search.push(
             function(settings, data, dataIndex) {
@@ -95,6 +98,15 @@ export const initializeDataTable = (data) => {
         
         dataTable.draw();
         $.fn.dataTable.ext.search.pop();
+    }
+    
+    // Función auxiliar para formatear fechas consistentemente
+    function formatDateForFilter(date) {
+        const d = new Date(date);
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        return `${year}-${month}-${day}`; // Formato YYYY-MM-DD para filtrado
     }
 };
 
