@@ -317,13 +317,14 @@
         };
         
         // Función para aplicar los filtros
-        // Función para aplicar los filtros
+// Función para aplicar los filtros
 const applyFilters = () => {
     if (!dataTable) return;
-    
-    // Limpiar filtros anteriores de fechas
+
+    // Limpiar filtros anteriores
+    dataTable.columns().search('');
     $.fn.dataTable.ext.search = [];
-    
+
     // Obtener valores de los filtros
     const proveedor = $('#proveedor-filter').val();
     const linea = $('#linea-filter').val();
@@ -331,66 +332,45 @@ const applyFilters = () => {
     const gestor = $('#gestor-filter').val();
     const clase = $('#clase-filter').val();
     const dateRange = $(dateRangeInput).val();
-    
-    // Limpiar todos los filtros de columnas
-    dataTable.columns().search('');
-    
-    // Aplicar filtros de columnas normales
+
+    // Aplicar filtros de columnas
     if (proveedor) dataTable.column(16).search(proveedor);
     if (linea) dataTable.column(3).search(linea);
     if (escaner) dataTable.column(5).search(escaner);
     if (gestor) dataTable.column(15).search(gestor);
     if (clase) dataTable.column(17).search(clase);
-    
-    // Filtro especial para el rango de fechas
+
+    // Filtro de rango de fechas
     if (dateRange) {
         const dates = dateRange.split(' to ');
         const startDate = dates[0];
-        const endDate = dates[1] || dates[0]; // Si no hay fecha final, usar la misma
-        
-        // Validar formato de fechas
-        if (!isValidDate(startDate) || !isValidDate(endDate)) {
-            console.error("Formato de fecha inválido");
-            return;
-        }
-        
-        // Función de filtrado para fechas
+        const endDate = dates[1] || dates[0]; // Si no hay endDate, usar startDate
+
+        // Convertir a timestamp para comparación
+        const startTimestamp = new Date(startDate).setHours(0, 0, 0, 0);
+        const endTimestamp = new Date(endDate).setHours(23, 59, 59, 999);
+
+        // Función de filtrado
         $.fn.dataTable.ext.search.push(
             function(settings, data, dataIndex) {
-                const dateStr = data[1]; // Columna de fecha (índice 1)
+                const dateStr = data[1]; // Columna de fecha
                 if (!dateStr) return false;
-                
-                try {
-                    const cellDate = new Date(dateStr);
-                    const filterStart = new Date(startDate);
-                    const filterEnd = new Date(endDate);
-                    
-                    // Ajustar para incluir todo el día final
-                    filterEnd.setDate(filterEnd.getDate() + 1);
-                    
-                    return cellDate >= filterStart && cellDate < filterEnd;
-                } catch (e) {
-                    console.error("Error al comparar fechas:", e);
-                    return false;
-                }
+
+                const cellDate = new Date(dateStr);
+                const cellTimestamp = cellDate.getTime();
+
+                return cellTimestamp >= startTimestamp && cellTimestamp <= endTimestamp;
             }
         );
     }
-    
-    // Redibujar la tabla con todos los filtros aplicados
+
+    // Aplicar todos los filtros
     dataTable.draw();
-    
-    // Actualizar el resumen con los datos filtrados
+
+    // Actualizar resumen
     updateSummary(dataTable.rows({ search: 'applied' }).data().toArray());
 };
 
-// Función para validar formato de fecha (YYYY-MM-DD)
-const isValidDate = (dateString) => {
-    const regEx = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateString.match(regEx)) return false;
-    const d = new Date(dateString);
-    return !isNaN(d.getTime());
-};
         
         // Función para actualizar el resumen
         const updateSummary = (data) => {
