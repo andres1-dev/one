@@ -11,7 +11,14 @@ const normalizeLinea = (linea) => {
     return normalized.replace(/\s+/g, '').toUpperCase();
 };
 
-const normalizePVP = (pvp) => pvp.replace(/\$\s*/g, '').trim();
+// Modificada para quitar separadores de miles
+const normalizePVP = (pvp) => pvp.replace(/\$\s*/g, '').replace(/\./g, '').trim();
+
+// Nueva función para normalizar fecha
+const normalizeDate = (date) => {
+    if (!date) return '';
+    return date.replace(/\//g, '-');
+};
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
 
@@ -78,7 +85,7 @@ export const getParsedMainData = async () => {
                 const jsonData = JSON.parse(row[0]);
                 return {
                     DOCUMENTO: String(jsonData.A || ''),
-                    FECHA: jsonData.FECHA || '',
+                    FECHA: normalizeDate(jsonData.FECHA || ''), // Aplicar normalización de fecha
                     TALLER: jsonData.TALLER || '',
                     LINEA: normalizeLinea(jsonData.LINEA || ''),
                     AUDITOR: jsonData.AUDITOR || '',
@@ -89,7 +96,7 @@ export const getParsedMainData = async () => {
                     CANTIDAD: Number(jsonData.CANTIDAD) || 0,
                     REFERENCIA: jsonData.REFERENCIA || '',
                     TIPO: jsonData.TIPO || '',
-                    PVP: normalizePVP(jsonData.PVP || ''),
+                    PVP: normalizePVP(jsonData.PVP || ''), // Ya incluye la eliminación de separadores de miles
                     PRENDA: jsonData.PRENDA || '',
                     GENERO: jsonData.GENERO || '',
                     GESTOR: jsonData.GESTOR || '',
@@ -125,7 +132,7 @@ export const getREC = async () => {
             
             return {
                 DOCUMENTO: normalizeDocumento(documento),
-                FECHA: row[1] || '',
+                FECHA: normalizeDate(row[1] || ''), // Aplicar normalización de fecha
                 TALLER: row[2] || '',
                 LINEA: normalizeLinea(linea),
                 AUDITOR: row[4] || '',
@@ -136,7 +143,7 @@ export const getREC = async () => {
                 CANTIDAD: Number(row[18]) || 0,
                 REFERENCIA: row[26] || '',
                 TIPO: row[27] || '',
-                PVP: normalizePVP(row[31] || ''),
+                PVP: normalizePVP(row[31] || ''), // Ya incluye la eliminación de separadores de miles
                 PRENDA: row[29] || '',
                 GENERO: row[30] || '',
                 GESTOR: getGestorByLinea(linea), 
