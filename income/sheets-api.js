@@ -38,6 +38,7 @@ const getClaseByPVP = (pvp) => {
 };*/
 
 // Reemplaza en sheets-api.js la función normalizeDate
+/*
 const normalizeDate = (date) => {
     if (!date) return null;
     // Si ya está en formato YYYY-MM-DD
@@ -50,6 +51,21 @@ const normalizeDate = (date) => {
     }
     
     return null; // Formato no reconocido
+}; */
+
+const normalizeDate = (date) => {
+    if (!date) return null;
+    
+    // Si ya está en formato ISO (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    
+    // Para formato DD/MM/YYYY
+    if (date.includes('/')) {
+        const [day, month, year] = date.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // Convertir a ISO
+    }
+    
+    return null;
 };
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
