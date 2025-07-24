@@ -14,12 +14,16 @@ const normalizeLinea = (linea) => {
 // Modificada para quitar separadores de miles
 const normalizePVP = (pvp) => pvp.replace(/\$\s*/g, '').replace(/\./g, '').trim();
 
-// Nueva función para normalizar fecha
-/**
-const normalizeDate = (date) => {
-    if (!date) return '';
-    return date.replace(/\//g, '-');
-}; */
+const getClaseByPVP = (pvp) => {
+    const valor = parseFloat(pvp);
+    if (isNaN(valor)) return 'NO DEFINIDO';
+
+    if (valor <= 39900) return 'LINEA';
+    if (valor > 39900 && valor <= 59900) return 'MODA';
+    if (valor > 59900) return 'PRONTAMODA';
+
+    return 'NO DEFINIDO';
+};
 
 const normalizeDate = (date) => {
     if (!date) return null;
@@ -113,7 +117,8 @@ export const getParsedMainData = async () => {
                     PRENDA: jsonData.PRENDA || '',
                     GENERO: jsonData.GENERO || '',
                     GESTOR: jsonData.GESTOR || '',
-                    PROVEEDOR: jsonData.PROVEEDOR || getProveedorByLinea(jsonData.LINEA || '')
+                    PROVEEDOR: jsonData.PROVEEDOR || getProveedorByLinea(jsonData.LINEA || ''),
+                    CLASE: getClaseByPVP(normalizePVP(jsonData.PVP || ''))
                 };
             } catch (e) {
                 console.error("Error al parsear JSON:", e);
@@ -160,7 +165,8 @@ export const getREC = async () => {
                 PRENDA: row[29] || '',
                 GENERO: row[30] || '',
                 GESTOR: getGestorByLinea(linea), 
-                PROVEEDOR: getProveedorByLinea(linea)
+                PROVEEDOR: getProveedorByLinea(linea),
+                CLASE: getClaseByPVP(normalizePVP(row[31] || ''))
             };
         }).filter(item => item !== null && item.DOCUMENTO !== '');
     } catch (error) {
