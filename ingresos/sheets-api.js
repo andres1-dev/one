@@ -34,7 +34,8 @@ const normalizeDate = (date) => {
     const dd = day.padStart(2, '0');
     const mm = month.padStart(2, '0');
 
-    return `${year}-${mm}-${dd}`;
+    //return `${year}-${mm}-${dd}`;
+    return `${dd}/${mm}/${year}`;
 };
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
