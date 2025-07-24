@@ -323,7 +323,6 @@ const applyFilters = () => {
     if (!dataTable) return;
 
     // Limpiar todos los filtros anteriores
-    dataTable.columns().search('');
     $.fn.dataTable.ext.search = [];
 
     // Obtener valores de los filtros
@@ -333,6 +332,9 @@ const applyFilters = () => {
     const gestor = $('#gestor-filter').val();
     const clase = $('#clase-filter').val();
     const dateRange = $(dateRangeInput).val();
+
+    // Resetear búsquedas de columnas
+    dataTable.columns().search('');
 
     // Aplicar filtros de columnas
     if (proveedor) dataTable.column(16).search(proveedor);
@@ -347,31 +349,19 @@ const applyFilters = () => {
         const startDate = dates[0];
         const endDate = dates[1] || dates[0];
 
-        // Convertir a objetos Date sin hora (00:00:00)
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        // Convertir a formato Date (YYYY-MM-DD)
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date((endDate || startDate) + 'T23:59:59.999');
 
-        // Función de filtrado mejorada
         $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
             const dateStr = data[1]; // Columna de fecha
             
             if (!dateStr) return false;
             
-            try {
-                // Parsear la fecha de la celda (asumiendo formato YYYY-MM-DD)
-                const cellDateParts = dateStr.split('-');
-                const cellDate = new Date(
-                    parseInt(cellDateParts[0]),
-                    parseInt(cellDateParts[1]) - 1, // Meses son 0-based
-                    parseInt(cellDateParts[2])
-                );
-                
-                // Comparación directa de objetos Date
-                return cellDate >= start && cellDate <= end;
-            } catch (e) {
-                console.error("Error al parsear fecha:", dateStr, e);
-                return false;
-            }
+            // Parsear la fecha del registro
+            const recordDate = new Date(dateStr + 'T00:00:00');
+            
+            return recordDate >= start && recordDate <= end;
         });
     }
 
@@ -409,7 +399,7 @@ const applyFilters = () => {
         };
         
         // Función principal para cargar y mostrar datos
-        const loadAndDisplayData = async () => {
+        /*const loadAndDisplayData = async () => {
             toggleLoading(true);
             hideError();
             
@@ -431,7 +421,30 @@ const applyFilters = () => {
             } finally {
                 toggleLoading(false);
             }
-        };
+        };*/
+
+const loadAndDisplayData = async () => {
+    toggleLoading(true);
+    hideError();
+    
+    try {
+        const data = await getCombinedData();
+        allData = data;
+        
+        // DEBUG: Mostrar ejemplos de fechas
+        console.log("Primeras 5 fechas en datos:", 
+            data.slice(0, 5).map(item => item.FECHA));
+        
+        initializeDataTable(data);
+        populateFilters(data);
+        updateSummary(data);
+    } catch (error) {
+        console.error("Error al cargar datos:", error);
+        showError(`Error al cargar datos: ${error.message}`);
+    } finally {
+        toggleLoading(false);
+    }
+};
         
         // Evento para el botón de actualización
         refreshBtn.addEventListener('click', loadAndDisplayData);
