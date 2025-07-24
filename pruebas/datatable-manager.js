@@ -60,23 +60,9 @@ export const initializeDataTable = (data) => {
             { title: "Clase", data: "CLASE" },
             { title: "Fuente", data: "FUENTE" }
         ],
-        dom: '<"top"<"row"<"col-md-6"l><"col-md-6"f>>>rt<"bottom"<"row"<"col-md-6"i><"col-md-6"p>>><"clear">',
+        dom: 'Bfrtip',
         buttons: [
-            {
-                extend: 'copy',
-                text: '<i class="fas fa-copy"></i> Copiar',
-                className: 'btn btn-secondary'
-            },
-            {
-                extend: 'excel',
-                text: '<i class="fas fa-file-excel"></i> Excel',
-                className: 'btn btn-success'
-            },
-            {
-                extend: 'print',
-                text: '<i class="fas fa-print"></i> Imprimir',
-                className: 'btn btn-info'
-            }
+            'copy', 'csv', 'excel', 'print',
         ],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
