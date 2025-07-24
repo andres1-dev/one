@@ -34,17 +34,11 @@ export const initializeDataTable = (data) => {
         dom: 'Bfrtip',
         buttons: [
             'copy', 'csv', 'excel', 'print',
-            /*{
-                text: 'Actualizar',
-                action: function(e, dt, node, config) {
-                    updateData();
-                }
-            }*/
         ],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
         },
-        pageLength: 25,
+        pageLength: 10,
         order: [[1, 'desc']]
     });
 };
