@@ -189,6 +189,12 @@
         let dataTable;
         let allData = [];
         
+        // Función para validar formato de fecha
+        const isValidDate = (dateStr) => {
+            const regex = /^\d{4}-\d{2}-\d{2}$/;
+            return regex.test(dateStr);
+        };
+        
         // Función para mostrar/ocultar carga
         const toggleLoading = (show) => {
             if (show) {
@@ -213,12 +219,6 @@
             errorMessage.classList.add('d-none');
         };
         
-        // Función para validar formato de fecha
-        const isValidDate = (dateStr) => {
-            const regex = /^\d{4}-\d{2}-\d{2}$/;
-            return regex.test(dateStr);
-        };
-        
         // Función para inicializar Flatpickr
         const initializeFlatpickr = () => {
             flatpickr(dateRangeInput, {
@@ -227,7 +227,6 @@
                 dateFormat: "Y-m-d",
                 allowInput: true,
                 onClose: function(selectedDates, dateStr, instance) {
-                    console.log('Flatpickr seleccionó:', dateStr);
                     applyFilters();
                 }
             });
@@ -327,8 +326,6 @@
         const applyFilters = () => {
             if (!dataTable) return;
 
-            console.log('=== INICIO APLICACIÓN FILTROS ===');
-            
             // Limpiar todos los filtros anteriores
             $.fn.dataTable.ext.search = [];
             dataTable.columns().search('');
@@ -340,15 +337,6 @@
             const gestor = $('#gestor-filter').val();
             const clase = $('#clase-filter').val();
             const dateRange = $(dateRangeInput).val();
-
-            console.log('Filtros seleccionados:', {
-                proveedor,
-                linea,
-                escaner,
-                gestor,
-                clase,
-                dateRange
-            });
 
             // Aplicar filtros de columnas
             if (proveedor) dataTable.column(16).search(proveedor);
@@ -363,28 +351,20 @@
                 const startDate = dates[0];
                 const endDate = dates[1] || dates[0];
 
-                console.log('Rango de fechas a filtrar:', {
-                    startDate,
-                    endDate
-                });
+                // Validar formato de fechas
+                if (!isValidDate(startDate) || (endDate && !isValidDate(endDate))) {
+                    console.error("Formato de fecha inválido");
+                    return;
+                }
 
                 // Función de filtrado
                 $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                     const dateStr = data[1]; // Columna de fecha
                     
-                    if (!dateStr || !isValidDate(dateStr)) {
-                        console.log(`Fila ${dataIndex}: Fecha inválida o vacía - ${dateStr}`);
-                        return false;
-                    }
+                    if (!dateStr || !isValidDate(dateStr)) return false;
                     
                     // Comparación directa de strings en formato YYYY-MM-DD
-                    const isInRange = dateStr >= startDate && dateStr <= endDate;
-                    
-                    if (!isInRange) {
-                        console.log(`Fila ${dataIndex}: Fecha fuera de rango - ${dateStr}`);
-                    }
-                    
-                    return isInRange;
+                    return dateStr >= startDate && dateStr <= (endDate || startDate);
                 });
             }
 
@@ -393,28 +373,19 @@
 
             // Actualizar resumen
             updateSummary(dataTable.rows({ search: 'applied' }).data().toArray());
-
-            console.log('=== FIN APLICACIÓN FILTROS ===');
         };
         
         // Función para actualizar el resumen
         const updateSummary = (data) => {
-            const totalCantidad = data.reduce((sum, item) => sum + (parseInt(item.CANTIDAD) || 0, 0);
+            const totalCantidad = data.reduce((sum, item) => sum + (parseInt(item.CANTIDAD) || 0), 0);
             const totalRegistros = data.length;
             
             totalCantidadElement.textContent = totalCantidad.toLocaleString();
             totalRegistrosElement.textContent = totalRegistros.toLocaleString();
-
-            console.log('Resumen actualizado:', {
-                totalCantidad,
-                totalRegistros
-            });
         };
         
         // Función para resetear los filtros
         const resetFilters = () => {
-            console.log('Reseteando filtros...');
-            
             // Resetear inputs
             $(dateRangeInput).val('').trigger('change');
             $('#proveedor-filter').val('').trigger('change');
@@ -439,11 +410,9 @@
                 const data = await getCombinedData();
                 allData = data;
                 
-                console.log('Datos cargados:', {
-                    totalRegistros: data.length,
-                    primerasFechas: data.slice(0, 5).map(item => item.FECHA)
-                });
-
+                // DEBUG: Mostrar ejemplos de fechas
+                console.log("Primeras 5 fechas en datos:", data.slice(0, 5).map(item => item.FECHA));
+                
                 // Inicializar la tabla
                 initializeDataTable(data);
                 
