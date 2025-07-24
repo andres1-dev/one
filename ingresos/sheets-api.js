@@ -15,9 +15,17 @@ const normalizeLinea = (linea) => {
 const normalizePVP = (pvp) => pvp.replace(/\$\s*/g, '').replace(/\./g, '').trim();
 
 // Nueva función para normalizar fecha
+/**
 const normalizeDate = (date) => {
     if (!date) return '';
     return date.replace(/\//g, '-');
+}; */
+
+const normalizeDate = (date) => {
+    if (!date) return null;
+
+    const [day, month, year] = date.split('/');
+    return new Date(`${year}-${month}-${day}`);
 };
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
