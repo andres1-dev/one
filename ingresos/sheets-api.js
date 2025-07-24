@@ -25,7 +25,12 @@ const normalizeDate = (date) => {
     if (!date) return null;
 
     const [day, month, year] = date.split('/');
-    return new Date(`${year}-${month}-${day}`);
+
+    // Asegura que los valores estén en formato de 2 dígitos
+    const dd = day.padStart(2, '0');
+    const mm = month.padStart(2, '0');
+
+    return `${year}-${mm}-${dd}`;
 };
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
