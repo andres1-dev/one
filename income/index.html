@@ -320,48 +320,54 @@
         const applyFilters = () => {
             if (!dataTable) return;
             
-            const dateRange = $(dateRangeInput).val();
+            // Obtener valores de los filtros
             const proveedor = $('#proveedor-filter').val();
             const linea = $('#linea-filter').val();
             const escaner = $('#escaner-filter').val();
             const gestor = $('#gestor-filter').val();
             const clase = $('#clase-filter').val();
+            const dateRange = $(dateRangeInput).val();
             
-            // Aplicar filtros a DataTable
-            dataTable.columns().search('').draw(); // Limpiar filtros anteriores
+            // Limpiar todos los filtros anteriores
+            dataTable.columns().search('').draw();
             
-            // Filtrar por rango de fechas
+            // Aplicar filtros de columnas normales
+            if (proveedor) dataTable.column(16).search(proveedor);
+            if (linea) dataTable.column(3).search(linea);
+            if (escaner) dataTable.column(5).search(escaner);
+            if (gestor) dataTable.column(15).search(gestor);
+            if (clase) dataTable.column(17).search(clase);
+            
+            // Filtro especial para el rango de fechas
             if (dateRange) {
                 const dates = dateRange.split(' to ');
                 const startDate = dates[0];
                 const endDate = dates[1] || dates[0];
                 
-                dataTable.column(1).search(`${startDate}.*${endDate}`, true, false).draw();
+                // Guardar referencia al filtro para poder removerlo después
+                const filterFunction = function(settings, data, dataIndex) {
+                    const dateColumn = data[1]; // Columna de fecha (índice 1)
+                    if (!dateColumn) return false;
+                    
+                    const date = new Date(dateColumn);
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    
+                    // Incluir el día final completo
+                    end.setDate(end.getDate() + 1);
+                    
+                    return date >= start && date < end;
+                };
+                
+                $.fn.dataTable.ext.search.push(filterFunction);
             }
             
-            // Filtrar por proveedor
-            if (proveedor) {
-                dataTable.column(16).search(proveedor).draw();
-            }
+            // Redibujar la tabla con todos los filtros aplicados
+            dataTable.draw();
             
-            // Filtrar por línea
-            if (linea) {
-                dataTable.column(3).search(linea).draw();
-            }
-            
-            // Filtrar por escáner
-            if (escaner) {
-                dataTable.column(5).search(escaner).draw();
-            }
-            
-            // Filtrar por gestor
-            if (gestor) {
-                dataTable.column(15).search(gestor).draw();
-            }
-            
-            // Filtrar por clase
-            if (clase) {
-                dataTable.column(17).search(clase).draw();
+            // Eliminar el filtro de fechas para no acumularlo
+            if (dateRange) {
+                $.fn.dataTable.ext.search.pop();
             }
             
             // Actualizar el resumen con los datos filtrados
