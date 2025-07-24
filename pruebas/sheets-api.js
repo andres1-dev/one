@@ -123,7 +123,8 @@ export const getParsedMainData = async () => {
                     GENERO: jsonData.GENERO || '',
                     GESTOR: jsonData.GESTOR || '',
                     PROVEEDOR: jsonData.PROVEEDOR || getProveedorByLinea(jsonData.LINEA || ''),
-                    CLASE: getClaseByPVP(normalizePVP(jsonData.PVP || ''))
+                    CLASE: getClaseByPVP(normalizePVP(jsonData.PVP || '')),
+                    FUENTE: 'SISPRO'
                 };
             } catch (e) {
                 console.error("Error al parsear JSON:", e);
@@ -172,7 +173,8 @@ export const getREC = async () => {
                 GENERO: row[30] || '',
                 GESTOR: getGestorByLinea(linea), 
                 PROVEEDOR: getProveedorByLinea(linea),
-                CLASE: getClaseByPVP(normalizePVP(row[31] || ''))
+                CLASE: getClaseByPVP(normalizePVP(row[31] || '')),
+                FUENTE: 'BUSINT'
             };
         }).filter(item => item !== null && item.DOCUMENTO !== '');
     } catch (error) {
