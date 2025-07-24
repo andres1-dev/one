@@ -27,17 +27,18 @@ export const initializeDataTable = (data) => {
             { title: "Prenda", data: "PRENDA" },
             { title: "Género", data: "GENERO" },
             { title: "Gestor", data: "GESTOR" },
-            { title: "Proveedor", data: "PROVEEDOR" }
+            { title: "Proveedor", data: "PROVEEDOR" },
+            { title: "Proveedor", data: "CLASE" }
         ],
         dom: 'Bfrtip',
         buttons: [
-            'copy', 'csv', 'excel', 'pdf', 'print',
-            {
+            'copy', 'csv', 'excel', 'print',
+            /*{
                 text: 'Actualizar',
                 action: function(e, dt, node, config) {
                     updateData();
                 }
-            }
+            }*/
         ],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
