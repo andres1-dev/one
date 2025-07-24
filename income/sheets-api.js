@@ -31,10 +31,10 @@ const normalizeDate = (date) => {
     const [day, month, year] = date.split('/');
 
     // Asegura que los valores estén en formato de 2 dígitos
-    const dd = day.padStart(2, '0');
-    const mm = month.padStart(2, '0');
+    const d = day.padStart(1, '0');
+    const m = month.padStart(1, '0');
 
-    return `${year}-${mm}-${dd}`;
+    return `${year}-${m}-${d}`;
 };
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
