@@ -12,6 +12,20 @@ export const initializeDataTable = (data) => {
         data: data,
         columns: [
             { title: "Documento", data: "DOCUMENTO" },
+            { 
+                title: "Fecha", 
+                data: "FECHA",
+                render: function(data, type, row) {
+                    // Asegúrate de que las fechas estén en formato adecuado
+                    if (type === 'sort' || type === 'type') {
+                        return data; // Devuelve el valor original para ordenar/filtrar
+                    }
+                    // Formatea la fecha para mostrar (opcional)
+                    return data; // O usa new Date(data).toLocaleDateString()
+                }
+            },
+        columns: [
+            { title: "Documento", data: "DOCUMENTO" },
             { title: "Fecha", data: "FECHA" },
             { title: "Taller", data: "TALLER" },
             { title: "Línea", data: "LINEA" },
@@ -41,7 +55,50 @@ export const initializeDataTable = (data) => {
         pageLength: 10,
         order: [[1, 'desc']]
     });
+
+    // Inicializar Flatpickr para el rango de fechas
+    flatpickr("#date-range", {
+        mode: "range",
+        locale: "es",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length === 2) {
+                filterByDateRange(selectedDates[0], selectedDates[1]);
+            } else if (selectedDates.length === 0) {
+                // Si se borra el filtro, mostrar todos los datos
+                dataTable.columns(1).search("").draw();
+            }
+        }
+    });
 };
+
+// Función para filtrar por rango de fechas
+function filterByDateRange(startDate, endDate) {
+    if (dataTable) {
+        dataTable.columns(1).search("").draw(); // Limpiar filtros previos
+        
+        // Convertir fechas a formato comparable
+        const start = startDate.setHours(0, 0, 0, 0);
+        const end = endDate.setHours(23, 59, 59, 999);
+        
+        // Aplicar filtro personalizado
+        $.fn.dataTable.ext.search.push(
+            function(settings, data, dataIndex) {
+                const dateStr = data[1]; // Columna de fecha (índice 1)
+                if (!dateStr) return false;
+                
+                const date = new Date(dateStr);
+                if (!date) return false;
+                
+                const time = date.getTime();
+                return time >= start && time <= end;
+            }
+        );
+        
+        dataTable.draw();
+        $.fn.dataTable.ext.search.pop(); // Eliminar el filtro para futuras búsquedas
+    }
+}
 
 export const updateDataTable = (newData) => {
     if (dataTable) {
