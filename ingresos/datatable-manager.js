@@ -28,7 +28,7 @@ export const initializeDataTable = (data) => {
             { title: "Género", data: "GENERO" },
             { title: "Gestor", data: "GESTOR" },
             { title: "Proveedor", data: "PROVEEDOR" },
-            { title: "Proveedor", data: "CLASE" }
+            { title: "Clase", data: "CLASE" }
         ],
         dom: 'Bfrtip',
         buttons: [
