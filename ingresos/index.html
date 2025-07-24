@@ -122,20 +122,31 @@
         };
         
         // Función principal para cargar y mostrar datos
-        const loadAndDisplayData = async () => {
-            toggleLoading(true);
-            hideError();
-            
-            try {
-                const data = await getCombinedData();
-                updateDataTable(data);
-            } catch (error) {
-                console.error("Error al cargar datos:", error);
-                showError(`Error al cargar datos: ${error.message}`);
-            } finally {
-                toggleLoading(false);
-            }
-        };
+// En el script type="module" del index.html, actualiza la función loadAndDisplayData:
+const loadAndDisplayData = async () => {
+    toggleLoading(true);
+    hideError();
+    
+    try {
+        const data = await getCombinedData();
+        updateDataTable(data);
+        
+        // Opcional: establecer un rango de fechas por defecto (últimos 30 días)
+        const defaultEndDate = new Date();
+        const defaultStartDate = new Date();
+        defaultStartDate.setDate(defaultStartDate.getDate() - 30);
+        
+        // Esto activará automáticamente el filtro
+        if (flatpickrInstance) {
+            flatpickrInstance.setDate([defaultStartDate, defaultEndDate]);
+        }
+    } catch (error) {
+        console.error("Error al cargar datos:", error);
+        showError(`Error al cargar datos: ${error.message}`);
+    } finally {
+        toggleLoading(false);
+    }
+};
         
         // Evento para el botón de actualización
         refreshBtn.addEventListener('click', loadAndDisplayData);
