@@ -317,12 +317,12 @@
             });
         };
         
-        // Función para aplicar los filtros
+
 // Función para aplicar los filtros
 const applyFilters = () => {
     if (!dataTable) return;
 
-    // Limpiar filtros anteriores
+    // Limpiar todos los filtros anteriores
     dataTable.columns().search('');
     $.fn.dataTable.ext.search = [];
 
@@ -345,24 +345,34 @@ const applyFilters = () => {
     if (dateRange) {
         const dates = dateRange.split(' to ');
         const startDate = dates[0];
-        const endDate = dates[1] || dates[0]; // Si no hay endDate, usar startDate
+        const endDate = dates[1] || dates[0];
 
-        // Convertir a timestamp para comparación
-        const startTimestamp = new Date(startDate).setHours(0, 0, 0, 0);
-        const endTimestamp = new Date(endDate).setHours(23, 59, 59, 999);
+        // Convertir a objetos Date sin hora (00:00:00)
+        const start = new Date(startDate);
+        const end = new Date(endDate);
 
-        // Función de filtrado
-        $.fn.dataTable.ext.search.push(
-            function(settings, data, dataIndex) {
-                const dateStr = data[1]; // Columna de fecha
-                if (!dateStr) return false;
-
-                const cellDate = new Date(dateStr);
-                const cellTimestamp = cellDate.getTime();
-
-                return cellTimestamp >= startTimestamp && cellTimestamp <= endTimestamp;
+        // Función de filtrado mejorada
+        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+            const dateStr = data[1]; // Columna de fecha
+            
+            if (!dateStr) return false;
+            
+            try {
+                // Parsear la fecha de la celda (asumiendo formato YYYY-MM-DD)
+                const cellDateParts = dateStr.split('-');
+                const cellDate = new Date(
+                    parseInt(cellDateParts[0]),
+                    parseInt(cellDateParts[1]) - 1, // Meses son 0-based
+                    parseInt(cellDateParts[2])
+                );
+                
+                // Comparación directa de objetos Date
+                return cellDate >= start && cellDate <= end;
+            } catch (e) {
+                console.error("Error al parsear fecha:", dateStr, e);
+                return false;
             }
-        );
+        });
     }
 
     // Aplicar todos los filtros
@@ -371,7 +381,6 @@ const applyFilters = () => {
     // Actualizar resumen
     updateSummary(dataTable.rows({ search: 'applied' }).data().toArray());
 };
-
         
         // Función para actualizar el resumen
         const updateSummary = (data) => {
