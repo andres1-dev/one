@@ -25,7 +25,7 @@ const getClaseByPVP = (pvp) => {
     return 'NO DEFINIDO';
 };
 
-const normalizeDate = (date) => {
+/*const normalizeDate = (date) => {
     if (!date) return null;
 
     const [day, month, year] = date.split('/');
@@ -35,6 +35,21 @@ const normalizeDate = (date) => {
     const m = month.padStart(1, '0');
 
     return `${year}-${m}-${d}`;
+};*/
+
+// Reemplaza en sheets-api.js la función normalizeDate
+const normalizeDate = (date) => {
+    if (!date) return null;
+    // Si ya está en formato YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    
+    // Para formato DD/MM/YYYY
+    if (date.includes('/')) {
+        const [day, month, year] = date.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    
+    return null; // Formato no reconocido
 };
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
