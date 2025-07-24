@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingresos</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap5.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
+    
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    
+    <style>
+        .dataTables_wrapper {
+            padding: 20px;
+        }
+        .card {
+            margin: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .filter-container {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            margin-bottom: 10px;
+        }
+        .summary-card {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Ingreso Consolidado 3</h5>
+                <button id="refresh-btn" class="btn btn-primary">
+                    <span id="refresh-icon" class="spinner-border spinner-border-sm d-none"></span>
+                    Actualizar Datos
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="filter-container">
+                    <div class="row filter-row">
+                        <div class="col-md-3">
+                            <label for="date-range" class="form-label">Rango de Fechas</label>
+                            <input type="text" class="form-control" id="date-range" placeholder="Seleccionar rango">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="proveedor-filter" class="form-label">Proveedor</label>
+                            <select id="proveedor-filter" class="form-select select2-filter">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="linea-filter" class="form-label">Línea</label>
+                            <select id="linea-filter" class="form-select select2-filter">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="escaner-filter" class="form-label">Escáner</label>
+                            <select id="escaner-filter" class="form-select select2-filter">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <label for="gestor-filter" class="form-label">Gestor</label>
+                            <select id="gestor-filter" class="form-select select2-filter">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="clase-filter" class="form-label">Clase</label>
+                            <select id="clase-filter" class="form-select select2-filter">
+                                <option value="">Todos</option>
+                                <option value="LINEA">LINEA</option>
+                                <option value="MODA">MODA</option>
+                                <option value="PRONTAMODA">PRONTAMODA</option>
+                                <option value="NO DEFINIDO">NO DEFINIDO</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 align-self-end">
+                            <button id="reset-filters" class="btn btn-secondary">Limpiar Filtros</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tarjeta de resumen -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="summary-card">
+                            <h5>Total Filtrado</h5>
+                            <div class="summary-value" id="total-cantidad">0</div>
+                            <p>Registros: <span id="total-registros">0</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla -->
+                <div id="loading-spinner" class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2">Cargando datos...</p>
+                </div>
+                <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+                <table id="data-table" class="table table-striped table-bordered dt-responsive nowrap" style="width:100%"></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery, Bootstrap y DataTables JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+    
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <!-- Nuestros módulos -->
+    <script type="module">
+        import { getCombinedData } from './sheets-api.js';
+        import { initializeDataTable, updateDataTable } from './datatable-manager.js';
+        
+        // Elementos del DOM
+        const refreshBtn = document.getElementById('refresh-btn');
+        const refreshIcon = document.getElementById('refresh-icon');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const errorMessage = document.getElementById('error-message');
+        const dateRangeInput = document.getElementById('date-range');
+        const proveedorFilter = document.getElementById('proveedor-filter');
+        const lineaFilter = document.getElementById('linea-filter');
+        const escanerFilter = document.getElementById('escaner-filter');
+        const gestorFilter = document.getElementById('gestor-filter');
+        const claseFilter = document.getElementById('clase-filter');
+        const resetFiltersBtn = document.getElementById('reset-filters');
+        const totalCantidadElement = document.getElementById('total-cantidad');
+        const totalRegistrosElement = document.getElementById('total-registros');
+        
+        // Variables globales
+        let allData = [];
+        let dataTable;
+        
+        // Función para mostrar/ocultar carga
+        const toggleLoading = (show) => {
+            if (show) {
+                loadingSpinner.style.display = 'block';
+                refreshIcon.classList.remove('d-none');
+                refreshBtn.disabled = true;
+            } else {
+                loadingSpinner.style.display = 'none';
+                refreshIcon.classList.add('d-none');
+                refreshBtn.disabled = false;
+            }
+        };
+        
+        // Función para mostrar error
+        const showError = (message) => {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('d-none');
+        };
+        
+        // Función para ocultar error
+        const hideError = () => {
+            errorMessage.classList.add('d-none');
+        };
+        
+        // Función para inicializar Flatpickr
+        const initializeFlatpickr = () => {
+            flatpickr(dateRangeInput, {
+                mode: "range",
+                locale: "es",
+                dateFormat: "Y-m-d",
+                allowInput: true,
+                onClose: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length === 2) {
+                        applyFilters();
+                    }
+                }
+            });
+        };
+        
+        // Función para inicializar Select2
+        const initializeSelect2 = () => {
+            $('.select2-filter').select2({
+                placeholder: "Seleccionar",
+                allowClear: true
+            });
+            
+            // Eventos de cambio para los filtros
+            proveedorFilter.addEventListener('change', applyFilters);
+            lineaFilter.addEventListener('change', applyFilters);
+            escanerFilter.addEventListener('change', applyFilters);
+            gestorFilter.addEventListener('change', applyFilters);
+            claseFilter.addEventListener('change', applyFilters);
+        };
+        
+        // Función para poblar los filtros con opciones únicas
+        const populateFilters = (data) => {
+            // Obtener valores únicos para cada filtro
+            const proveedores = [...new Set(data.map(item => item.PROVEEDOR))].filter(Boolean).sort();
+            const lineas = [...new Set(data.map(item => item.LINEA))].filter(Boolean).sort();
+            const escaners = [...new Set(data.map(item => item.ESCANER))].filter(Boolean).sort();
+            const gestores = [...new Set(data.map(item => item.GESTOR))].filter(Boolean).sort();
+            
+            // Poblar filtro de proveedores
+            proveedores.forEach(proveedor => {
+                const option = document.createElement('option');
+                option.value = proveedor;
+                option.textContent = proveedor;
+                proveedorFilter.appendChild(option);
+            });
+            
+            // Poblar filtro de líneas
+            lineas.forEach(linea => {
+                const option = document.createElement('option');
+                option.value = linea;
+                option.textContent = linea;
+                lineaFilter.appendChild(option);
+            });
+            
+            // Poblar filtro de escáneres
+            escaners.forEach(escaner => {
+                const option = document.createElement('option');
+                option.value = escaner;
+                option.textContent = escaner;
+                escanerFilter.appendChild(option);
+            });
+            
+            // Poblar filtro de gestores
+            gestores.forEach(gestor => {
+                const option = document.createElement('option');
+                option.value = gestor;
+                option.textContent = gestor;
+                gestorFilter.appendChild(option);
+            });
+        };
+        
+        // Función para aplicar los filtros
+        const applyFilters = () => {
+            if (!allData.length) return;
+            
+            const dateRange = $(dateRangeInput).val();
+            const proveedor = proveedorFilter.value;
+            const linea = lineaFilter.value;
+            const escaner = escanerFilter.value;
+            const gestor = gestorFilter.value;
+            const clase = claseFilter.value;
+            
+            let filteredData = [...allData];
+            
+            // Filtrar por rango de fechas
+            if (dateRange) {
+                const dates = dateRange.split(' to ');
+                const startDate = dates[0];
+                const endDate = dates[1] || dates[0];
+                
+                filteredData = filteredData.filter(item => {
+                    if (!item.FECHA) return false;
+                    return item.FECHA >= startDate && item.FECHA <= endDate;
+                });
+            }
+            
+            // Filtrar por proveedor
+            if (proveedor) {
+                filteredData = filteredData.filter(item => item.PROVEEDOR === proveedor);
+            }
+            
+            // Filtrar por línea
+            if (linea) {
+                filteredData = filteredData.filter(item => item.LINEA === linea);
+            }
+            
+            // Filtrar por escáner
+            if (escaner) {
+                filteredData = filteredData.filter(item => item.ESCANER === escaner);
+            }
+            
+            // Filtrar por gestor
+            if (gestor) {
+                filteredData = filteredData.filter(item => item.GESTOR === gestor);
+            }
+            
+            // Filtrar por clase
+            if (clase) {
+                filteredData = filteredData.filter(item => item.CLASE === clase);
+            }
+            
+            // Actualizar la tabla con los datos filtrados
+            updateDataTable(filteredData);
+            
+            // Actualizar el resumen
+            updateSummary(filteredData);
+        };
+        
+        // Función para actualizar el resumen
+        const updateSummary = (data) => {
+            const totalCantidad = data.reduce((sum, item) => sum + (item.CANTIDAD || 0), 0);
+            const totalRegistros = data.length;
+            
+            totalCantidadElement.textContent = totalCantidad.toLocaleString();
+            totalRegistrosElement.textContent = totalRegistros.toLocaleString();
+        };
+        
+        // Función para resetear los filtros
+        const resetFilters = () => {
+            // Resetear inputs
+            $(dateRangeInput).val('').trigger('change');
+            $(proveedorFilter).val('').trigger('change');
+            $(lineaFilter).val('').trigger('change');
+            $(escanerFilter).val('').trigger('change');
+            $(gestorFilter).val('').trigger('change');
+            $(claseFilter).val('').trigger('change');
+            
+            // Aplicar filtros (que ahora estarán vacíos)
+            applyFilters();
+        };
+        
+        // Función principal para cargar y mostrar datos
+        const loadAndDisplayData = async () => {
+            toggleLoading(true);
+            hideError();
+            
+            try {
+                const data = await getCombinedData();
+                allData = data;
+                
+                // Inicializar la tabla
+                initializeDataTable(data);
+                
+                // Poblar los filtros
+                populateFilters(data);
+                
+                // Actualizar el resumen
+                updateSummary(data);
+            } catch (error) {
+                console.error("Error al cargar datos:", error);
+                showError(`Error al cargar datos: ${error.message}`);
+            } finally {
+                toggleLoading(false);
+            }
+        };
+        
+        // Evento para el botón de actualización
+        refreshBtn.addEventListener('click', loadAndDisplayData);
+        
+        // Evento para el botón de resetear filtros
+        resetFiltersBtn.addEventListener('click', resetFilters);
+        
+        // Cargar datos al iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFlatpickr();
+            initializeSelect2();
+            loadAndDisplayData();
+        });
+    </script>
+</body>
+</html>
