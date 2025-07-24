@@ -1,7 +1,6 @@
 // datatable-manager.js
 
 
-
 let dataTable;
 let flatpickrInstance;
 
@@ -13,7 +12,7 @@ export const initializeDataTable = (data) => {
     flatpickrInstance = flatpickr("#filterFecha", {
         mode: "range",
         locale: "es",
-        dateFormat: "d/m/Y",  // Cambiado a formato día/mes/año
+        dateFormat: "d/m/Y",
         onClose: function(selectedDates) {
             if (selectedDates.length === 1) {
                 filterByExactDate(selectedDates[0]);
@@ -34,12 +33,16 @@ export const initializeDataTable = (data) => {
                 data: "FECHA",
                 render: function(data) {
                     if (!data) return '';
-                    // Parsear la fecha directamente sin conversión de zona horaria
-                    const parts = data.split(/-|\//);
-                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    
+                    // Formato ISO (YYYY-MM-DD) para Colombia
+                    if (data.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        const [year, month, day] = data.split('-');
+                        return `${day}/${month}/${year}`;
+                    }
+                    return data;
                 }
             },
-                        { title: "Taller", data: "TALLER" },
+            { title: "Taller", data: "TALLER" },
             { title: "Línea", data: "LINEA" },
             { title: "Auditor", data: "AUDITOR" },
             { title: "Escáner", data: "ESCANER" },
@@ -57,26 +60,57 @@ export const initializeDataTable = (data) => {
             { title: "Clase", data: "CLASE" },
             { title: "Fuente", data: "FUENTE" }
         ],
-        dom: 'Bfrtip',
+        dom: '<"top"<"row"<"col-md-6"l><"col-md-6"f>>><"row"<"col-md-12"tr>><"bottom"<"row"<"col-md-5"i><"col-md-7"pB>>>',
         buttons: [
             {
                 extend: 'excel',
                 text: '<i class="fas fa-file-excel me-1"></i> Excel',
-                className: 'btn btn-sm btn-success',
-                customize: function(xlsx) {
-                    // Asegurar que las fechas en Excel sean correctas
-                    const sheet = xlsx.xl.worksheets['sheet1.xml'];
-                    $('row c[r^="B"]', sheet).attr('s', '2'); // Formato fecha
+                className: 'btn btn-success btn-sm',
+                filename: 'Reporte_Ingresos',
+                title: 'Reporte de Ingresos',
+                exportOptions: {
+                    columns: ':visible',
+                    format: {
+                        body: function(data, row, column, node) {
+                            // Mantener formato de fechas en Excel
+                            if (column === 1 && data.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                                const [day, month, year] = data.split('/');
+                                return `${year}-${month}-${day}`;
+                            }
+                            return data;
+                        }
+                    }
                 }
             },
             {
                 extend: 'csv',
                 text: '<i class="fas fa-file-csv me-1"></i> CSV',
-                className: 'btn btn-sm btn-secondary'
+                className: 'btn btn-secondary btn-sm',
+                filename: 'Reporte_Ingresos',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print me-1"></i> Imprimir',
+                className: 'btn btn-primary btn-sm',
+                title: 'Reporte de Ingresos',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function(win) {
+                    $(win.document.body).css('font-size', '10pt');
+                    $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
+                }
             }
         ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+        },
         pageLength: 25,
-        order: [[1, 'desc']]
+        order: [[1, 'desc']],
+        responsive: true
     });
     
     function filterByExactDate(date) {
@@ -90,9 +124,15 @@ export const initializeDataTable = (data) => {
         
         $.fn.dataTable.ext.search.push(
             function(settings, data, dataIndex) {
-                const dateStr = data[1]; // Columna de fecha
-                return (!startStr || dateStr >= startStr) && 
-                       (!endStr || dateStr <= endStr);
+                const dateStr = data[1];
+                if (!dateStr) return false;
+                
+                // Convertir a formato comparable (YYYYMMDD)
+                const currentDate = dateStr.split('/').reverse().join('');
+                const startCompare = startStr.split('/').reverse().join('');
+                const endCompare = endStr.split('/').reverse().join('');
+                
+                return currentDate >= startCompare && currentDate <= endCompare;
             }
         );
         
@@ -100,13 +140,12 @@ export const initializeDataTable = (data) => {
         $.fn.dataTable.ext.search.pop();
     }
     
-    // Función auxiliar para formatear fechas consistentemente
     function formatDateForFilter(date) {
         const d = new Date(date);
         const day = d.getDate().toString().padStart(2, '0');
         const month = (d.getMonth() + 1).toString().padStart(2, '0');
         const year = d.getFullYear();
-        return `${year}-${month}-${day}`; // Formato YYYY-MM-DD para filtrado
+        return `${day}/${month}/${year}`;
     }
 };
 
