@@ -66,7 +66,7 @@
     <div class="container-fluid">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Ingreso Consolidado 4</h5>
+                <h5 class="mb-0">Ingreso Consolidado 3</h5>
                 <button id="refresh-btn" class="btn btn-primary">
                     <span id="refresh-icon" class="spinner-border spinner-border-sm d-none"></span>
                     Actualizar Datos
@@ -170,7 +170,6 @@
     <!-- Nuestros módulos -->
     <script type="module">
         import { getCombinedData } from './sheets-api.js';
-        import { initializeDataTable, updateDataTable } from './datatable-manager.js';
         
         // Elementos del DOM
         const refreshBtn = document.getElementById('refresh-btn');
@@ -188,8 +187,8 @@
         const totalRegistrosElement = document.getElementById('total-registros');
         
         // Variables globales
-        let allData = [];
         let dataTable;
+        let allData = [];
         
         // Función para mostrar/ocultar carga
         const toggleLoading = (show) => {
@@ -223,9 +222,7 @@
                 dateFormat: "Y-m-d",
                 allowInput: true,
                 onClose: function(selectedDates, dateStr, instance) {
-                    if (selectedDates.length === 2) {
-                        applyFilters();
-                    }
+                    applyFilters();
                 }
             });
         };
@@ -238,15 +235,16 @@
             });
             
             // Eventos de cambio para los filtros
-            proveedorFilter.addEventListener('change', applyFilters);
-            lineaFilter.addEventListener('change', applyFilters);
-            escanerFilter.addEventListener('change', applyFilters);
-            gestorFilter.addEventListener('change', applyFilters);
-            claseFilter.addEventListener('change', applyFilters);
+            $('#proveedor-filter, #linea-filter, #escaner-filter, #gestor-filter, #clase-filter').on('change', function() {
+                applyFilters();
+            });
         };
         
         // Función para poblar los filtros con opciones únicas
         const populateFilters = (data) => {
+            // Limpiar filtros primero
+            $('#proveedor-filter, #linea-filter, #escaner-filter, #gestor-filter').empty().append('<option value="">Todos</option>');
+            
             // Obtener valores únicos para cada filtro
             const proveedores = [...new Set(data.map(item => item.PROVEEDOR))].filter(Boolean).sort();
             const lineas = [...new Set(data.map(item => item.LINEA))].filter(Boolean).sort();
@@ -255,49 +253,82 @@
             
             // Poblar filtro de proveedores
             proveedores.forEach(proveedor => {
-                const option = document.createElement('option');
-                option.value = proveedor;
-                option.textContent = proveedor;
-                proveedorFilter.appendChild(option);
+                $('#proveedor-filter').append(`<option value="${proveedor}">${proveedor}</option>`);
             });
             
             // Poblar filtro de líneas
             lineas.forEach(linea => {
-                const option = document.createElement('option');
-                option.value = linea;
-                option.textContent = linea;
-                lineaFilter.appendChild(option);
+                $('#linea-filter').append(`<option value="${linea}">${linea}</option>`);
             });
             
             // Poblar filtro de escáneres
             escaners.forEach(escaner => {
-                const option = document.createElement('option');
-                option.value = escaner;
-                option.textContent = escaner;
-                escanerFilter.appendChild(option);
+                $('#escaner-filter').append(`<option value="${escaner}">${escaner}</option>`);
             });
             
             // Poblar filtro de gestores
             gestores.forEach(gestor => {
-                const option = document.createElement('option');
-                option.value = gestor;
-                option.textContent = gestor;
-                gestorFilter.appendChild(option);
+                $('#gestor-filter').append(`<option value="${gestor}">${gestor}</option>`);
+            });
+        };
+        
+        // Función para inicializar DataTable
+        const initializeDataTable = (data) => {
+            if (dataTable) {
+                dataTable.destroy();
+            }
+            
+            dataTable = $('#data-table').DataTable({
+                responsive: true,
+                data: data,
+                columns: [
+                    { title: "Documento", data: "DOCUMENTO" },
+                    { title: "Fecha", data: "FECHA" },
+                    { title: "Taller", data: "TALLER" },
+                    { title: "Línea", data: "LINEA" },
+                    { title: "Auditor", data: "AUDITOR" },
+                    { title: "Escáner", data: "ESCANER" },
+                    { title: "Lote", data: "LOTE" },
+                    { title: "Ref. Prov.", data: "REFPROV" },
+                    { title: "Descripción", data: "DESCRIPCIÓN" },
+                    { title: "Cantidad", data: "CANTIDAD" },
+                    { title: "Referencia", data: "REFERENCIA" },
+                    { title: "Tipo", data: "TIPO" },
+                    { title: "PVP", data: "PVP" },
+                    { title: "Prenda", data: "PRENDA" },
+                    { title: "Género", data: "GENERO" },
+                    { title: "Gestor", data: "GESTOR" },
+                    { title: "Proveedor", data: "PROVEEDOR" },
+                    { title: "Clase", data: "CLASE" }
+                ],
+                dom: 'Bfrtip',
+                buttons: [
+                    'copy', 'csv', 'excel', 'print'
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+                },
+                pageLength: 25,
+                order: [[1, 'desc']],
+                drawCallback: function() {
+                    updateSummary(this.api().data());
+                }
             });
         };
         
         // Función para aplicar los filtros
         const applyFilters = () => {
-            if (!allData.length) return;
+            if (!dataTable) return;
             
             const dateRange = $(dateRangeInput).val();
-            const proveedor = proveedorFilter.value;
-            const linea = lineaFilter.value;
-            const escaner = escanerFilter.value;
-            const gestor = gestorFilter.value;
-            const clase = claseFilter.value;
+            const proveedor = $('#proveedor-filter').val();
+            const linea = $('#linea-filter').val();
+            const escaner = $('#escaner-filter').val();
+            const gestor = $('#gestor-filter').val();
+            const clase = $('#clase-filter').val();
             
-            let filteredData = [...allData];
+            // Aplicar filtros a DataTable
+            dataTable.columns().search('').draw(); // Limpiar filtros anteriores
             
             // Filtrar por rango de fechas
             if (dateRange) {
@@ -305,47 +336,41 @@
                 const startDate = dates[0];
                 const endDate = dates[1] || dates[0];
                 
-                filteredData = filteredData.filter(item => {
-                    if (!item.FECHA) return false;
-                    return item.FECHA >= startDate && item.FECHA <= endDate;
-                });
+                dataTable.column(1).search(`${startDate}.*${endDate}`, true, false).draw();
             }
             
             // Filtrar por proveedor
             if (proveedor) {
-                filteredData = filteredData.filter(item => item.PROVEEDOR === proveedor);
+                dataTable.column(16).search(proveedor).draw();
             }
             
             // Filtrar por línea
             if (linea) {
-                filteredData = filteredData.filter(item => item.LINEA === linea);
+                dataTable.column(3).search(linea).draw();
             }
             
             // Filtrar por escáner
             if (escaner) {
-                filteredData = filteredData.filter(item => item.ESCANER === escaner);
+                dataTable.column(5).search(escaner).draw();
             }
             
             // Filtrar por gestor
             if (gestor) {
-                filteredData = filteredData.filter(item => item.GESTOR === gestor);
+                dataTable.column(15).search(gestor).draw();
             }
             
             // Filtrar por clase
             if (clase) {
-                filteredData = filteredData.filter(item => item.CLASE === clase);
+                dataTable.column(17).search(clase).draw();
             }
             
-            // Actualizar la tabla con los datos filtrados
-            updateDataTable(filteredData);
-            
-            // Actualizar el resumen
-            updateSummary(filteredData);
+            // Actualizar el resumen con los datos filtrados
+            updateSummary(dataTable.rows({ search: 'applied' }).data().toArray());
         };
         
         // Función para actualizar el resumen
         const updateSummary = (data) => {
-            const totalCantidad = data.reduce((sum, item) => sum + (item.CANTIDAD || 0), 0);
+            const totalCantidad = data.reduce((sum, item) => sum + (parseInt(item.CANTIDAD) || 0), 0);
             const totalRegistros = data.length;
             
             totalCantidadElement.textContent = totalCantidad.toLocaleString();
@@ -356,14 +381,17 @@
         const resetFilters = () => {
             // Resetear inputs
             $(dateRangeInput).val('').trigger('change');
-            $(proveedorFilter).val('').trigger('change');
-            $(lineaFilter).val('').trigger('change');
-            $(escanerFilter).val('').trigger('change');
-            $(gestorFilter).val('').trigger('change');
-            $(claseFilter).val('').trigger('change');
+            $('#proveedor-filter').val('').trigger('change');
+            $('#linea-filter').val('').trigger('change');
+            $('#escaner-filter').val('').trigger('change');
+            $('#gestor-filter').val('').trigger('change');
+            $('#clase-filter').val('').trigger('change');
             
-            // Aplicar filtros (que ahora estarán vacíos)
-            applyFilters();
+            // Limpiar filtros de DataTable
+            if (dataTable) {
+                dataTable.columns().search('').draw();
+                updateSummary(dataTable.rows().data().toArray());
+            }
         };
         
         // Función principal para cargar y mostrar datos
@@ -381,7 +409,7 @@
                 // Poblar los filtros
                 populateFilters(data);
                 
-                // Actualizar el resumen
+                // Actualizar el resumen con todos los datos
                 updateSummary(data);
             } catch (error) {
                 console.error("Error al cargar datos:", error);
