@@ -1,4 +1,4 @@
-// sheets-api.js - Módulo independiente para obtener datos de Google Sheets
+// sheets-api.js
 const API_KEY = 'AIzaSyCrTSddJcCaJCqQ_Cr_PC2zt-eVZAihC38';
 const SPREADSHEET_IDS = {
     DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
