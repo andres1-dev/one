@@ -25,7 +25,6 @@ const getClaseByPVP = (pvp) => {
     return 'NO DEFINIDO';
 };
 
-/*
 const normalizeDate = (date) => {
     if (!date) return null;
 
@@ -38,8 +37,6 @@ const normalizeDate = (date) => {
     return `${year}-${mm}-${dd}`;
     //return `${dd}/${mm}/${year}`;
 }; 
-
-*/
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
 
@@ -106,8 +103,8 @@ export const getParsedMainData = async () => {
                 const jsonData = JSON.parse(row[0]);
                 return {
                     DOCUMENTO: String(jsonData.A || ''),
-                    //FECHA: normalizeDate(jsonData.FECHA || ''), // Aplicar normalización de fecha
-                    FECHA: jsonData.FECHA || '',
+                    FECHA: normalizeDate(jsonData.FECHA || ''), // Aplicar normalización de fecha
+                    //FECHA: jsonData.FECHA || '',
                     TALLER: jsonData.TALLER || '',
                     LINEA: normalizeLinea(jsonData.LINEA || ''),
                     AUDITOR: jsonData.AUDITOR || '',
@@ -156,8 +153,8 @@ export const getREC = async () => {
             
             return {
                 DOCUMENTO: normalizeDocumento(documento),
-                //FECHA: normalizeDate(row[1] || ''), // Aplicar normalización de fecha
-                FECHA: row[1] || '',
+                FECHA: normalizeDate(row[1] || ''), // Aplicar normalización de fecha
+                //FECHA: row[1] || '',
                 TALLER: row[2] || '',
                 LINEA: normalizeLinea(linea),
                 AUDITOR: row[4] || '',
