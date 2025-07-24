@@ -1,10 +1,29 @@
 // datatable-manager.js
 let dataTable;
+let flatpickrInstance;
 
 export const initializeDataTable = (data) => {
     // Destruir la tabla existente si hay una
     if (dataTable) {
         dataTable.destroy();
+    }
+    
+    // Inicializar Flatpickr si no existe
+    if (!flatpickrInstance) {
+        flatpickrInstance = flatpickr("#filterFecha", {
+            mode: "range",
+            locale: "es",
+            dateFormat: "Y-m-d",
+            allowInput: true,
+            onClose: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    filterByDateRange(selectedDates[0], selectedDates[1]);
+                } else if (selectedDates.length === 0) {
+                    // Si se limpia el filtro, mostrar todos los datos
+                    dataTable.search('').columns().search('').draw();
+                }
+            }
+        });
     }
     
     dataTable = $('#data-table').DataTable({
@@ -16,17 +35,13 @@ export const initializeDataTable = (data) => {
                 title: "Fecha", 
                 data: "FECHA",
                 render: function(data, type, row) {
-                    // Asegúrate de que las fechas estén en formato adecuado
-                    if (type === 'sort' || type === 'type') {
-                        return data; // Devuelve el valor original para ordenar/filtrar
+                    if (type === 'sort' || type === 'filter') {
+                        return data; // Usar el valor original para ordenar/filtrar
                     }
-                    // Formatea la fecha para mostrar (opcional)
-                    return data; // O usa new Date(data).toLocaleDateString()
+                    // Formatear para mostrar (opcional)
+                    return new Date(data).toLocaleDateString('es-ES');
                 }
             },
-        columns: [
-            { title: "Documento", data: "DOCUMENTO" },
-            { title: "Fecha", data: "FECHA" },
             { title: "Taller", data: "TALLER" },
             { title: "Línea", data: "LINEA" },
             { title: "Auditor", data: "AUDITOR" },
@@ -45,60 +60,74 @@ export const initializeDataTable = (data) => {
             { title: "Clase", data: "CLASE" },
             { title: "Fuente", data: "FUENTE" }
         ],
-        dom: 'Bfrtip',
+        dom: '<"top"<"row"<"col-md-6"l><"col-md-6"f>>>rt<"bottom"<"row"<"col-md-6"i><"col-md-6"p>>><"clear">',
         buttons: [
-            'copy', 'csv', 'excel', 'print',
+            {
+                extend: 'copy',
+                text: '<i class="fas fa-copy"></i> Copiar',
+                className: 'btn btn-secondary'
+            },
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel"></i> Excel',
+                className: 'btn btn-success'
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print"></i> Imprimir',
+                className: 'btn btn-info'
+            }
         ],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
         },
         pageLength: 10,
-        order: [[1, 'desc']]
-    });
-
-    // Inicializar Flatpickr para el rango de fechas
-    flatpickr("#date-range", {
-        mode: "range",
-        locale: "es",
-        dateFormat: "Y-m-d",
-        onChange: function(selectedDates, dateStr, instance) {
-            if (selectedDates.length === 2) {
-                filterByDateRange(selectedDates[0], selectedDates[1]);
-            } else if (selectedDates.length === 0) {
-                // Si se borra el filtro, mostrar todos los datos
-                dataTable.columns(1).search("").draw();
-            }
+        order: [[1, 'desc']],
+        initComplete: function() {
+            // Aplicar estilo a los botones
+            $('.dt-buttons .btn').removeClass('btn-secondary');
         }
     });
-};
-
-// Función para filtrar por rango de fechas
-function filterByDateRange(startDate, endDate) {
-    if (dataTable) {
-        dataTable.columns(1).search("").draw(); // Limpiar filtros previos
-        
-        // Convertir fechas a formato comparable
-        const start = startDate.setHours(0, 0, 0, 0);
-        const end = endDate.setHours(23, 59, 59, 999);
+    
+    // Función para filtrar por rango de fechas
+    function filterByDateRange(startDate, endDate) {
+        // Limpiar filtros previos
+        dataTable.search('').columns().search('').draw();
         
         // Aplicar filtro personalizado
         $.fn.dataTable.ext.search.push(
             function(settings, data, dataIndex) {
-                const dateStr = data[1]; // Columna de fecha (índice 1)
+                const dateStr = data[1]; // Índice de la columna de fecha (segunda columna)
                 if (!dateStr) return false;
                 
-                const date = new Date(dateStr);
-                if (!date) return false;
-                
-                const time = date.getTime();
-                return time >= start && time <= end;
+                try {
+                    const cellDate = new Date(dateStr);
+                    // Ajustar las fechas para comparar solo día/mes/año
+                    const start = new Date(startDate);
+                    start.setHours(0, 0, 0, 0);
+                    
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59, 999);
+                    
+                    return start <= cellDate && cellDate <= end;
+                } catch (e) {
+                    console.error("Error al parsear fecha:", dateStr, e);
+                    return false;
+                }
             }
         );
         
         dataTable.draw();
         $.fn.dataTable.ext.search.pop(); // Eliminar el filtro para futuras búsquedas
     }
-}
+    
+    // Limpiar filtro cuando se hace clic en el botón de actualización
+    document.getElementById('refresh-btn').addEventListener('click', function() {
+        if (flatpickrInstance) {
+            flatpickrInstance.clear();
+        }
+    });
+};
 
 export const updateDataTable = (newData) => {
     if (dataTable) {
