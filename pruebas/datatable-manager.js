@@ -3,43 +3,43 @@ let dataTable;
 let flatpickrInstance;
 
 export const initializeDataTable = (data) => {
-    // Destruir la tabla existente si hay una
+    // Destruir tabla existente
     if (dataTable) {
         dataTable.destroy();
     }
     
-    // Inicializar Flatpickr si no existe
+    // Configuración de Flatpickr
     if (!flatpickrInstance) {
         flatpickrInstance = flatpickr("#filterFecha", {
             mode: "range",
             locale: "es",
             dateFormat: "Y-m-d",
             allowInput: true,
-            onClose: function(selectedDates, dateStr, instance) {
+            onClose: function(selectedDates) {
                 if (selectedDates.length === 2) {
                     filterByDateRange(selectedDates[0], selectedDates[1]);
-                } else if (selectedDates.length === 0) {
-                    // Si se limpia el filtro, mostrar todos los datos
+                } else if (selectedDates.length === 1) {
+                    // Si selecciona un solo día, filtrar ese día específico
+                    filterByDateRange(selectedDates[0], selectedDates[0]);
+                } else {
+                    // Limpiar filtro
                     dataTable.search('').columns().search('').draw();
                 }
             }
         });
     }
     
+    // Configuración de DataTable
     dataTable = $('#data-table').DataTable({
-        responsive: true,
         data: data,
         columns: [
             { title: "Documento", data: "DOCUMENTO" },
             { 
                 title: "Fecha", 
                 data: "FECHA",
-                render: function(data, type, row) {
-                    if (type === 'sort' || type === 'filter') {
-                        return data; // Usar el valor original para ordenar/filtrar
-                    }
-                    // Formatear para mostrar (opcional)
-                    return new Date(data).toLocaleDateString('es-ES');
+                render: function(data, type) {
+                    if (type === 'sort' || type === 'filter') return data;
+                    return data ? new Date(data).toLocaleDateString('es-ES') : '';
                 }
             },
             { title: "Taller", data: "TALLER" },
@@ -60,42 +60,66 @@ export const initializeDataTable = (data) => {
             { title: "Clase", data: "CLASE" },
             { title: "Fuente", data: "FUENTE" }
         ],
-        dom: 'Bfrtip',
+        dom: '<"top"<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>>rt<"bottom"<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>><"col-sm-12"B>>',
         buttons: [
-            'copy', 'csv', 'excel', 'print',
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel me-1"></i> Excel',
+                className: 'btn btn-sm btn-success',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            },
+            {
+                extend: 'csv',
+                text: '<i class="fas fa-file-csv me-1"></i> CSV',
+                className: 'btn btn-sm btn-outline-secondary',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print me-1"></i> Imprimir',
+                className: 'btn btn-sm btn-outline-primary',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            }
         ],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        pageLength: 10,
+        pageLength: 25,
         order: [[1, 'desc']],
+        responsive: true,
         initComplete: function() {
-            // Aplicar estilo a los botones
-            $('.dt-buttons .btn').removeClass('btn-secondary');
+            // Estilo para los inputs de búsqueda
+            $('.dataTables_filter input').addClass('form-control form-control-sm');
         }
     });
     
-    // Función para filtrar por rango de fechas
+    // Función mejorada para filtrar por fechas
     function filterByDateRange(startDate, endDate) {
         // Limpiar filtros previos
         dataTable.search('').columns().search('').draw();
         
-        // Aplicar filtro personalizado
+        // Ajustar fechas para comparación
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        
+        // Aplicar filtro
         $.fn.dataTable.ext.search.push(
             function(settings, data, dataIndex) {
-                const dateStr = data[1]; // Índice de la columna de fecha (segunda columna)
+                const dateStr = data[1]; // Columna de fecha
                 if (!dateStr) return false;
                 
                 try {
                     const cellDate = new Date(dateStr);
-                    // Ajustar las fechas para comparar solo día/mes/año
-                    const start = new Date(startDate);
-                    start.setHours(0, 0, 0, 0);
-                    
-                    const end = new Date(endDate);
-                    end.setHours(23, 59, 59, 999);
-                    
-                    return start <= cellDate && cellDate <= end;
+                    return cellDate >= start && cellDate <= end;
                 } catch (e) {
                     console.error("Error al parsear fecha:", dateStr, e);
                     return false;
@@ -104,10 +128,10 @@ export const initializeDataTable = (data) => {
         );
         
         dataTable.draw();
-        $.fn.dataTable.ext.search.pop(); // Eliminar el filtro para futuras búsquedas
+        $.fn.dataTable.ext.search.pop();
     }
     
-    // Limpiar filtro cuando se hace clic en el botón de actualización
+    // Limpiar filtro al actualizar
     document.getElementById('refresh-btn').addEventListener('click', function() {
         if (flatpickrInstance) {
             flatpickrInstance.clear();
