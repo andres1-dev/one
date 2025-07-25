@@ -59,7 +59,7 @@ export const initializeDataTable = (data) => {
         ],
         dom: '<"top"<"row"<"col-md-6"l><"col-md-6"f>>><"row"<"col-md-12"tr>><"bottom"<"row"<"col-md-5"i><"col-md-7"p>>>',
         buttons: [
-            {
+            /**{
                 extend: 'excel',
                 text: '<i class="fas fa-file-excel me-1"></i> Excel',
                 className: 'btn btn-success btn-sm',
@@ -77,7 +77,29 @@ export const initializeDataTable = (data) => {
                         }
                     }
                 }
-            },
+            },*/
+
+{
+    extend: 'excel',
+    text: '<i class="fas fa-file-excel me-1"></i> Excel',
+    className: 'btn btn-success btn-sm',
+    filename: 'Reporte_Ingresos',
+    title: '', // Omitir el título o establecerlo como una cadena vacía
+    exportOptions: {
+        format: {
+            body: function(data, row, column, node) {
+                // Mantener formato de fechas en Excel
+                if (column === 1 && data.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                    const [day, month, year] = data.split('/');
+                    return `${year}-${month}-${day}`;
+                }
+                return data;
+            }
+        }
+    }
+},
+
+            
             {
                 extend: 'print',
                 text: '<i class="fas fa-print me-1"></i> Imprimir',
