@@ -66,7 +66,6 @@ export const initializeDataTable = (data) => {
                 filename: 'Reporte_Ingresos',
                 title: 'Reporte de Ingresos',
                 exportOptions: {
-                    columns: ':all',
                     format: {
                         body: function(data, row, column, node) {
                             // Mantener formato de fechas en Excel
