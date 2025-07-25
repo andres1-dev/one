@@ -31,7 +31,6 @@ export const initializeDataTable = (data) => {
                 render: function(data) {
                     if (!data) return '';
                     
-                    // Formato ISO (YYYY-MM-DD) para Colombia
                     if (data.match(/^\d{4}-\d{2}-\d{2}$/)) {
                         const [year, month, day] = data.split('-');
                         return `${day}/${month}/${year}`;
@@ -59,16 +58,15 @@ export const initializeDataTable = (data) => {
         ],
         dom: '<"top"<"row"<"col-md-6"l><"col-md-6"f>>><"row"<"col-md-12"tr>><"bottom"<"row"<"col-md-5"i><"col-md-7"p>>>',
         buttons: [
-            /**{
+            {
                 extend: 'excel',
                 text: '<i class="fas fa-file-excel me-1"></i> Excel',
                 className: 'btn btn-success btn-sm',
                 filename: 'Reporte_Ingresos',
-                title: 'Reporte de Ingresos',
+                title: '',
                 exportOptions: {
                     format: {
                         body: function(data, row, column, node) {
-                            // Mantener formato de fechas en Excel
                             if (column === 1 && data.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
                                 const [day, month, year] = data.split('/');
                                 return `${year}-${month}-${day}`;
@@ -77,29 +75,7 @@ export const initializeDataTable = (data) => {
                         }
                     }
                 }
-            },*/
-
-{
-    extend: 'excel',
-    text: '<i class="fas fa-file-excel me-1"></i> Excel',
-    className: 'btn btn-success btn-sm',
-    filename: 'Reporte_Ingresos',
-    title: '', // Omitir el título o establecerlo como una cadena vacía
-    exportOptions: {
-        format: {
-            body: function(data, row, column, node) {
-                // Mantener formato de fechas en Excel
-                if (column === 1 && data.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-                    const [day, month, year] = data.split('/');
-                    return `${year}-${month}-${day}`;
-                }
-                return data;
-            }
-        }
-    }
-},
-
-            
+            },
             {
                 extend: 'print',
                 text: '<i class="fas fa-print me-1"></i> Imprimir',
@@ -117,7 +93,7 @@ export const initializeDataTable = (data) => {
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        pageLength: 25,
+        pageLength: 5,
         order: [[1, 'desc']],
         responsive: {
             details: {
@@ -133,7 +109,6 @@ export const initializeDataTable = (data) => {
             }
         },
         initComplete: function() {
-            // Mover los botones al header junto al botón de actualizar
             this.api().buttons().container().appendTo($('.card-header'));
         }
     });
@@ -152,7 +127,6 @@ export const initializeDataTable = (data) => {
                 const dateStr = data[1];
                 if (!dateStr) return false;
                 
-                // Convertir a formato comparable (YYYYMMDD)
                 const currentDate = dateStr.split('/').reverse().join('');
                 const startCompare = startStr.split('/').reverse().join('');
                 const endCompare = endStr.split('/').reverse().join('');
@@ -177,5 +151,8 @@ export const initializeDataTable = (data) => {
 export const updateDataTable = (newData) => {
     if (dataTable) {
         dataTable.clear().rows.add(newData).draw();
+        if (flatpickrInstance) {
+            flatpickrInstance.clear();
+        }
     }
 };
