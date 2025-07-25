@@ -3,621 +3,273 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ingresos - Dashboard</title>
+    <title>Panel de Ingresos | Consolidado</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- DataTables CSS -->
+    <!-- DataTables CSS (versión slim) -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
     
     <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
-    <!-- Font Awesome -->
+    <!-- Font Awesome (solo los iconos necesarios) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --primary-color: #2563eb;
-            --primary-dark: #1d4ed8;
-            --secondary-color: #64748b;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --light-gray: #f8fafc;
-            --border-color: #e2e8f0;
-            --text-primary: #0f172a;
-            --text-secondary: #64748b;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --border-radius: 0.75rem;
-            --border-radius-sm: 0.5rem;
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4cc9f0;
+            --light-gray: #f8f9fa;
+            --dark-gray: #212529;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
         }
-
-        * {
-            box-sizing: border-box;
-        }
-
+        
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--light-gray);
-            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark-gray);
             line-height: 1.6;
-            font-weight: 400;
         }
-
-        /* Header Styles */
-        .dashboard-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
-        }
-
-        .dashboard-title {
-            color: white;
-            font-weight: 700;
-            font-size: 2rem;
-            margin: 0;
-            letter-spacing: -0.025em;
-        }
-
-        .dashboard-subtitle {
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 400;
-            margin: 0;
-            font-size: 1rem;
-        }
-
-        /* Main Container */
-        .main-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
-
-        /* Card Styles */
-        .modern-card {
-            background: white;
+        
+        .card {
+            border: none;
             border-radius: var(--border-radius);
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            transition: all 0.2s ease;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
         }
-
-        .modern-card:hover {
-            box-shadow: var(--shadow-lg);
+        
+        .card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
-
-        .card-header-modern {
-            background: white;
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.25rem 1.5rem;
         }
-
+        
         .card-title {
             font-weight: 600;
-            font-size: 1.25rem;
-            color: var(--text-primary);
+            color: var(--dark-gray);
             margin: 0;
         }
-
-        /* Filter Section */
-        .filters-section {
+        
+        .filter-container {
+            background-color: white;
+            padding: 1.25rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .filter-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+        
+        .summary-card {
             background: white;
             border-radius: var(--border-radius);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
-            margin-bottom: 2rem;
-            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
         }
-
-        .filters-header {
-            background: var(--light-gray);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        
+        .summary-item {
+            text-align: center;
+            padding: 0 1rem;
         }
-
-        .filters-header h6 {
-            margin: 0;
+        
+        .summary-item:not(:last-child) {
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .summary-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+        
+        .summary-value {
+            font-size: 1.5rem;
             font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .filters-body {
-            padding: 1.5rem;
-        }
-
-        .form-label {
-            font-weight: 500;
-            color: var(--text-primary);
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-control, .form-select {
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-sm);
-            padding: 0.75rem 1rem;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-            background: white;
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-            outline: none;
-        }
-
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin: 0;
-            line-height: 1.2;
-        }
-
-        .stat-icon {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            width: 3rem;
-            height: 3rem;
-            border-radius: 50%;
-            background: var(--light-gray);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary-color);
-            font-size: 1.25rem;
-        }
-
-        /* Button Styles */
-        .btn-modern {
-            background: var(--primary-color);
-            border: none;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--border-radius-sm);
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-modern:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-            color: white;
-        }
-
-        .btn-outline-modern {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--border-radius-sm);
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-outline-modern:hover {
-            background: var(--light-gray);
-            border-color: var(--primary-color);
             color: var(--primary-color);
         }
-
-        /* Table Styles */
-        .table-container {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
-            overflow: hidden;
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
         }
-
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
         .table {
-            margin: 0;
-            font-size: 0.875rem;
+            --bs-table-color: var(--dark-gray);
+            --bs-table-striped-bg: rgba(67, 97, 238, 0.03);
         }
-
-        .table thead th {
-            background: var(--light-gray);
-            border-bottom: 1px solid var(--border-color);
-            font-weight: 600;
-            color: var(--text-primary);
-            padding: 1rem 0.75rem;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-
-        .table tbody td {
-            padding: 1rem 0.75rem;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
-        }
-
-        .table tbody tr:hover {
-            background: var(--light-gray);
-        }
-
-        /* DataTables Custom Styles */
+        
         .dataTables_wrapper .dataTables_length,
         .dataTables_wrapper .dataTables_filter,
         .dataTables_wrapper .dataTables_info,
         .dataTables_wrapper .dataTables_paginate {
-            margin: 1rem 0;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.85rem;
         }
-
+        
         .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-sm);
-            padding: 0.5rem 0.75rem;
-            margin-left: 0.5rem;
+            border-radius: var(--border-radius);
+            border: 1px solid #dee2e6;
+            padding: 0.375rem 0.75rem;
         }
-
-        .pagination .page-link {
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 0.5rem 0.75rem;
-            margin: 0 0.125rem;
-            border-radius: var(--border-radius-sm);
-        }
-
-        .pagination .page-link:hover {
-            background: var(--light-gray);
-            border-color: var(--primary-color);
-        }
-
-        .pagination .page-item.active .page-link {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
-        /* Loading State */
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(2px);
-        }
-
-        .spinner {
-            width: 2rem;
-            height: 2rem;
-            border: 2px solid var(--border-color);
-            border-top-color: var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Responsive Design */
+        
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .dashboard-header {
-                padding: 1.5rem 0;
-                margin-bottom: 1.5rem;
+            .filter-container .col-md-3,
+            .filter-container .col-md-4 {
+                margin-bottom: 1rem;
             }
-
-            .dashboard-title {
-                font-size: 1.5rem;
+            
+            .summary-item {
+                border-right: none;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                padding: 1rem 0;
             }
-
-            .main-container {
-                padding: 0 0.75rem;
+            
+            .summary-item:last-child {
+                border-bottom: none;
             }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .stat-card {
-                padding: 1.25rem;
-            }
-
-            .stat-value {
-                font-size: 1.75rem;
-            }
-
-            .filters-body {
-                padding: 1rem;
-            }
-
-            .card-header-modern {
-                padding: 1rem;
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .table-responsive {
-                font-size: 0.8rem;
+            
+            .dataTables_wrapper .dataTables_length,
+            .dataTables_wrapper .dataTables_filter {
+                margin-bottom: 1rem;
             }
         }
-
-        @media (max-width: 576px) {
-            .dashboard-title {
-                font-size: 1.25rem;
-            }
-
-            .stat-card {
-                padding: 1rem;
-            }
-
-            .stat-value {
-                font-size: 1.5rem;
-            }
-
-            .btn-modern, .btn-outline-modern {
-                padding: 0.625rem 1rem;
-                font-size: 0.8rem;
-            }
+        
+        /* Animaciones */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
-        /* Dark mode support (optional) */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --light-gray: #1e293b;
-                --border-color: #334155;
-                --text-primary: #f1f5f9;
-                --text-secondary: #94a3b8;
-            }
-
-            body {
-                background-color: #0f172a;
-                color: var(--text-primary);
-            }
-
-            .modern-card, .stat-card, .filters-section, .table-container {
-                background: #1e293b;
-                border-color: var(--border-color);
-            }
-
-            .form-control, .form-select {
-                background: #1e293b;
-                border-color: var(--border-color);
-                color: var(--text-primary);
-            }
-
-            .table thead th {
-                background: #334155;
-            }
-
-            .table tbody tr:hover {
-                background: #334155;
-            }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="dashboard-header">
-        <div class="main-container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="dashboard-title">Dashboard de Ingresos</h1>
-                    <p class="dashboard-subtitle">Consolidado de datos financieros</p>
-                </div>
-                <button id="refresh-btn" class="btn-modern">
-                    <i class="fas fa-sync-alt"></i>
-                    Actualizar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-container">
-        <!-- Filters Section -->
-        <div class="filters-section">
-            <div class="filters-header">
-                <i class="fas fa-filter"></i>
-                <h6>Filtros de búsqueda</h6>
-            </div>
-            <div class="filters-body">
-                <div class="row g-3">
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label">
-                            <i class="fas fa-calendar-alt me-1"></i>
-                            Rango de fechas
-                        </label>
-                        <input type="text" id="filterFecha" class="form-control flatpickr-input" placeholder="Seleccione fechas">
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label">
-                            <i class="fas fa-building me-1"></i>
-                            Proveedor
-                        </label>
-                        <select id="filterProveedor" class="form-select">
-                            <option value="">Todos los proveedores</option>
-                        </select>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label">
-                            <i class="fas fa-chart-line me-1"></i>
-                            Línea
-                        </label>
-                        <select id="filterLinea" class="form-select">
-                            <option value="">Todas las líneas</option>
-                        </select>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label">
-                            <i class="fas fa-user-tie me-1"></i>
-                            Gestor
-                        </label>
-                        <select id="filterGestor" class="form-select">
-                            <option value="">Todos los gestores</option>
-                        </select>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label">
-                            <i class="fas fa-tags me-1"></i>
-                            Clase
-                        </label>
-                        <select id="filterClase" class="form-select">
-                            <option value="">Todas las clases</option>
-                        </select>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label">
-                            <i class="fas fa-database me-1"></i>
-                            Fuente
-                        </label>
-                        <select id="filterFuente" class="form-select">
-                            <option value="">Todas las fuentes</option>
-                            <option value="SISPRO">SISPRO</option>
-                            <option value="BUSINT">BUSINT</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-list-ol"></i>
-                </div>
-                <div class="stat-label">Total de registros</div>
-                <h3 class="stat-value" id="total-records">0</h3>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-cubes"></i>
-                </div>
-                <div class="stat-label">Cantidad total</div>
-                <h3 class="stat-value" id="total-quantity">0</h3>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-                <div class="stat-label">Valor total</div>
-                <h3 class="stat-value" id="total-pvp">$0</h3>
-            </div>
-        </div>
-
-        <!-- Data Table -->
-        <div class="modern-card">
-            <div class="card-header-modern">
-                <h5 class="card-title">
-                    <i class="fas fa-table me-2"></i>
-                    Datos consolidados
-                </h5>
-                <div class="d-flex gap-2">
-                    <button class="btn-outline-modern" id="export-btn">
-                        <i class="fas fa-download"></i>
-                        Exportar
+    <div class="container-fluid py-3">
+        <div class="card fade-in">
+            <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                <h5 class="card-title">Consolidado de Ingresos</h5>
+                <div class="mt-2 mt-md-0">
+                    <button id="refresh-btn" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-sync-alt me-1"></i> Actualizar
                     </button>
                 </div>
             </div>
-            <div style="position: relative;">
-                <div class="table-container">
-                    <div class="table-responsive">
-                        <table id="data-table" class="table table-hover nowrap" style="width:100%"></table>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="filter-container fade-in">
+                    <div class="row g-3">
+                        <div class="col-md-4 col-lg-3">
+                            <label class="filter-label">Rango de fechas</label>
+                            <input type="text" id="filterFecha" class="form-control form-control-sm flatpickr-input" placeholder="Seleccionar fechas">
+                        </div>
+                        <div class="col-md-4 col-lg-3">
+                            <label class="filter-label">Proveedor</label>
+                            <select id="filterProveedor" class="form-select form-select-sm">
+                                <option value="">Todos los proveedores</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-lg-3">
+                            <label class="filter-label">Línea</label>
+                            <select id="filterLinea" class="form-select form-select-sm">
+                                <option value="">Todas las líneas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-lg-3">
+                            <label class="filter-label">Gestor</label>
+                            <select id="filterGestor" class="form-select form-select-sm">
+                                <option value="">Todos los gestores</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-lg-3">
+                            <label class="filter-label">Clase</label>
+                            <select id="filterClase" class="form-select form-select-sm">
+                                <option value="">Todas las clases</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-lg-3">
+                            <label class="filter-label">Fuente</label>
+                            <select id="filterFuente" class="form-select form-select-sm">
+                                <option value="">Todas las fuentes</option>
+                                <option value="SISPRO">SISPRO</option>
+                                <option value="BUSINT">BUSINT</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div class="loading-overlay" id="loading-overlay" style="display: none;">
-                    <div class="spinner"></div>
+                
+                <!-- Resumen -->
+                <div class="summary-card fade-in">
+                    <div class="row g-0 text-center">
+                        <div class="col-md-4 summary-item">
+                            <div class="summary-title">Registros</div>
+                            <div class="summary-value" id="total-records">0</div>
+                        </div>
+                        <div class="col-md-4 summary-item">
+                            <div class="summary-title">Cantidad Total</div>
+                            <div class="summary-value" id="total-quantity">0</div>
+                        </div>
+                        <div class="col-md-4 summary-item">
+                            <div class="summary-title">Valor Total</div>
+                            <div class="summary-value" id="total-pvp">$0</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla -->
+                <div class="table-responsive fade-in">
+                    <table id="data-table" class="table table-hover table-striped" style="width:100%"></table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts optimizados -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
     
     <!-- Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -626,98 +278,55 @@
     <!-- Módulos -->
     <script type="module">
         import { getCombinedData } from './sheets-api.js';
-        import { initializeDataTable, updateDataTable } from './datatable-manager.js';
+        import { initializeDataTable, updateDataTable } from './datatable-manager2.js';
         
-        // Loading state management
-        function showLoading() {
-            document.getElementById('loading-overlay').style.display = 'flex';
-        }
-        
-        function hideLoading() {
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
-        
-        // Initialize application
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                showLoading();
                 const data = await getCombinedData();
                 initializeDataTable(data);
-                hideLoading();
             } catch (error) {
                 console.error("Error al cargar datos:", error);
-                hideLoading();
-                // Modern error notification
-                const errorAlert = document.createElement('div');
-                errorAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
-                errorAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-                errorAlert.innerHTML = `
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Error:</strong> No se pudieron cargar los datos. Por favor, recarga la página.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                document.body.appendChild(errorAlert);
-                
-                // Auto remove after 5 seconds
-                setTimeout(() => {
-                    if (errorAlert.parentNode) {
-                        errorAlert.remove();
-                    }
-                }, 5000);
+                showAlert("Error al cargar datos. Por favor recarga la página.", "danger");
             }
+            
+            document.getElementById('refresh-btn').addEventListener('click', async () => {
+                try {
+                    const btn = document.getElementById('refresh-btn');
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Actualizando...';
+                    btn.disabled = true;
+                    
+                    const data = await getCombinedData();
+                    updateDataTable(data);
+                    
+                    btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Actualizar';
+                    btn.disabled = false;
+                    showAlert("Datos actualizados correctamente", "success");
+                } catch (error) {
+                    console.error("Error al actualizar datos:", error);
+                    showAlert("Error al actualizar datos. Intenta nuevamente.", "danger");
+                }
+            });
         });
         
-        // Refresh button functionality
-        document.getElementById('refresh-btn').addEventListener('click', async () => {
-            try {
-                showLoading();
-                const refreshBtn = document.getElementById('refresh-btn');
-                refreshBtn.disabled = true;
-                
-                const data = await getCombinedData();
-                updateDataTable(data);
-                
-                // Success notification
-                const successAlert = document.createElement('div');
-                successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed';
-                successAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-                successAlert.innerHTML = `
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>Éxito:</strong> Datos actualizados correctamente.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                document.body.appendChild(successAlert);
-                
-                setTimeout(() => {
-                    if (successAlert.parentNode) {
-                        successAlert.remove();
-                    }
-                }, 3000);
-                
-                hideLoading();
-                refreshBtn.disabled = false;
-            } catch (error) {
-                console.error("Error al actualizar datos:", error);
-                hideLoading();
-                document.getElementById('refresh-btn').disabled = false;
-                
-                const errorAlert = document.createElement('div');
-                errorAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
-                errorAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-                errorAlert.innerHTML = `
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Error:</strong> No se pudieron actualizar los datos. Intenta nuevamente.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                document.body.appendChild(errorAlert);
-                
-                setTimeout(() => {
-                    if (errorAlert.parentNode) {
-                        errorAlert.remove();
-                    }
-                }, 5000);
-            }
-        });
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alert.style.top = '20px';
+            alert.style.right = '20px';
+            alert.style.zIndex = '9999';
+            alert.style.maxWidth = '350px';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 150);
+            }, 3000);
+        }
     </script>
 </body>
 </html>
