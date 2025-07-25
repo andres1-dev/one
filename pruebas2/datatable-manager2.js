@@ -1,4 +1,3 @@
-// datatable-manager.js
 let dataTable;
 let flatpickrInstance;
 let allData = [];
@@ -10,12 +9,10 @@ export const initializeDataTable = (data) => {
         dataTable.destroy();
     }
     
-    // Configuración de Flatpickr
     flatpickrInstance = flatpickr("#filterFecha", {
         mode: "range",
         locale: "es",
         dateFormat: "d/m/Y",
-        allowInput: true,
         onClose: function(selectedDates) {
             if (selectedDates.length === 1) {
                 filterByExactDate(selectedDates[0]);
@@ -30,20 +27,21 @@ export const initializeDataTable = (data) => {
     
     initializeSelectFilters(data);
     
-    // Configuración optimizada de DataTable
     dataTable = $('#data-table').DataTable({
         data: data,
         columns: [
-            { 
-                title: "Documento", 
-                data: "DOCUMENTO",
-                className: "text-nowrap"
-            },
+            { title: "Documento", data: "DOCUMENTO" },
             { 
                 title: "Fecha", 
                 data: "FECHA",
-                render: formatDate,
-                className: "text-nowrap"
+                render: function(data) {
+                    if (!data) return '';
+                    if (data.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        const [year, month, day] = data.split('-');
+                        return `${day}/${month}/${year}`;
+                    }
+                    return data;
+                }
             },
             { title: "Taller", data: "TALLER" },
             { title: "Línea", data: "LINEA" },
@@ -52,19 +50,10 @@ export const initializeDataTable = (data) => {
             { title: "Lote", data: "LOTE" },
             { title: "Ref. Prov.", data: "REFPROV" },
             { title: "Descripción", data: "DESCRIPCIÓN" },
-            { 
-                title: "Cantidad", 
-                data: "CANTIDAD",
-                className: "text-end"
-            },
+            { title: "Cantidad", data: "CANTIDAD" },
             { title: "Referencia", data: "REFERENCIA" },
             { title: "Tipo", data: "TIPO" },
-            { 
-                title: "PVP", 
-                data: "PVP",
-                render: formatCurrency,
-                className: "text-end"
-            },
+            { title: "PVP", data: "PVP" },
             { title: "Prenda", data: "PRENDA" },
             { title: "Género", data: "GENERO" },
             { title: "Gestor", data: "GESTOR" },
@@ -72,44 +61,88 @@ export const initializeDataTable = (data) => {
             { title: "Clase", data: "CLASE" },
             { title: "Fuente", data: "FUENTE" }
         ],
-        dom: '<"top"<"table-top d-flex flex-column flex-md-row justify-content-between"lf>>rt<"bottom"<"table-bottom d-flex flex-column flex-md-row justify-content-between"ip>>',
+        dom: '<"top"<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>><"row"<"col-sm-12"tr>><"bottom"<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>><"clear">',
+        buttons: [
+            {
+                extend: 'copy',
+                text: '<i class="fas fa-copy me-1"></i> Copiar',
+                className: 'btn btn-sm btn-outline-secondary',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            },
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel me-1"></i> Excel',
+                className: 'btn btn-sm btn-outline-success',
+                filename: 'Reporte_Ingresos',
+                title: '',
+                exportOptions: {
+                    columns: ':visible',
+                    format: {
+                        body: function(data, row, column, node) {
+                            if (column === 1 && data.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                                const [day, month, year] = data.split('/');
+                                return `${year}-${month}-${day}`;
+                            }
+                            return data;
+                        }
+                    }
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print me-1"></i> Imprimir',
+                className: 'btn btn-sm btn-outline-primary',
+                title: 'Reporte de Ingresos',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function(win) {
+                    $(win.document.body).css('font-size', '10pt');
+                    $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
+                }
+            },
+            {
+                extend: 'colvis',
+                text: '<i class="fas fa-columns me-1"></i> Columnas',
+                className: 'btn btn-sm btn-outline-info'
+            }
+        ],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        pageLength: 25,
-        lengthMenu: [10, 25, 50, 100],
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50, 100],
         order: [[1, 'desc']],
         responsive: {
             details: {
                 display: $.fn.dataTable.Responsive.display.modal({
                     header: function(row) {
-                        const data = row.data();
-                        return `<h6>Detalles: ${data.DOCUMENTO || 'Registro'}</h6>`;
+                        var data = row.data();
+                        return 'Detalles: ' + data.DOCUMENTO;
                     }
                 }),
                 renderer: $.fn.dataTable.Responsive.renderer.tableAll({
-                    tableClass: 'table table-sm'
+                    tableClass: 'table'
                 })
             }
         },
         initComplete: function() {
-            // Mejora de accesibilidad
-            this.api().columns().header().each(function(header) {
-                header.setAttribute('scope', 'col');
-            });
+            // Colocar los botones en un contenedor con la clase dt-buttons
+            var buttonsContainer = $('<div class="dt-buttons btn-group flex-wrap"></div>');
+            this.api().buttons().container().appendTo(buttonsContainer);
+            $('.card-header').append(buttonsContainer);
         },
         drawCallback: function() {
             updateSummaryCard();
-            // Mejora de accesibilidad para paginación
-            $('.paginate_button').attr('aria-label', function(i, val) {
-                return val.replace('page', 'Página');
-            });
         }
     });
     
     updateSummaryCard();
 };
 
+// Resto del código permanece igual...
 export const updateDataTable = (newData) => {
     allData = newData;
     
@@ -123,25 +156,6 @@ export const updateDataTable = (newData) => {
         updateSummaryCard();
     }
 };
-
-// Funciones auxiliares
-function formatDate(data) {
-    if (!data) return '';
-    if (data.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const [year, month, day] = data.split('-');
-        return `${day}/${month}/${year}`;
-    }
-    return data;
-}
-
-function formatCurrency(data) {
-    if (!data) return '';
-    const amount = parseFloat(data.replace(/[^0-9.-]+/g, "")) || 0;
-    return '$' + amount.toLocaleString('es-CO', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    });
-}
 
 function initializeSelectFilters(data) {
     const uniqueValues = {
@@ -158,19 +172,33 @@ function initializeSelectFilters(data) {
         if (item.CLASE) uniqueValues.CLASE.add(item.CLASE);
     });
     
-    // Función para llenar selects
-    const fillSelect = (id, values, placeholder) => {
-        const select = $(id);
-        select.empty().append(`<option value="">${placeholder}</option>`);
-        Array.from(values).sort().forEach(value => {
-            select.append(`<option value="${value}">${value}</option>`);
-        });
-    };
+    // Llenar select de Proveedor
+    const proveedorSelect = $('#filterProveedor');
+    proveedorSelect.empty().append('<option value="">Todos</option>');
+    Array.from(uniqueValues.PROVEEDOR).sort().forEach(value => {
+        proveedorSelect.append(`<option value="${value}">${value}</option>`);
+    });
     
-    fillSelect('#filterProveedor', uniqueValues.PROVEEDOR, 'Todos los proveedores');
-    fillSelect('#filterLinea', uniqueValues.LINEA, 'Todas las líneas');
-    fillSelect('#filterGestor', uniqueValues.GESTOR, 'Todos los gestores');
-    fillSelect('#filterClase', uniqueValues.CLASE, 'Todas las clases');
+    // Llenar select de Línea
+    const lineaSelect = $('#filterLinea');
+    lineaSelect.empty().append('<option value="">Todos</option>');
+    Array.from(uniqueValues.LINEA).sort().forEach(value => {
+        lineaSelect.append(`<option value="${value}">${value}</option>`);
+    });
+    
+    // Llenar select de Gestor
+    const gestorSelect = $('#filterGestor');
+    gestorSelect.empty().append('<option value="">Todos</option>');
+    Array.from(uniqueValues.GESTOR).sort().forEach(value => {
+        gestorSelect.append(`<option value="${value}">${value}</option>`);
+    });
+    
+    // Llenar select de Clase
+    const claseSelect = $('#filterClase');
+    claseSelect.empty().append('<option value="">Todos</option>');
+    Array.from(uniqueValues.CLASE).sort().forEach(value => {
+        claseSelect.append(`<option value="${value}">${value}</option>`);
+    });
     
     // Configurar eventos para los filtros
     $('#filterProveedor, #filterLinea, #filterGestor, #filterClase, #filterFuente').off('change').on('change', function() {
@@ -179,22 +207,36 @@ function initializeSelectFilters(data) {
 }
 
 function applyAllFilters() {
+    // Limpiar todos los filtros primero
     dataTable.columns().search('');
     
-    const filters = {
-        16: $('#filterProveedor').val(),  // PROVEEDOR
-        3: $('#filterLinea').val(),       // LINEA
-        15: $('#filterGestor').val(),     // GESTOR
-        17: $('#filterClase').val(),      // CLASE
-        18: $('#filterFuente').val()     // FUENTE
-    };
+    // Aplicar filtros individuales
+    const proveedor = $('#filterProveedor').val();
+    if (proveedor) {
+        dataTable.column(16).search("^" + proveedor + "$", true, false); // Columna 15 = PROVEEDOR (búsqueda exacta)
+    }
     
-    Object.entries(filters).forEach(([column, value]) => {
-        if (value) {
-            dataTable.column(column).search("^" + value + "$", true, false);
-        }
-    });
+    const linea = $('#filterLinea').val();
+    if (linea) {
+        dataTable.column(3).search("^" + linea + "$", true, false); // Columna 3 = LINEA (búsqueda exacta)
+    }
     
+    const gestor = $('#filterGestor').val();
+    if (gestor) {
+        dataTable.column(15).search("^" + gestor + "$", true, false); // Columna 14 = GESTOR (búsqueda exacta)
+    }
+    
+    const clase = $('#filterClase').val();
+    if (clase) {
+        dataTable.column(17).search("^" + clase + "$", true, false); // Columna 16 = CLASE (búsqueda exacta)
+    }
+    
+    const fuente = $('#filterFuente').val();
+    if (fuente) {
+        dataTable.column(18).search("^" + fuente + "$", true, false); // Columna 17 = FUENTE (búsqueda exacta)
+    }
+    
+    // Redibujar la tabla con todos los filtros aplicados
     dataTable.draw();
 }
 
@@ -206,7 +248,7 @@ function updateSummaryCard() {
     const totalRecords = filteredData.length;
     const totalQuantity = filteredData.reduce((sum, item) => sum + (parseInt(item.CANTIDAD) || 0), 0);
     const totalPVP = filteredData.reduce((sum, item) => {
-        const pvp = parseFloat(item.PVP?.replace(/[^0-9.-]+/g, "") || 0);
+        const pvp = parseFloat(item.PVP.replace(/[^0-9.-]+/g, "")) || 0;
         return sum + pvp;
     }, 0);
     
