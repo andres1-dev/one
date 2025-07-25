@@ -66,7 +66,8 @@ export const initializeDataTable = (data) => {
                 filename: 'Reporte_Ingresos',
                 title: 'Reporte de Ingresos',
                 exportOptions: {
-                    columns: ':visible',
+                    //columns: ':visible',
+                    columns: ':all', // Exportar todas las columnas, no solo las visibles
                     format: {
                         body: function(data, row, column, node) {
                             // Mantener formato de fechas en Excel
@@ -86,8 +87,8 @@ export const initializeDataTable = (data) => {
                 className: 'btn btn-primary btn-sm',
                 title: 'Reporte de Ingresos',
                 exportOptions: {
-                    columns: ':all', // Exportar todas las columnas, no solo las visibles             
-                    //columns: ':visible'
+                    //columns: ':all', // Exportar todas las columnas, no solo las visibles             
+                    columns: ':visible'
                 },
                 customize: function(win) {
                     $(win.document.body).css('font-size', '10pt');
