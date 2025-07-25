@@ -1,262 +1,196 @@
-let dataTable;
-let flatpickrInstance;
-let allData = [];
-
-export const initializeDataTable = (data) => {
-    allData = data;
-    
-    if (dataTable) {
-        dataTable.destroy();
-    }
-    
-    flatpickrInstance = flatpickr("#filterFecha", {
-        mode: "range",
-        locale: "es",
-        dateFormat: "d/m/Y",
-        onClose: function(selectedDates) {
-            if (selectedDates.length === 1) {
-                filterByExactDate(selectedDates[0]);
-            } else if (selectedDates.length === 2) {
-                filterByDateRange(selectedDates[0], selectedDates[1]);
-            } else {
-                dataTable.search('').draw();
-            }
-            updateSummaryCard();
-        }
-    });
-    
-    initializeSelectFilters(data);
-    
-    dataTable = $('#data-table').DataTable({
-        data: data,
-        columns: [
-            { title: "Documento", data: "DOCUMENTO" },
-            { 
-                title: "Fecha", 
-                data: "FECHA",
-                render: function(data) {
-                    if (!data) return '';
-                    
-                    if (data.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                        const [year, month, day] = data.split('-');
-                        return `${day}/${month}/${year}`;
-                    }
-                    return data;
-                }
-            },
-            { title: "Taller", data: "TALLER" },
-            { title: "Línea", data: "LINEA" },
-            { title: "Auditor", data: "AUDITOR" },
-            { title: "Escáner", data: "ESCANER" },
-            { title: "Lote", data: "LOTE" },
-            { title: "Ref. Prov.", data: "REFPROV" },
-            { title: "Descripción", data: "DESCRIPCIÓN" },
-            { title: "Cantidad", data: "CANTIDAD" },
-            { title: "Referencia", data: "REFERENCIA" },
-            { title: "Tipo", data: "TIPO" },
-            { title: "PVP", data: "PVP" },
-            { title: "Prenda", data: "PRENDA" },
-            { title: "Género", data: "GENERO" },
-            { title: "Gestor", data: "GESTOR" },
-            { title: "Proveedor", data: "PROVEEDOR" },
-            { title: "Clase", data: "CLASE" },
-            { title: "Fuente", data: "FUENTE" }
-        ],
-        dom: '<"top"<"row"<"col-md-6"l><"col-md-6"f>>><"row"<"col-md-12"tr>><"bottom"<"row"<"col-md-5"i><"col-md-7"p>>>',
-        buttons: [
-            {
-                extend: 'excel',
-                text: '<i class="fas fa-file-excel me-1"></i> Excel',
-                className: 'btn btn-success btn-sm',
-                filename: 'Reporte_Ingresos',
-                title: '',
-                exportOptions: {
-                    format: {
-                        body: function(data, row, column, node) {
-                            if (column === 1 && data.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-                                const [day, month, year] = data.split('/');
-                                return `${year}-${month}-${day}`;
-                            }
-                            return data;
-                        }
-                    }
-                }
-            },
-            {
-                extend: 'print',
-                text: '<i class="fas fa-print me-1"></i> Imprimir',
-                className: 'btn btn-primary btn-sm',
-                title: 'Reporte de Ingresos',
-                exportOptions: {
-                    columns: ':visible'
-                },
-                customize: function(win) {
-                    $(win.document.body).css('font-size', '10pt');
-                    $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
-                }
-            }
-        ],
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-        },
-        pageLength: 10,
-        lengthMenu: [5, 10, 25, 50, 100],
-        order: [[1, 'desc']],
-        responsive: {
-            details: {
-                display: $.fn.dataTable.Responsive.display.modal({
-                    header: function(row) {
-                        var data = row.data();
-                        return 'Detalles: ' + data.DOCUMENTO;
-                    }
-                }),
-                renderer: $.fn.dataTable.Responsive.renderer.tableAll({
-                    tableClass: 'table'
-                })
-            }
-        },
-        initComplete: function() {
-            this.api().buttons().container().appendTo($('.card-header'));
-        },
-        drawCallback: function() {
-            updateSummaryCard();
-        }
-    });
-    
-    updateSummaryCard();
+// sheets-api.js
+const API_KEY = 'AIzaSyCrTSddJcCaJCqQ_Cr_PC2zt-eVZAihC38';
+const SPREADSHEET_IDS = {
+    DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+    REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc"
 };
 
-export const updateDataTable = (newData) => {
-    allData = newData;
-    
-    if (dataTable) {
-        dataTable.clear().rows.add(newData).draw();
-        if (flatpickrInstance) {
-            flatpickrInstance.clear();
-        }
-        
-        initializeSelectFilters(newData);
-        updateSummaryCard();
-    }
+// Función para normalizar datos
+const normalizeLinea = (linea) => {
+    let normalized = linea.replace(/^LINEA\s*/i, '');
+    return normalized.replace(/\s+/g, '').toUpperCase();
 };
 
-function initializeSelectFilters(data) {
-    const uniqueValues = {
-        PROVEEDOR: new Set(),
-        LINEA: new Set(),
-        GESTOR: new Set(),
-        CLASE: new Set()
+// Modificada para quitar separadores de miles
+const normalizePVP = (pvp) => pvp.replace(/\$\s*/g, '').replace(/\./g, '').trim();
+
+const getClaseByPVP = (pvp) => {
+    const valor = parseFloat(pvp);
+    if (isNaN(valor)) return 'NO DEFINIDO';
+
+    if (valor <= 39900) return 'LINEA';
+    if (valor > 39900 && valor <= 59900) return 'MODA';
+    if (valor > 59900) return 'PRONTAMODA';
+
+    return 'NO DEFINIDO';
+};
+
+const normalizeDate = (date) => {
+    if (!date) return null;
+
+    const [day, month, year] = date.split('/');
+
+    // Asegura que los valores estén en formato de 2 dígitos
+    const dd = day.padStart(2, '0');
+    const mm = month.padStart(2, '0');
+
+    return `${year}-${mm}-${dd}`;
+    //return `${dd}/${mm}/${year}`;
+}; 
+
+const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
+
+const getGestorByLinea = (linea) => {
+    const normalizedLinea = normalizeLinea(linea);
+    const gestores = {
+        'ANGELES': 'VILLAMIZAR GOMEZ LUIS',
+        'MODAFRESCA': 'FABIAN MARIN FLOREZ',
+        'BASICO': 'CESAR AUGUSTO LOPEZ GIRALDO',
+        'INTIMA': 'KELLY GIOVANA ZULUAGA HOYOS',
+        'URBANO': 'MARYI ANDREA GONZALEZ SILVA',
+        'DEPORTIVO': 'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
+        'PRONTAMODA': 'SANCHEZ LOPEZ YULIETH',
+        'ESPECIALES': 'JUAN ESTEBAN ZULUAGA HOYOS',
+        'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS'
     };
     
-    data.forEach(item => {
-        if (item.PROVEEDOR) uniqueValues.PROVEEDOR.add(item.PROVEEDOR);
-        if (item.LINEA) uniqueValues.LINEA.add(item.LINEA);
-        if (item.GESTOR) uniqueValues.GESTOR.add(item.GESTOR);
-        if (item.CLASE) uniqueValues.CLASE.add(item.CLASE);
-    });
-    
-    // Llenar select de Proveedor
-    const proveedorSelect = $('#filterProveedor');
-    proveedorSelect.empty().append('<option value="">Todos</option>');
-    Array.from(uniqueValues.PROVEEDOR).sort().forEach(value => {
-        proveedorSelect.append(`<option value="${value}">${value}</option>`);
-    });
-    
-    // Llenar select de Línea
-    const lineaSelect = $('#filterLinea');
-    lineaSelect.empty().append('<option value="">Todos</option>');
-    Array.from(uniqueValues.LINEA).sort().forEach(value => {
-        lineaSelect.append(`<option value="${value}">${value}</option>`);
-    });
-    
-    // Llenar select de Gestor
-    const gestorSelect = $('#filterGestor');
-    gestorSelect.empty().append('<option value="">Todos</option>');
-    Array.from(uniqueValues.GESTOR).sort().forEach(value => {
-        gestorSelect.append(`<option value="${value}">${value}</option>`);
-    });
-    
-    // Llenar select de Clase
-    const claseSelect = $('#filterClase');
-    claseSelect.empty().append('<option value="">Todos</option>');
-    Array.from(uniqueValues.CLASE).sort().forEach(value => {
-        claseSelect.append(`<option value="${value}">${value}</option>`);
-    });
-    
-    // Configurar eventos para los filtros
-    $('#filterProveedor, #filterLinea, #filterGestor, #filterClase, #filterFuente').off('change').on('change', function() {
-        applyAllFilters();
-    });
-}
+    for (const [key, value] of Object.entries(gestores)) {
+        if (normalizedLinea.includes(key)) return value;
+    }
+    return 'GESTOR NO ASIGNADO';
+};
 
-function applyAllFilters() {
-    const proveedor = $('#filterProveedor').val();
-    const linea = $('#filterLinea').val();
-    const gestor = $('#filterGestor').val();
-    const clase = $('#filterClase').val();
-    const fuente = $('#filterFuente').val();
-    
-    dataTable.columns().search('');
-    
-    if (proveedor) dataTable.columns(15).search(proveedor);
-    if (linea) dataTable.columns(3).search(linea);
-    if (gestor) dataTable.columns(14).search(gestor);
-    if (clase) dataTable.columns(16).search(clase);
-    if (fuente) dataTable.columns(17).search(fuente);
-    
-    dataTable.draw();
-}
+const getProveedorByLinea = (linea) => {
+    return normalizeLinea(linea).includes('ANGELES') 
+        ? 'TEXTILES Y CREACIONES LOS ANGELES SAS' 
+        : 'TEXTILES Y CREACIONES EL UNIVERSO SAS';
+};
 
-function updateSummaryCard() {
-    if (!dataTable) return;
+const isAnulado = (item) => {
+    const camposRequeridos = [
+        'TALLER', 'LINEA', 'AUDITOR', 'ESCANER', 'LOTE', 
+        'REFPROV', 'DESCRIPCIÓN', 'CANTIDAD', 'REFERENCIA',
+        'TIPO', 'PVP', 'PRENDA', 'GENERO'
+    ];
     
-    const filteredData = dataTable.rows({ search: 'applied' }).data().toArray();
+    let camposVacios = 0;
     
-    const totalRecords = filteredData.length;
-    const totalQuantity = filteredData.reduce((sum, item) => sum + (parseInt(item.CANTIDAD) || 0), 0);
-    const totalPVP = filteredData.reduce((sum, item) => {
-        const pvp = parseFloat(item.PVP.replace(/[^0-9.-]+/g, "")) || 0;
-        return sum + pvp;
-    }, 0);
-    
-    $('#total-records').text(totalRecords.toLocaleString());
-    $('#total-quantity').text(totalQuantity.toLocaleString());
-    $('#total-pvp').text('$' + totalPVP.toLocaleString('es-CO', { 
-        minimumFractionDigits: 0, 
-        maximumFractionDigits: 0 
-    }));
-}
-
-function filterByExactDate(date) {
-    const formattedDate = formatDateForFilter(date);
-    dataTable.columns(1).search(formattedDate, true, false).draw();
-}
-
-function filterByDateRange(startDate, endDate) {
-    const startStr = formatDateForFilter(startDate);
-    const endStr = formatDateForFilter(endDate);
-    
-    $.fn.dataTable.ext.search.push(
-        function(settings, data, dataIndex) {
-            const dateStr = data[1];
-            if (!dateStr) return false;
-            
-            const currentDate = dateStr.split('/').reverse().join('');
-            const startCompare = startStr.split('/').reverse().join('');
-            const endCompare = endStr.split('/').reverse().join('');
-            
-            return currentDate >= startCompare && currentDate <= endCompare;
+    for (const campo of camposRequeridos) {
+        if (!item[campo] || 
+            (typeof item[campo] === 'number' && item[campo] === 0) || 
+            (typeof item[campo] === 'string' && item[campo].trim() === '')) {
+            camposVacios++;
+            if (camposVacios > 4) return true;
         }
-    );
-    
-    dataTable.draw();
-    $.fn.dataTable.ext.search.pop();
-}
+    }
+    return camposVacios > 4;
+};
 
-function formatDateForFilter(date) {
-    const d = new Date(date);
-    const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-}
+// Función para obtener datos de DATA2
+export const getParsedMainData = async () => {
+    try {
+        const range = "DATA2!S2:S";
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.DATA2}/values/${range}?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!data.values || data.values.length === 0) {
+            throw new Error("No se encontraron datos en la hoja DATA2");
+        }
+
+        return data.values.map(row => {
+            try {
+                const jsonData = JSON.parse(row[0]);
+                return {
+                    DOCUMENTO: String(jsonData.A || ''),
+                    FECHA: normalizeDate(jsonData.FECHA || ''), // Aplicar normalización de fecha
+                    //FECHA: jsonData.FECHA || '',
+                    TALLER: jsonData.TALLER || '',
+                    LINEA: normalizeLinea(jsonData.LINEA || ''),
+                    AUDITOR: jsonData.AUDITOR || '',
+                    ESCANER: jsonData.ESCANER || '',
+                    LOTE: Number(jsonData.LOTE) || 0,
+                    REFPROV: String(jsonData.REFPROV || ''),
+                    DESCRIPCIÓN: jsonData.DESCRIPCIÓN || '',
+                    CANTIDAD: Number(jsonData.CANTIDAD) || 0,
+                    REFERENCIA: jsonData.REFERENCIA || '',
+                    TIPO: jsonData.TIPO || '',
+                    PVP: normalizePVP(jsonData.PVP || ''), // Ya incluye la eliminación de separadores de miles
+                    PRENDA: jsonData.PRENDA || '',
+                    GENERO: jsonData.GENERO || '',
+                    GESTOR: jsonData.GESTOR || '',
+                    PROVEEDOR: jsonData.PROVEEDOR || getProveedorByLinea(jsonData.LINEA || ''),
+                    CLASE: getClaseByPVP(normalizePVP(jsonData.PVP || '')),
+                    FUENTE: 'SISPRO'
+                };
+            } catch (e) {
+                console.error("Error al parsear JSON:", e);
+                return null;
+            }
+        }).filter(item => item !== null);
+    } catch (error) {
+        console.error("Error en getParsedMainData:", error);
+        throw error;
+    }
+};
+
+// Función para obtener datos de REC
+export const getREC = async () => {
+    try {
+        const range = "DataBase!A2:AF";
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.REC}/values/${range}?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!data.values || data.values.length === 0) {
+            throw new Error("No se encontraron datos en la hoja DataBase");
+        }
+
+        return data.values.map(row => {
+            if (!row[0] && !row[1]) return null;
+            const documento = String(row[0] || '');
+            const linea = row[3] || '';
+            
+            return {
+                DOCUMENTO: normalizeDocumento(documento),
+                FECHA: normalizeDate(row[1] || ''), // Aplicar normalización de fecha
+                //FECHA: row[1] || '',
+                TALLER: row[2] || '',
+                LINEA: normalizeLinea(linea),
+                AUDITOR: row[4] || '',
+                ESCANER: row[5] || '',
+                LOTE: Number(row[8]) || 0,
+                REFPROV: String(row[6] || ''),
+                DESCRIPCIÓN: row[9] || '',
+                CANTIDAD: Number(row[18]) || 0,
+                REFERENCIA: row[26] || '',
+                TIPO: row[27] || '',
+                PVP: normalizePVP(row[31] || ''), // Ya incluye la eliminación de separadores de miles
+                PRENDA: row[29] || '',
+                GENERO: row[30] || '',
+                GESTOR: getGestorByLinea(linea), 
+                PROVEEDOR: getProveedorByLinea(linea),
+                CLASE: getClaseByPVP(normalizePVP(row[31] || '')),
+                FUENTE: 'BUSINT'
+            };
+        }).filter(item => item !== null && item.DOCUMENTO !== '');
+    } catch (error) {
+        console.error("Error en getREC:", error);
+        throw error;
+    }
+};
+
+// Función principal para obtener todos los datos combinados
+export const getCombinedData = async () => {
+    try {
+        const [dataFromFirstSheet, dataFromSecondSheet] = await Promise.all([
+            getParsedMainData(),
+            getREC()
+        ]);
+        
+        return [...dataFromFirstSheet, ...dataFromSecondSheet].filter(item => !isAnulado(item));
+    } catch (error) {
+        console.error("Error al combinar datos:", error);
+        throw error;
+    }
+};
