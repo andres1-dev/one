@@ -195,7 +195,7 @@ function applyAllFilters() {
     // Aplicar filtros individuales
     const proveedor = $('#filterProveedor').val();
     if (proveedor) {
-        dataTable.column(15).search("^" + proveedor + "$", true, false); // Columna 15 = PROVEEDOR (búsqueda exacta)
+        dataTable.column(16).search("^" + proveedor + "$", true, false); // Columna 15 = PROVEEDOR (búsqueda exacta)
     }
     
     const linea = $('#filterLinea').val();
@@ -205,12 +205,12 @@ function applyAllFilters() {
     
     const gestor = $('#filterGestor').val();
     if (gestor) {
-        dataTable.column(14).search("^" + gestor + "$", true, false); // Columna 14 = GESTOR (búsqueda exacta)
+        dataTable.column(15).search("^" + gestor + "$", true, false); // Columna 14 = GESTOR (búsqueda exacta)
     }
     
     const clase = $('#filterClase').val();
     if (clase) {
-        dataTable.column(16).search("^" + clase + "$", true, false); // Columna 16 = CLASE (búsqueda exacta)
+        dataTable.column(17).search("^" + clase + "$", true, false); // Columna 16 = CLASE (búsqueda exacta)
     }
     
     const fuente = $('#filterFuente').val();
