@@ -86,7 +86,8 @@ export const initializeDataTable = (data) => {
                 className: 'btn btn-primary btn-sm',
                 title: 'Reporte de Ingresos',
                 exportOptions: {
-                    columns: ':visible'
+                    columns: ':all', // Exportar todas las columnas, no solo las visibles             
+                    //columns: ':visible'
                 },
                 customize: function(win) {
                     $(win.document.body).css('font-size', '10pt');
