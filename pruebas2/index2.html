@@ -623,32 +623,9 @@
     
     <!-- Módulos -->
     <script type="module">
-        // import { getCombinedData } from './sheets-api.js';
-        // import { initializeDataTable, updateDataTable } from './datatable-manager.js';
+         import { getCombinedData } from './sheets-api.js';
+         import { initializeDataTable, updateDataTable } from './datatable-manager.js';
         
-        // Simulación de datos para demostración
-        function generateMockData() {
-            const data = [];
-            const proveedores = ['Proveedor A', 'Proveedor B', 'Proveedor C'];
-            const lineas = ['Línea 1', 'Línea 2', 'Línea 3'];
-            const gestores = ['Juan Pérez', 'María García', 'Carlos López'];
-            const clases = ['Clase A', 'Clase B', 'Clase C'];
-            const fuentes = ['SISPRO', 'BUSINT'];
-            
-            for (let i = 0; i < 100; i++) {
-                data.push({
-                    fecha: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0],
-                    proveedor: proveedores[Math.floor(Math.random() * proveedores.length)],
-                    linea: lineas[Math.floor(Math.random() * lineas.length)],
-                    gestor: gestores[Math.floor(Math.random() * gestores.length)],
-                    clase: clases[Math.floor(Math.random() * clases.length)],
-                    fuente: fuentes[Math.floor(Math.random() * fuentes.length)],
-                    cantidad: Math.floor(Math.random() * 1000) + 1,
-                    valor: Math.floor(Math.random() * 1000000) + 1000
-                });
-            }
-            return data;
-        }
         
         let currentData = [];
         
