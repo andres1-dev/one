@@ -32,16 +32,13 @@
         .dataTables_wrapper .dataTables_filter input {
             margin-left: 0.5em;
         }
-        /* Estilos para la tabla responsive */
         .table-responsive {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
-        /* Estilos para el modal de detalles en responsive */
         .dtr-modal {
-            z-index: 1060 !important; /* Asegura que esté por encima de otros elementos */
+            z-index: 1060 !important;
         }
-        /* Ajustes para pantallas pequeñas */
         @media (max-width: 768px) {
             .card-header {
                 flex-direction: column;
@@ -68,11 +65,9 @@
                     <button id="refresh-btn" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-sync-alt me-1"></i> Actualizar
                     </button>
-                    <!-- Los botones de Excel e Imprimir se insertarán aquí automáticamente -->
                 </div>
             </div>
             <div class="card-body">
-                <!-- Filtro de fecha -->
                 <div class="filter-container">
                     <div class="row">
                         <div class="col-md-4">
@@ -82,7 +77,6 @@
                     </div>
                 </div>
                 
-                <!-- Tabla -->
                 <div class="table-responsive">
                     <table id="data-table" class="table table-striped nowrap" style="width:100%"></table>
                 </div>
@@ -126,7 +120,6 @@
                 try {
                     const data = await getCombinedData();
                     updateDataTable(data);
-                    flatpickrInstance.clear();
                 } catch (error) {
                     console.error("Error al actualizar datos:", error);
                 }
