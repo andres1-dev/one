@@ -1,4 +1,3 @@
-// datatable-manager.js
 let dataTable;
 let flatpickrInstance;
 
