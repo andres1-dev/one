@@ -26,42 +26,29 @@
             border-radius: 5px;
             margin-bottom: 15px;
         }
-        .card-header .btn {
-            margin-left: 5px;
-        }
-        .dataTables_wrapper .dataTables_filter input {
-            margin-left: 0.5em;
-        }
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .dtr-modal {
-            z-index: 1060 !important;
-        }
         .summary-card {
-            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .summary-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        .summary-item {
+            display: inline-block;
+            padding: 0 15px;
+            border-right: 1px solid rgba(255,255,255,0.2);
+        }
+        .summary-item:last-child {
+            border-right: none;
         }
         @media (max-width: 768px) {
-            .card-header {
-                flex-direction: column;
-                align-items: flex-start;
+            .summary-item {
+                display: block;
+                border-right: none;
+                border-bottom: 1px solid rgba(255,255,255,0.2);
+                padding: 10px 0;
             }
-            .card-header .btn-group {
-                margin-top: 10px;
-                width: 100%;
-                flex-wrap: wrap;
-            }
-            .card-header .btn {
-                margin: 2px;
-                flex-grow: 1;
-            }
-            .filter-container .row > div {
-                margin-bottom: 10px;
+            .summary-item:last-child {
+                border-bottom: none;
             }
         }
     </style>
@@ -80,13 +67,10 @@
             <div class="card-body">
                 <div class="filter-container">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Rango de fechas</label>
                             <input type="text" id="filterFecha" class="form-control flatpickr-input" placeholder="Seleccione fechas">
                         </div>
-                    </div>
-                    
-                    <div class="row mt-3">
                         <div class="col-md-3">
                             <label class="form-label">Proveedor</label>
                             <select id="filterProveedor" class="form-select">
@@ -100,12 +84,6 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Escáner</label>
-                            <select id="filterEscaner" class="form-select">
-                                <option value="">Todos</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
                             <label class="form-label">Gestor</label>
                             <select id="filterGestor" class="form-select">
                                 <option value="">Todos</option>
@@ -113,18 +91,6 @@
                         </div>
                     </div>
                     <div class="row mt-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Prenda</label>
-                            <select id="filterPrenda" class="form-select">
-                                <option value="">Todos</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Género</label>
-                            <select id="filterGenero" class="form-select">
-                                <option value="">Todos</option>
-                            </select>
-                        </div>
                         <div class="col-md-3">
                             <label class="form-label">Clase</label>
                             <select id="filterClase" class="form-select">
@@ -142,29 +108,19 @@
                     </div>
                 </div>
                 
-                <div class="row mb-4" id="summary-cards">
-                    <div class="col-md-4">
-                        <div class="card text-white bg-primary summary-card">
-                            <div class="card-body">
-                                <h6 class="card-title">Total Registros</h6>
-                                <h2 class="card-text" id="total-records">0</h2>
-                            </div>
+                <div class="summary-card p-3 mb-4">
+                    <div class="d-flex flex-wrap justify-content-between text-center">
+                        <div class="summary-item">
+                            <h6 class="mb-1">Registros</h6>
+                            <h4 class="mb-0" id="total-records">0</h4>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card text-white bg-success summary-card">
-                            <div class="card-body">
-                                <h6 class="card-title">Total Cantidad</h6>
-                                <h2 class="card-text" id="total-quantity">0</h2>
-                            </div>
+                        <div class="summary-item">
+                            <h6 class="mb-1">Cantidad Total</h6>
+                            <h4 class="mb-0" id="total-quantity">0</h4>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card text-white bg-info summary-card">
-                            <div class="card-body">
-                                <h6 class="card-title">Total PVP</h6>
-                                <h2 class="card-text" id="total-pvp">$0</h2>
-                            </div>
+                        <div class="summary-item">
+                            <h6 class="mb-1">Valor Total</h6>
+                            <h4 class="mb-0" id="total-pvp">$0</h4>
                         </div>
                     </div>
                 </div>
