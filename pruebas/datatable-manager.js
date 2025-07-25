@@ -64,7 +64,7 @@ export const initializeDataTable = (data) => {
                 text: '<i class="fas fa-file-excel me-1"></i> Excel',
                 className: 'btn btn-success btn-sm',
                 filename: 'Reporte_Ingresos',
-                //title: 'Reporte de Ingresos',
+                title: 'Reporte de Ingresos',
                 exportOptions: {
                     columns: ':visible',
                     format: {
@@ -79,6 +79,11 @@ export const initializeDataTable = (data) => {
                     }
                 }
             },
+    customizeData: function(xlsx) {
+            const sheet = xlsx.xl.worksheets['sheet1.xml'];
+            $('row:first c', sheet).remove(); // Quitar encabezado
+        }
+    },
             {
                 extend: 'print',
                 text: '<i class="fas fa-print me-1"></i> Imprimir',
@@ -90,6 +95,18 @@ export const initializeDataTable = (data) => {
                 customize: function(win) {
                     $(win.document.body).css('font-size', '10pt');
                     $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
+
+            // Calcular sumatoria de la columna "Cantidad"
+            const api = dataTable.api();
+            let total = 0;
+            api.rows({ search: 'applied' }).every(function() {
+                const cantidad = parseFloat(this.data().CANTIDAD) || 0;
+                total += cantidad;
+            });
+
+            // Agregar sumatoria al final del documento
+            $(win.document.body).append(`<div style="margin-top:20px; font-weight:bold;">Total Cantidad: ${total}</div>`);
+                    
                 }
             }
         ],
