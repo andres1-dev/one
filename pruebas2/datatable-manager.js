@@ -21,7 +21,7 @@ export const initializeDataTable = (data) => {
             } else {
                 dataTable.search('').draw();
             }
-            updateSummaryCards();
+            updateSummaryCard();
         }
     });
     
@@ -36,7 +36,6 @@ export const initializeDataTable = (data) => {
                 data: "FECHA",
                 render: function(data) {
                     if (!data) return '';
-                    
                     if (data.match(/^\d{4}-\d{2}-\d{2}$/)) {
                         const [year, month, day] = data.split('-');
                         return `${day}/${month}/${year}`;
@@ -119,11 +118,11 @@ export const initializeDataTable = (data) => {
             this.api().buttons().container().appendTo($('.card-header'));
         },
         drawCallback: function() {
-            updateSummaryCards();
+            updateSummaryCard();
         }
     });
     
-    updateSummaryCards();
+    updateSummaryCard();
 };
 
 export const updateDataTable = (newData) => {
@@ -136,7 +135,7 @@ export const updateDataTable = (newData) => {
         }
         
         initializeSelectFilters(newData);
-        updateSummaryCards();
+        updateSummaryCard();
     }
 };
 
@@ -144,71 +143,86 @@ function initializeSelectFilters(data) {
     const uniqueValues = {
         PROVEEDOR: new Set(),
         LINEA: new Set(),
-        ESCANER: new Set(),
         GESTOR: new Set(),
-        PRENDA: new Set(),
-        GENERO: new Set(),
         CLASE: new Set()
     };
     
     data.forEach(item => {
-        uniqueValues.PROVEEDOR.add(item.PROVEEDOR);
-        uniqueValues.LINEA.add(item.LINEA);
-        uniqueValues.ESCANER.add(item.ESCANER);
-        uniqueValues.GESTOR.add(item.GESTOR);
-        uniqueValues.PRENDA.add(item.PRENDA);
-        uniqueValues.GENERO.add(item.GENERO);
-        uniqueValues.CLASE.add(item.CLASE);
+        if (item.PROVEEDOR) uniqueValues.PROVEEDOR.add(item.PROVEEDOR);
+        if (item.LINEA) uniqueValues.LINEA.add(item.LINEA);
+        if (item.GESTOR) uniqueValues.GESTOR.add(item.GESTOR);
+        if (item.CLASE) uniqueValues.CLASE.add(item.CLASE);
     });
     
-    Object.keys(uniqueValues).forEach(key => {
-        const filterName = `filter${key.charAt(0) + key.slice(1).toLowerCase()}`;
-        const select = $(`#${filterName}`);
-        const currentValue = select.val();
-        
-        select.empty().append('<option value="">Todos</option>');
-        
-        Array.from(uniqueValues[key]).sort().forEach(value => {
-            if (value) {
-                select.append(`<option value="${value}">${value}</option>`);
-            }
-        });
-        
-        if (currentValue) {
-            select.val(currentValue);
-        }
+    // Llenar select de Proveedor
+    const proveedorSelect = $('#filterProveedor');
+    proveedorSelect.empty().append('<option value="">Todos</option>');
+    Array.from(uniqueValues.PROVEEDOR).sort().forEach(value => {
+        proveedorSelect.append(`<option value="${value}">${value}</option>`);
     });
     
-    $('#filterProveedor, #filterLinea, #filterEscaner, #filterGestor, #filterPrenda, #filterGenero, #filterClase, #filterFuente').off('change').on('change', function() {
+    // Llenar select de Línea
+    const lineaSelect = $('#filterLinea');
+    lineaSelect.empty().append('<option value="">Todos</option>');
+    Array.from(uniqueValues.LINEA).sort().forEach(value => {
+        lineaSelect.append(`<option value="${value}">${value}</option>`);
+    });
+    
+    // Llenar select de Gestor
+    const gestorSelect = $('#filterGestor');
+    gestorSelect.empty().append('<option value="">Todos</option>');
+    Array.from(uniqueValues.GESTOR).sort().forEach(value => {
+        gestorSelect.append(`<option value="${value}">${value}</option>`);
+    });
+    
+    // Llenar select de Clase
+    const claseSelect = $('#filterClase');
+    claseSelect.empty().append('<option value="">Todos</option>');
+    Array.from(uniqueValues.CLASE).sort().forEach(value => {
+        claseSelect.append(`<option value="${value}">${value}</option>`);
+    });
+    
+    // Configurar eventos para los filtros
+    $('#filterProveedor, #filterLinea, #filterGestor, #filterClase, #filterFuente').off('change').on('change', function() {
         applyAllFilters();
     });
 }
 
 function applyAllFilters() {
-    const proveedor = $('#filterProveedor').val();
-    const linea = $('#filterLinea').val();
-    const escaner = $('#filterEscaner').val();
-    const gestor = $('#filterGestor').val();
-    const prenda = $('#filterPrenda').val();
-    const genero = $('#filterGenero').val();
-    const clase = $('#filterClase').val();
-    const fuente = $('#filterFuente').val();
-    
+    // Limpiar todos los filtros primero
     dataTable.columns().search('');
     
-    if (proveedor) dataTable.columns(15).search(proveedor);
-    if (linea) dataTable.columns(3).search(linea);
-    if (escaner) dataTable.columns(5).search(escaner);
-    if (gestor) dataTable.columns(14).search(gestor);
-    if (prenda) dataTable.columns(12).search(prenda);
-    if (genero) dataTable.columns(13).search(genero);
-    if (clase) dataTable.columns(16).search(clase);
-    if (fuente) dataTable.columns(17).search(fuente);
+    // Aplicar filtros individuales
+    const proveedor = $('#filterProveedor').val();
+    if (proveedor) {
+        dataTable.column(15).search("^" + proveedor + "$", true, false); // Columna 15 = PROVEEDOR (búsqueda exacta)
+    }
     
+    const linea = $('#filterLinea').val();
+    if (linea) {
+        dataTable.column(3).search("^" + linea + "$", true, false); // Columna 3 = LINEA (búsqueda exacta)
+    }
+    
+    const gestor = $('#filterGestor').val();
+    if (gestor) {
+        dataTable.column(14).search("^" + gestor + "$", true, false); // Columna 14 = GESTOR (búsqueda exacta)
+    }
+    
+    const clase = $('#filterClase').val();
+    if (clase) {
+        dataTable.column(16).search("^" + clase + "$", true, false); // Columna 16 = CLASE (búsqueda exacta)
+    }
+    
+    const fuente = $('#filterFuente').val();
+    if (fuente) {
+        dataTable.column(17).search("^" + fuente + "$", true, false); // Columna 17 = FUENTE (búsqueda exacta)
+    }
+    
+    // Redibujar la tabla con todos los filtros aplicados
     dataTable.draw();
 }
 
-function updateSummaryCards() {
+function updateSummaryCard() {
     if (!dataTable) return;
     
     const filteredData = dataTable.rows({ search: 'applied' }).data().toArray();
@@ -230,7 +244,7 @@ function updateSummaryCards() {
 
 function filterByExactDate(date) {
     const formattedDate = formatDateForFilter(date);
-    dataTable.columns(1).search(formattedDate, true, false).draw();
+    dataTable.column(1).search("^" + formattedDate + "$", true, false).draw();
 }
 
 function filterByDateRange(startDate, endDate) {
