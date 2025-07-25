@@ -64,7 +64,7 @@ export const initializeDataTable = (data) => {
                 text: '<i class="fas fa-file-excel me-1"></i> Excel',
                 className: 'btn btn-success btn-sm',
                 filename: 'Reporte_Ingresos',
-                title: 'Reporte de Ingresos',
+                //title: 'Reporte de Ingresos',
                 exportOptions: {
                     columns: ':visible',
                     format: {
@@ -96,7 +96,7 @@ export const initializeDataTable = (data) => {
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        pageLength: 25,
+        pageLength: 5,
         order: [[1, 'desc']],
         responsive: {
             details: {
