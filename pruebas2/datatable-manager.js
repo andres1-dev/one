@@ -215,7 +215,7 @@ function applyAllFilters() {
     
     const fuente = $('#filterFuente').val();
     if (fuente) {
-        dataTable.column(17).search("^" + fuente + "$", true, false); // Columna 17 = FUENTE (búsqueda exacta)
+        dataTable.column(18).search("^" + fuente + "$", true, false); // Columna 17 = FUENTE (búsqueda exacta)
     }
     
     // Redibujar la tabla con todos los filtros aplicados
