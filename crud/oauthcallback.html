@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redireccionamiento OAuth</title>
+    <script>
+        function extractToken() {
+            if (window.location.hash) {
+                const params = new URLSearchParams(window.location.hash.substring(1));
+                const token = params.get('access_token');
+                
+                if (token) {
+                    // Enviar token a la ventana principal
+                    window.opener.postMessage({
+                        type: 'oauth_token',
+                        token: token
+                    }, 'https://andres1-dev.github.io');
+                    
+                    // Guardar en localStorage como respaldo
+                    localStorage.setItem('gsheets_token', token);
+                }
+            }
+            window.close();
+        }
+        
+        window.addEventListener('load', extractToken);
+    </script>
+</head>
+<body>
+    <p>Redirigiendo a la aplicación...</p>
+</body>
+</html>
