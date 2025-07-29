@@ -2,30 +2,54 @@
 <html>
 <head>
     <title>Redireccionamiento OAuth</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #4285f4;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
     <script>
-        function extractToken() {
-            if (window.location.hash) {
-                const params = new URLSearchParams(window.location.hash.substring(1));
-                const token = params.get('access_token');
-                
-                if (token) {
-                    // Enviar token a la ventana principal
-                    window.opener.postMessage({
-                        type: 'oauth_token',
-                        token: token
-                    }, 'https://andres1-dev.github.io');
-                    
-                    // Guardar en localStorage como respaldo
-                    localStorage.setItem('gsheets_token', token);
-                }
+        function extractTokenFromHash() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            const token = params.get('access_token');
+            const error = params.get('error');
+            
+            if (error) {
+                window.opener.postMessage({
+                    type: 'oauth_error',
+                    error: error,
+                    error_description: params.get('error_description')
+                }, 'https://andres1-dev.github.io');
+            } else if (token) {
+                window.opener.postMessage({
+                    type: 'oauth_token',
+                    token: token
+                }, 'https://andres1-dev.github.io');
             }
+            
             window.close();
         }
         
-        window.addEventListener('load', extractToken);
+        window.addEventListener('load', extractTokenFromHash);
     </script>
 </head>
 <body>
-    <p>Redirigiendo a la aplicación...</p>
+    <div class="spinner"></div>
+    <p>Procesando autenticación...</p>
 </body>
 </html>
