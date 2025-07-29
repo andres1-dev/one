@@ -1,1 +1,410 @@
-fff
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD con Google Sheets</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .auth-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover { background-color: #3367d6; }
+        button.logout { background-color: #db4437; }
+        button.logout:hover { background-color: #c1351d; }
+        .auth-status { margin-left: 10px; font-weight: bold; }
+        .hidden { display: none; }
+        .crud-container { margin-top: 20px; border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+        form { margin-bottom: 20px; }
+        input { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .error { color: #d32f2f; margin: 10px 0; }
+        .actions button { margin: 2px; padding: 5px 8px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="auth-section">
+        <h2>Autenticación</h2>
+        <div id="preAuth">
+            <p>Necesitas autenticarte con Google para acceder a la hoja de cálculo.</p>
+            <button id="authButton">Iniciar sesión con Google</button>
+        </div>
+        <div id="postAuth" class="hidden">
+            <p>Autenticado correctamente. Ahora puedes usar el CRUD.</p>
+            <button id="logoutButton" class="logout">Cerrar sesión</button>
+            <span id="authStatus" class="auth-status"></span>
+        </div>
+        <div id="authError" class="error"></div>
+    </div>
+
+    <div id="crudContainer" class="crud-container hidden">
+        <h2>Administrador de Datos</h2>
+        
+        <form id="dataForm">
+            <input type="hidden" id="rowId">
+            <div>
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" required>
+            </div>
+            <div>
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div>
+                <label for="telefono">Teléfono:</label>
+                <input type="text" id="telefono">
+            </div>
+            <button type="submit">Guardar</button>
+            <button type="button" onclick="clearForm()">Limpiar</button>
+        </form>
+        
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        // 🔑 Configuración OAuth (usa tus credenciales)
+        const CLIENT_ID = '701357112149-6iuuo63q0j4719bqomldv15cck2g7347.apps.googleusercontent.com';
+        const SPREADSHEET_ID = '1wnAov1K0BvKGdvF6IxPFZZMX91pOm4x65ucP7NGMoUU';
+        const SHEET_NAME = 'CRUD';
+        const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+        const REDIRECT_URI = 'https://andres1-dev.github.io/one/oauthcallback.html';
+        
+        let accessToken = null;
+        
+        // 🎯 Elementos del DOM
+        const authButton = document.getElementById('authButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const authStatus = document.getElementById('authStatus');
+        const preAuth = document.getElementById('preAuth');
+        const postAuth = document.getElementById('postAuth');
+        const authError = document.getElementById('authError');
+        const crudContainer = document.getElementById('crudContainer');
+        const form = document.getElementById('dataForm');
+        const tableBody = document.querySelector('#dataTable tbody');
+        
+        // ⚡ Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLocalStorage();
+            setupEventListeners();
+        });
+
+        // 🔍 Verificar si hay token en localStorage
+        function checkLocalStorage() {
+            const storedToken = localStorage.getItem('gsheets_token');
+            if (storedToken) {
+                accessToken = storedToken;
+                updateUI();
+                loadData();
+            }
+        }
+
+        // 🎧 Configurar eventos
+        function setupEventListeners() {
+            authButton.addEventListener('click', handleAuth);
+            logoutButton.addEventListener('click', handleLogout);
+            form.addEventListener('submit', handleFormSubmit);
+            window.addEventListener('message', handleOAuthCallback);
+        }
+
+        // 🔐 Manejar autenticación
+        function handleAuth() {
+            authError.textContent = '';
+            
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                `client_id=${CLIENT_ID}&` +
+                `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+                `response_type=token&` +
+                `scope=${encodeURIComponent(SCOPE)}&` +
+                `state=${generateState()}`;
+            
+            const popup = window.open(authUrl, 'oauthPopup', 'width=500,height=600');
+            
+            if (!popup || popup.closed) {
+                authError.textContent = '¡Permite ventanas emergentes para autenticarte!';
+            }
+        }
+
+        // 🛡️ Generar estado para seguridad
+        function generateState() {
+            return 'state_' + Math.random().toString(36).substring(2, 15);
+        }
+
+        // 🚪 Cerrar sesión
+        function handleLogout() {
+            accessToken = null;
+            localStorage.removeItem('gsheets_token');
+            updateUI();
+            clearForm();
+            tableBody.innerHTML = '';
+        }
+
+        // 📩 Manejar callback de OAuth
+        function handleOAuthCallback(event) {
+            if (event.origin !== 'https://andres1-dev.github.io') return;
+            
+            if (event.data.type === 'oauth_token') {
+                accessToken = event.data.token;
+                localStorage.setItem('gsheets_token', accessToken);
+                updateUI();
+                loadData();
+            }
+        }
+
+        // 🔄 Actualizar UI según autenticación
+        function updateUI() {
+            if (accessToken) {
+                preAuth.classList.add('hidden');
+                postAuth.classList.remove('hidden');
+                crudContainer.classList.remove('hidden');
+                authStatus.textContent = '✓ Conectado';
+            } else {
+                preAuth.classList.remove('hidden');
+                postAuth.classList.add('hidden');
+                crudContainer.classList.add('hidden');
+                authStatus.textContent = '';
+            }
+        }
+
+        // 📝 Manejar formulario
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const rowId = document.getElementById('rowId').value;
+            const nombre = document.getElementById('nombre').value;
+            const email = document.getElementById('email').value;
+            const telefono = document.getElementById('telefono').value;
+            
+            try {
+                if (rowId) {
+                    await updateRow(rowId, nombre, email, telefono);
+                } else {
+                    await createRow(nombre, email, telefono);
+                }
+                
+                clearForm();
+                await loadData();
+            } catch (error) {
+                showError('Error al guardar: ' + error.message);
+            }
+        }
+
+        // 🧹 Limpiar formulario
+        function clearForm() {
+            form.reset();
+            document.getElementById('rowId').value = '';
+        }
+
+        // ❌ Mostrar error
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            crudContainer.prepend(errorDiv);
+            
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        // ======================== 🛠️ OPERACIONES CRUD ======================== //
+
+        // 📥 Cargar datos
+        async function loadData() {
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:D?majorDimension=ROWS`;
+                const response = await makeAuthorizedRequest(url);
+                
+                if (!response.ok) throw new Error('Error al cargar datos');
+                
+                const data = await response.json();
+                renderTable(data.values || []);
+            } catch (error) {
+                showError('Error al cargar datos: ' + error.message);
+            }
+        }
+
+        // 🖥️ Renderizar tabla
+        function renderTable(rows) {
+            tableBody.innerHTML = '';
+            
+            rows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row[0] || ''}</td>
+                    <td>${escapeHtml(row[1] || '')}</td>
+                    <td>${escapeHtml(row[2] || '')}</td>
+                    <td>${escapeHtml(row[3] || '')}</td>
+                    <td class="actions">
+                        <button onclick="editRow('${row[0]}', '${escapeHtml(row[1] || '')}', '${escapeHtml(row[2] || '')}', '${escapeHtml(row[3] || '')}')">Editar</button>
+                        <button onclick="deleteRow('${row[0]}')">Eliminar</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // 🔒 Escapar HTML
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+
+        // ✏️ Editar fila
+        window.editRow = function(id, nombre, email, telefono) {
+            document.getElementById('rowId').value = id;
+            document.getElementById('nombre').value = unescapeHtml(nombre);
+            document.getElementById('email').value = unescapeHtml(email);
+            document.getElementById('telefono').value = unescapeHtml(telefono);
+        };
+
+        // 🔄 Deshacer escape HTML
+        function unescapeHtml(str) {
+            return str.replace(/&amp;/g, '&')
+                     .replace(/&lt;/g, '<')
+                     .replace(/&gt;/g, '>')
+                     .replace(/&quot;/g, '"')
+                     .replace(/&#039;/g, "'");
+        }
+
+        // ➕ Crear fila
+        async function createRow(nombre, email, telefono) {
+            const id = Date.now().toString();
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:D2:append?valueInputOption=USER_ENTERED`;
+            
+            const response = await makeAuthorizedRequest(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ values: [[id, nombre, email, telefono]] })
+            });
+            
+            if (!response.ok) throw new Error('Error al crear fila');
+        }
+
+        // 🔄 Actualizar fila
+        async function updateRow(id, nombre, email, telefono) {
+            const rows = await getSheetRows();
+            const rowIndex = rows.findIndex(row => row[0] === id) + 2;
+            
+            if (rowIndex < 2) throw new Error('Fila no encontrada');
+            
+            const range = `${SHEET_NAME}!A${rowIndex}:D${rowIndex}`;
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?valueInputOption=USER_ENTERED`;
+            
+            const response = await makeAuthorizedRequest(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ values: [[id, nombre, email, telefono]] })
+            });
+            
+            if (!response.ok) throw new Error('Error al actualizar fila');
+        }
+
+        // ❌ Eliminar fila
+        window.deleteRow = async function(id) {
+            if (!confirm('¿Eliminar este registro?')) return;
+            
+            try {
+                const rows = await getSheetRows();
+                const rowIndex = rows.findIndex(row => row[0] === id) + 1;
+                if (rowIndex < 1) throw new Error('Fila no encontrada');
+                
+                const sheetId = await getSheetId();
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`;
+                
+                const response = await makeAuthorizedRequest(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        requests: [{
+                            deleteDimension: {
+                                range: {
+                                    sheetId: sheetId,
+                                    dimension: 'ROWS',
+                                    startIndex: rowIndex,
+                                    endIndex: rowIndex + 1
+                                }
+                            }
+                        }]
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Error al eliminar fila');
+                
+                await loadData();
+            } catch (error) {
+                showError('Error al eliminar: ' + error.message);
+            }
+        };
+
+        // 📋 Obtener filas
+        async function getSheetRows() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:D?majorDimension=ROWS`;
+            const response = await makeAuthorizedRequest(url);
+            
+            if (!response.ok) throw new Error('Error al obtener filas');
+            
+            const data = await response.json();
+            return data.values || [];
+        }
+
+        // 🔍 Obtener ID de la hoja
+        async function getSheetId() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties`;
+            const response = await makeAuthorizedRequest(url);
+            
+            if (!response.ok) throw new Error('Error al obtener sheetId');
+            
+            const data = await response.json();
+            const sheet = data.sheets.find(s => s.properties.title === SHEET_NAME);
+            if (!sheet) throw new Error('Hoja no encontrada');
+            
+            return sheet.properties.sheetId;
+        }
+
+        // 📡 Hacer peticiones autenticadas
+        async function makeAuthorizedRequest(url, options = {}) {
+            if (!accessToken) throw new Error('No autenticado');
+            
+            const headers = {
+                'Authorization': `Bearer ${accessToken}`,
+                ...(options.headers || {})
+            };
+            
+            return fetch(url, { ...options, headers });
+        }
+    </script>
+</body>
+</html>
