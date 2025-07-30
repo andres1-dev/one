@@ -15,10 +15,31 @@ function abrirPlantillaImpresion(datos, options = {}) {
     // Configuración específica para cliente
     const clienteData = isModoCliente ? datos.DISTRIBUCION.Clientes[clienteNombre] : null;
     const clienteId = isModoCliente ? (clienteData.id || '') : '';
-    const qrData = isModoCliente ? `REC${currentSearchKey}-${clienteId}` : `REC${currentSearchKey}`;
+
+    // Determinar el ID del proveedor si no hay cliente
+    let proveedorId = '';
+    if (!isModoCliente && datos.PROVEEDOR) {
+        if (datos.PROVEEDOR.includes("TEXTILES Y CREACIONES EL UNIVERSO S.A.S.")) {
+            proveedorId = "900616124";
+        } else if (datos.PROVEEDOR.includes("TEXTILES Y CREACIONES LOS ANGELES S.A.S.")) {
+            proveedorId = "900692469";
+        }
+    }
+
+        // Construir los códigos QR y de barras
+    const qrData = isModoCliente 
+        ? `REC${currentSearchKey}-${clienteId}`
+        : proveedorId 
+            ? `REC${currentSearchKey}-${proveedorId}`
+            : `REC${currentSearchKey}`;
+            
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
-    
     const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
+    
+    //const qrData = isModoCliente ? `REC${currentSearchKey}-${clienteId}` : `REC${currentSearchKey}`;
+    //const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
+    
+    //const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
 
     const barcodeElement = document.querySelector('.barcode');
 
