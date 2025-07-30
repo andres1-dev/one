@@ -376,18 +376,10 @@ function abrirPlantillaImpresion(datos, options = {}) {
 
                     <div class="info-grid2">
                         
-                        <!-- <div class="info-item">
+                        <div class="info-item">
                             <div class="info-label">Línea:</div>
                             <div class="info-value">${datos.LINEA || ''}</div>
-                        </div> -->
-
-// Por esta versión mejorada:
-`<div class="info-item">
-    <div class="info-label">Línea:</div>
-    <div class="info-value">${datos.LINEA || ''}${datos.GESTOR ? ` (${datos.GESTOR})` : ''}</div>
-</div>`
-
-                        
+                        </div>
                         <div class="info-item">
                             <div class="info-label">Auditor:</div>
                             <div class="info-value">${datos.AUDITOR || ''}</div>
