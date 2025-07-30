@@ -53,7 +53,8 @@ function buscarPorREC() {
 
 
 
-// En js/search.js
+
+
 function mostrarOpcionesImpresion() {
     let recBuscado = document.getElementById("recInput").value;
     if (!recBuscado) {
@@ -61,7 +62,6 @@ function mostrarOpcionesImpresion() {
         return;
     }
 
-    // Verificar si es una búsqueda múltiple
     if (recBuscado.includes(',')) {
         document.getElementById("resultado").innerHTML = `
             <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
@@ -78,7 +78,6 @@ function mostrarOpcionesImpresion() {
         return;
     }
 
-    // Verificar si tiene colaborador asignado
     if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
         document.getElementById("resultado").innerHTML = `
             <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
@@ -88,7 +87,7 @@ function mostrarOpcionesImpresion() {
         return;
     }
 
-    // Crear interfaz de selección
+    // Crear interfaz de selección mejorada
     let html = `
         <div class="card" style="margin-top: 1rem;">
             <div class="card-header">
@@ -96,10 +95,18 @@ function mostrarOpcionesImpresion() {
             </div>
             <div class="card-body">
                 <div style="margin-bottom: 1rem;">
+                    <div class="btn-group" style="margin-bottom: 1rem;">
+                        <button onclick="seleccionarTodasOpciones(true)" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                            <i class="fas fa-check-circle btn-icon"></i> Seleccionar todo
+                        </button>
+                        <button onclick="seleccionarTodasOpciones(false)" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                            <i class="fas fa-times-circle btn-icon"></i> Deseleccionar todo
+                        </button>
+                    </div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Seleccione qué imprimir:</label>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                         <label style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="checkbox" id="impPrincipal" checked class="opcion-impresion">
+                            <input type="checkbox" id="impPrincipal" class="opcion-impresion">
                             Plantilla Principal
                         </label>`;
 
@@ -109,7 +116,7 @@ function mostrarOpcionesImpresion() {
         clientes.forEach(cliente => {
             html += `
                         <label style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="checkbox" id="impCliente_${cliente.replace(/\s+/g, '_')}" checked class="opcion-impresion">
+                            <input type="checkbox" id="impCliente_${cliente.replace(/\s+/g, '_')}" class="opcion-impresion">
                             Cliente: ${cliente}
                         </label>`;
         });
@@ -132,9 +139,24 @@ function mostrarOpcionesImpresion() {
     document.getElementById("resultado").innerHTML = html;
 }
 
+// Nueva función para seleccionar/deseleccionar todas las opciones
+function seleccionarTodasOpciones(seleccionar) {
+    const checkboxes = document.querySelectorAll('.opcion-impresion');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = seleccionar;
+    });
+}
+
 function confirmarImpresionSelectiva(recBuscado) {
     const resultado = datosGlobales.find(item => item.REC == recBuscado);
     if (!resultado) return;
+
+    // Verificar si al menos una opción está seleccionada
+    const checkboxes = document.querySelectorAll('.opcion-impresion:checked');
+    if (checkboxes.length === 0) {
+        alert("Por favor seleccione al menos una opción para imprimir");
+        return;
+    }
 
     // Obtener opciones seleccionadas
     const impPrincipal = document.getElementById("impPrincipal").checked;
@@ -165,6 +187,7 @@ function confirmarImpresionSelectiva(recBuscado) {
     document.getElementById("resultado").innerHTML = `
         <div style="color: var(--secondary-dark); padding: 1rem; border-radius: var(--radius);">
             <p>Documento ${recBuscado} - Impresión iniciada para las opciones seleccionadas.</p>
+            <p>Total de plantillas generadas: ${checkboxes.length}</p>
         </div>
     `;
 }
