@@ -50,6 +50,129 @@ function buscarPorREC() {
     }
 }
 
+
+
+
+// En js/search.js
+function mostrarOpcionesImpresion() {
+    let recBuscado = document.getElementById("recInput").value;
+    if (!recBuscado) {
+        document.getElementById("resultado").innerHTML = "<p>Ingrese un documento para buscar.</p>";
+        return;
+    }
+
+    // Verificar si es una búsqueda múltiple
+    if (recBuscado.includes(',')) {
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
+                <p>Esta función solo funciona con un documento a la vez.</p>
+            </div>
+        `;
+        return;
+    }
+
+    let resultado = datosGlobales.find(item => item.REC == recBuscado);
+
+    if (!resultado) {
+        document.getElementById("resultado").innerHTML = "<p>No se encontró el documento especificado.</p>";
+        return;
+    }
+
+    // Verificar si tiene colaborador asignado
+    if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
+                <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene colaborador/responsable asignado.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Crear interfaz de selección
+    let html = `
+        <div class="card" style="margin-top: 1rem;">
+            <div class="card-header">
+                <h3>Opciones de impresión para REC${recBuscado}</h3>
+            </div>
+            <div class="card-body">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Seleccione qué imprimir:</label>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="impPrincipal" checked class="opcion-impresion">
+                            Plantilla Principal
+                        </label>`;
+
+    // Agregar opciones para cada cliente si existen
+    if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
+        const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
+        clientes.forEach(cliente => {
+            html += `
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="impCliente_${cliente.replace(/\s+/g, '_')}" checked class="opcion-impresion">
+                            Cliente: ${cliente}
+                        </label>`;
+        });
+    }
+
+    html += `
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button onclick="confirmarImpresionSelectiva('${recBuscado}')" class="btn btn-primary">
+                        <i class="fas fa-print btn-icon"></i> Imprimir Selección
+                    </button>
+                    <button onclick="document.getElementById('resultado').innerHTML = ''" class="btn btn-secondary">
+                        <i class="fas fa-times btn-icon"></i> Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>`;
+
+    document.getElementById("resultado").innerHTML = html;
+}
+
+function confirmarImpresionSelectiva(recBuscado) {
+    const resultado = datosGlobales.find(item => item.REC == recBuscado);
+    if (!resultado) return;
+
+    // Obtener opciones seleccionadas
+    const impPrincipal = document.getElementById("impPrincipal").checked;
+    
+    // Imprimir plantilla principal si está seleccionada
+    if (impPrincipal) {
+        abrirPlantillaImpresion(resultado, { 
+            modo: 'completo', 
+            soloImpresionPrincipal: true 
+        });
+    }
+
+    // Imprimir plantillas de clientes seleccionados
+    if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
+        const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
+        clientes.forEach(cliente => {
+            const checkbox = document.getElementById(`impCliente_${cliente.replace(/\s+/g, '_')}`);
+            if (checkbox && checkbox.checked) {
+                abrirPlantillaImpresion(resultado, { 
+                    modo: 'cliente', 
+                    clienteNombre: cliente 
+                });
+            }
+        });
+    }
+
+    // Mostrar confirmación
+    document.getElementById("resultado").innerHTML = `
+        <div style="color: var(--secondary-dark); padding: 1rem; border-radius: var(--radius);">
+            <p>Documento ${recBuscado} - Impresión iniciada para las opciones seleccionadas.</p>
+        </div>
+    `;
+}
+
+
+
+
+
 function buscarMultiplesRECs() {
     let recsInput = document.getElementById("recInput").value;
     if (!recsInput) {
