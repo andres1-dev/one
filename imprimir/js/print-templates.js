@@ -19,9 +19,9 @@ function abrirPlantillaImpresion(datos, options = {}) {
     // Determinar el ID del proveedor si no hay cliente
     let proveedorId = '';
     if (!isModoCliente && datos.PROVEEDOR) {
-        if (datos.PROVEEDOR.includes("TEXTILES Y CREACIONES EL UNIVERSO S.A.S.")) {
+        if (datos.PROVEEDOR.includes("TEXTILES Y CREACIONES EL UNIVERSO SAS")) {
             proveedorId = "900616124";
-        } else if (datos.PROVEEDOR.includes("TEXTILES Y CREACIONES LOS ANGELES S.A.S.")) {
+        } else if (datos.PROVEEDOR.includes("TEXTILES Y CREACIONES LOS ANGELES SAS")) {
             proveedorId = "900692469";
         }
     }
