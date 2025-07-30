@@ -3,7 +3,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
         modo = 'completo', // 'completo' | 'principal' | 'cliente'
         clienteNombre = null,
         soloPrincipal = false,
-        soloImpresionPrincipal = false // Nuevo parámetro para impresión múltiple
+        soloImpresionPrincipal = false
     } = options;
 
     const isModoCliente = modo === 'cliente';
@@ -15,31 +15,33 @@ function abrirPlantillaImpresion(datos, options = {}) {
     // Configuración específica para cliente
     const clienteData = isModoCliente ? datos.DISTRIBUCION.Clientes[clienteNombre] : null;
     const clienteId = isModoCliente ? (clienteData.id || '') : '';
-
+    
     // Determinar el ID del proveedor si no hay cliente
     let proveedorId = '';
-    if (!isModoCliente && datos.PROVEEDOR) {
-        if (datos.PROVEEDOR.includes("TEXTILES Y CREACIONES EL UNIVERSO SAS")) {
+    const proveedorNombre = datos.PROVEEDOR || '';
+    
+    if (!isModoCliente) {
+        if (proveedorNombre.includes("TEXTILES Y CREACIONES EL UNIVERSO")) {
             proveedorId = "900616124";
-        } else if (datos.PROVEEDOR.includes("TEXTILES Y CREACIONES LOS ANGELES SAS")) {
+        } else if (proveedorNombre.includes("TEXTILES Y CREACIONES LOS ANGELES")) {
             proveedorId = "900692469";
         }
     }
+    
+    // Construir los códigos QR y de barras
+    let qrData;
+    if (isModoCliente) {
+        qrData = `REC${currentSearchKey}-${clienteId}`;
+    } else if (proveedorId) {
+        qrData = `REC${currentSearchKey}-${proveedorId}`;
+    } else {
+        qrData = `REC${currentSearchKey}`;
+    }
+    
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(qrData)}`;
+    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(qrData)}&code=Code128&dpi=300&dataseparator=`;
 
-        // Construir los códigos QR y de barras
-    const qrData = isModoCliente 
-        ? `REC${currentSearchKey}-${clienteId}`
-        : proveedorId 
-            ? `REC${currentSearchKey}-${proveedorId}`
-            : `REC${currentSearchKey}`;
-            
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
-    const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
-    
-    //const qrData = isModoCliente ? `REC${currentSearchKey}-${clienteId}` : `REC${currentSearchKey}`;
-    //const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
-    
-    //const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${qrData}&code=Code128&dpi=300&dataseparator=`;
+    // Resto del código permanece igual...
 
     const barcodeElement = document.querySelector('.barcode');
 
