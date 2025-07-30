@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Consulta e Impresión</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">
+                    <i class="fas fa-tags" style="margin-right: 12px; color: gray;"></i>
+                    Consulta e Impresión de Documentos SISPRO & BUSINT
+                </h1>
+            </div>
+            
+            <div class="card-body">
+                <div class="search-container">
+                    <div class="input-group">
+                        <i class="fas fa-search input-icon"></i>
+                        <input type="text" id="recInput" placeholder="Ingrese un documento para buscar..." />
+                    </div>
+                    <button onclick="buscarPorREC()" class="btn btn-primary">
+                        <i class="fas fa-search btn-icon"></i> Buscar
+                    </button>
+                </div>
+                
+                <div class="info-text">
+                    Para búsqueda múltiple, separar los documentos con comas (ejemplo: 1234, 5678, 9012)
+                </div>
+                
+                <div class="btn-group">
+                    <button onclick="buscarMultiplesRECs()" class="btn btn-secondary">
+                        <i class="fas fa-copy btn-icon"></i> Imprimir Múltiples (Solo Principal)
+                    </button>
+                    <button onclick="imprimirSoloClientes()" class="btn btn-secondary">
+                        <i class="fas fa-users btn-icon"></i> Imprimir Solo Clientes
+                    </button>
+                    <button onclick="buscarPorREC()" class="btn btn-secondary">
+                        <i class="fas fa-print btn-icon"></i> Imprimir Todo (Completo)
+                    </button>
+                </div>
+                
+                <div class="loader" id="loader"></div>
+                
+                <div class="result-container" id="resultado">
+                    <p class="result-text">Ingrese un documento para buscar información.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            &copy; 2025 Andrés Mendoza
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/print-templates.js"></script>
+</body>
+</html>
