@@ -30,12 +30,34 @@ body {
     padding: 1.5rem;
 }
 
+
+
+/* Estilo para los checkboxes */
 .opcion-impresion {
-    width: 1rem;
-    height: 1rem;
+    width: 1.1rem;
+    height: 1.1rem;
     accent-color: var(--primary);
     cursor: pointer;
+    transition: all 0.2s ease;
 }
+
+/* Efecto hover para las etiquetas */
+label[for^="imp"]:hover {
+    background-color: var(--primary-light);
+    border-radius: var(--radius);
+    padding: 0.25rem 0.5rem;
+}
+
+/* Estilo para el grupo de botones de control */
+.control-group {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+
+
 
 .container {
     max-width: 1000px;
