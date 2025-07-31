@@ -31,37 +31,6 @@ body {
 }
 
 
-
-
-/* Agrega estos estilos al final de tu archivo CSS */
-.last-update {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 0.875rem;
-    color: var(--text-light);
-}
-
-.last-update button {
-    padding: 0.5rem;
-    width: 2rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.last-update button:hover {
-    background-color: var(--primary-dark);
-}
-
-#lastUpdateText {
-    font-style: italic;
-}
-
-
-
-
 /* Estilo para los checkboxes */
 .opcion-impresion {
     width: 1.1rem;
