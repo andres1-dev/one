@@ -537,3 +537,82 @@ async function cargarDatos() {
 
 // Cargar los datos al iniciar la página
 window.onload = cargarDatos;
+
+
+
+
+
+
+
+
+
+// Agrega esta variable global al inicio del archivo
+let lastUpdateTime = null;
+
+// Modifica la función cargarDatos para actualizar el timestamp
+async function cargarDatos() {
+    document.getElementById("loader").style.display = "block";
+    document.getElementById("resultado").innerHTML = "<p>Cargando datos...</p>";
+    
+    try {
+        // [Mantén todo el código existente de cargarDatos...]
+        
+        // Al final de la función, antes del return:
+        lastUpdateTime = new Date();
+        actualizarTextoUltimaCarga();
+        
+    } catch (error) {
+        // [Mantén el manejo de errores existente...]
+    }
+}
+
+// Nueva función para actualizar los datos
+async function actualizarDatos() {
+    // Mostrar loader
+    document.getElementById("loader").style.display = "block";
+    document.getElementById("resultado").innerHTML = "<p>Actualizando datos...</p>";
+    
+    try {
+        // Limpiar datos existentes
+        datosGlobales = [];
+        
+        // Volver a cargar los datos
+        await cargarDatos();
+        
+        // Mostrar mensaje de éxito
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--secondary-dark); padding: 1rem; border-radius: var(--radius);">
+                <p>Datos actualizados correctamente.</p>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
+                <p>Error al actualizar datos: ${error.message}</p>
+            </div>
+        `;
+    } finally {
+        document.getElementById("loader").style.display = "none";
+    }
+}
+
+// Función para actualizar el texto de última carga
+function actualizarTextoUltimaCarga() {
+    if (!lastUpdateTime) {
+        document.getElementById("lastUpdateText").textContent = "Última actualización: Nunca";
+        return;
+    }
+    
+    const options = {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    };
+    
+    const formattedDate = lastUpdateTime.toLocaleString('es-ES', options);
+    document.getElementById("lastUpdateText").textContent = `Última actualización: ${formattedDate}`;
+}
