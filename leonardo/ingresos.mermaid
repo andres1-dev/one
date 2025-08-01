@@ -1,6 +1,9 @@
 flowchart TD
+    %% Inicio del Proceso
+    Z[Despachos<br>Proveedor] --> A[Descarga de Mercancía 👤Patinador]
+
     %% Proceso de Ingreso
-    A[Descarga de Mercancía 👤Patinador] --> B{Validación de Documentos<br>Conteo}
+    A --> B{Validación de Documentos<br>Conteo}
     B -->|Documentación completa?| C[Validación de Códigos de Barras<br>Conteo]
     B -->|Documentación incompleta| D[Detener Proceso]
     C -->|PVP acorde al sistema?| E[Rotulación y Paqueteo Final<br>Conteo]
@@ -26,6 +29,7 @@ flowchart TD
     Q --> R[Validación General de Pedidos Diarios<br>Entregas]
     R --> S[Entrega de Pedidos<br>Entregas]
     S --> T[Transporte a Zonas de Recepción<br>Patinador]
+    T --> Y[Facturación<br>Administración]
 
     %% Proceso de Devoluciones
     F --> U[Re-etiquetado<br>Devoluciones]
@@ -34,6 +38,7 @@ flowchart TD
     U --> K
     V --> K
     W --> K
+
 
 
     %% Estilos
