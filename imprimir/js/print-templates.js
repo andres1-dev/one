@@ -349,7 +349,19 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                 })()}
                             </div>
                         </div>
-                        <div class="info-item">
+
+<div class="info-item">
+    <div class="info-label">Tipo:</div>
+    <div class="info-value">
+        ${isModoCliente 
+            ? (clienteData.tipoCliente === "Empresa" 
+                ? `${clienteData.tipoCliente} ${clienteData.tipoEmpresa || ''} ${clienteData.porcentaje || ''}`
+                : `${clienteData.tipoCliente || ''} ${clienteData.porcentaje || ''}`)
+            : datos.TIPO || ''}
+    </div>
+</div>
+
+                        <!-- <div class="info-item">
                             <div class="info-label">Tipo:</div>
                             <div class="info-value">
                                 ${isModoCliente 
@@ -358,7 +370,9 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                         : clienteData.tipoCliente || '')
                                     : datos.TIPO || ''}
                             </div>
-                        </div>
+                        </div> -->
+
+
                         <div class="info-item">
                             <div class="info-label">Fecha:</div>
                             <div class="info-value">${datos.FECHA}</div>
@@ -371,11 +385,11 @@ function abrirPlantillaImpresion(datos, options = {}) {
                             <div class="info-label">Línea:</div>
                             <div class="info-value">${datos.LINEA || ''}</div>
                         </div>
-                        ${isModoCliente ? `
+                        <!-- ${isModoCliente ? `
                         <div class="info-item">
                             <div class="info-label">Porcentaje:</div>
                             <div class="info-value">${clienteData.porcentaje || ''}</div>
-                        </div>` : ''}
+                        </div>` : ''} -->
                     </div>
 
                     <div class="info-grid2">
