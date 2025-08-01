@@ -1,39 +1,40 @@
 flowchart TD
     %% Proceso de Ingreso
-    A[Descarga de Mercancía 👤Patinador] --> B{Validación de Documentos Conteo}
-    B -->|Documentación completa?| C[Validación de Códigos de Barras Conteo]
+    A[Descarga de Mercancía 👤Patinador] --> B{Validación de Documentos<br>Conteo}
+    B -->|Documentación completa?| C[Validación de Códigos de Barras<br>Conteo]
     B -->|Documentación incompleta| D[Detener Proceso]
-    C -->|PVP acorde al sistema?| E[Rotulación y Paqueteo Final\nConteo]
-    C -->|PVP no acorde| F[Re-etiqueteo\nDevoluciones]
+    C -->|PVP acorde al sistema?| E[Rotulación y Paqueteo Final<br>Conteo]
+    C -->|PVP no acorde| F[Re-etiqueteo<br>Devoluciones]
 
     %% Proceso de Manejo
-    E --> G[Integración de Datos: Global\nAdministración]
-    G --> H[Verificación y Aprobación\nConteo]
-    H --> I[Análisis de Demanda\nConteo]
-    I --> J[Integración de Datos: Siesa ERP\nConteo]
-    J --> K[Recepción de Devoluciones\nConteo]
+    E --> G[Integración de Datos: Global<br>Administración]
+    G --> H[Verificación y Aprobación<br>Conteo]
+    H --> I[Análisis de Demanda<br>Conteo]
+    I --> J[Integración de Datos: Siesa ERP<br>Conteo]
+    J --> K[Recepción de Devoluciones<br>Conteo]
 
     %% Proceso de Separación
-    K --> L[Transporte al Área de Separación\nPatinador]
-    L --> M{Validación de Distribuciones\nSeparación}
-    M -->|Distribuciones correctas?| N[Impresión de Pedidos y Separación\nSeparación]
+    K --> L[Transporte al Área de Separación<br>Patinador]
+    L --> M{Validación de Distribuciones<br>Separación}
+    M -->|Distribuciones correctas?| N[Impresión de Pedidos y Separación<br>Separación]
     M -->|Distribuciones incorrectas| I
-    N -->|Mercancía en condiciones?| O[Rotulación e Identificación por QR\nSeparación]
+    N -->|Mercancía en condiciones?| O[Rotulación e Identificación por QR<br>Separación]
     N -->|Mercancía no apta| P[Devoluciones: Arreglo/Lavado]
-    O --> Q[Transporte a Zonas Buffer\nPatinador]
+    O --> Q[Transporte a Zonas Buffer<br>Patinador]
 
     %% Proceso de Entregas
-    Q --> R[Validación General de Pedidos Diarios\nEntregas]
-    R --> S[Entrega de Pedidos\nEntregas]
-    S --> T[Transporte a Zonas de Recepción\nPatinador]
+    Q --> R[Validación General de Pedidos Diarios<br>Entregas]
+    R --> S[Entrega de Pedidos<br>Entregas]
+    S --> T[Transporte a Zonas de Recepción<br>Patinador]
 
     %% Proceso de Devoluciones
-    F --> U[Re-etiquetado\nDevoluciones]
-    P --> V[Arreglo de Prendas\nDevoluciones]
-    P --> W[Lavado de Prendas\nDevoluciones]
+    F --> U[Re-etiquetado<br>Devoluciones]
+    P --> V[Arreglo de Prendas<br>Devoluciones]
+    P --> W[Lavado de Prendas<br>Devoluciones]
     U --> K
     V --> K
     W --> K
+
 
     %% Estilos
     style A fill:#f9f,stroke:#333
