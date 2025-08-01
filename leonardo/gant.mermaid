@@ -1,0 +1,39 @@
+gantt
+    title Diagrama de Gantt - Proceso Logístico
+    dateFormat  HH:mm
+    axisFormat %H:%M
+    tickInterval 30minutes
+
+    section Ingreso (31 min)
+    Descarga de Mercancía (Patinador)      :a1, 07:00, 5min
+    Validación de Documentos (Conteo)      :a2, after a1, 1min
+    Validación de Códigos de Barras (Conteo) :a3, after a2, 23min
+    Rotulación y Empaquetado (Conteo)      :a4, after a3, 2min
+
+    section Manejo Administrativo (8 min)
+    Global MS (Administración)             :b1, 07:31, 2min
+    Verificación y Aprobación (Admin.)     :b2, 07:33, 1min
+    Análisis de Demanda (Administración)  :b3, 07:34, 2min
+    Siesa ERP (Administración)            :b4, 07:36, 3min
+
+    section Separación (41 min)
+    Transporte al Área de Separación (Patinador) :c1, 07:39, 2min
+    Validación de Distribuciones (Separación)    :c2, 07:41, 1min
+    Impresión de Pedidos y Separación (Separación) :c3, 07:42, 34min
+    Rotulación e Identificación por QR (Separación) :c4, 08:16, 1min
+    Transporte a Zonas Buffer (Separación)       :c5, 08:17, 3min
+
+    section Entregas (7 min)
+    Validación General de Pedidos (Entregas)    :d1, 08:20, 3min
+    Entrega de Pedidos (Entregas)              :d2, 08:23, 2min
+    Transporte a Zonas de Recepción (Patinador) :d3, 08:25, 2min
+
+    %% Dependencias
+    a2 --> a3
+    a3 --> a4
+    b1 --> b3
+    c1 --> c2
+    c3 --> c4
+    c4 --> c5
+    d1 --> d2
+    d2 --> d3
