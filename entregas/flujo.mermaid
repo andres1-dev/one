@@ -1,0 +1,33 @@
+sequenceDiagram
+    participant UI as Interfaz
+    participant OM as OfflineManager
+    participant IDB as IndexedDB
+    participant SW as Service Worker
+    participant API as Servidor
+
+    UI->>OM: confirmarEntrega(datos)
+    alt Conexión OK
+        OM->>API: Enviar datos
+        API-->>OM: Respuesta OK
+        OM->>UI: Éxito
+    else Sin conexión
+        OM->>IDB: Guardar pendiente
+        IDB-->>OM: Confirmación
+        OM->>UI: "Modo offline"
+        OM->>SW: Registrar sync
+    end
+
+    Note over SW,API: Cuando recupera conexión
+    SW->>OM: syncPendingOperations()
+    OM->>IDB: Obtener pendientes
+    IDB-->>OM: Datos
+    loop Para cada pendiente
+        OM->>API: Intentar enviar
+        alt Éxito
+            API-->>OM: OK
+            OM->>IDB: Eliminar registro
+        else Error
+            OM->>IDB: Incrementar intentos
+        end
+    end
+    OM->>UI: Notificar resultados
