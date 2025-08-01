@@ -3,43 +3,18 @@
   "short_name": "PandaDash",
   "start_url": "./?source=pwa",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#4361ee",
+  "theme_color": "#4361ee",
   "description": "Plataforma de gestión logística y seguimiento de envíos en tiempo real",
   "lang": "es",
   "dir": "ltr",
   "categories": ["productivity", "business", "logistics"],
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/iLogisticsCoordinator/o/main/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "https://raw.githubusercontent.com/iLogisticsCoordinator/o/main/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
-}
-
-{
-  "name": "PandaDash",
-  "short_name": "PandaDash",
-  "start_url": "./?source=pwa",
-  "display": "standalone",
-  "background_color": "#4361ee",  // Recomiendo usar el color primario de tu app #fff
-  "theme_color": "#4361ee",      // En lugar de blanco para mejor cohesión #fff
-  "description": "Plataforma de gestión logística y seguimiento de envíos en tiempo real",
-  "lang": "es",
-  "dir": "ltr",
-  "categories": ["productivity", "business", "logistics"],
-  "icons": [
-    {
-      "src": "icons/icon-192x192.png",  // Recomiendo rutas locales en lugar de GitHub
+      "src": "icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"  // Añadir para mejor soporte en dispositivos
+      "purpose": "any maskable"
     },
     {
       "src": "icons/icon-512x512.png",
