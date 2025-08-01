@@ -1,0 +1,58 @@
+flowchart TD
+    %% Proceso de Ingreso
+    A[Descarga de Mercancía\nPatinador] --> B{Validación de Documentos\nConteo}
+    B -->|Documentación completa?| C[Validación de Códigos de Barras\nConteo]
+    B -->|Documentación incompleta| D[Detener Proceso]
+    C -->|PVP acorde al sistema?| E[Rotulación y Paqueteo Final\nConteo]
+    C -->|PVP no acorde| F[Re-etiqueteo\nDevoluciones]
+
+    %% Proceso de Manejo
+    E --> G[Integración de Datos: Global\nAdministración]
+    G --> H[Verificación y Aprobación\nConteo]
+    H --> I[Análisis de Demanda\nConteo]
+    I --> J[Integración de Datos: Siesa ERP\nConteo]
+    J --> K[Recepción de Devoluciones\nConteo]
+
+    %% Proceso de Separación
+    K --> L[Transporte al Área de Separación\nPatinador]
+    L --> M{Validación de Distribuciones\nSeparación}
+    M -->|Distribuciones correctas?| N[Impresión de Pedidos y Separación\nSeparación]
+    M -->|Distribuciones incorrectas| I
+    N -->|Mercancía en condiciones?| O[Rotulación e Identificación por QR\nSeparación]
+    N -->|Mercancía no apta| P[Devoluciones: Arreglo/Lavado]
+    O --> Q[Transporte a Zonas Buffer\nPatinador]
+
+    %% Proceso de Entregas
+    Q --> R[Validación General de Pedidos Diarios\nEntregas]
+    R --> S[Entrega de Pedidos\nEntregas]
+    S --> T[Transporte a Zonas de Recepción\nPatinador]
+
+    %% Proceso de Devoluciones
+    F --> U[Re-etiquetado\nDevoluciones]
+    P --> V[Arreglo de Prendas\nDevoluciones]
+    P --> W[Lavado de Prendas\nDevoluciones]
+    U --> K
+    V --> K
+    W --> K
+
+    %% Estilos
+    style A fill:#f9f,stroke:#333
+    style B fill:#f96,stroke:#333
+    style C fill:#f96,stroke:#333
+    style E fill:#f96,stroke:#333
+    style G fill:#bbf,stroke:#333
+    style H fill:#f96,stroke:#333
+    style I fill:#f96,stroke:#333
+    style J fill:#f96,stroke:#333
+    style K fill:#f96,stroke:#333
+    style L fill:#f9f,stroke:#333
+    style M fill:#f96,stroke:#333
+    style N fill:#f96,stroke:#333
+    style O fill:#f96,stroke:#333
+    style Q fill:#f9f,stroke:#333
+    style R fill:#f96,stroke:#333
+    style S fill:#f96,stroke:#333
+    style T fill:#f9f,stroke:#333
+    style U fill:#f66,stroke:#333
+    style V fill:#f66,stroke:#333
+    style W fill:#f66,stroke:#333
