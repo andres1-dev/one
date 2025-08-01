@@ -355,7 +355,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
     <div class="info-value">
         ${isModoCliente 
             ? (clienteData.tipoCliente === "Empresa" 
-                ? `${clienteData.tipoCliente} ${clienteData.tipoEmpresa || ''} ${clienteData.porcentaje || ''}`
+                ? `${clienteData.tipoCliente} ${clienteData.tipoEmpresa?.replace(/^Empresa\s*/, '') || ''} ${clienteData.porcentaje || ''}`
                 : `${clienteData.tipoCliente || ''} ${clienteData.porcentaje || ''}`)
             : datos.TIPO || ''}
     </div>
