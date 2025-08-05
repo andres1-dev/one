@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Producción</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0"></script>
+    <style>
+        :root {
+            --color-primary: #4361ee;
+            --color-secondary: #3f37c9;
+            --color-success: #4cc9f0;
+            --color-danger: #f72585;
+            --color-warning: #f8961e;
+            --color-info: #4895ef;
+            --color-dark: #212529;
+            --color-light: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        h1 {
+            color: var(--color-dark);
+            margin: 0;
+            font-size: 28px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        select, button {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        select {
+            min-width: 180px;
+            background-color: white;
+        }
+        
+        button {
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background-color: var(--color-secondary);
+            transform: translateY(-1px);
+        }
+        
+        #resetBtn {
+            background-color: var(--color-dark);
+        }
+        
+        #resetBtn:hover {
+            background-color: #495057;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid var(--color-primary);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card-title {
+            font-size: 16px;
+            color: #6c757d;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .stat-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .stat-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .stat-card-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-dark);
+            margin: 0;
+        }
+        
+        .stat-card-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .stat-card-percentage {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .positive {
+            color: var(--color-success);
+        }
+        
+        .negative {
+            color: var(--color-danger);
+        }
+        
+        .chart-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-dark);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dashboard de Producción</h1>
+        <div class="controls">
+            <select id="weekFilter">
+                <option value="all">Todas las semanas</option>
+            </select>
+            <button id="filterBtn">Filtrar</button>
+            <button id="resetBtn">Resetear</button>
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <h3 class="stat-card-title">Producción Diaria</h3>
+                <div class="stat-card-icon" style="background-color: var(--color-primary);">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+            </div>
+            <div class="stat-card-body">
+                <p class="stat-card-value" id="promedioDiario">0</p>
+                <div class="stat-card-meta">
+                    <span>Meta: 14,016</span>
+                    <span class="stat-card-percentage" id="cumplimientoPromedio">0%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <h3 class="stat-card-title">Total Acumulado</h3>
+                <div class="stat-card-icon" style="background-color: var(--color-success);">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+            <div class="stat-card-body">
+                <p class="stat-card-value" id="totalAcumulado">0</p>
+                <div class="stat-card-meta">
+                    <span>Meta mensual: 364,418</span>
+                    <span class="stat-card-percentage" id="porcentajeMensual">0%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <h3 class="stat-card-title">Variación</h3>
+                <div class="stat-card-icon" style="background-color: var(--color-warning);">
+                    <i class="fas fa-percentage"></i>
+                </div>
+            </div>
+            <div class="stat-card-body">
+                <p class="stat-card-value" id="desviacion">0</p>
+                <div class="stat-card-meta">
+                    <span>Desviación estándar</span>
+                    <span class="stat-card-percentage" id="coeficienteVariacion">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-card">
+            <h2 class="chart-title">Producción Diaria vs Meta</h2>
+            <div style="height: 400px;">
+                <canvas id="combinedChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-card">
+            <h2 class="chart-title">Evolución Acumulada vs Meta Mensual</h2>
+            <div style="height: 400px;">
+                <canvas id="accumulatedChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos convertidos a JSON
+        const data = {
+            "meta_mes": 364418,
+            "meta_dia": 14016,
+            "meta_semana": 70080,
+            "data": [
+                {"fecha": "2025-07-01", "semana": 27, "cant": 3946, "cump": 28.15},
+                {"fecha": "2025-07-02", "semana": 27, "cant": 4062, "cump": 28.98},
+                {"fecha": "2025-07-03", "semana": 27, "cant": 5943, "cump": 42.40},
+                {"fecha": "2025-07-04", "semana": 27, "cant": 10830, "cump": 77.27},
+                {"fecha": "2025-07-05", "semana": 27, "cant": 5757, "cump": 41.07},
+                {"fecha": "2025-07-07", "semana": 28, "cant": 9449, "cump": 67.42},
+                {"fecha": "2025-07-08", "semana": 28, "cant": 8703, "cump": 62.09},
+                {"fecha": "2025-07-09", "semana": 28, "cant": 9180, "cump": 65.50},
+                {"fecha": "2025-07-10", "semana": 28, "cant": 8522, "cump": 60.80},
+                {"fecha": "2025-07-11", "semana": 28, "cant": 12468, "cump": 88.96},
+                {"fecha": "2025-07-14", "semana": 29, "cant": 12628, "cump": 90.10},
+                {"fecha": "2025-07-15", "semana": 29, "cant": 9331, "cump": 66.57},
+                {"fecha": "2025-07-16", "semana": 29, "cant": 4893, "cump": 34.91},
+                {"fecha": "2025-07-17", "semana": 29, "cant": 7621, "cump": 54.37},
+                {"fecha": "2025-07-18", "semana": 29, "cant": 14489, "cump": 103.37},
+                {"fecha": "2025-07-19", "semana": 29, "cant": 3436, "cump": 24.51},
+                {"fecha": "2025-07-21", "semana": 30, "cant": 8832, "cump": 63.01},
+                {"fecha": "2025-07-22", "semana": 30, "cant": 7740, "cump": 55.22},
+                {"fecha": "2025-07-23", "semana": 30, "cant": 7562, "cump": 53.95},
+                {"fecha": "2025-07-24", "semana": 30, "cant": 6658, "cump": 47.50},
+                {"fecha": "2025-07-25", "semana": 30, "cant": 11253, "cump": 80.29},
+                {"fecha": "2025-07-26", "semana": 30, "cant": 7330, "cump": 52.30},
+                {"fecha": "2025-07-28", "semana": 31, "cant": 6725, "cump": 47.98},
+                {"fecha": "2025-07-29", "semana": 31, "cant": 5861, "cump": 41.82},
+                {"fecha": "2025-07-30", "semana": 31, "cant": 8039, "cump": 57.36},
+                {"fecha": "2025-07-31", "semana": 31, "cant": 22613, "cump": 161.34}
+            ]
+        };
+
+        // Procesamiento inicial
+        let filteredData = [...data.data];
+        const semanas = [...new Set(data.data.map(item => item.semana))];
+        const weekFilter = document.getElementById('weekFilter');
+        
+        semanas.forEach(semana => {
+            const option = document.createElement('option');
+            option.value = semana;
+            option.textContent = `Semana ${semana}`;
+            weekFilter.appendChild(option);
+        });
+
+        // Funciones de cálculo estadístico
+        function calcularEstadisticas(datos) {
+            const cantidades = datos.map(item => item.cant);
+            const cumplimientos = datos.map(item => item.cump);
+            
+            const total = cantidades.reduce((sum, val) => sum + val, 0);
+            const promedio = total / cantidades.length;
+            
+            // Cálculo de tendencia lineal
+            const puntosTendencia = cumplimientos.map((val, idx) => [idx, val]);
+            const tendencia = regression.linear(puntosTendencia);
+            const pendiente = tendencia.equation[0];
+            const intercepto = tendencia.equation[1];
+            const rCuadrado = tendencia.r2;
+            
+            // Proyección mensual (extrapolando los datos actuales)
+            const diasEnMes = 31; // Julio tiene 31 días
+            const factorProyeccion = diasEnMes / datos.length;
+            const proyeccion = total * factorProyeccion;
+            
+            // Desviación estándar y coeficiente de variación
+            const difCuadrada = cantidades.map(val => Math.pow(val - promedio, 2));
+            const varianza = difCuadrada.reduce((sum, val) => sum + val, 0) / cantidades.length;
+            const desviacion = Math.sqrt(varianza);
+            const coeficienteVariacion = (desviacion / promedio) * 100;
+            
+            // Porcentaje de cumplimiento promedio y mensual
+            const cumplimientoPromedio = (promedio / data.meta_dia) * 100;
+            const porcentajeMensual = (total / data.meta_mes) * 100;
+            
+            return {
+                total,
+                promedio,
+                cumplimientoPromedio,
+                porcentajeMensual,
+                tendencia: {
+                    pendiente,
+                    intercepto,
+                    rCuadrado,
+                    puntos: tendencia.points.map(p => p[1])
+                },
+                proyeccion,
+                desviacion,
+                coeficienteVariacion
+            };
+        }
+
+        function actualizarEstadisticas() {
+            const stats = calcularEstadisticas(filteredData);
+            
+            // Actualizar tarjetas
+            document.getElementById('totalAcumulado').textContent = stats.total.toLocaleString();
+            document.getElementById('promedioDiario').textContent = Math.round(stats.promedio).toLocaleString();
+            document.getElementById('cumplimientoPromedio').textContent = stats.cumplimientoPromedio.toFixed(1) + '%';
+            document.getElementById('porcentajeMensual').textContent = stats.porcentajeMensual.toFixed(1) + '%';
+            document.getElementById('desviacion').textContent = Math.round(stats.desviacion).toLocaleString();
+            document.getElementById('coeficienteVariacion').textContent = stats.coeficienteVariacion.toFixed(1) + '%';
+            
+            // Resaltar valores según cumplimiento
+            document.getElementById('cumplimientoPromedio').className = stats.cumplimientoPromedio >= 100 ? 'positive' : 'negative';
+            document.getElementById('porcentajeMensual').className = stats.porcentajeMensual >= 100 ? 'positive' : 'negative';
+        }
+
+        // Gráficos
+        let combinedChart, accumulatedChart;
+
+        function renderCharts() {
+            const fechas = filteredData.map(item => item.fecha);
+            const cantidades = filteredData.map(item => item.cant);
+            const cumplimientos = filteredData.map(item => item.cump);
+            const stats = calcularEstadisticas(filteredData);
+            
+            // Gráfico combinado (barras + líneas)
+            if (combinedChart) combinedChart.destroy();
+            const combinedCtx = document.getElementById('combinedChart').getContext('2d');
+            combinedChart = new Chart(combinedCtx, {
+                type: 'bar',
+                data: {
+                    labels: fechas,
+                    datasets: [
+                        {
+                            label: 'Producción Diaria',
+                            data: cantidades,
+                            backgroundColor: 'rgba(67, 97, 238, 0.7)',
+                            borderColor: 'rgba(67, 97, 238, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '% Cumplimiento',
+                            data: cumplimientos,
+                            type: 'line',
+                            borderColor: 'rgba(76, 201, 240, 1)',
+                            backgroundColor: 'rgba(76, 201, 240, 0.2)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'Meta 100%',
+                            data: filteredData.map(() => 100),
+                            type: 'line',
+                            borderColor: 'rgba(247, 37, 133, 1)',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'Tendencia Cumplimiento',
+                            data: stats.tendencia.puntos,
+                            type: 'line',
+                            borderColor: 'rgba(72, 149, 239, 1)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Producción',
+                                color: '#4361ee'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            min: 0,
+                            max: 200,
+                            title: {
+                                display: true,
+                                text: '% Cumplimiento',
+                                color: '#4cc9f0'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.03)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.dataset.yAxisID === 'y1') {
+                                        label += context.raw.toFixed(2) + '%';
+                                    } else {
+                                        label += context.raw.toLocaleString();
+                                    }
+                                    return label;
+                                },
+                                afterBody: function(context) {
+                                    const index = context[0].dataIndex;
+                                    const diff = cantidades[index] - data.meta_dia;
+                                    const diffText = diff >= 0 ? 
+                                        `(+${diff.toLocaleString()})` : 
+                                        `(${diff.toLocaleString()})`;
+                                    return [
+                                        `Meta diaria: ${data.meta_dia.toLocaleString()}`,
+                                        `Diferencia: ${diffText}`,
+                                        `Semana: ${filteredData[index].semana}`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Gráfico de evolución acumulada
+            if (accumulatedChart) accumulatedChart.destroy();
+            const accumulatedCtx = document.getElementById('accumulatedChart').getContext('2d');
+            
+            const acumulado = [];
+            let sum = 0;
+            cantidades.forEach(val => {
+                sum += val;
+                acumulado.push(sum);
+            });
+            
+            // Calcular línea de meta proporcional
+            const totalDias = 31;
+            const metaDiariaProp = data.meta_mes / totalDias;
+            const metaAcumulada = [];
+            sum = 0;
+            for (let i = 0; i < cantidades.length; i++) {
+                sum += metaDiariaProp;
+                metaAcumulada.push(sum);
+            }
+            
+            accumulatedChart = new Chart(accumulatedCtx, {
+                type: 'line',
+                data: {
+                    labels: fechas,
+                    datasets: [
+                        {
+                            label: 'Acumulado Real',
+                            data: acumulado,
+                            borderColor: 'rgba(67, 97, 238, 1)',
+                            backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Meta Acumulada',
+                            data: metaAcumulada,
+                            borderColor: 'rgba(247, 37, 133, 1)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Producción Acumulada',
+                                color: '#4361ee'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.03)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(context) {
+                                    const index = context[0].dataIndex;
+                                    const diff = acumulado[index] - metaAcumulada[index];
+                                    const diffPercent = (diff / metaAcumulada[index]) * 100;
+                                    const diffText = diff >= 0 ? 
+                                        `(+${diff.toLocaleString()}, ${diffPercent.toFixed(1)}%)` : 
+                                        `(${diff.toLocaleString()}, ${diffPercent.toFixed(1)}%)`;
+                                    return `Diferencia acumulada: ${diffText}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Filtros
+        document.getElementById('filterBtn').addEventListener('click', function() {
+            const semanaSeleccionada = weekFilter.value;
+            if (semanaSeleccionada === 'all') {
+                filteredData = [...data.data];
+            } else {
+                filteredData = data.data.filter(item => item.semana === parseInt(semanaSeleccionada));
+            }
+            actualizarEstadisticas();
+            renderCharts();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            weekFilter.value = 'all';
+            filteredData = [...data.data];
+            actualizarEstadisticas();
+            renderCharts();
+        });
+
+        // Inicialización
+        actualizarEstadisticas();
+        renderCharts();
+    </script>
+</body>
+</html>
