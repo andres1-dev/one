@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distribuciones Universo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        .card-header { background-color: #2c3e50; color: white; }
+        #loader { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; }
+        .spinner-border { position: absolute; top: 50%; left: 50%; }
+        .table th { background-color: #f8f9fa; }
+        .filter-label { margin-bottom: 5px; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div id="loader"><div class="spinner-border text-primary" role="status"></div></div>
+
+    <div class="container-fluid mt-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Distribuciones Universo</h5>
+                <span id="contador" class="badge bg-primary">0 registros</span>
+            </div>
+            <div class="card-body">
+                <div id="errorAlert" class="alert alert-danger d-none"></div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="filter-label">Filtrar por RefProv:</div>
+                        <select class="form-select" id="filtroRefProv">
+                            <option value="">Todas las referencias</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="filter-label">Filtrar por color:</div>
+                        <select class="form-select" id="filtroColor">
+                            <option value="">Todos los colores</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="filter-label">Filtrar por talla:</div>
+                        <select class="form-select" id="filtroTalla">
+                            <option value="">Todas las tallas</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table id="tablaDistribuciones" class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>RefProv</th>
+                                <th>Color</th>
+                                <th>Talla</th>
+                                <th>Cantidad</th>
+                                <th>Cantidad Pendiente</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        // Configuración
+        const CONFIG = {
+            SPREADSHEET_IDS: {
+                main: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+                rec: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
+                clientes: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE",
+                pedidos: "1DIR0Jbt-wj7sXRaNHo7mkZOXzOBBK_jnICpDVnR4qcg"
+            },
+            API_KEY: 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM'
+        };
+
+        // Variables globales
+        let datosOriginales = [];
+        let datosFiltrados = [];
+        let pedidosData = [];
+
+        // Mostrar/ocultar loader
+        function showLoader(show) {
+            document.getElementById('loader').style.display = show ? 'block' : 'none';
+        }
+
+        // Mostrar error
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            errorAlert.textContent = message;
+            errorAlert.classList.remove('d-none');
+        }
+
+        // Obtener datos de la hoja
+        async function fetchSheetData(spreadsheetId, range) {
+            console.log(`Cargando: ${range} de ${spreadsheetId}`);
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${CONFIG.API_KEY}`;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                console.log('Datos recibidos:', data.values ? data.values.length : 0, 'filas');
+                return data.values || [];
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                throw error;
+            }
+        }
+
+        // Función para consolidar distribuciones por código y talla
+        function consolidarDistribuciones(items) {
+            const consolidado = {};
+            
+            items.forEach(item => {
+                const key = `${item.refProv}-${item.color}-${item.talla}`;
+                
+                if (!consolidado[key]) {
+                    consolidado[key] = {
+                        refProv: item.refProv,
+                        color: item.color,
+                        talla: item.talla,
+                        cantidad: 0,
+                        cantidadPendiente: 0
+                    };
+                }
+                
+                consolidado[key].cantidad += item.cantidad;
+            });
+            
+            return Object.values(consolidado);
+        }
+
+        // Función para procesar los datos de pedidos
+        function procesarPedidos(data) {
+            const pedidos = [];
+            
+            // Asumimos que la primera fila son los encabezados
+            const headers = data[0];
+            const refProvIndex = headers.indexOf("RefProv");
+            const colorIndex = headers.indexOf("Color");
+            const tallaIndex = headers.indexOf("Talla");
+            const cantidadIndex = headers.indexOf("Cantidad");
+            
+            // Validar que se encontraron todos los encabezados
+            if (refProvIndex === -1 || colorIndex === -1 || tallaIndex === -1 || cantidadIndex === -1) {
+                throw new Error("Los encabezados de la hoja PEDIDOS no coinciden con lo esperado");
+            }
+            
+            // Procesar filas de datos (empezando desde la fila 1)
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (row.length > Math.max(refProvIndex, colorIndex, tallaIndex, cantidadIndex)) {
+                    pedidos.push({
+                        refProv: row[refProvIndex].trim(),
+                        color: row[colorIndex].trim(),
+                        talla: row[tallaIndex].trim(),
+                        cantidad: parseInt(row[cantidadIndex]) || 0
+                    });
+                }
+            }
+            
+            return pedidos;
+        }
+
+        // Función para restar los pedidos de las distribuciones
+        function restarPedidosDeDistribuciones(distribuciones, pedidos) {
+            // Primero consolidamos los pedidos por RefProv-Color-Talla
+            const pedidosConsolidados = {};
+            
+            pedidos.forEach(pedido => {
+                const key = `${pedido.refProv}-${pedido.color}-${pedido.talla}`;
+                if (!pedidosConsolidados[key]) {
+                    pedidosConsolidados[key] = 0;
+                }
+                pedidosConsolidados[key] += pedido.cantidad;
+            });
+            
+            // Ahora restamos de las distribuciones
+            return distribuciones.map(item => {
+                const key = `${item.refProv}-${item.color}-${item.talla}`;
+                const cantidadPedida = pedidosConsolidados[key] || 0;
+                const cantidadPendiente = Math.max(0, item.cantidad - cantidadPedida);
+                
+                return {
+                    ...item,
+                    cantidadPendiente: cantidadPendiente
+                };
+            });
+        }
+
+        // Actualizar filtros dependientes
+        function actualizarFiltrosDependientes() {
+            const refProvSeleccionada = $('#filtroRefProv').val();
+            const colorSeleccionado = $('#filtroColor').val();
+            
+            // Filtrar datos según referencia seleccionada
+            const datosParaFiltros = refProvSeleccionada ? 
+                datosOriginales.filter(item => item.refProv === refProvSeleccionada) : 
+                datosOriginales;
+            
+            // Filtrar datos adicionalmente por color si hay selección
+            const datosParaTallas = colorSeleccionado ? 
+                datosParaFiltros.filter(item => item.color === colorSeleccionado) : 
+                datosParaFiltros;
+            
+            // Obtener valores únicos
+            const refProvsUnicas = [...new Set(datosOriginales.map(item => item.refProv))].sort();
+            const coloresUnicos = [...new Set(datosParaFiltros.map(item => item.color))].sort();
+            const tallasUnicas = [...new Set(datosParaTallas.map(item => item.talla))].sort();
+            
+            // Actualizar filtro de colores
+            const filtroColor = $('#filtroColor');
+            const colorActual = filtroColor.val();
+            filtroColor.empty().append('<option value="">Todos los colores</option>');
+            
+            coloresUnicos.forEach(color => {
+                filtroColor.append(`<option value="${color}">${color}</option>`);
+            });
+            
+            // Restaurar selección previa si sigue disponible
+            if (colorActual && coloresUnicos.includes(colorActual)) {
+                filtroColor.val(colorActual);
+            }
+            
+            // Actualizar filtro de tallas
+            const filtroTalla = $('#filtroTalla');
+            const tallaActual = filtroTalla.val();
+            filtroTalla.empty().append('<option value="">Todas las tallas</option>');
+            
+            tallasUnicas.forEach(talla => {
+                filtroTalla.append(`<option value="${talla}">${talla}</option>`);
+            });
+            
+            // Restaurar selección previa si sigue disponible
+            if (tallaActual && tallasUnicas.includes(tallaActual)) {
+                filtroTalla.val(tallaActual);
+            }
+        }
+
+        // Aplicar filtros a la tabla
+        function aplicarFiltros() {
+            const refProv = $('#filtroRefProv').val();
+            const color = $('#filtroColor').val();
+            const talla = $('#filtroTalla').val();
+            
+            datosFiltrados = datosOriginales.filter(item => {
+                return (!refProv || item.refProv === refProv) &&
+                       (!color || item.color === color) &&
+                       (!talla || item.talla === talla);
+            });
+            
+            // Actualizar tabla
+            const table = $('#tablaDistribuciones').DataTable();
+            table.clear().rows.add(datosFiltrados).draw();
+            $('#contador').text(`${datosFiltrados.length} registros`);
+            
+            // Actualizar filtros dependientes
+            actualizarFiltrosDependientes();
+        }
+
+        // Función principal para obtener datos
+        async function cargarDistribucionesUniverso() {
+            showLoader(true);
+            
+            try {
+                // 1. Cargar datos de todas las fuentes
+                const [dataSISPRO, dataBUSINT, dataDistrib, dataPedidos] = await Promise.all([
+                    fetchSheetData(CONFIG.SPREADSHEET_IDS.main, "DATA2!S2:S"),
+                    fetchSheetData(CONFIG.SPREADSHEET_IDS.rec, "DataBase!A2:AG"),
+                    fetchSheetData(CONFIG.SPREADSHEET_IDS.clientes, "DATA!A2:E"),
+                    fetchSheetData(CONFIG.SPREADSHEET_IDS.pedidos, "PEDIDOS")
+                ]);
+
+                console.log('Datos cargados:', {
+                    sispro: dataSISPRO.length,
+                    busint: dataBUSINT.length,
+                    distrib: dataDistrib.length,
+                    pedidos: dataPedidos.length
+                });
+
+                // 2. Procesar datos de pedidos
+                pedidosData = procesarPedidos(dataPedidos);
+                console.log('Pedidos procesados:', pedidosData.length);
+
+                // 3. Procesar datos de distribución
+                const distribuciones = [];
+                
+                // Procesar DATA (distribuciones)
+                dataDistrib.forEach(row => {
+                    try {
+                        const documento = row[0]?.trim();
+                        const jsonStr = row[2]?.replace(/\\/g, '');
+                        
+                        if (documento && jsonStr) {
+                            const distribucion = JSON.parse(jsonStr);
+                            
+                            // Buscar solo distribuciones para Universo
+                            if (distribucion.Clientes?.Universo) {
+                                // Buscar RefProv correspondiente
+                                let refProv = '';
+                                
+                                // Buscar en SISPRO
+                                const itemSISPRO = dataSISPRO.find(item => {
+                                    try {
+                                        const json = JSON.parse(item[0]);
+                                        return json.A === documento;
+                                    } catch (e) {
+                                        return false;
+                                    }
+                                });
+                                
+                                if (itemSISPRO) {
+                                    try {
+                                        const json = JSON.parse(itemSISPRO[0]);
+                                        refProv = json.REFPROV;
+                                    } catch (e) {
+                                        console.error('Error parseando SISPRO:', e);
+                                    }
+                                }
+                                
+                                // Si no se encontró en SISPRO, buscar en BUSINT
+                                if (!refProv) {
+                                    const itemBUSINT = dataBUSINT.find(item => {
+                                        const docBUSINT = item[0]?.trim().replace(/^REC/i, '');
+                                        return docBUSINT === documento;
+                                    });
+                                    
+                                    if (itemBUSINT) {
+                                        refProv = itemBUSINT[6]?.trim();
+                                    }
+                                }
+                                
+                                if (refProv) {
+                                    distribucion.Clientes.Universo.distribucion.forEach(item => {
+                                        distribuciones.push({
+                                            refProv: refProv,
+                                            color: item.color,
+                                            talla: item.talla,
+                                            cantidad: item.cantidad
+                                        });
+                                    });
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error procesando distribución:', e);
+                    }
+                });
+
+                // Consolidar cantidades por RefProv-Color-Talla
+                let datosConsolidados = consolidarDistribuciones(distribuciones);
+                
+                // Restar los pedidos de las distribuciones
+                datosOriginales = restarPedidosDeDistribuciones(datosConsolidados, pedidosData);
+                datosFiltrados = [...datosOriginales];
+
+                console.log('Distribuciones consolidadas:', datosOriginales.length);
+                if (datosOriginales.length > 0) {
+                    console.log('Ejemplo de distribución consolidada:', datosOriginales[0]);
+                } else {
+                    console.warn('No se encontraron distribuciones para Universo');
+                }
+
+                return datosOriginales;
+                
+            } catch (error) {
+                console.error('Error en cargarDistribucionesUniverso:', error);
+                showError(`Error al cargar datos: ${error.message}`);
+                throw error;
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        // Inicializar la aplicación
+        $(document).ready(function() {
+            const table = $('#tablaDistribuciones').DataTable({
+                columns: [
+                    { data: 'refProv' },
+                    { data: 'color' },
+                    { data: 'talla' },
+                    { data: 'cantidad' },
+                    { 
+                        data: 'cantidadPendiente',
+                        render: function(data, type, row) {
+                            if (type === 'display') {
+                                // Resaltar en rojo si no hay cantidad pendiente
+                                if (data <= 0) {
+                                    return '<span class="text-danger">' + data + '</span>';
+                                }
+                                // Resaltar en verde si hay cantidad pendiente
+                                return '<span class="text-success">' + data + '</span>';
+                            }
+                            return data;
+                        }
+                    }
+                ],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                pageLength: 5,
+                order: [[4, 'desc']] // Ordenar por cantidad pendiente descendente
+            });
+
+            // Cargar y mostrar datos
+            cargarDistribucionesUniverso()
+                .then(distribuciones => {
+                    if (distribuciones.length === 0) {
+                        showError("No se encontraron distribuciones para Universo");
+                        return;
+                    }
+                    
+                    // Llenar filtro de referencias
+                    const refProvsUnicas = [...new Set(distribuciones.map(item => item.refProv))].sort();
+                    const filtroRefProv = $('#filtroRefProv');
+                    
+                    refProvsUnicas.forEach(ref => {
+                        filtroRefProv.append(`<option value="${ref}">${ref}</option>`);
+                    });
+                    
+                    // Actualizar filtros dependientes
+                    actualizarFiltrosDependientes();
+                    
+                    // Aplicar filtros iniciales
+                    aplicarFiltros();
+                    
+                    console.log('Datos consolidados correctamente');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            
+            // Configurar eventos de filtros
+            $('#filtroRefProv').on('change', function() {
+                aplicarFiltros();
+            });
+            
+            $('#filtroColor').on('change', function() {
+                aplicarFiltros();
+            });
+            
+            $('#filtroTalla').on('change', function() {
+                aplicarFiltros();
+            });
+        });
+    </script>
+</body>
+</html>
