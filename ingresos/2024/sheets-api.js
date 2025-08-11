@@ -1,7 +1,7 @@
 // sheets-api.js
 const API_KEY = 'AIzaSyCrTSddJcCaJCqQ_Cr_PC2zt-eVZAihC38';
 const SPREADSHEET_IDS = {
-    DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+    DATA2: "",
     REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc"
 };
 
