@@ -153,12 +153,12 @@
     
     <!-- Módulos -->
     <script type="module">
-        import { getCombinedData } from './sheets-api.js';
+        import { getREC } from './sheets-api.js';
         import { initializeDataTable, updateDataTable } from './datatable-manager.js';
         
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const data = await getCombinedData();
+                const data = await getREC();
                 initializeDataTable(data);
             } catch (error) {
                 console.error("Error al cargar datos:", error);
@@ -167,7 +167,7 @@
             
             document.getElementById('refresh-btn').addEventListener('click', async () => {
                 try {
-                    const data = await getCombinedData();
+                    const data = await getREC();
                     updateDataTable(data);
                 } catch (error) {
                     console.error("Error al actualizar datos:", error);
@@ -176,5 +176,6 @@
             });
         });
     </script>
+
 </body>
 </html>
