@@ -47,7 +47,7 @@ const getGestorByLinea = (linea) => {
         'ESPECIALES': 'JUAN ESTEBAN ZULUAGA HOYOS',
         'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS',
         'DENIM': 'JUAN ESTEBAN ZULUAGA HOYOS',
-        'NEBRASK': 'SANCHEZ LOPEZ YULIETH',
+        'NEBRASK': 'SANCHEZ LOPEZ YULIETH'
 
     };
     const normal = normalizeLinea(linea);
