@@ -45,7 +45,10 @@ const getGestorByLinea = (linea) => {
         'DEPORTIVO': 'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
         'PRONTAMODA': 'SANCHEZ LOPEZ YULIETH',
         'ESPECIALES': 'JUAN ESTEBAN ZULUAGA HOYOS',
-        'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS'
+        'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS',
+        'DENIM': 'JUAN ESTEBAN ZULUAGA HOYOS',
+        'NEBRASK': 'SANCHEZ LOPEZ YULIETH',
+
     };
     const normal = normalizeLinea(linea);
     for (const key in gestores) {
