@@ -2,7 +2,7 @@
 const API_KEY = 'AIzaSyCrTSddJcCaJCqQ_Cr_PC2zt-eVZAihC38';
 const SPREADSHEET_IDS = {
     DATA2: "",
-    REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc"
+    REC: "1Gzwybsv6KjGBDc6UeAo57AV5W0gK-bjWTA-AcKLJOlY"
 };
 
 // Función para normalizar datos
