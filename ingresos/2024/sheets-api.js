@@ -4,42 +4,38 @@ const SPREADSHEET_IDS = {
     REC: "1Gzwybsv6KjGBDc6UeAo57AV5W0gK-bjWTA-AcKLJOlY"
 };
 
-// ===== FUNCIONES AUXILIARES =====
+// Normaliza línea
+const normalizeLinea = (linea = '') =>
+    linea.replace(/^LINEA\s*/i, '').replace(/\s+/g, '').toUpperCase();
 
-// Normaliza nombre de línea
-const normalizeLinea = (linea) => {
-    let normalized = linea.replace(/^LINEA\s*/i, '');
-    return normalized.replace(/\s+/g, '').toUpperCase();
-};
+// Normaliza PVP
+const normalizePVP = (pvp = '') =>
+    String(pvp).replace(/\$\s*/g, '').replace(/\./g, '').trim();
 
-// Quita símbolos y separadores de miles del PVP
-const normalizePVP = (pvp) => pvp.replace(/\$\s*/g, '').replace(/\./g, '').trim();
-
-// Determina clase según PVP
+// Clase por PVP
 const getClaseByPVP = (pvp) => {
     const valor = parseFloat(pvp);
     if (isNaN(valor)) return 'NO DEFINIDO';
-
     if (valor <= 39900) return 'LINEA';
     if (valor <= 59900) return 'MODA';
-    if (valor > 59900) return 'PRONTAMODA';
-
-    return 'NO DEFINIDO';
+    return 'PRONTAMODA';
 };
 
-// Convierte fecha DD/MM/YYYY → YYYY-MM-DD
+// Fecha segura
 const normalizeDate = (date) => {
     if (!date) return null;
-    const [day, month, year] = date.split('/');
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    if (typeof date === 'string' && date.includes('/')) {
+        const [day, month, year] = date.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return date; // Si ya viene como YYYY-MM-DD o número
 };
 
-// Quita prefijo "REC" del documento
-const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
+// Quita "REC" del documento
+const normalizeDocumento = (documento = '') => String(documento).replace(/^REC/i, '');
 
-// Asigna gestor según línea
+// Gestor
 const getGestorByLinea = (linea) => {
-    const normalizedLinea = normalizeLinea(linea);
     const gestores = {
         'ANGELES': 'VILLAMIZAR GOMEZ LUIS',
         'MODAFRESCA': 'FABIAN MARIN FLOREZ',
@@ -51,81 +47,67 @@ const getGestorByLinea = (linea) => {
         'ESPECIALES': 'JUAN ESTEBAN ZULUAGA HOYOS',
         'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS'
     };
-
-    for (const [key, value] of Object.entries(gestores)) {
-        if (normalizedLinea.includes(key)) return value;
+    const normal = normalizeLinea(linea);
+    for (const key in gestores) {
+        if (normal.includes(key)) return gestores[key];
     }
     return 'GESTOR NO ASIGNADO';
 };
 
-// Asigna proveedor según línea
-const getProveedorByLinea = (linea) => {
-    return normalizeLinea(linea).includes('ANGELES') 
-        ? 'TEXTILES Y CREACIONES LOS ANGELES SAS' 
+// Proveedor
+const getProveedorByLinea = (linea) =>
+    normalizeLinea(linea).includes('ANGELES')
+        ? 'TEXTILES Y CREACIONES LOS ANGELES SAS'
         : 'TEXTILES Y CREACIONES EL UNIVERSO SAS';
-};
 
-// Verifica si un registro está anulado
+// Anulado
 const isAnulado = (item) => {
-    const camposRequeridos = [
-        'TALLER', 'LINEA', 'AUDITOR', 'ESCANER', 'LOTE', 
-        'REFPROV', 'DESCRIPCIÓN', 'CANTIDAD', 'REFERENCIA',
-        'TIPO', 'PVP', 'PRENDA', 'GENERO'
-    ];
-    
-    let camposVacios = 0;
-    
-    for (const campo of camposRequeridos) {
-        if (!item[campo] || 
-            (typeof item[campo] === 'number' && item[campo] === 0) || 
-            (typeof item[campo] === 'string' && item[campo].trim() === '')) {
-            camposVacios++;
-            if (camposVacios > 4) return true;
-        }
-    }
-    return camposVacios > 4;
+    const campos = ['TALLER', 'LINEA', 'AUDITOR', 'ESCANER', 'LOTE', 'REFPROV', 'DESCRIPCIÓN', 'CANTIDAD', 'REFERENCIA', 'TIPO', 'PVP', 'PRENDA', 'GENERO'];
+    let vacios = campos.filter(c => !item[c] || (typeof item[c] === 'string' && !item[c].trim())).length;
+    return vacios > 4;
 };
 
-// ===== OBTENER DATOS DE REC =====
+// Solo REC
 export const getREC = async () => {
     try {
         const range = "DataBase!A2:AF";
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.REC}/values/${range}?key=${API_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
-        
+
         if (!data.values || data.values.length === 0) {
             throw new Error("No se encontraron datos en la hoja DataBase");
         }
+
+        console.log("Primer registro crudo:", data.values[0]); // 🔍 Debug
 
         return data.values
             .map(row => {
                 if (!row[0] && !row[1]) return null;
                 const linea = row[3] || '';
-
                 return {
-                    DOCUMENTO: normalizeDocumento(String(row[0] || '')),
-                    FECHA: normalizeDate(row[1] || ''),
+                    DOCUMENTO: normalizeDocumento(row[0]),
+                    FECHA: normalizeDate(row[1]),
                     TALLER: row[2] || '',
                     LINEA: normalizeLinea(linea),
                     AUDITOR: row[4] || '',
                     ESCANER: row[5] || '',
                     LOTE: Number(row[8]) || 0,
-                    REFPROV: String(row[6] || ''),
+                    REFPROV: row[6] || '',
                     DESCRIPCIÓN: row[9] || '',
                     CANTIDAD: Number(row[18]) || 0,
                     REFERENCIA: row[26] || '',
                     TIPO: row[27] || '',
-                    PVP: normalizePVP(row[31] || ''),
+                    PVP: normalizePVP(row[31]),
                     PRENDA: row[29] || '',
                     GENERO: row[30] || '',
-                    GESTOR: getGestorByLinea(linea), 
+                    GESTOR: getGestorByLinea(linea),
                     PROVEEDOR: getProveedorByLinea(linea),
-                    CLASE: getClaseByPVP(normalizePVP(row[31] || '')),
+                    CLASE: getClaseByPVP(normalizePVP(row[31])),
                     FUENTE: 'BUSINT'
                 };
             })
-            .filter(item => item !== null && item.DOCUMENTO !== '' && !isAnulado(item));
+            .filter(item => item && item.DOCUMENTO && !isAnulado(item));
     } catch (error) {
         console.error("Error en getREC:", error);
         throw error;
