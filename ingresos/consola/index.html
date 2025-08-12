@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Datos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .loading {
+            color: #f39c12;
+        }
+        .success {
+            color: #27ae60;
+        }
+        .error {
+            color: #e74c3c;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualizador de Datos</h1>
+    
+    <div class="buttons">
+        <button id="btn2025">Mostrar Datos 2025</button>
+        <button id="btn2024">Mostrar Datos 2024</button>
+        <button id="btnBudget">Mostrar Presupuestos</button>
+        <button id="btnAll">Mostrar Todos</button>
+    </div>
+    
+    <div class="info">
+        <p>Los datos se mostrarán en la consola del navegador (F12 > Consola) y en el área de resultados abajo.</p>
+    </div>
+
+    <div id="status" class="status"></div>
+    
+    <div id="output"></div>
+
+    <script>
+        // Configuración
+        const API_KEY = 'AIzaSyCrTSddJcCaJCqQ_Cr_PC2zt-eVZAihC38';
+        const SPREADSHEET_IDS = {
+            DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI", // 2025 PARTE 1
+            REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",  // 2025 PARTE 2
+            REC2024: "1Gzwybsv6KjGBDc6UeAo57AV5W0gK-bjWTA-AcKLJOlY",  // 2024
+            BUDGETID: "10P1BtnwjUrSuM4ZajAdUiHXNEzpi4H2zsJvQVYp5jtQ" // PRESUPUESTOS
+        };
+
+        // Elementos del DOM
+        const statusElement = document.getElementById('status');
+        const outputElement = document.getElementById('output');
+        const buttons = {
+            btn2025: document.getElementById('btn2025'),
+            btn2024: document.getElementById('btn2024'),
+            btnBudget: document.getElementById('btnBudget'),
+            btnAll: document.getElementById('btnAll')
+        };
+
+        // Función para actualizar el estado
+        function updateStatus(message, type = '') {
+            statusElement.textContent = message;
+            statusElement.className = 'status ' + type;
+        }
+
+        // Función para mostrar datos en consola y en pantalla
+        function showData(data, title) {
+            // Mostrar en consola
+            console.log(`%c=== ${title} ===`, 'color: #3498db; font-weight: bold; font-size: 14px;');
+            console.table(data);
+            console.log(`Total registros: ${data.length}`);
+            
+            // Mostrar en pantalla
+            let output = `=== ${title} ===\n`;
+            output += `Total registros: ${data.length}\n\n`;
+            output += JSON.stringify(data.slice(0, 5), null, 2); // Mostrar solo los primeros 5 para no saturar
+            if (data.length > 5) output += '\n\n... (mostrando solo primeros 5 registros)';
+            
+            outputElement.textContent = output;
+        }
+
+        // Función para normalizar datos
+        const normalizeLinea = (linea) => {
+            let normalized = linea.replace(/^LINEA\s*/i, '');
+            return normalized.replace(/\s+/g, '').toUpperCase();
+        };
+
+        // Modificada para quitar separadores de miles
+        const normalizePVP = (pvp) => pvp.replace(/\$\s*/g, '').replace(/\./g, '').trim();
+
+        const getClaseByPVP = (pvp) => {
+            const valor = parseFloat(pvp);
+            if (isNaN(valor)) return 'NO DEFINIDO';
+
+            if (valor <= 39900) return 'LINEA';
+            if (valor > 39900 && valor <= 59900) return 'MODA';
+            if (valor > 59900) return 'PRONTAMODA';
+
+            return 'NO DEFINIDO';
+        };
+
+        const normalizeDate = (date) => {
+            if (!date) return null;
+
+            const [day, month, year] = date.split('/');
+
+            // Asegura que los valores estén en formato de 2 dígitos
+            const dd = day.padStart(2, '0');
+            const mm = month.padStart(2, '0');
+
+            return `${year}-${mm}-${dd}`;
+        }; 
+
+        const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
+
+        const getGestorByLinea = (linea) => {
+            const normalizedLinea = normalizeLinea(linea);
+            const gestores = {
+                'ANGELES': 'VILLAMIZAR GOMEZ LUIS',
+                'MODAFRESCA': 'FABIAN MARIN FLOREZ',
+                'BASICO': 'CESAR AUGUSTO LOPEZ GIRALDO',
+                'INTIMA': 'KELLY GIOVANA ZULUAGA HOYOS',
+                'URBANO': 'MARYI ANDREA GONZALEZ SILVA',
+                'DEPORTIVO': 'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
+                'PRONTAMODA': 'SANCHEZ LOPEZ YULIETH',
+                'ESPECIALES': 'JUAN ESTEBAN ZULUAGA HOYOS',
+                'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS'
+            };
+            
+            for (const [key, value] of Object.entries(gestores)) {
+                if (normalizedLinea.includes(key)) return value;
+            }
+            return 'GESTOR NO ASIGNADO';
+        };
+
+        const getProveedorByLinea = (linea) => {
+            return normalizeLinea(linea).includes('ANGELES') 
+                ? 'TEXTILES Y CREACIONES LOS ANGELES SAS' 
+                : 'TEXTILES Y CREACIONES EL UNIVERSO SAS';
+        };
+
+        const isAnulado = (item) => {
+            const camposRequeridos = [
+                'TALLER', 'LINEA', 'AUDITOR', 'ESCANER', 'LOTE', 
+                'REFPROV', 'DESCRIPCIÓN', 'CANTIDAD', 'REFERENCIA',
+                'TIPO', 'PVP', 'PRENDA', 'GENERO'
+            ];
+            
+            let camposVacios = 0;
+            
+            for (const campo of camposRequeridos) {
+                if (!item[campo] || 
+                    (typeof item[campo] === 'number' && item[campo] === 0) || 
+                    (typeof item[campo] === 'string' && item[campo].trim() === '')) {
+                    camposVacios++;
+                    if (camposVacios > 4) return true;
+                }
+            }
+            return camposVacios > 4;
+        };
+
+        // Función para obtener datos de DATA2 (2025)
+        async function getParsedMainData() {
+            try {
+                updateStatus('Cargando datos 2025 (parte 1)...', 'loading');
+                const range = "DATA2!S2:S";
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.DATA2}/values/${range}?key=${API_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (!data.values || data.values.length === 0) {
+                    throw new Error("No se encontraron datos en la hoja DATA2");
+                }
+
+                const result = data.values.map(row => {
+                    try {
+                        const jsonData = JSON.parse(row[0]);
+                        return {
+                            DOCUMENTO: String(jsonData.A || ''),
+                            FECHA: normalizeDate(jsonData.FECHA || ''),
+                            TALLER: jsonData.TALLER || '',
+                            LINEA: normalizeLinea(jsonData.LINEA || ''),
+                            AUDITOR: jsonData.AUDITOR || '',
+                            ESCANER: jsonData.ESCANER || '',
+                            LOTE: Number(jsonData.LOTE) || 0,
+                            REFPROV: String(jsonData.REFPROV || ''),
+                            DESCRIPCIÓN: jsonData.DESCRIPCIÓN || '',
+                            CANTIDAD: Number(jsonData.CANTIDAD) || 0,
+                            REFERENCIA: jsonData.REFERENCIA || '',
+                            TIPO: jsonData.TIPO || '',
+                            PVP: normalizePVP(jsonData.PVP || ''),
+                            PRENDA: jsonData.PRENDA || '',
+                            GENERO: jsonData.GENERO || '',
+                            GESTOR: jsonData.GESTOR || '',
+                            PROVEEDOR: jsonData.PROVEEDOR || getProveedorByLinea(jsonData.LINEA || ''),
+                            CLASE: getClaseByPVP(normalizePVP(jsonData.PVP || '')),
+                            FUENTE: 'SISPRO',
+                            ANO: '2025'
+                        };
+                    } catch (e) {
+                        console.error("Error al parsear JSON:", e);
+                        return null;
+                    }
+                }).filter(item => item !== null);
+
+                updateStatus('Datos 2025 (parte 1) cargados correctamente', 'success');
+                return result;
+            } catch (error) {
+                updateStatus(`Error al cargar datos 2025 (parte 1): ${error.message}`, 'error');
+                console.error("Error en getParsedMainData:", error);
+                throw error;
+            }
+        }
+
+        // Función para obtener datos de REC (2025)
+        async function getREC() {
+            try {
+                updateStatus('Cargando datos 2025 (parte 2)...', 'loading');
+                const range = "DataBase!A2:AF";
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.REC}/values/${range}?key=${API_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (!data.values || data.values.length === 0) {
+                    throw new Error("No se encontraron datos en la hoja DataBase");
+                }
+
+                const result = data.values.map(row => {
+                    if (!row[0] && !row[1]) return null;
+                    const documento = String(row[0] || '');
+                    const linea = row[3] || '';
+                    
+                    return {
+                        DOCUMENTO: normalizeDocumento(documento),
+                        FECHA: normalizeDate(row[1] || ''),
+                        TALLER: row[2] || '',
+                        LINEA: normalizeLinea(linea),
+                        AUDITOR: row[4] || '',
+                        ESCANER: row[5] || '',
+                        LOTE: Number(row[8]) || 0,
+                        REFPROV: String(row[6] || ''),
+                        DESCRIPCIÓN: row[9] || '',
+                        CANTIDAD: Number(row[18]) || 0,
+                        REFERENCIA: row[26] || '',
+                        TIPO: row[27] || '',
+                        PVP: normalizePVP(row[31] || ''),
+                        PRENDA: row[29] || '',
+                        GENERO: row[30] || '',
+                        GESTOR: getGestorByLinea(linea), 
+                        PROVEEDOR: getProveedorByLinea(linea),
+                        CLASE: getClaseByPVP(normalizePVP(row[31] || '')),
+                        FUENTE: 'BUSINT',
+                        ANO: '2025'
+                    };
+                }).filter(item => item !== null && item.DOCUMENTO !== '');
+
+                updateStatus('Datos 2025 (parte 2) cargados correctamente', 'success');
+                return result;
+            } catch (error) {
+                updateStatus(`Error al cargar datos 2025 (parte 2): ${error.message}`, 'error');
+                console.error("Error en getREC:", error);
+                throw error;
+            }
+        }
+
+        // Función para obtener datos de REC2024
+        async function getREC2024() {
+            try {
+                updateStatus('Cargando datos 2024...', 'loading');
+                const range = "DataBase!A2:AF";
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.REC2024}/values/${range}?key=${API_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (!data.values || data.values.length === 0) {
+                    throw new Error("No se encontraron datos en la hoja DataBase de REC2024");
+                }
+
+                const result = data.values.map(row => {
+                    if (!row[0] && !row[1]) return null;
+                    const documento = String(row[0] || '');
+                    const linea = row[3] || '';
+                    
+                    return {
+                        DOCUMENTO: normalizeDocumento(documento),
+                        FECHA: normalizeDate(row[1] || ''),
+                        TALLER: row[2] || '',
+                        LINEA: normalizeLinea(linea),
+                        AUDITOR: row[4] || '',
+                        ESCANER: row[5] || '',
+                        LOTE: Number(row[8]) || 0,
+                        REFPROV: String(row[6] || ''),
+                        DESCRIPCIÓN: row[9] || '',
+                        CANTIDAD: Number(row[18]) || 0,
+                        REFERENCIA: row[26] || '',
+                        TIPO: row[27] || '',
+                        PVP: normalizePVP(row[31] || ''),
+                        PRENDA: row[29] || '',
+                        GENERO: row[30] || '',
+                        GESTOR: getGestorByLinea(linea), 
+                        PROVEEDOR: getProveedorByLinea(linea),
+                        CLASE: getClaseByPVP(normalizePVP(row[31] || '')),
+                        FUENTE: 'BUSINT',
+                        ANO: '2024'
+                    };
+                }).filter(item => item !== null && item.DOCUMENTO !== '');
+
+                updateStatus('Datos 2024 cargados correctamente', 'success');
+                return result;
+            } catch (error) {
+                updateStatus(`Error al cargar datos 2024: ${error.message}`, 'error');
+                console.error("Error en getREC2024:", error);
+                throw error;
+            }
+        }
+
+        // Función para obtener datos de presupuestos
+async function getBudgetData() {
+    try {
+        updateStatus('Cargando datos de presupuestos...', 'loading');
+        
+        // Obtener datos de 2025
+        const range2025 = "BUDGET2025!A1:M14";
+        const url2025 = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.BUDGETID}/values/${range2025}?key=${API_KEY}`;
+        
+        // Obtener datos de 2024
+        const range2024 = "BUDGET2024!A1:N14";
+        const url2024 = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.BUDGETID}/values/${range2024}?key=${API_KEY}`;
+        
+        const [response2025, response2024] = await Promise.all([
+            fetch(url2025),
+            fetch(url2024)
+        ]);
+        
+        const [data2025, data2024] = await Promise.all([
+            response2025.json(),
+            response2024.json()
+        ]);
+        
+        // Procesar datos de 2025
+        const headers2025 = data2025.values[0];
+        const budgets2025 = data2025.values.slice(1).map(row => {
+            const budgetItem = {
+                MES: row[0],
+                ANO: '2025'
+            };
+            
+            // Mapear cada columna a su respectiva línea
+            for (let i = 1; i < headers2025.length - 3; i++) { // Excluir TOTAL, HABILES, META
+                budgetItem[headers2025[i]] = Number(row[i]) || 0;
+            }
+            
+            // Agregar campos adicionales
+            budgetItem.TOTAL = Number(row[row.length - 3]) || 0;
+            budgetItem.HABILES = Number(row[row.length - 2]) || 0;
+            budgetItem.META = Number(row[row.length - 1]) || 0;
+            
+            return budgetItem;
+        });
+        
+        // Procesar datos de 2024
+        const headers2024 = data2024.values[0];
+        const budgets2024 = data2024.values.slice(1).map(row => {
+            const budgetItem = {
+                MES: row[0],
+                ANO: '2024'
+            };
+            
+            // Mapear cada columna a su respectiva línea
+            for (let i = 1; i < headers2024.length - 3; i++) { // Excluir TOTAL, HABILES, DIA
+                budgetItem[headers2024[i]] = Number(row[i]) || 0;
+            }
+            
+            // Agregar campos adicionales
+            budgetItem.TOTAL = Number(row[row.length - 3]) || 0;
+            budgetItem.HABILES = Number(row[row.length - 2]) || 0;
+            budgetItem.DIA = Number(row[row.length - 1]) || 0;
+            
+            return budgetItem;
+        });
+        
+        updateStatus('Datos de presupuestos cargados correctamente', 'success');
+        return [...budgets2025, ...budgets2024];
+    } catch (error) {
+        updateStatus(`Error al cargar presupuestos: ${error.message}`, 'error');
+        console.error("Error en getBudgetData:", error);
+        throw error;
+    }
+}
+
+        // Event listeners para los botones
+        buttons.btn2025.addEventListener('click', async () => {
+            try {
+                disableButtons(true);
+                const [data2025Part1, data2025Part2] = await Promise.all([
+                    getParsedMainData(),
+                    getREC()
+                ]);
+                const combined2025 = [...data2025Part1, ...data2025Part2].filter(item => !isAnulado(item));
+                showData(combined2025, 'DATOS 2025');
+            } catch (error) {
+                console.error('Error al obtener datos 2025:', error);
+            } finally {
+                disableButtons(false);
+            }
+        });
+
+        buttons.btn2024.addEventListener('click', async () => {
+            try {
+                disableButtons(true);
+                const data2024 = await getREC2024();
+                showData(data2024, 'DATOS 2024');
+            } catch (error) {
+                console.error('Error al obtener datos 2024:', error);
+            } finally {
+                disableButtons(false);
+            }
+        });
+
+        buttons.btnBudget.addEventListener('click', async () => {
+            try {
+                disableButtons(true);
+                const budgetData = await getBudgetData();
+                
+                // Separar presupuestos por año para mejor visualización
+                const budget2025 = budgetData.filter(item => item.ANO === '2025');
+                const budget2024 = budgetData.filter(item => item.ANO === '2024');
+                
+                showData(budget2025, 'PRESUPUESTOS 2025');
+                showData(budget2024, 'PRESUPUESTOS 2024');
+            } catch (error) {
+                console.error('Error al obtener presupuestos:', error);
+            } finally {
+                disableButtons(false);
+            }
+        });
+
+        buttons.btnAll.addEventListener('click', async () => {
+            try {
+                disableButtons(true);
+                const [data2025Part1, data2025Part2, data2024, budgetData] = await Promise.all([
+                    getParsedMainData(),
+                    getREC(),
+                    getREC2024(),
+                    getBudgetData()
+                ]);
+                
+                const combined2025 = [...data2025Part1, ...data2025Part2].filter(item => !isAnulado(item));
+                
+                showData(combined2025, 'DATOS 2025');
+                showData(data2024, 'DATOS 2024');
+                
+                // Mostrar presupuestos separados por año
+                const budget2025 = budgetData.filter(item => item.ANO === '2025');
+                const budget2024 = budgetData.filter(item => item.ANO === '2024');
+                showData(budget2025, 'PRESUPUESTOS 2025');
+                showData(budget2024, 'PRESUPUESTOS 2024');
+                
+            } catch (error) {
+                console.error('Error al obtener todos los datos:', error);
+            } finally {
+                disableButtons(false);
+            }
+        });
+
+        // Función para deshabilitar/habilitar botones durante la carga
+        function disableButtons(disabled) {
+            Object.values(buttons).forEach(button => {
+                button.disabled = disabled;
+            });
+        }
+
+        // Mensaje inicial
+        updateStatus('Listo para cargar datos. Haz clic en cualquier botón para comenzar.');
+    </script>
+</body>
+</html>
