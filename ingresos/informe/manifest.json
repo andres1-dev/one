@@ -1,0 +1,58 @@
+{
+  "name": "Sistema de Gestión de Ingresos - Marca Propia",
+  "short_name": "Ingresos MP",
+  "description": "Aplicación web para el control, monitoreo y generación de informes detallados sobre los ingresos de la marca propia.",
+  "start_url": "/one/ingresos/informe/generar.html",
+  "scope": "/one/ingresos/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#4361ee",
+  "theme_color": "#4361ee",
+  "lang": "es-ES",
+  "dir": "ltr",
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Panel principal de ingresos"
+    },
+    {
+      "src": "screenshots/report.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Generación de informes"
+    }
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
