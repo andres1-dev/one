@@ -568,39 +568,29 @@
     transform: scale(0.95);
 }
 
-/* Estilo para el modal de contraseña */
-.password-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 1000;
+.capture-btn {
+    padding: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
     align-items: center;
     justify-content: center;
+    width: 36px;
+    height: 36px;
+    transition: var(--transition);
 }
 
-.modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    width: 300px;
-    text-align: center;
+.capture-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
-.modal-content input {
-    width: 100%;
-    padding: 10px;
-    margin: 15px 0;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: space-between;
+.capture-btn i {
+    font-size: 16px;
 }
 
 
@@ -618,20 +608,9 @@
     </h1>
     <div class="date-selector-container">
         <input type="date" id="datePicker" class="date-picker">
-        <button id="captureBtn" class="send-report-btn" title="Enviar reporte">
+        <button id="captureBtn" class="capture-btn" title="Enviar informe">
             <i class="fas fa-paper-plane"></i>
         </button>
-    </div>
-</div>
-
-<div id="passwordModal" class="password-modal">
-    <div class="modal-content">
-        <h3>Ingrese contraseña</h3>
-        <input type="password" id="passwordInput" placeholder="Contraseña">
-        <div class="modal-actions">
-            <button id="cancelBtn">Cancelar</button>
-            <button id="confirmBtn">Enviar</button>
-        </div>
     </div>
 </div>
 
@@ -1125,7 +1104,7 @@ let retryCount = 0;
 const MAX_RETRIES = 3;
 
 // Función para actualizar el reporte con una nueva fecha
-async function updateReportWithDate(newDate) {
+async function updateReportWithDate(newDate, forceReload = false) {
     if (isLoading) return;
     
     isLoading = true;
@@ -1137,7 +1116,22 @@ async function updateReportWithDate(newDate) {
         updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         updateBtn.style.pointerEvents = 'none';
         
-        await loadDataWithRetry(newDate);
+        // Solo recargar datos si es forzado o no hay datos cargados
+        if (forceReload || consolidatedData.length === 0 || budgetData.length === 0) {
+            // Forzar recarga de datos
+            consolidatedData = [];
+            budgetData = [];
+            await cargarDatosIniciales();
+        }
+        
+        // Generar nuevo reporte con la fecha seleccionada
+        const reporte = await generarReporteCompleto(newDate);
+        currentReportData = reporte;
+        
+        // Actualizar la UI con los nuevos datos
+        cargarDatosDia();
+        cargarDatosMes();
+        cargarDatosAño();
         
     } catch (error) {
         console.error("Error:", error);
@@ -1281,18 +1275,26 @@ function initDatePicker() {
     const today = new Date();
     datePicker.valueAsDate = today;
     
-    // Actualizar automáticamente cuando cambie la fecha
+    // Actualizar solo la vista cuando cambie la fecha, sin recargar datos
     datePicker.addEventListener('change', () => {
         const selectedDate = datePicker.valueAsDate;
-        if (selectedDate) {
-            updateReportWithDate(selectedDate);
+        if (selectedDate && currentReportData) {
+            // Usar los datos ya cargados para la nueva fecha
+            generarReporteCompleto(selectedDate)
+                .then(reporte => {
+                    currentReportData = reporte;
+                    cargarDatosDia();
+                    cargarDatosMes();
+                    cargarDatosAño();
+                })
+                .catch(error => console.error("Error al generar reporte:", error));
         }
     });
     
-    // Botón manual de actualización
+    // Botón manual de actualización - aquí sí forzamos recarga de datos
     updateBtn.addEventListener('click', () => {
         const selectedDate = datePicker.valueAsDate || new Date();
-        updateReportWithDate(selectedDate);
+        updateReportWithDate(selectedDate, true); // forceReload = true
     });
 }
 
@@ -2362,19 +2364,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         // Cargar reporte inicial con fecha actual
         const today = new Date();
-        currentReportData = await generarReporteCompleto(today);
-    
-        // Cargar datos iniciales con reintentos
-    try {
-        await updateReportWithDate(new Date());
-    } catch (error) {
-        console.error("Error al cargar datos iniciales:", error);
-    }
-        
-        // Mostrar datos
-        cargarDatosDia();
-        cargarDatosMes();
-        cargarDatosAño();
+        await updateReportWithDate(today, true); // forceReload = true para la carga inicial
         
         // Colapsar todos los comparativos al inicio
         document.querySelectorAll('.comparison-content').forEach(content => {
@@ -2393,7 +2383,7 @@ async function captureAndDownloadCards() {
     try {
         const captureBtn = document.getElementById('captureBtn');
         const originalHtml = captureBtn.innerHTML;
-        captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+        captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         captureBtn.disabled = true;
 
         // Abrir todas las tarjetas
@@ -2463,7 +2453,7 @@ async function captureAndDownloadCards() {
     } finally {
         const captureBtn = document.getElementById('captureBtn');
         if (captureBtn) {
-            captureBtn.innerHTML = '<i class="fas fa-camera"></i> Capturar y Enviar';
+            captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
             captureBtn.disabled = false;
         }
     }
@@ -2510,23 +2500,10 @@ function initCaptureButton() {
 }
 
 // Función separada para la captura real
-async function executeCapture() {
-    try {
-        const captureBtn = document.getElementById('captureBtn');
-        const originalIcon = captureBtn.innerHTML;
-        captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        captureBtn.disabled = true;
-
-        await captureAndDownloadCards();
-        
-    } catch (error) {
-        console.error("Error al capturar:", error);
-    } finally {
-        const captureBtn = document.getElementById('captureBtn');
-        if (captureBtn) {
-            captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-            captureBtn.disabled = false;
-        }
+function initCaptureButton() {
+    const captureBtn = document.getElementById('captureBtn');
+    if (captureBtn) {
+        captureBtn.addEventListener('click', captureAndDownloadCards);
     }
 }
 
