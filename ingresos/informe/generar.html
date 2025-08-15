@@ -2,10 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Ingresos de Marca Propia</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+ 
 <style>
     :root {
         --primary-color: #4361ee;
@@ -25,12 +26,11 @@
     }
     
 .update-btn-small {
-    padding: 8px;
+    padding: 0; /* Eliminamos el padding para control exacto */
     border-radius: 50%;
     border: none;
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
     color: white;
-    font-family: inherit;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -38,11 +38,51 @@
     width: 36px;
     height: 36px;
     transition: var(--transition);
+    position: relative; /* Para posicionamiento preciso */
+}
+
+.update-btn-small i {
+    font-size: 14px; /* Tamaño más adecuado */
+    width: 14px; /* Ancho fijo para consistencia */
+    height: 14px; /* Alto fijo para consistencia */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+/* Estilos para el estado de carga */
+.update-btn-small .fa-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
 }
 
 .update-btn-small:hover {
-    background: rgba(255,255,255,0.3);
+    background: rgba(255, 255, 255, 0.3);
     transform: rotate(180deg);
+}
+
+/* Asegura que todos los iconos tengan el mismo espacio */
+.update-btn-small .fa-sync-alt,
+.update-btn-small .fa-spinner,
+.update-btn-small .fa-exclamation-circle {
+    line-height: 1;
+    vertical-align: middle;
+    margin: 0;
+    padding: 0;
+}
+
+/* Efecto de pulsación */
+.update-btn-small:active {
+    transform: scale(0.95) rotate(0deg);
+}
+
+/* Transición suave para la rotación */
+.update-btn-small i {
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
 }
     
     body {
@@ -497,6 +537,73 @@
     }
 }
 
+
+.send-report-btn {
+    padding: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    transition: var(--transition);
+    position: relative;
+}
+
+.send-report-btn i {
+    font-size: 16px;
+    transition: var(--transition);
+}
+
+.send-report-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.send-report-btn:active {
+    transform: scale(0.95);
+}
+
+/* Estilo para el modal de contraseña */
+.password-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin: 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+}
+
+
 </style>
 </head>
 <body>
@@ -511,9 +618,20 @@
     </h1>
     <div class="date-selector-container">
         <input type="date" id="datePicker" class="date-picker">
-        <button id="captureBtn" class="capture-btn">
-            <i class="fas fa-camera"></i> Capturar y Enviar
+        <button id="captureBtn" class="send-report-btn" title="Enviar reporte">
+            <i class="fas fa-paper-plane"></i>
         </button>
+    </div>
+</div>
+
+<div id="passwordModal" class="password-modal">
+    <div class="modal-content">
+        <h3>Ingrese contraseña</h3>
+        <input type="password" id="passwordInput" placeholder="Contraseña">
+        <div class="modal-actions">
+            <button id="cancelBtn">Cancelar</button>
+            <button id="confirmBtn">Enviar</button>
+        </div>
     </div>
 </div>
 
@@ -1012,27 +1130,28 @@ async function updateReportWithDate(newDate) {
     
     isLoading = true;
     retryCount = 0;
+    const updateBtn = document.getElementById('updateReportBtn');
     
     try {
-        // Mostrar indicador de carga
-        const updateBtn = document.getElementById('updateReportBtn');
+        // Estado de carga - icono centrado
         updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        updateBtn.disabled = true;
+        updateBtn.style.pointerEvents = 'none';
         
-        // Forzar recarga de datos con reintentos
         await loadDataWithRetry(newDate);
         
     } catch (error) {
-        console.error("Error crítico después de múltiples intentos:", error);
-        alert("No se pudieron cargar los datos después de varios intentos. Por favor intente nuevamente.");
+        console.error("Error:", error);
+        // Icono de error temporal
+        updateBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+        setTimeout(() => {
+            updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        }, 1500);
     } finally {
-        // Restaurar el botón
-        const updateBtn = document.getElementById('updateReportBtn');
+        isLoading = false;
         if (updateBtn) {
             updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-            updateBtn.disabled = false;
+            updateBtn.style.pointerEvents = 'auto';
         }
-        isLoading = false;
     }
 }
 
@@ -2297,7 +2416,7 @@ async function captureAndDownloadCards() {
         };
 
         // Ajustar para captura
-        cardsContainer.style.width = isMobile ? '1200px' : 'fit-content';
+        cardsContainer.style.width = isMobile ? '2400px' : 'fit-content';
         cardsContainer.style.overflow = 'visible';
         cardsContainer.style.margin = '0 auto';
 
@@ -2309,7 +2428,7 @@ async function captureAndDownloadCards() {
             allowTaint: true,
             scrollX: 0,
             scrollY: 0,
-            windowWidth: isMobile ? 1200 : cardsContainer.scrollWidth,
+            windowWidth: isMobile ? 2400 : cardsContainer.scrollWidth,
             windowHeight: cardsContainer.scrollHeight,
             backgroundColor: '#f5f7fa'
         };
@@ -2353,8 +2472,61 @@ async function captureAndDownloadCards() {
 // Inicializar el botón de captura
 function initCaptureButton() {
     const captureBtn = document.getElementById('captureBtn');
-    if (captureBtn) {
-        captureBtn.addEventListener('click', captureAndDownloadCards);
+    const passwordModal = document.getElementById('passwordModal');
+    const passwordInput = document.getElementById('passwordInput');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+
+    if (!captureBtn) return;
+
+    captureBtn.addEventListener('click', () => {
+        passwordModal.style.display = 'flex';
+        passwordInput.focus();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        passwordModal.style.display = 'none';
+        passwordInput.value = '';
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        if (passwordInput.value === 'one') {
+            passwordModal.style.display = 'none';
+            passwordInput.value = '';
+            executeCapture(); // Función que ejecuta la captura real
+        } else {
+            alert('Contraseña incorrecta');
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    });
+
+    // También permitir enviar con Enter
+    passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            confirmBtn.click();
+        }
+    });
+}
+
+// Función separada para la captura real
+async function executeCapture() {
+    try {
+        const captureBtn = document.getElementById('captureBtn');
+        const originalIcon = captureBtn.innerHTML;
+        captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        captureBtn.disabled = true;
+
+        await captureAndDownloadCards();
+        
+    } catch (error) {
+        console.error("Error al capturar:", error);
+    } finally {
+        const captureBtn = document.getElementById('captureBtn');
+        if (captureBtn) {
+            captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            captureBtn.disabled = false;
+        }
     }
 }
 
