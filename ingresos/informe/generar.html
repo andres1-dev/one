@@ -1003,18 +1003,51 @@
 // Variables globales
 let currentReportData = null;
 let isLoading = false;
+let retryCount = 0;
+const MAX_RETRIES = 3;
 
 // Función para actualizar el reporte con una nueva fecha
 async function updateReportWithDate(newDate) {
     if (isLoading) return;
     
     isLoading = true;
+    retryCount = 0;
+    
     try {
         // Mostrar indicador de carga
-        document.getElementById('updateReportBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+        const updateBtn = document.getElementById('updateReportBtn');
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        updateBtn.disabled = true;
+        
+        // Forzar recarga de datos con reintentos
+        await loadDataWithRetry(newDate);
+        
+    } catch (error) {
+        console.error("Error crítico después de múltiples intentos:", error);
+        alert("No se pudieron cargar los datos después de varios intentos. Por favor intente nuevamente.");
+    } finally {
+        // Restaurar el botón
+        const updateBtn = document.getElementById('updateReportBtn');
+        if (updateBtn) {
+            updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            updateBtn.disabled = false;
+        }
+        isLoading = false;
+    }
+}
+
+// Función con lógica de reintentos
+async function loadDataWithRetry(date) {
+    try {
+        retryCount++;
+        
+        // Forzar recarga de datos
+        consolidatedData = [];
+        budgetData = [];
+        await cargarDatosIniciales();
         
         // Generar nuevo reporte
-        const reporte = await generarReporteCompleto(newDate);
+        const reporte = await generarReporteCompleto(date);
         currentReportData = reporte;
         
         // Actualizar la UI con los nuevos datos
@@ -1022,13 +1055,22 @@ async function updateReportWithDate(newDate) {
         cargarDatosMes();
         cargarDatosAño();
         
+        // Reiniciar contador de reintentos si tuvo éxito
+        retryCount = 0;
+        
     } catch (error) {
-        console.error("Error al actualizar el reporte:", error);
-        alert("Error al actualizar el reporte. Por favor intente nuevamente.");
-    } finally {
-        // Restaurar el botón
-        document.getElementById('updateReportBtn').innerHTML = '<i class="fas fa-sync-alt"></i> ';
-        isLoading = false;
+        console.error(`Error en intento ${retryCount}:`, error);
+        
+        if (retryCount < MAX_RETRIES) {
+            // Esperar progresivamente más entre reintentos
+            const delay = Math.min(1000 * retryCount, 3000);
+            console.log(`Reintentando en ${delay}ms...`);
+            
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return loadDataWithRetry(date);
+        } else {
+            throw error; // Propagar el error después de máximos reintentos
+        }
     }
 }
 
@@ -1130,10 +1172,8 @@ function initDatePicker() {
     
     // Botón manual de actualización
     updateBtn.addEventListener('click', () => {
-        const selectedDate = datePicker.valueAsDate;
-        if (selectedDate) {
-            updateReportWithDate(selectedDate);
-        }
+        const selectedDate = datePicker.valueAsDate || new Date();
+        updateReportWithDate(selectedDate);
     });
 }
 
@@ -2204,6 +2244,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Cargar reporte inicial con fecha actual
         const today = new Date();
         currentReportData = await generarReporteCompleto(today);
+    
+        // Cargar datos iniciales con reintentos
+    try {
+        await updateReportWithDate(new Date());
+    } catch (error) {
+        console.error("Error al cargar datos iniciales:", error);
+    }
         
         // Mostrar datos
         cargarDatosDia();
@@ -2225,66 +2272,76 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Función para capturar y descargar las tarjetas como imagen PNG
 async function captureAndDownloadCards() {
     try {
-        // Mostrar indicador de carga en el botón
         const captureBtn = document.getElementById('captureBtn');
         const originalHtml = captureBtn.innerHTML;
         captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
         captureBtn.disabled = true;
-        
+
         // Abrir todas las tarjetas
         openAllCards();
-        
-        // Esperar a que se abran las tarjetas
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Usaremos html2canvas para capturar el contenido
+
+        // Configuración responsive
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
         const cardsContainer = document.querySelector('.cards-container');
         
-        // Ocultar elementos que no queremos en la captura
+        // Ocultar elementos temporales
         const elementsToHide = document.querySelectorAll('.date-selector-container');
         elementsToHide.forEach(el => el.style.visibility = 'hidden');
-        
-        // Ajustar el ancho del contenedor para la captura
-        const originalWidth = cardsContainer.style.width;
-        cardsContainer.style.width = 'fit-content';
-        
-        // Esperar un momento para que se apliquen los cambios
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Usar html2canvas para capturar
-        const canvas = await html2canvas(cardsContainer, {
-            scale: 2, // Mayor calidad
+
+        // Guardar estilos originales
+        const originalStyles = {
+            width: cardsContainer.style.width,
+            overflow: cardsContainer.style.overflow,
+            margin: cardsContainer.style.margin
+        };
+
+        // Ajustar para captura
+        cardsContainer.style.width = isMobile ? '1200px' : 'fit-content';
+        cardsContainer.style.overflow = 'visible';
+        cardsContainer.style.margin = '0 auto';
+
+        // Configuración de html2canvas para móviles
+        const canvasOptions = {
+            scale: isMobile ? 3 : 2, // Mayor escala en móviles
             logging: false,
             useCORS: true,
             allowTaint: true,
             scrollX: 0,
             scrollY: 0,
-            windowWidth: cardsContainer.scrollWidth,
-            windowHeight: cardsContainer.scrollHeight
-        });
-        
+            windowWidth: isMobile ? 1200 : cardsContainer.scrollWidth,
+            windowHeight: cardsContainer.scrollHeight,
+            backgroundColor: '#f5f7fa'
+        };
+
+        // Capturar con retraso para asegurar renderizado
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const canvas = await html2canvas(cardsContainer, canvasOptions);
+
         // Restaurar estilos
         elementsToHide.forEach(el => el.style.visibility = 'visible');
-        cardsContainer.style.width = originalWidth;
-        
-        // Convertir canvas a imagen y descargar
-        const image = canvas.toDataURL('image/png');
+        Object.assign(cardsContainer.style, originalStyles);
+
+        // Crear imagen en máxima calidad
+        const imageQuality = isMobile ? 1.0 : 0.9;
+        const image = canvas.toDataURL('image/png', imageQuality);
+
+        // Descargar
         const link = document.createElement('a');
         link.href = image;
         link.download = `reporte-ingresos-${new Date().toISOString().split('T')[0]}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        // Generar mensaje de WhatsApp y abrirlo
+
+        // WhatsApp
         const message = generateWhatsAppMessage();
         openWhatsApp(message);
-        
+
     } catch (error) {
-        console.error("Error al capturar las tarjetas:", error);
-        alert("Error al generar la captura. Por favor intente nuevamente.");
+        console.error("Error al capturar:", error);
+        alert("Error al generar captura. Intente nuevamente.");
     } finally {
-        // Restaurar el botón
         const captureBtn = document.getElementById('captureBtn');
         if (captureBtn) {
             captureBtn.innerHTML = '<i class="fas fa-camera"></i> Capturar y Enviar';
