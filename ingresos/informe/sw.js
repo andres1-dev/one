@@ -2,10 +2,10 @@
 const CACHE_NAME = 'ingresos-marca-propia-v1';
 const ASSETS_TO_CACHE = [
   '/one/ingresos/informe/generar.html',
-  '/one/ingresos/informe/styles.css',
-  '/one/ingresos/informe/script.js',
-  '/one/ingresos/informe/icon-192.png',
-  '/one/ingresos/informe/icon-512.png'
+  //'/one/ingresos/informe/styles.css',
+  //'/one/ingresos/informe/script.js',
+  //'/one/ingresos/informe/icon-192.png',
+  //'/one/ingresos/informe/icon-512.png'
   // Agrega aquí otros recursos que quieras cachear
 ];
 
