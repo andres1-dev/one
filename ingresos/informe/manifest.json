@@ -6,8 +6,8 @@
   "scope": "/one/ingresos/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#4361ee",
-  "theme_color": "#4361ee",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "lang": "es-ES",
   "dir": "ltr",
   "categories": [
@@ -31,28 +31,49 @@
   ],
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "icons/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512-maskable.png",
+      "src": "icons/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "icon-1024.png",
+      "src": "icons/icon-1024.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Informe Diario",
+      "short_name": "Informe Diario",
+      "description": "Acceso directo al informe de ingresos diario",
+      "url": "/one/ingresos/informe/diario.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }
