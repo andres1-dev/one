@@ -2529,6 +2529,35 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+// Agregar al final de tu script principal
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Previene que Chrome muestre el prompt automático
+  e.preventDefault();
+  // Guarda el evento para poder activarlo después
+  deferredPrompt = e;
+  
+  // Opcional: Muestra un botón para instalar
+  const installButton = document.createElement('button');
+  installButton.textContent = 'Instalar App';
+  installButton.style.position = 'fixed';
+  installButton.style.bottom = '20px';
+  installButton.style.right = '20px';
+  installButton.style.zIndex = '1000';
+  installButton.addEventListener('click', () => {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('Usuario aceptó la instalación');
+      }
+      deferredPrompt = null;
+    });
+  });
+  document.body.appendChild(installButton);
+});
+
 </script>
 
 </body>
