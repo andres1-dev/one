@@ -3,9 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4361ee">
 <title>Ingresos de Marca Propia</title>
+<!-- Para iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ingresos MP">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
- <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
  
 <style>
     :root {
@@ -2507,6 +2514,21 @@ function initCaptureButton() {
     }
 }
 
+</script>
+
+<script>
+// Registrar el Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/one/ingresos/informe/sw.js')
+      .then(registration => {
+        console.log('ServiceWorker registrado con éxito:', registration.scope);
+      })
+      .catch(error => {
+        console.log('Error al registrar ServiceWorker:', error);
+      });
+  });
+}
 </script>
 
 </body>
