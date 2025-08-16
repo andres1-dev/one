@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
  
 <style>
     :root {
@@ -545,7 +546,6 @@
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
-        zoom: 1.2
     }
 }
 
@@ -692,104 +692,6 @@
 }
 
 
-
-
-/* Pantalla de carga */
-/* Estilos para el overlay de carga profesional */
-/* Overlay de carga estilo vidrio esmerilado */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.4); /* Fondo blanco semi-transparente */
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.loading-overlay.active {
-    opacity: 1;
-    pointer-events: all;
-}
-
-.loading-glass {
-    background: rgba(255, 255, 255, 0.75);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 
-        0 8px 32px rgba(31, 38, 135, 0.1),
-        inset 0 4px 12px rgba(255, 255, 255, 0.3);
-    padding: 40px;
-    width: 280px;
-    text-align: center;
-    backdrop-filter: blur(8px);
-    transform: translateY(20px);
-    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.loading-overlay.active .loading-glass {
-    transform: translateY(0);
-}
-
-.loading-spinner {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 20px;
-    border: 3px solid rgba(67, 97, 238, 0.1);
-    border-top-color: #4361ee;
-    border-radius: 50%;
-    animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-    position: relative;
-}
-
-.loading-spinner:after {
-    content: "";
-    position: absolute;
-    top: -3px;
-    left: -3px;
-    right: -3px;
-    bottom: -3px;
-    border: 3px solid transparent;
-    border-radius: 50%;
-    border-top-color: rgba(67, 97, 238, 0.5);
-    animation: spin 1.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.loading-progress {
-    font-size: 24px;
-    font-weight: 700;
-    color: #4361ee;
-    margin: 10px 0;
-    font-family: 'Inter', sans-serif;
-}
-
-.loading-text {
-    font-size: 18px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 8px;
-}
-
-.loading-details {
-    font-size: 14px;
-    color: #7f8c8d;
-    font-weight: 500;
-}
-
-
 </style>
 </head>
 <body>
@@ -807,16 +709,6 @@
         <button id="captureBtn" class="capture-btn" title="Enviar informe">
             <i class="fas fa-paper-plane"></i>
         </button>
-    </div>
-</div>
-
-<!-- Overlay de Carga Profesional -->
-<div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-glass">
-        <div class="loading-spinner"></div>
-        <div class="loading-progress">0%</div>
-        <div class="loading-text">Procesando datos...</div>
-        <div class="loading-details">Optimizando visualización</div>
     </div>
 </div>
 
@@ -1302,6 +1194,346 @@
     </div>
 </div>
 
+
+
+
+<!-- Tarjeta de Tendencias -->
+<div class="card">
+    <div class="card-top-border"></div>
+    <div class="card-header" onclick="toggleCard(this)">
+        <h2 class="card-title"><div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Tendencias Mensuales</h2>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span class="date-badge" id="tendencia-mes"></span>
+            <i class="fas fa-chevron-down collapse-indicator"></i>
+        </div>
+    </div>
+    
+    <div class="card-content">
+        <div class="data-grid">
+            <div class="data-item">
+                <div class="data-label"><i class="fas fa-arrow-trend-up"></i> Tendencia Actual</div>
+                <p class="data-value" id="tendencia-actual"></p>
+            </div>
+            
+            <div class="data-item">
+                <div class="data-label"><i class="fas fa-project-diagram"></i> Proyección Mensual</div>
+                <p class="data-value" id="tendencia-proyeccion"></p>
+            </div>
+            
+            <div class="data-item">
+                <div class="data-label"><i class="fas fa-percent"></i> Crecimiento vs Año Anterior</div>
+                <p class="data-value" id="tendencia-crecimiento"></p>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="tendenciaChart"></canvas>
+        </div>
+        
+        <div class="comparison-container">
+            <div class="comparison-header" onclick="toggleComparison(this)">
+                <div class="comparison-title-container">
+                    <i class="fas fa-calendar-week" style="color: var(--primary-color);"></i>
+                    <h3 class="comparison-title">Análisis Detallado</h3>
+                </div>
+                <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+            </div>
+            
+            <div class="comparison-content">
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <div class="comparison-label">Promedio 3 meses</div>
+                        <div class="comparison-value" id="tendencia-promedio-3m"></div>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <div class="comparison-label">Mejor mes</div>
+                        <div class="comparison-value" id="tendencia-mejor-mes"></div>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <div class="comparison-label">Peor mes</div>
+                        <div class="comparison-value" id="tendencia-peor-mes"></div>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <div class="comparison-label">Variabilidad</div>
+                        <div class="comparison-value" id="tendencia-variabilidad"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<style>
+    /* Estilos específicos para la tarjeta de tendencias */
+    .card-icon.tendencia {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 25px 40;
+    }
+    
+    /* Estilos para los elementos de tendencia */
+    #tendencia-actual.positive { color: var(--success-color); }
+    #tendencia-actual.negative { color: var(--danger-color); }
+    #tendencia-actual.neutral { color: var(--warning-color); }
+    
+    #tendencia-proyeccion.positive { color: var(--success-color); }
+    #tendencia-proyeccion.negative { color: var(--danger-color); }
+    #tendencia-proyeccion.neutral { color: var(--warning-color); }
+    
+    #tendencia-crecimiento.positive { color: var(--success-color); }
+    #tendencia-crecimiento.negative { color: var(--danger-color); }
+    #tendencia-crecimiento.neutral { color: var(--warning-color); }
+    
+    /* Contenedor especial del borde superior */
+.card {
+    margin-top: 20px;   /* separa la tarjeta del borde superior */
+    /* o si quieres que siempre esté dentro con "aire" interno */
+    /* padding-top: 20px; */
+}
+
+
+
+</style>
+
+<script>
+// Variables para el gráfico
+let tendenciaChart = null;
+
+// Función para cargar datos de tendencia
+function cargarDatosTendencia() {
+    if (!currentReportData) return;
+    
+    const data = currentReportData.mes;
+    const actual = data.actual;
+    const anterior = data.anterior;
+    
+    // Actualizar información básica
+    document.getElementById("tendencia-mes").textContent = `${actual.mes} ${actual.año}`;
+    
+    // Calcular tendencia actual (comparación con mes anterior)
+    if (anterior) {
+        const crecimiento = calculateGrowthValue(actual.ingreso, anterior.ingreso);
+        const tendenciaEl = document.getElementById("tendencia-actual");
+        tendenciaEl.textContent = crecimiento.value;
+        tendenciaEl.className = "data-value " + crecimiento.tendencia;
+    }
+    
+    // Calcular proyección mensual
+    const fechaActual = parseDate(currentReportData.filtros.actual);
+    const diaDelMes = fechaActual.getDate();
+    const diasEnMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 0).getDate();
+    const proporcionMes = diaDelMes / diasEnMes;
+    
+    let proyeccion = "N/A";
+    if (proporcionMes > 0) {
+        const valorProyectado = Math.round(actual.ingreso / proporcionMes);
+        const diferenciaProyectada = valorProyectado - actual.meta;
+        const porcentajeProyectado = (diferenciaProyectada / actual.meta * 100).toFixed(1);
+        
+        proyeccion = `${formatoCantidad(valorProyectado)} (${porcentajeProyectado >= 0 ? '+' : ''}${porcentajeProyectado}%)`;
+        
+        const proyeccionEl = document.getElementById("tendencia-proyeccion");
+        proyeccionEl.textContent = proyeccion;
+        proyeccionEl.className = "data-value " + (diferenciaProyectada >= 0 ? "positive" : "negative");
+    }
+    
+    // Crecimiento interanual
+    if (anterior) {
+        const crecimiento = calculateGrowthValue(actual.ingreso, anterior.ingreso);
+        const crecimientoEl = document.getElementById("tendencia-crecimiento");
+        crecimientoEl.textContent = crecimiento.value;
+        crecimientoEl.className = "data-value " + crecimiento.tendencia;
+    }
+    
+    // Generar gráfico
+    generarGraficoTendencia(actual.año, actual.mes);
+}
+
+// Función para calcular el valor de crecimiento
+function calculateGrowthValue(current, previous) {
+    if (!previous || previous === 0) return { value: "N/A", tendencia: "" };
+    
+    const growth = ((current / previous) - 1) * 100;
+    const absGrowth = Math.abs(growth);
+    let tendencia;
+    
+    if (absGrowth < 5) {
+        tendencia = "neutral";
+    } else if (growth > 0) {
+        tendencia = "positive";
+    } else {
+        tendencia = "negative";
+    }
+    
+    return {
+        value: growth.toFixed(1) + "%",
+        tendencia: tendencia
+    };
+}
+
+// Función para generar el gráfico de tendencia
+function generarGraficoTendencia(año, mesActual) {
+    // Filtrar datos para el año actual y el anterior
+    const datosActuales = consolidatedData.filter(d => d.Año === año);
+    const datosAnteriores = consolidatedData.filter(d => d.Año === año - 1);
+    
+    // Agrupar por mes
+    const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 
+                  'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    
+    // Preparar datos para el gráfico
+    const labels = [];
+    const dataActual = [];
+    const dataAnterior = [];
+    
+    // Llenar con ceros para meses sin datos
+    meses.forEach((mes, index) => {
+        labels.push(mes.substring(0, 3));
+        
+        // Datos año actual
+        const mesData = datosActuales.filter(d => d.Mes === mes);
+        const totalMes = mesData.reduce((sum, d) => sum + d.Ingreso, 0);
+        dataActual.push(totalMes);
+        
+        // Datos año anterior
+        const mesDataAnt = datosAnteriores.filter(d => d.Mes === mes);
+        const totalMesAnt = mesDataAnt.reduce((sum, d) => sum + d.Ingreso, 0);
+        dataAnterior.push(totalMesAnt);
+    });
+    
+    // Obtener contexto del canvas
+    const ctx = document.getElementById('tendenciaChart').getContext('2d');
+    
+    // Destruir gráfico anterior si existe
+    if (tendenciaChart) {
+        tendenciaChart.destroy();
+    }
+    
+    // Crear nuevo gráfico
+    tendenciaChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: `${año - 1}`,
+                    data: dataAnterior,
+                    borderColor: '#95a5a6',
+                    backgroundColor: 'rgba(149, 165, 166, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#95a5a6'
+                },
+                {
+                    label: `${año}`,
+                    data: dataActual,
+                    borderColor: '#9b59b6',
+                    backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#9b59b6'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: {
+                            family: "'Inter', sans-serif",
+                            size: 12
+                        },
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${formatoCantidad(context.raw)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatoCantidad(value);
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+    
+    // Calcular estadísticas detalladas
+    calcularEstadisticasTendencia(año, mesActual);
+}
+
+// Función para calcular estadísticas de tendencia
+function calcularEstadisticasTendencia(año, mesActual) {
+    const datosActuales = consolidatedData.filter(d => d.Año === año);
+    const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 
+                  'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    
+    // Calcular promedios y valores extremos
+    const ingresosPorMes = meses.map(mes => {
+        const mesData = datosActuales.filter(d => d.Mes === mes);
+        return mesData.reduce((sum, d) => sum + d.Ingreso, 0);
+    });
+    
+    // Promedio de últimos 3 meses
+    const mesIndex = meses.indexOf(mesActual);
+    const ultimos3Meses = ingresosPorMes.slice(Math.max(0, mesIndex - 2), mesIndex + 1);
+    const promedio3Meses = ultimos3Meses.reduce((a, b) => a + b, 0) / ultimos3Meses.length;
+    
+    // Mejor y peor mes
+    const maxIngreso = Math.max(...ingresosPorMes);
+    const minIngreso = Math.min(...ingresosPorMes);
+    const mejorMes = meses[ingresosPorMes.indexOf(maxIngreso)];
+    const peorMes = meses[ingresosPorMes.indexOf(minIngreso)];
+    
+    // Variabilidad (coeficiente de variación)
+    const promedio = ingresosPorMes.reduce((a, b) => a + b, 0) / ingresosPorMes.length;
+    const desviacion = Math.sqrt(ingresosPorMes.reduce((a, b) => a + Math.pow(b - promedio, 2), 0) / ingresosPorMes.length);
+    const variabilidad = (desviacion / promedio * 100).toFixed(1) + '%';
+    
+    // Actualizar UI
+    document.getElementById("tendencia-promedio-3m").textContent = formatoCantidad(Math.round(promedio3Meses));
+    document.getElementById("tendencia-mejor-mes").textContent = `${mejorMes}: ${formatoCantidad(maxIngreso)}`;
+    document.getElementById("tendencia-peor-mes").textContent = `${peorMes}: ${formatoCantidad(minIngreso)}`;
+    document.getElementById("tendencia-variabilidad").textContent = variabilidad;
+}
+
+</script>
+
+
 <script>
 // Variables globales
 let currentReportData = null;
@@ -1309,75 +1541,51 @@ let isLoading = false;
 let retryCount = 0;
 const MAX_RETRIES = 3;
 
-// Función para mostrar el overlay con animación
-function showLoading() {
-    const overlay = document.getElementById('loadingOverlay');
-    overlay.classList.add('active');
-    
-    // Animación de progreso simulada (opcional)
-    let progress = 0;
-    const progressEl = overlay.querySelector('.loading-progress');
-    const detailsEl = overlay.querySelector('.loading-details');
-    const details = [
-        "Cargando datos históricos...",
-        "Analizando tendencias...",
-        "Calculando métricas...",
-        "Generando visualizaciones..."
-    ];
-    
-    const interval = setInterval(() => {
-        progress += Math.random() * 10;
-        if (progress > 100) progress = 100;
-        progressEl.textContent = `${Math.min(progress, 100).toFixed(0)}%`;
-        
-        // Cambiar texto cada 25%
-        if (progress <= 100) {
-            detailsEl.textContent = details[Math.floor(progress / 25)];
-        }
-    }, 300);
-    
-    return () => clearInterval(interval);
-}
-
-// Función para ocultar el overlay
-function hideLoading() {
-    const overlay = document.getElementById('loadingOverlay');
-    overlay.classList.remove('active');
-}
-
-// Función modificada para usar el nuevo overlay
+// Función para actualizar el reporte con una nueva fecha
+// Función para actualizar el reporte con una nueva fecha
 async function updateReportWithDate(newDate, forceReload = false) {
     if (isLoading) return;
     
     isLoading = true;
-    const clearProgress = showLoading(); // Mostrar overlay
+    retryCount = 0;
+    const updateBtn = document.getElementById('updateReportBtn');
     
     try {
+        // Estado de carga - icono centrado
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        updateBtn.style.pointerEvents = 'none';
+        
+        // Solo recargar datos si es forzado o no hay datos cargados
         if (forceReload || consolidatedData.length === 0 || budgetData.length === 0) {
+            // Forzar recarga de datos
             consolidatedData = [];
             budgetData = [];
             await cargarDatosIniciales();
         }
         
+        // Generar nuevo reporte con la fecha seleccionada
         const reporte = await generarReporteCompleto(newDate);
         currentReportData = reporte;
         
+        // Actualizar la UI con los nuevos datos
         cargarDatosDia();
         cargarDatosMes();
         cargarDatosAño();
+        cargarDatosTendencia(); // Nueva línea para cargar los datos de tendencia
         
     } catch (error) {
         console.error("Error:", error);
-        const overlay = document.getElementById('loadingOverlay');
-        overlay.querySelector('.loading-text').textContent = "Error en el proceso";
-        overlay.querySelector('.loading-details').textContent = error.message || "Intente nuevamente";
-        overlay.querySelector('.loading-spinner').style.borderTopColor = "#e74c3c";
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        
+        // Icono de error temporal
+        updateBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+        setTimeout(() => {
+            updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        }, 1500);
     } finally {
-        hideLoading();
-        clearProgress?.();
         isLoading = false;
+        if (updateBtn) {
+            updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            updateBtn.style.pointerEvents = 'auto';
+        }
     }
 }
 
@@ -1883,6 +2091,28 @@ async function generarReporteCompleto(targetDate = new Date()) {
         // 3. Generar reporte comparativo
         const reporte = await generateComparativeReport(fechaObj);
 
+        // 4. Calcular datos adicionales para tendencias
+        const currentYear = fechaObj.getFullYear();
+        const currentMonth = getNombreMes(formatDate(fechaObj));
+        const currentYearData = consolidatedData.filter(d => d.Año === currentYear);
+        const previousYearData = consolidatedData.filter(d => d.Año === currentYear - 1);
+        
+        // Agregar datos mensuales para el gráfico de tendencias
+        reporte.tendencias = {
+            meses: ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 
+                   'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'],
+            actual: currentYearData.reduce((acc, mes) => {
+                if (!acc[mes.Mes]) acc[mes.Mes] = 0;
+                acc[mes.Mes] += mes.Ingreso;
+                return acc;
+            }, {}),
+            anterior: previousYearData.reduce((acc, mes) => {
+                if (!acc[mes.Mes]) acc[mes.Mes] = 0;
+                acc[mes.Mes] += mes.Ingreso;
+                return acc;
+            }, {})
+        };
+
         return reporte;
 
     } catch (error) {
@@ -1919,11 +2149,116 @@ function procesarDatosConsolidados(incomeData, budget) {
     const groupedByDate = incomeData.reduce((acc, item) => {
         const fecha = item.FECHA;
         if (!fecha) return acc;
+        
         if (!acc[fecha]) {
-            acc[fecha] = { fecha, unidades: 0, count: 0 };
+            acc[fecha] = {
+                fecha, 
+                unidades: 0, 
+                count: 0,
+                detalles: [], // Array para almacenar los detalles completos
+                lineas: {},   // Agrupación por línea
+                talleres: {}, // Agrupación por taller
+                gestores: {}, // Agrupación por gestor
+                proveedores: {}, // Agrupación por proveedor
+                clases: {},    // Agrupación por clase
+                generos: {},   // Agrupación por género
+                prendas: {}    // Agrupación por prenda
+            };
         }
+        
         acc[fecha].unidades += item.CANTIDAD || 0;
         acc[fecha].count++;
+        
+        // Agregar detalles completos
+        acc[fecha].detalles.push({
+            documento: item.DOCUMENTO,
+            taller: item.TALLER,
+            linea: item.LINEA,
+            auditor: item.AUDITOR,
+            escaner: item.ESCANER,
+            refProv: item.REFPROV,
+            cantidad: item.CANTIDAD,
+            referencia: item.REFERENCIA,
+            tipo: item.TIPO,
+            pvp: item.PVP,
+            prenda: item.PRENDA,
+            genero: item.GENERO,
+            gestor: item.GESTOR,
+            proveedor: item.PROVEEDOR,
+            clase: item.CLASE,
+            fuente: item.FUENTE
+        });
+        
+        // Agrupar por línea
+        if (item.LINEA) {
+            const linea = item.LINEA;
+            if (!acc[fecha].lineas[linea]) {
+                acc[fecha].lineas[linea] = { unidades: 0, count: 0 };
+            }
+            acc[fecha].lineas[linea].unidades += item.CANTIDAD || 0;
+            acc[fecha].lineas[linea].count++;
+        }
+        
+        // Agrupar por taller (similar para otros campos)
+        if (item.TALLER) {
+            const taller = item.TALLER;
+            if (!acc[fecha].talleres[taller]) {
+                acc[fecha].talleres[taller] = { unidades: 0, count: 0 };
+            }
+            acc[fecha].talleres[taller].unidades += item.CANTIDAD || 0;
+            acc[fecha].talleres[taller].count++;
+        }
+        
+        // Agrupar por gestor
+        if (item.GESTOR) {
+            const gestor = item.GESTOR;
+            if (!acc[fecha].gestores[gestor]) {
+                acc[fecha].gestores[gestor] = { unidades: 0, count: 0 };
+            }
+            acc[fecha].gestores[gestor].unidades += item.CANTIDAD || 0;
+            acc[fecha].gestores[gestor].count++;
+        }
+        
+        // Agrupar por proveedor
+        if (item.PROVEEDOR) {
+            const proveedor = item.PROVEEDOR;
+            if (!acc[fecha].proveedores[proveedor]) {
+                acc[fecha].proveedores[proveedor] = { unidades: 0, count: 0 };
+            }
+            acc[fecha].proveedores[proveedor].unidades += item.CANTIDAD || 0;
+            acc[fecha].proveedores[proveedor].count++;
+        }
+        
+        // Agrupar por clase
+        if (item.CLASE) {
+            const clase = item.CLASE;
+            if (!acc[fecha].clases[clase]) {
+                acc[fecha].clases[clase] = { unidades: 0, count: 0 };
+            }
+            acc[fecha].clases[clase].unidades += item.CANTIDAD || 0;
+            acc[fecha].clases[clase].count++;
+        }
+        
+        // Agrupar por género
+        if (item.GENERO) {
+            const genero = item.GENERO;
+            if (!acc[fecha].generos[genero]) {
+                acc[fecha].generos[genero] = { unidades: 0, count: 0 };
+            }
+            acc[fecha].generos[genero].unidades += item.CANTIDAD || 0;
+            acc[fecha].generos[genero].count++;
+        }
+        
+        // Agrupar por prenda
+        if (item.PRENDA) {
+            const prenda = item.PRENDA;
+            if (!acc[fecha].prendas[prenda]) {
+                acc[fecha].prendas[prenda] = { unidades: 0, count: 0 };
+            }
+            acc[fecha].prendas[prenda].unidades += item.CANTIDAD || 0;
+            acc[fecha].prendas[prenda].count++;
+        }
+        
         return acc;
     }, {});
 
@@ -1945,6 +2280,49 @@ function procesarDatosConsolidados(incomeData, budget) {
         const diferencia = item.unidades - metaDiaria;
         const cumplimiento = metaDiaria > 0 ? (item.unidades / metaDiaria * 100).toFixed(2) + '%' : '0%';
 
+        // Convertir objetos de agrupación a arrays
+        const lineasArray = Object.entries(item.lineas).map(([nombre, datos]) => ({
+            nombre,
+            unidades: datos.unidades,
+            registros: datos.count
+        }));
+        
+        const talleresArray = Object.entries(item.talleres).map(([nombre, datos]) => ({
+            nombre,
+            unidades: datos.unidades,
+            registros: datos.count
+        }));
+        
+        const gestoresArray = Object.entries(item.gestores).map(([nombre, datos]) => ({
+            nombre,
+            unidades: datos.unidades,
+            registros: datos.count
+        }));
+        
+        const proveedoresArray = Object.entries(item.proveedores).map(([nombre, datos]) => ({
+            nombre,
+            unidades: datos.unidades,
+            registros: datos.count
+        }));
+        
+        const clasesArray = Object.entries(item.clases).map(([nombre, datos]) => ({
+            nombre,
+            unidades: datos.unidades,
+            registros: datos.count
+        }));
+        
+        const generosArray = Object.entries(item.generos).map(([nombre, datos]) => ({
+            nombre,
+            unidades: datos.unidades,
+            registros: datos.count
+        }));
+        
+        const prendasArray = Object.entries(item.prendas).map(([nombre, datos]) => ({
+            nombre,
+            unidades: datos.unidades,
+            registros: datos.count
+        }));
+
         return {
             Fecha: formatDate(dateObj),
             Dia: diaSemana,
@@ -1954,7 +2332,16 @@ function procesarDatosConsolidados(incomeData, budget) {
             Ingreso: Math.round(item.unidades),
             Meta: Math.round(metaDiaria),
             Diferencia: Math.round(diferencia),
-            Cumplimiento: cumplimiento
+            Cumplimiento: cumplimiento,
+            Detalles: item.detalles, // Todos los detalles completos
+            Lineas: lineasArray,
+            Talleres: talleresArray,
+            Gestores: gestoresArray,
+            Proveedores: proveedoresArray,
+            Clases: clasesArray,
+            Generos: generosArray,
+            Prendas: prendasArray,
+            TotalRegistros: item.count
         };
     }).filter(item => item !== null)
     .sort((a, b) => parseDate(b.Fecha) - parseDate(a.Fecha));
@@ -2755,33 +3142,82 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Agregar al final de tu script principal
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  // Previene que Chrome muestre el prompt automático
   e.preventDefault();
-  // Guarda el evento para poder activarlo después
   deferredPrompt = e;
-  
-  // Opcional: Muestra un botón para instalar
-  const installButton = document.createElement('button');
-  installButton.textContent = 'Instalar App';
-  installButton.style.position = 'fixed';
-  installButton.style.bottom = '20px';
-  installButton.style.right = '20px';
-  installButton.style.zIndex = '1000';
-  installButton.addEventListener('click', () => {
+
+  // Contenedor del botón
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.bottom = '20px';
+  container.style.right = '20px';
+  container.style.background = '#ffffff';
+  container.style.borderRadius = '12px';
+  container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  container.style.display = 'flex';
+  container.style.alignItems = 'center';
+  container.style.padding = '10px 16px';
+  container.style.cursor = 'pointer';
+  container.style.opacity = '0';
+  container.style.transform = 'translateY(20px)';
+  container.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+  container.style.zIndex = '1000';
+  container.style.border = '1px solid #e0e0e0';
+
+  // Logo
+  const logo = document.createElement('img');
+  logo.src = '/one/ingresos/informe/icons/icon-192.png';
+  logo.alt = 'Logo App';
+  logo.style.width = '36px';
+  logo.style.height = '36px';
+  logo.style.borderRadius = '8px';
+  logo.style.marginRight = '12px';
+
+  // Texto
+  const text = document.createElement('span');
+  text.textContent = 'Instalar Ingresos MP';
+  text.style.fontFamily = `'Segoe UI', 'Roboto', 'Inter', sans-serif`;
+  text.style.fontSize = '15px';
+  text.style.fontWeight = '500';
+  text.style.color = '#333333';
+  text.style.letterSpacing = '0.3px';
+
+  // Hover elegante
+  container.addEventListener('mouseenter', () => {
+    container.style.background = '#f9f9f9';
+    container.style.transform = 'scale(1.02)';
+  });
+  container.addEventListener('mouseleave', () => {
+    container.style.background = '#ffffff';
+    container.style.transform = 'scale(1)';
+  });
+
+  // Ensamblar
+  container.appendChild(logo);
+  container.appendChild(text);
+  document.body.appendChild(container);
+
+  // Animación de entrada
+  setTimeout(() => {
+    container.style.opacity = '1';
+    container.style.transform = 'translateY(0)';
+  }, 100);
+
+  // Acción de instalación
+  container.addEventListener('click', () => {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === 'accepted') {
-        console.log('Usuario aceptó la instalación');
+        console.log('Instalación aceptada');
       }
+      container.remove();
       deferredPrompt = null;
     });
   });
-  document.body.appendChild(installButton);
 });
+
 
 </script>
 
