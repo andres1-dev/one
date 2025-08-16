@@ -3782,7 +3782,7 @@ async function captureAndDownloadCards() {
 
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 2. Configuración responsive
+        // 2. Configuración para captura
         const isMobile = window.matchMedia("(max-width: 768px)").matches;
         const cardsContainer = document.querySelector('.cards-container');
         
@@ -3804,10 +3804,10 @@ async function captureAndDownloadCards() {
         cardsContainer.style.overflow = 'visible';
         cardsContainer.style.margin = '0 auto';
         if (isMobile) {
-            document.body.style.zoom = '1'; // Resetear zoom temporalmente
+            document.body.style.zoom = '1';
         }
 
-        // 3. Configuración de html2canvas
+        // 3. Capturar con html2canvas
         const canvasOptions = {
             scale: isMobile ? 3 : 2,
             logging: false,
@@ -3844,19 +3844,9 @@ async function captureAndDownloadCards() {
         const imageData = canvas.toDataURL('image/png', imageQuality).split(',')[1];
         const imageUrl = await uploadImageToDrive(imageData);
         
-        // 6. Generar y abrir mensaje (con solución para iOS)
+        // 6. Generar y abrir mensaje de WhatsApp
         const whatsappMessage = generateWhatsAppMessage(imageUrl);
-        const whatsappUrl = `https://wa.me/573168007979?text=${whatsappMessage}`;
-        
-        // Detectar iOS y usar método alternativo
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        
-        if (isIOS) {
-            openLinkInIOS(whatsappUrl);
-        } else {
-            window.open(whatsappUrl, '_blank');
-        }
+        openWhatsApp(whatsappMessage);
 
     } catch (error) {
         console.error("Error al capturar:", error);
@@ -4011,23 +4001,6 @@ function initCaptureButton() {
             captureAndDownloadCards();
         });
     }
-}
-
-function openLinkInIOS(url) {
-    // Solución para iOS
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener noreferrer';
-    
-    // Trigger click programáticamente
-    const event = new MouseEvent('click', {
-        view: window,
-        bubbles: true,
-        cancelable: true
-    });
-    
-    anchor.dispatchEvent(event);
 }
 
 // Asegurarse de que la función se ejecute al cargar la página
