@@ -727,15 +727,18 @@
     <h1 class="dashboard-title">
         <i class="fas fa-chart-line"></i> 
         Ingresos de Marca Propia
-        <button id="updateReportBtn" class="update-btn-small" title="Actualizar Reporte">
+        <button id="updateReportBtn" class="update-btn-small" title="Actualizar Reporte" style="display: none;">
             <i class="fas fa-sync-alt"></i>
         </button>
     </h1>
     <div class="date-selector-container">
         <input type="date" id="datePicker" class="date-picker">
-        <button id="captureBtn" class="capture-btn" title="Enviar informe">
-            <i class="fas fa-paper-plane"></i>
-        </button>
+        
+<button id="captureBtn" class="capture-btn" title="Enviar informe" style="display: none;">
+    <i class="fas fa-paper-plane"></i>
+</button>
+
+
     </div>
 </div>
 
@@ -1916,6 +1919,137 @@ function closeFiltersModal() {
 </script>
 
 
+
+
+<footer>
+    <p1>
+        Developed by Andrés Mendoza</a> 
+        © 2025.
+    </p1>
+    <p>
+        Supported by 
+        <a href="https://www.eltemplodelamoda.com/" target="_blank">GrupoTDM</a>.
+    </p>
+    <div class="social-links">
+        <a href="https://www.facebook.com/templodelamoda/?locale=es_LA" target="_blank" aria-label="Facebook">
+            <i class="fab fa-facebook"></i>
+        </a>
+        <a href="https://www.instagram.com/eltemplodelamoda/?hl=es" target="_blank" aria-label="Instagram">
+            <i class="fab fa-instagram"></i>
+        </a>
+        <a href="#" id="whatsappBtn" aria-label="WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    </div>
+</footer>
+
+<style>
+/* General footer styling */
+footer {
+    background-color: transparent!; /* Clean white background */
+    color: #999; /* Dark gray text */
+    padding: 20px; /* Inner spacing */
+    margin-top: 20px; /* Top margin */
+    text-align: center;
+    font-family: 'Roboto', sans-serif; /* Minimalistic Material Design font */
+    font-size: 0.95rem; /* Comfortable font size */
+    //border-top: 1px solid #e0e0e0; /* Subtle top border */
+    //box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1); /* Light shadow */
+}
+
+/* Links inside footer */
+footer a {
+    color: #666; /* Material Design blue */
+    font-weight: 500; /* Medium weight */
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: #448aff; /* Lighter blue on hover */
+}
+
+/* Social media icons */
+.social-links {
+    margin-top: 15px; /* Space above social icons */
+}
+
+.social-links a {
+    margin: 0 10px; /* Spacing between icons */
+    font-size: 1.4rem; /* Larger icon size for visibility */
+    transition: transform 0.3s ease;
+}
+
+/* Specific colors for each icon */
+.social-links a[aria-label="Facebook"] i {
+    color: #1877f2; /* Facebook blue */
+}
+
+.social-links a[aria-label="Twitter"] i {
+    color: #1da1f2; /* Twitter blue */
+}
+
+.social-links a[aria-label="Instagram"] i {
+    color: #e1306c; /* Instagram pink */
+}
+
+.social-links a[aria-label="WhatsApp"] i {
+    color: #25d366; /* WhatsApp green */
+}
+
+/* Hover effect for icons */
+.social-links a:hover i {
+    transform: scale(1.2); /* Slight zoom on hover */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    footer {
+        font-size: 0.85rem; /* Adjust font size for smaller screens */
+    }
+    .social-links a {
+        font-size: 1.2rem; /* Adjust icon size for smaller screens */
+    }
+}
+</style>
+
+<!-- Font Awesome CDN for icons -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+<script>
+// Función para inicializar el botón de WhatsApp
+function initWhatsAppButton() {
+    const whatsappBtn = document.getElementById('whatsappBtn');
+    if (whatsappBtn) {
+        whatsappBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Verificar contraseña (igual que en el botón de captura)
+            if (!checkPassword()) {
+                return false;
+            }
+            
+            // Cambiar ícono a spinner mientras se procesa
+            const icon = whatsappBtn.querySelector('i');
+            const originalIconClass = icon.className;
+            icon.className = 'fas fa-spinner fa-spin';
+            
+            // Ejecutar la misma función que el botón de captura
+            captureAndDownloadCards().finally(() => {
+                // Restaurar ícono original
+                icon.className = originalIconClass;
+            });
+        });
+    }
+}
+
+// Asegurarse de que la función se ejecute al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    initWhatsAppButton();
+});
+</script>
+
+
 <script>
 // Variables para DataTable y flatpickr
 let detailedDataTable;
@@ -2026,6 +2160,10 @@ function initAutoFilters() {
 
 // Función para inicializar la tabla detallada
 function initDetailedDataTable() {
+    // Destruir la DataTable existente si ya está inicializada
+    if ($.fn.DataTable.isDataTable('#detailedDataTable')) {
+        $('#detailedDataTable').DataTable().destroy();
+    }
     // Extraer todos los detalles
     const detailsData = extractAllDetails();
     
@@ -4007,7 +4145,97 @@ function initCaptureButton() {
 document.addEventListener('DOMContentLoaded', function() {
     initCaptureButton();
 });
+
+
+
+// Variables para rastrear gestos
+let touchStartY = 0;
+let touchCount = 0;
+
+document.addEventListener('touchstart', function(e) {
+    if (e.touches.length >= 2) { // Dos o más dedos
+        touchStartY = e.touches[0].clientY;
+        touchCount = e.touches.length;
+    }
+});
+
+document.addEventListener('touchmove', function(e) {
+    if (touchCount >= 2 && e.touches.length >= 2) {
+        const touchEndY = e.touches[0].clientY;
+        const distanceY = touchEndY - touchStartY;
+        
+        // Umbral para considerar que es un deslizamiento hacia abajo
+        if (distanceY > 100) { // Ajusta este valor según necesites
+            handleTwoFingerSwipeDown();
+            touchCount = 0; // Resetear para evitar múltiples activaciones
+        }
+    }
+});
+
+document.addEventListener('touchend', function() {
+    touchCount = 0; // Resetear al levantar los dedos
+});
+
+function handleTwoFingerSwipeDown() {
+    // Evitar múltiples activaciones
+    if (document.querySelector('.swipe-refresh-indicator')) return;
+    
+    // Crear elemento de feedback
+    const feedback = document.createElement('div');
+    feedback.className = 'swipe-refresh-indicator';
+    feedback.innerHTML = '<i class="fas fa-sync-alt"></i> Actualizando datos...';
+    document.body.appendChild(feedback);
+    
+    // Obtener fecha actual seleccionada
+    const datePicker = document.getElementById('datePicker');
+    const selectedDate = datePicker.valueAsDate || new Date();
+    
+    // Actualizar datos
+    updateReportWithDate(selectedDate, true).finally(() => {
+        // Ocultar feedback después de 1 segundo
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            feedback.style.transform = 'translateX(-50%) translateY(-20px)';
+            feedback.style.transition = 'all 0.3s ease';
+            
+            // Eliminar después de la animación
+            setTimeout(() => {
+                feedback.remove();
+            }, 300);
+        }, 1000);
+    });
+}
+
 </script>
+
+<style>
+/* Estilos para el gesto de actualización */
+@keyframes swipeRefresh {
+    0% { transform: translateY(-10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+.swipe-refresh-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(67, 97, 238, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: swipeRefresh 0.3s ease-out;
+}
+
+.swipe-refresh-indicator i {
+    animation: spin 0.8s linear infinite;
+}
+</style>
 
 </body>
 </html>
