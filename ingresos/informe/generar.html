@@ -2620,18 +2620,22 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Agregar al final de tu script principal
+<!-- Fuente profesional -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
+
+<script>
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
 
+  // Contenedor principal
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.bottom = '20px';
   container.style.right = '20px';
-  container.style.background = '#fff';
+  container.style.background = '#ffffff';
   container.style.borderRadius = '15px';
   container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
   container.style.display = 'flex';
@@ -2640,9 +2644,11 @@ window.addEventListener('beforeinstallprompt', (e) => {
   container.style.cursor = 'pointer';
   container.style.opacity = '0';
   container.style.transform = 'translateY(20px)';
-  container.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  container.style.transition = 'opacity 0.5s ease, transform 0.5s ease, right 0.4s ease';
   container.style.zIndex = '1000';
+  container.style.fontFamily = "'Roboto', sans-serif";
 
+  // Logo
   const logo = document.createElement('img');
   logo.src = '/one/ingresos/informe/icons/icon-192.png';
   logo.style.width = '40px';
@@ -2650,22 +2656,65 @@ window.addEventListener('beforeinstallprompt', (e) => {
   logo.style.borderRadius = '8px';
   logo.style.marginRight = '10px';
 
+  // Texto
   const text = document.createElement('span');
   text.textContent = 'Instalar Ingresos MP';
-  text.style.fontFamily = 'sans-serif';
-  text.style.fontSize = '16px';
-  text.style.fontWeight = 'bold';
-  text.style.color = '#007BFF';
+  text.style.fontSize = '15px';
+  text.style.fontWeight = '500';
+  text.style.color = '#333'; // gris profesional
 
+  // Icono de instalar
+  const icon = document.createElement('span');
+  icon.textContent = '⬇️';
+  icon.style.marginLeft = '8px';
+  icon.style.fontSize = '18px';
+
+  // Añadir al contenedor
   container.appendChild(logo);
   container.appendChild(text);
+  container.appendChild(icon);
   document.body.appendChild(container);
 
+  // Animación de entrada
   setTimeout(() => {
     container.style.opacity = '1';
     container.style.transform = 'translateY(0)';
   }, 100);
 
+  // Retracción automática a los 2s
+  setTimeout(() => {
+    container.style.right = '-150px'; // se oculta dejando solapa
+  }, 2000);
+
+  // Mostrar solo solapa
+  const tab = document.createElement('div');
+  tab.style.position = 'fixed';
+  tab.style.bottom = '20px';
+  tab.style.right = '0';
+  tab.style.width = '40px';
+  tab.style.height = '50px';
+  tab.style.background = '#ffffff';
+  tab.style.borderTopLeftRadius = '8px';
+  tab.style.borderBottomLeftRadius = '8px';
+  tab.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  tab.style.display = 'flex';
+  tab.style.alignItems = 'center';
+  tab.style.justifyContent = 'center';
+  tab.style.cursor = 'pointer';
+  tab.style.fontSize = '20px';
+  tab.style.zIndex = '1001';
+  tab.textContent = '📲';
+  tab.style.opacity = '0';
+  tab.style.transition = 'opacity 0.3s ease';
+
+  document.body.appendChild(tab);
+
+  // Mostrar solapa después de retracción
+  setTimeout(() => {
+    tab.style.opacity = '1';
+  }, 2400);
+
+  // Clic en contenedor → instalar
   container.addEventListener('click', () => {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
@@ -2673,8 +2722,14 @@ window.addEventListener('beforeinstallprompt', (e) => {
         console.log('Instalación aceptada');
       }
       container.remove();
+      tab.remove();
       deferredPrompt = null;
     });
+  });
+
+  // Clic en solapa → mostrar contenedor otra vez
+  tab.addEventListener('click', () => {
+    container.style.right = '20px';
   });
 });
 
