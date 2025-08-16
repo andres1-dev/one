@@ -2379,8 +2379,21 @@ Quedo atento a sus comentarios.`;
 // Función para abrir WhatsApp
 function openWhatsApp(message) {
     const phoneNumber = "573168007979";
-    const url = `https://wa.me/${phoneNumber}?text=${message}`;
-    window.open(url, '_blank');
+    // Opción 1: Usar el esquema universal
+    const universalUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+    
+    // Opción 2: Intentar con el esquema nativo primero
+    const nativeUrl = `whatsapp://send?phone=${phoneNumber}&text=${message}`;
+    
+    // Intentar primero con el esquema nativo, si falla usar el universal
+    window.location.href = nativeUrl;
+    
+    // Fallback después de un breve retraso
+    setTimeout(() => {
+        if (!document.hidden) { // Si no se abrió la app nativa
+            window.open(universalUrl, '_blank');
+        }
+    }, 500);
 }
 
 // Función para abrir todas las tarjetas
