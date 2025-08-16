@@ -196,6 +196,9 @@
 
     /* Clase especial para la captura */
     .cards-container.capture-mode {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 20px;
         max-width: 1400px !important;
         margin: 0 auto !important;
     }
@@ -3724,31 +3727,50 @@ async function captureAndDownloadCards() {
         openAllCards();
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Aplicar estilo de captura
+        // Configuración responsive
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
         const cardsContainer = document.querySelector('.cards-container');
-        cardsContainer.classList.add('capture-mode');
         
-        // Esperar a que se apliquen los estilos
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Ocultar elementos temporales
+        const elementsToHide = document.querySelectorAll('.date-selector-container');
+        elementsToHide.forEach(el => el.style.visibility = 'hidden');
 
-        // Configuración de html2canvas
+        // Guardar estilos originales
+        const originalStyles = {
+            width: cardsContainer.style.width,
+            overflow: cardsContainer.style.overflow,
+            margin: cardsContainer.style.margin
+        };
+
+        // Ajustar para captura
+        cardsContainer.style.width = isMobile ? '1400px' : 'fit-content';
+        cardsContainer.style.overflow = 'visible';
+        cardsContainer.style.margin = '0 auto';
+
+        // Configuración de html2canvas para móviles
         const canvasOptions = {
-            scale: 2,
+            scale: isMobile ? 3 : 2, // Mayor escala en móviles
             logging: false,
             useCORS: true,
             allowTaint: true,
             scrollX: 0,
             scrollY: 0,
-            windowWidth: 1400,
+            windowWidth: isMobile ? 2400 : cardsContainer.scrollWidth,
             windowHeight: cardsContainer.scrollHeight,
-            backgroundColor: '#ffffff'
+            backgroundColor: '#f5f7fa'
         };
 
-        // Capturar
+        // Capturar con retraso para asegurar renderizado
+        await new Promise(resolve => setTimeout(resolve, 300));
         const canvas = await html2canvas(cardsContainer, canvasOptions);
 
-        // Crear imagen
-        const image = canvas.toDataURL('image/png', 0.9);
+        // Restaurar estilos
+        elementsToHide.forEach(el => el.style.visibility = 'visible');
+        Object.assign(cardsContainer.style, originalStyles);
+
+        // Crear imagen en máxima calidad
+        const imageQuality = isMobile ? 1.0 : 0.9;
+        const image = canvas.toDataURL('image/png', imageQuality);
 
         // Descargar
         const link = document.createElement('a');
@@ -3766,12 +3788,6 @@ async function captureAndDownloadCards() {
         console.error("Error al capturar:", error);
         alert("Error al generar captura. Intente nuevamente.");
     } finally {
-        // Restaurar estilos
-        const cardsContainer = document.querySelector('.cards-container');
-        if (cardsContainer) {
-            cardsContainer.classList.remove('capture-mode');
-        }
-        
         const captureBtn = document.getElementById('captureBtn');
         if (captureBtn) {
             captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
