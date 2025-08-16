@@ -1295,7 +1295,7 @@
 <div class="card">
     <div class="card-top-border"></div>
     <div class="card-header" onclick="toggleCard(this)">
-        <h2 class="card-title"><div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Tendencias Mensuales (Desarrollo ) </h2>
+        <h2 class="card-title"><div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Analisis de Tendencia</h2>
         <div style="display: flex; align-items: center; gap: 15px;">
             <span class="date-badge" id="tendencia-mes"></span>
             <i class="fas fa-chevron-down collapse-indicator"></i>
@@ -1410,7 +1410,7 @@ function cargarDatosTendencia() {
     const anterior = data.anterior;
     
     // Actualizar información básica
-    document.getElementById("tendencia-mes").textContent = `${actual.mes} ${actual.año}`;
+    document.getElementById("tendencia-mes").textContent = `${actual.mes}`;
     
     // Calcular tendencia actual (comparación con mes anterior)
     if (anterior) {
@@ -1632,391 +1632,280 @@ function calcularEstadisticasTendencia(año, mesActual) {
 <!-- datatables -->
 <!-- Tarjeta de Datos Completos -->
 <div class="card">
-    <div class="card-header" onclick="toggleCard(this)">
-        <h2 class="card-title"><div class="card-icon datos"><i class="fas fa-table"></i></div> Base de Datos Detallada</h2>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <span class="date-badge" id="data-update-date">Cargando...</span>
-            <i class="fas fa-chevron-down collapse-indicator"></i>
-        </div>
+  <div class="card-header" onclick="toggleCard(this)">
+    <h2 class="card-title">
+      <div class="card-icon datos"><i class="fas fa-table"></i></div> Base de Datos Detallada
+    </h2>
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <span class="date-badge" id="data-update-date">Cargando...</span>
+      <i class="fas fa-chevron-down collapse-indicator"></i>
     </div>
-    
-    <div class="card-content">
-        <div class="table-controls">
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="date-range"><i class="fas fa-calendar-alt"></i> Rango:</label>
-                    <input type="text" id="date-range" class="form-control date-range-input" placeholder="Seleccionar rango">
-                </div>
-                
-                <div class="filter-item">
-                    <label for="linea-filter"><i class="fas fa-tags"></i> Línea:</label>
-                    <select id="linea-filter" class="form-control">
-                        <option value="">Todas</option>
-                    </select>
-                </div>
-                
-                <div class="filter-item">
-                    <label for="proveedor-filter"><i class="fas fa-industry"></i> Proveedor:</label>
-                    <select id="proveedor-filter" class="form-control">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="fuente-filter"><i class="fas fa-database"></i> Fuente:</label>
-                    <select id="fuente-filter" class="form-control">
-                        <option value="">Todas</option>
-                    </select>
-                </div>
-                
-                <div class="filter-item">
-                    <label for="gestor-filter"><i class="fas fa-user-tie"></i> Gestor:</label>
-                    <select id="gestor-filter" class="form-control">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                
-                <div class="filter-item">
-                    <label for="global-search"><i class="fas fa-search"></i> Buscar:</label>
-                    <input type="text" id="global-search" placeholder="Texto..." class="form-control">
-                </div>
-            </div>
+  </div>
+
+  <div class="card-content">
+
+    <!-- Controles principales -->
+    <div class="table-controls">
+      <div class="left-controls">
+        <div class="filter-item">
+          <label for="date-range"><i class="fas fa-calendar-alt"></i> Rango:</label>
+          <input type="text" id="date-range" class="form-control date-range-input" placeholder="Seleccionar rango">
         </div>
-        
-        <div class="table-actions">
-            <button id="refresh-btn" class="btn-icon" title="Actualizar datos">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-            <button id="export-btn" class="btn-primary">
-                <i class="fas fa-file-excel"></i> Exportar Excel
-            </button>
+
+        <div class="filter-item">
+          <label for="global-search"><i class="fas fa-search"></i> Buscar:</label>
+          <input type="text" id="global-search" placeholder="Texto..." class="form-control">
         </div>
-        
-        <div class="data-table-container">
-            <table id="detailedDataTable" class="display nowrap" style="width:100%">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Documento</th>
-                        <th>Línea</th>
-                        <th>Referencia</th>
-                        <th>Cantidad</th>
-                        <th>PVP</th>
-                        <th>Prenda</th>
-                        <th>Género</th>
-                        <th>Clase</th>
-                        <th>Gestor</th>
-                        <th>Proveedor</th>
-                        <th>Fuente</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+      </div>
+
+      <div class="right-controls">
+        <button type="button" class="table-btn" onclick="openFiltersModal()">
+          <i class="fas fa-filter"></i> Más filtros
+        </button>
+      </div>
     </div>
+
+    <!-- Botones de acciones -->
+    <div class="table-actions">
+      <button id="export-btn" class="btn-primary">
+        <i class="fas fa-file-excel"></i> Exportar Excel
+      </button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="data-table-container">
+      <table id="detailedDataTable" class="display nowrap" style="width:100%">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Documento</th>
+            <th>Línea</th>
+            <th>Referencia</th>
+            <th>Cantidad</th>
+            <th>PVP</th>
+            <th>Prenda</th>
+            <th>Género</th>
+            <th>Clase</th>
+            <th>Gestor</th>
+            <th>Proveedor</th>
+            <th>Fuente</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Filtros Avanzados -->
+<div id="filtersModal" class="custom-modal">
+  <div class="custom-modal-content">
+    <span class="close" onclick="closeFiltersModal()">&times;</span>
+    <h4><i class="fas fa-sliders-h"></i> Filtros Avanzados</h4>
+
+    <div class="filter-item">
+      <label for="linea-filter"><i class="fas fa-tags"></i> Línea:</label>
+      <select id="linea-filter" class="form-control">
+        <option value="">Todas</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label for="proveedor-filter"><i class="fas fa-industry"></i> Proveedor:</label>
+      <select id="proveedor-filter" class="form-control">
+        <option value="">Todos</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label for="fuente-filter"><i class="fas fa-database"></i> Fuente:</label>
+      <select id="fuente-filter" class="form-control">
+        <option value="">Todas</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label for="gestor-filter"><i class="fas fa-user-tie"></i> Gestor:</label>
+      <select id="gestor-filter" class="form-control">
+        <option value="">Todos</option>
+      </select>
+    </div>
+
+    <div style="text-align: right; margin-top: 15px;">
+      <button class="table-btn" onclick="closeFiltersModal()"><i class="fas fa-check"></i> Aplicar</button>
+    </div>
+  </div>
 </div>
 
 <style>
-/* Estilos para la tabla de datos detallados */
+/* ==== Estilos ==== */
 .card-icon.datos {
-    background: linear-gradient(135deg, #2b9348, #4caf50);
+  background: linear-gradient(135deg, #4895ef, #4361ee);
 }
 
-/* Estilos para la tarjeta de datos detallados */
-.card-icon.datos {
-    background: linear-gradient(135deg, #4895ef, #4361ee);
-}
-
-/* Controles de filtro */
-.table-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 20px;
-    background: rgba(67, 97, 238, 0.05);
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid rgba(67, 97, 238, 0.1);
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.filter-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.filter-item label {
-    font-size: 13px;
-    color: var(--text-medium);
-    min-width: 80px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.filter-item label i {
-    font-size: 12px;
-    width: 15px;
-}
-
-.form-control {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    background: white;
-    font-family: inherit;
-    font-size: 13px;
-    flex-grow: 1;
-    transition: var(--transition);
-}
-
-.form-control:focus {
-    border-color: #4361ee;
-    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
-    outline: none;
-}
-
-.date-range-input {
-    background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%237f8c8d" viewBox="0 0 16 16"><path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857V3.857z"/><path d="M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>') no-repeat right 10px center;
-    padding-right: 35px;
-    cursor: pointer;
-}
-
-/* Acciones de tabla */
-.table-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.btn-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(67, 97, 238, 0.1);
-    border: none;
-    color: #4361ee;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.btn-icon:hover {
-    background: rgba(67, 97, 238, 0.2);
-    transform: rotate(90deg);
-}
-
-.btn-primary {
-    padding: 8px 16px;
-    border-radius: 20px;
-    background: linear-gradient(135deg, #4361ee, #3a0ca3);
-    border: none;
-    color: white;
-    font-family: inherit;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.btn-primary:hover {
-    background: linear-gradient(135deg, #3a56d4, #2f0a8a);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
-}
-
-/* Tabla */
-.data-table-container {
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-#detailedDataTable {
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-#detailedDataTable thead th {
-    background: linear-gradient(to bottom, #4361ee, #3a0ca3);
-    color: white;
-    padding: 12px 15px;
-    font-weight: 500;
-    font-size: 13px;
-    text-align: left;
-    position: sticky;
-    top: 0;
-}
-
-#detailedDataTable tbody td {
-    padding: 10px 15px;
-    border-bottom: 1px solid rgba(0,0,0,0.03);
-    font-size: 13px;
-    background: white;
-}
-
-#detailedDataTable tbody tr:hover td {
-    background: rgba(67, 97, 238, 0.03);
-}
-
-/* Responsive */
-@media (max-width: 1200px) {
-    .table-controls {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .filter-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .filter-item label {
-        width: 100%;
-    }
-    
-    .form-control {
-        width: 100%;
-    }
-    
-    .table-actions {
-        justify-content: space-between;
-    }
-}
-
-/* Estilos para los nuevos controles */
-.date-range-input {
-    min-width: 220px !important;
-    background-color: white !important;
-    cursor: pointer;
-}
-
-.flatpickr-input {
-    padding: 8px 12px !important;
-    border-radius: 4px !important;
-    border: 1px solid #ddd !important;
-}
-
-/* Ajustar espacio entre filtros */
-.table-controls .left-controls {
-    gap: 8px;
-}
-
-/* Hacer los selectores más compactos */
-.data-filter {
-    min-width: 160px !important;
-    max-width: 200px;
-}
-
-.data-table-container {
-    overflow-x: auto;
-    margin-top: 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.table-controls {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.table-controls .left-controls {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-    flex-grow: 1;
-}
-
-.table-controls .right-controls {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.data-filter {
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    font-family: inherit;
-    min-width: 120px;
-    background: white;
-}
-
+/* Botón de filtros */
 .table-btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    border: none;
-    background-color: #4361ee;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.3s;
-    font-size: 14px;
-}
-
-.table-btn:hover {
-    background-color: #3a0ca3;
-    transform: translateY(-1px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #4895ef, #4361ee); /* mismo gradiente que el card-icon */
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
 .table-btn i {
-    font-size: 14px;
+  color: #fff; /* asegura que el ícono sea blanco */
+  font-size: 14px;
 }
 
-#detailedDataTable {
-    width: 100% !important;
+.table-btn:hover {
+  background: linear-gradient(135deg, #4361ee, #3a0ca3);
+  transform: translateY(-1px);
 }
 
-#detailedDataTable tbody td {
-    padding: 8px 10px;
-    border-bottom: 1px solid #eee;
-    font-size: 13px;
+.table-btn:active {
+  transform: translateY(0);
 }
 
-#detailedDataTable tbody tr:hover {
-    background-color: #f5f7fa !important;
+
+/* Controles */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .table-controls {
-        flex-direction: column;
-    }
-    
-    .table-controls .left-controls,
-    .table-controls .right-controls {
-        width: 100%;
-    }
-    
-    .data-filter {
-        width: 100%;
-    }
+.table-controls .left-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-item label {
+  font-size: 13px;
+  color: var(--text-medium, #444);
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.form-control {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.1);
+  font-size: 13px;
+}
+
+/* Acciones */
+.table-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(67,97,238,0.1);
+  border: none;
+  color: #4361ee;
+  cursor: pointer;
+}
+
+.btn-primary {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #4361ee, #3a0ca3);
+  border: none;
+  color: white;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* ==== Modal ==== */
+.custom-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.custom-modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.custom-modal h4 {
+  margin-bottom: 15px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.custom-modal .filter-item {
+  margin-bottom: 12px;
+}
+
+.custom-modal .close {
+  float: right;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95);}
+  to { opacity: 1; transform: scale(1);}
 }
 </style>
+
+<script>
+// === Funciones para el modal ===
+function openFiltersModal() {
+  document.getElementById("filtersModal").style.display = "flex";
+}
+function closeFiltersModal() {
+  document.getElementById("filtersModal").style.display = "none";
+}
+
+// 👇 El resto de tu código JS (DataTable, initDateRangePicker, extractAllDetails, etc.) permanece igual
+// porque los IDs de los filtros (#linea-filter, #proveedor-filter, etc.) no cambiaron.
+</script>
+
 
 <script>
 // Variables para DataTable y flatpickr
@@ -2194,7 +2083,7 @@ function updateDataInfo() {
     const filteredCount = detailedDataTable.rows({ search: 'applied' }).count();
     const totalCount = allDetailsData.length;
     document.getElementById('data-update-date').textContent = 
-        `Mostrando ${filteredCount} de ${totalCount} registros | Actualizado: ${new Date().toLocaleString('es-CO')}`;
+        `${new Date().toLocaleString('es-CO')}`;
 }
 
 // Función para exportar datos a Excel
