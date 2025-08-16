@@ -2387,7 +2387,24 @@ Muestra Semanal (S${semanaActual}/S${semanaAnterior}) Gestión ${flechaGestion} 
 function openWhatsApp(message) {
     const phoneNumber = "573168007979";
     const url = `https://wa.me/${phoneNumber}?text=${message}`;
-    window.open(url, '_blank');
+    
+    // Solución universal que funciona en iOS
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    
+    // Crear un evento de click confiable
+    const event = document.createEvent('MouseEvents');
+    event.initEvent('click', true, true);
+    
+    // Disparar el evento
+    anchor.dispatchEvent(event);
+    
+    // Forzar apertura en iOS si aún no funciona
+    setTimeout(() => {
+        window.location.href = url;
+    }, 500);
 }
 
 // Función para abrir todas las tarjetas
