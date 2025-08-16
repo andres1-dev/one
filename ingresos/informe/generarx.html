@@ -2379,20 +2379,14 @@ Quedo atento a sus comentarios.`;
 // Función para abrir WhatsApp
 function openWhatsApp(message) {
     const phoneNumber = "573168007979";
-    // Opción 1: Usar el esquema universal
-    const universalUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+    const url = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${message}`;
     
-    // Opción 2: Intentar con el esquema nativo primero
-    const nativeUrl = `whatsapp://send?phone=${phoneNumber}&text=${message}`;
+    // Intentar abrir en la app nativa
+    window.location.href = url;
     
-    // Intentar primero con el esquema nativo, si falla usar el universal
-    window.location.href = nativeUrl;
-    
-    // Fallback después de un breve retraso
+    // Fallback después de un retraso
     setTimeout(() => {
-        if (!document.hidden) { // Si no se abrió la app nativa
-            window.open(universalUrl, '_blank');
-        }
+        window.open(url, '_blank');
     }, 500);
 }
 
@@ -3770,7 +3764,10 @@ async function captureAndDownloadCards() {
             scrollY: 0,
             windowWidth: isMobile ? 2400 : cardsContainer.scrollWidth,
             windowHeight: cardsContainer.scrollHeight,
-            backgroundColor: '#f5f7fa'
+            backgroundColor: '#f5f7fa',
+            onclone: function(clonedDoc) {
+        clonedDoc.getElementById('captureBtn').style.display = 'none';
+    }
         };
 
         // Capturar con retraso para asegurar renderizado
@@ -3810,10 +3807,18 @@ async function captureAndDownloadCards() {
 }
 
 // Función separada para la captura real
+
 function initCaptureButton() {
     const captureBtn = document.getElementById('captureBtn');
     if (captureBtn) {
-        captureBtn.addEventListener('click', captureAndDownloadCards);
+        captureBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            captureAndDownloadCards();
+        });
+        captureBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            captureAndDownloadCards();
+        });
     }
 }
 
