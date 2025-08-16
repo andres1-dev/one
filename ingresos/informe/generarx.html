@@ -2379,15 +2379,8 @@ Quedo atento a sus comentarios.`;
 // Función para abrir WhatsApp
 function openWhatsApp(message) {
     const phoneNumber = "573168007979";
-    const url = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${message}`;
-    
-    // Intentar abrir en la app nativa
-    window.location.href = url;
-    
-    // Fallback después de un retraso
-    setTimeout(() => {
-        window.open(url, '_blank');
-    }, 500);
+    const url = `https://wa.me/${phoneNumber}?text=${message}`;
+    window.open(url, '_blank');
 }
 
 // Función para abrir todas las tarjetas
