@@ -3796,46 +3796,6 @@ async function captureAndDownloadCards() {
     }
 }
 
-// Inicializar el botón de captura
-function initCaptureButton() {
-    const captureBtn = document.getElementById('captureBtn');
-    const passwordModal = document.getElementById('passwordModal');
-    const passwordInput = document.getElementById('passwordInput');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const confirmBtn = document.getElementById('confirmBtn');
-
-    if (!captureBtn) return;
-
-    captureBtn.addEventListener('click', () => {
-        passwordModal.style.display = 'flex';
-        passwordInput.focus();
-    });
-
-    cancelBtn.addEventListener('click', () => {
-        passwordModal.style.display = 'none';
-        passwordInput.value = '';
-    });
-
-    confirmBtn.addEventListener('click', () => {
-        if (passwordInput.value === 'one') {
-            passwordModal.style.display = 'none';
-            passwordInput.value = '';
-            executeCapture(); // Función que ejecuta la captura real
-        } else {
-            alert('Contraseña incorrecta');
-            passwordInput.value = '';
-            passwordInput.focus();
-        }
-    });
-
-    // También permitir enviar con Enter
-    passwordInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            confirmBtn.click();
-        }
-    });
-}
-
 // Función separada para la captura real
 function initCaptureButton() {
     const captureBtn = document.getElementById('captureBtn');
