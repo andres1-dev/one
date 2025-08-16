@@ -3744,84 +3744,128 @@ async function uploadImageToDrive(imageData) {
 }
 
 async function captureAndDownloadCards() {
-  try {
-    const captureBtn = document.getElementById('captureBtn');
-    const originalHtml = captureBtn.innerHTML;
-    captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    captureBtn.disabled = true;
+    try {
+        const captureBtn = document.getElementById('captureBtn');
+        const originalHtml = captureBtn.innerHTML;
+        captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        captureBtn.disabled = true;
 
-    // Abrir todas las tarjetas
-    openAllCards();
-    await new Promise(resolve => setTimeout(resolve, 500));
+        // 1. Abrir todas las tarjetas y guardar estado original
+        const cardHeaders = document.querySelectorAll('.card-header');
+        const originalStates = [];
+        
+        cardHeaders.forEach(header => {
+            const cardContent = header.nextElementSibling;
+            originalStates.push(cardContent.classList.contains('expanded'));
+            if (!cardContent.classList.contains('expanded')) {
+                cardContent.classList.add('expanded');
+                header.querySelector('.collapse-indicator').classList.add('expanded');
+            }
+        });
 
-    // Configuración responsive (MANTENIENDO TU CONFIGURACIÓN EXACTA)
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-    const cardsContainer = document.querySelector('.cards-container');
-    
-    // Ocultar elementos temporales (MANTENIENDO TU CONFIGURACIÓN)
-    const elementsToHide = document.querySelectorAll('.date-selector-container');
-    elementsToHide.forEach(el => el.style.visibility = 'hidden');
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Guardar estilos originales (MANTENIENDO TU CONFIGURACIÓN)
-    const originalStyles = {
-      width: cardsContainer.style.width,
-      overflow: cardsContainer.style.overflow,
-      margin: cardsContainer.style.margin
-    };
+        // 2. Configuración responsive
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+        const cardsContainer = document.querySelector('.cards-container');
+        
+        // Ocultar elementos temporales
+        const elementsToHide = document.querySelectorAll('.date-selector-container');
+        elementsToHide.forEach(el => el.style.visibility = 'hidden');
 
-    // Ajustar para captura (MANTENIENDO TU CONFIGURACIÓN)
-    cardsContainer.style.width = isMobile ? '1400px' : 'fit-content';
-    cardsContainer.style.overflow = 'visible';
-    cardsContainer.style.margin = '0 auto';
+        // Guardar estilos originales
+        const originalStyles = {
+            width: cardsContainer.style.width,
+            overflow: cardsContainer.style.overflow,
+            margin: cardsContainer.style.margin,
+            transform: cardsContainer.style.transform,
+            zoom: document.body.style.zoom
+        };
 
-    // Configuración de html2canvas (MANTENIENDO TU CONFIGURACIÓN EXACTA)
-    const canvasOptions = {
-      scale: isMobile ? 3 : 2, // Mayor escala en móviles
-      logging: false,
-      useCORS: true,
-      allowTaint: true,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: isMobile ? 2400 : cardsContainer.scrollWidth,
-      windowHeight: cardsContainer.scrollHeight,
-      backgroundColor: '#f5f7fa'
-    };
+        // Ajustar para captura
+        cardsContainer.style.width = isMobile ? '1400px' : 'fit-content';
+        cardsContainer.style.overflow = 'visible';
+        cardsContainer.style.margin = '0 auto';
+        if (isMobile) {
+            document.body.style.zoom = '1'; // Resetear zoom temporalmente
+        }
 
-    // Capturar con retraso para asegurar renderizado
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const canvas = await html2canvas(cardsContainer, canvasOptions);
+        // 3. Configuración de html2canvas
+        const canvasOptions = {
+            scale: isMobile ? 3 : 2,
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: isMobile ? 2400 : cardsContainer.scrollWidth,
+            windowHeight: cardsContainer.scrollHeight,
+            backgroundColor: '#f5f7fa'
+        };
 
-    // Restaurar estilos
-    elementsToHide.forEach(el => el.style.visibility = 'visible');
-    Object.assign(cardsContainer.style, originalStyles);
-    
-    // Obtener imagen en base64 (conservando tu configuración de calidad)
-    const imageQuality = isMobile ? 1.0 : 0.9;
-    const imageData = canvas.toDataURL('image/png', imageQuality).split(',')[1];
-    
-    // Subir a Drive y obtener el enlace
-    const imageUrl = await uploadImageToDrive(imageData);
-    
-    // Generar el mensaje de WhatsApp con ambos enlaces
-    const whatsappMessage = generateWhatsAppMessage(imageUrl);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const canvas = await html2canvas(cardsContainer, canvasOptions);
 
-    // Abrir WhatsApp con el mensaje completo
-    window.open(`https://wa.me/573168007979?text=${whatsappMessage}`, '_blank');
+        // 4. Restaurar todo al estado original
+        elementsToHide.forEach(el => el.style.visibility = 'visible');
+        Object.assign(cardsContainer.style, originalStyles);
+        document.body.style.zoom = originalStyles.zoom;
+        
+        // Restaurar estado de las tarjetas
+        cardHeaders.forEach((header, index) => {
+            const cardContent = header.nextElementSibling;
+            const indicator = header.querySelector('.collapse-indicator');
+            
+            if (!originalStates[index]) {
+                cardContent.classList.remove('expanded');
+                indicator.classList.remove('expanded');
+            }
+        });
 
-  } catch (error) {
-    console.error("Error al capturar:", error);
-    alert("Error al generar captura. Intente nuevamente.");
-  } finally {
-    const captureBtn = document.getElementById('captureBtn');
-    if (captureBtn) {
-      captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-      captureBtn.disabled = false;
+        // 5. Obtener imagen y subir a Drive
+        const imageQuality = isMobile ? 1.0 : 0.9;
+        const imageData = canvas.toDataURL('image/png', imageQuality).split(',')[1];
+        const imageUrl = await uploadImageToDrive(imageData);
+        
+        // 6. Generar y abrir mensaje (con solución para iOS)
+        const whatsappMessage = generateWhatsAppMessage(imageUrl);
+        const whatsappUrl = `https://wa.me/573168007979?text=${whatsappMessage}`;
+        
+        // Detectar iOS y usar método alternativo
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        if (isIOS) {
+            openLinkInIOS(whatsappUrl);
+        } else {
+            window.open(whatsappUrl, '_blank');
+        }
+
+    } catch (error) {
+        console.error("Error al capturar:", error);
+        alert("Error al generar captura. Intente nuevamente.");
+    } finally {
+        const captureBtn = document.getElementById('captureBtn');
+        if (captureBtn) {
+            captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            captureBtn.disabled = false;
+        }
     }
-  }
 }
 
-
-
+// Función para inicializar el botón de captura
+function initCaptureButton() {
+    const captureBtn = document.getElementById('captureBtn');
+    if (captureBtn) {
+        captureBtn.addEventListener('click', function(e) {
+            if (!checkPassword()) {
+                e.preventDefault();
+                return false;
+            }
+            captureAndDownloadCards();
+        });
+    }
+}
 
 // Función separada para la captura real
 function initCaptureButton() {
@@ -3950,6 +3994,23 @@ function initCaptureButton() {
             captureAndDownloadCards();
         });
     }
+}
+
+function openLinkInIOS(url) {
+    // Solución para iOS
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    
+    // Trigger click programáticamente
+    const event = new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true
+    });
+    
+    anchor.dispatchEvent(event);
 }
 
 // Asegurarse de que la función se ejecute al cargar la página
