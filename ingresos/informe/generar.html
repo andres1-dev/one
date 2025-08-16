@@ -14,6 +14,24 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+<!-- DataTables Buttons -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.dataTables.min.css">
+<!-- SheetJS para Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+<!-- jQuery y DataTables JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<!-- SheetJS para Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
  
 <style>
     :root {
@@ -172,8 +190,17 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
         gap: 20px;
-        max-width: 1400px;
+        max-width: auto;
         margin: 0 auto;
+    }
+
+    /* Clase especial para la captura */
+    .cards-container.capture-mode {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 20px;
+        max-width: 1400px !important;
+        margin: 0 auto !important;
     }
     
     .card {
@@ -1277,7 +1304,7 @@
 <div class="card">
     <div class="card-top-border"></div>
     <div class="card-header" onclick="toggleCard(this)">
-        <h2 class="card-title"><div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Tendencias Mensuales (Desarrollo ) </h2>
+        <h2 class="card-title"><div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Analisis de Tendencia</h2>
         <div style="display: flex; align-items: center; gap: 15px;">
             <span class="date-badge" id="tendencia-mes"></span>
             <i class="fas fa-chevron-down collapse-indicator"></i>
@@ -1392,7 +1419,7 @@ function cargarDatosTendencia() {
     const anterior = data.anterior;
     
     // Actualizar información básica
-    document.getElementById("tendencia-mes").textContent = `${actual.mes} ${actual.año}`;
+    document.getElementById("tendencia-mes").textContent = `${actual.mes}`;
     
     // Calcular tendencia actual (comparación con mes anterior)
     if (anterior) {
@@ -1610,6 +1637,560 @@ function calcularEstadisticasTendencia(año, mesActual) {
 </script>
 
 
+
+<!-- datatables -->
+<!-- Tarjeta de Datos Completos -->
+<div class="card">
+  <div class="card-header" onclick="toggleCard(this)">
+    <h2 class="card-title">
+      <div class="card-icon datos"><i class="fas fa-table"></i></div> Base de Datos Detallada
+    </h2>
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <span class="date-badge" id="data-update-date">Cargando...</span>
+      <i class="fas fa-chevron-down collapse-indicator"></i>
+    </div>
+  </div>
+
+  <div class="card-content">
+
+    <!-- Controles principales -->
+    <div class="table-controls">
+      <div class="left-controls">
+        <div class="filter-item">
+          <label for="date-range"><i class="fas fa-calendar-alt"></i> Rango:</label>
+          <input type="text" id="date-range" class="form-control date-range-input" placeholder="Seleccionar rango">
+        </div>
+
+        <div class="filter-item">
+          <label for="global-search"><i class="fas fa-search"></i> Buscar:</label>
+          <input type="text" id="global-search" placeholder="Texto..." class="form-control">
+        </div>
+      </div>
+
+      <div class="right-controls">
+        <button type="button" class="table-btn" onclick="openFiltersModal()">
+          <i class="fas fa-filter"></i> Más filtros
+        </button>
+      </div>
+    </div>
+
+    <!-- Botones de acciones -->
+    <div class="table-actions">
+      <button id="export-btn" class="btn-primary">
+        <i class="fas fa-file-excel"></i> Exportar Excel
+      </button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="data-table-container">
+      <table id="detailedDataTable" class="display nowrap" style="width:100%">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Documento</th>
+            <th>Línea</th>
+            <th>Referencia</th>
+            <th>Cantidad</th>
+            <th>PVP</th>
+            <th>Prenda</th>
+            <th>Género</th>
+            <th>Clase</th>
+            <th>Gestor</th>
+            <th>Proveedor</th>
+            <th>Fuente</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Filtros Avanzados -->
+<div id="filtersModal" class="custom-modal">
+  <div class="custom-modal-content">
+    <span class="close" onclick="closeFiltersModal()">&times;</span>
+    <h4><i class="fas fa-sliders-h"></i> Filtros Avanzados</h4>
+
+    <div class="filter-item">
+      <label for="linea-filter"><i class="fas fa-tags"></i> Línea:</label>
+      <select id="linea-filter" class="form-control">
+        <option value="">Todas</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label for="proveedor-filter"><i class="fas fa-industry"></i> Proveedor:</label>
+      <select id="proveedor-filter" class="form-control">
+        <option value="">Todos</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label for="fuente-filter"><i class="fas fa-database"></i> Fuente:</label>
+      <select id="fuente-filter" class="form-control">
+        <option value="">Todas</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label for="gestor-filter"><i class="fas fa-user-tie"></i> Gestor:</label>
+      <select id="gestor-filter" class="form-control">
+        <option value="">Todos</option>
+      </select>
+    </div>
+
+    <div style="text-align: right; margin-top: 15px;">
+      <button class="table-btn" onclick="closeFiltersModal()"><i class="fas fa-check"></i> Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ==== Estilos ==== */
+.card-icon.datos {
+  background: linear-gradient(135deg, #4895ef, #4361ee);
+}
+
+/* Botón de filtros */
+.table-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #4895ef, #4361ee); /* mismo gradiente que el card-icon */
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.table-btn i {
+  color: #fff; /* asegura que el ícono sea blanco */
+  font-size: 14px;
+}
+
+.table-btn:hover {
+  background: linear-gradient(135deg, #4361ee, #3a0ca3);
+  transform: translateY(-1px);
+}
+
+.table-btn:active {
+  transform: translateY(0);
+}
+
+
+/* Controles */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.table-controls .left-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-item label {
+  font-size: 13px;
+  color: var(--text-medium, #444);
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.form-control {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.1);
+  font-size: 13px;
+}
+
+/* Acciones */
+.table-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(67,97,238,0.1);
+  border: none;
+  color: #4361ee;
+  cursor: pointer;
+}
+
+.btn-primary {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #4361ee, #3a0ca3);
+  border: none;
+  color: white;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* ==== Modal ==== */
+.custom-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.custom-modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.custom-modal h4 {
+  margin-bottom: 15px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.custom-modal .filter-item {
+  margin-bottom: 12px;
+}
+
+.custom-modal .close {
+  float: right;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95);}
+  to { opacity: 1; transform: scale(1);}
+}
+</style>
+
+<script>
+// === Funciones para el modal ===
+function openFiltersModal() {
+  document.getElementById("filtersModal").style.display = "flex";
+}
+function closeFiltersModal() {
+  document.getElementById("filtersModal").style.display = "none";
+}
+
+// 👇 El resto de tu código JS (DataTable, initDateRangePicker, extractAllDetails, etc.) permanece igual
+// porque los IDs de los filtros (#linea-filter, #proveedor-filter, etc.) no cambiaron.
+</script>
+
+
+<script>
+// Variables para DataTable y flatpickr
+let detailedDataTable;
+let allDetailsData = [];
+let dateRangePicker;
+
+// Función para obtener el primer día del mes actual
+function getFirstDayOfCurrentMonth() {
+    const date = new Date();
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+// Función para formatear fecha a DD/MM/YYYY
+function formatDateToDDMMYYYY(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+// Función para inicializar flatpickr
+function initDateRangePicker() {
+    const firstDayOfMonth = getFirstDayOfCurrentMonth();
+    const today = new Date();
+    
+    dateRangePicker = flatpickr("#date-range", {
+        mode: "range",
+        dateFormat: "d/m/Y",
+        defaultDate: [firstDayOfMonth, today],
+        locale: {
+            firstDayOfWeek: 1,
+            weekdays: {
+                shorthand: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+                longhand: ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
+            },
+            months: {
+                shorthand: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
+                longhand: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+            }
+        },
+        onChange: function(selectedDates) {
+            if (selectedDates.length === 2) {
+                detailedDataTable.draw();
+            }
+        }
+    });
+}
+
+// Función para extraer todos los detalles de los datos consolidados
+function extractAllDetails() {
+    allDetailsData = [];
+    
+    consolidatedData.forEach(dayData => {
+        dayData.Detalles.forEach(detalle => {
+            allDetailsData.push({
+                Fecha: dayData.Fecha,
+                FechaObj: parseDate(dayData.Fecha),
+                Documento: detalle.documento || '',
+                Linea: detalle.linea || '',
+                Referencia: detalle.referencia || '',
+                Cantidad: detalle.cantidad || 0,
+                PVP: detalle.pvp || 0,
+                Prenda: detalle.prenda || '',
+                Genero: detalle.genero || '',
+                Clase: detalle.clase || '',
+                Gestor: detalle.gestor || '',
+                Proveedor: detalle.proveedor || '',
+                Fuente: detalle.fuente || ''
+            });
+        });
+    });
+    
+    return allDetailsData;
+}
+
+// Función para inicializar los filtros automáticos
+function initAutoFilters() {
+    // Obtener valores únicos para cada filtro
+    const lineas = [...new Set(allDetailsData.map(item => item.Linea))].filter(Boolean).sort();
+    const proveedores = [...new Set(allDetailsData.map(item => item.Proveedor))].filter(Boolean).sort();
+    const fuentes = [...new Set(allDetailsData.map(item => item.Fuente))].filter(Boolean).sort();
+    const gestores = [...new Set(allDetailsData.map(item => item.Gestor))].filter(Boolean).sort();
+    
+    // Llenar filtro de líneas
+    const lineaFilter = document.getElementById('linea-filter');
+    lineas.forEach(linea => {
+        lineaFilter.innerHTML += `<option value="${linea}">${linea}</option>`;
+    });
+    
+    // Llenar filtro de proveedores
+    const proveedorFilter = document.getElementById('proveedor-filter');
+    proveedores.forEach(proveedor => {
+        proveedorFilter.innerHTML += `<option value="${proveedor}">${proveedor}</option>`;
+    });
+    
+    // Llenar filtro de fuentes
+    const fuenteFilter = document.getElementById('fuente-filter');
+    fuentes.forEach(fuente => {
+        fuenteFilter.innerHTML += `<option value="${fuente}">${fuente}</option>`;
+    });
+    
+    // Llenar filtro de gestores
+    const gestorFilter = document.getElementById('gestor-filter');
+    gestores.forEach(gestor => {
+        gestorFilter.innerHTML += `<option value="${gestor}">${gestor}</option>`;
+    });
+}
+
+// Función para inicializar la tabla detallada
+function initDetailedDataTable() {
+    // Extraer todos los detalles
+    const detailsData = extractAllDetails();
+    
+    // Inicializar DataTable
+    detailedDataTable = $('#detailedDataTable').DataTable({
+        data: detailsData,
+        columns: [
+            { data: 'Fecha' },
+            { data: 'Documento' },
+            { data: 'Linea' },
+            { data: 'Referencia' },
+            { 
+                data: 'Cantidad',
+                render: function(data) {
+                    return formatoCantidad(data);
+                }
+            },
+            { 
+                data: 'PVP',
+                render: function(data) {
+                    return formatoCantidad(data);
+                }
+            },
+            { data: 'Prenda' },
+            { data: 'Genero' },
+            { data: 'Clase' },
+            { data: 'Gestor' },
+            { data: 'Proveedor' },
+            { data: 'Fuente' }
+        ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+        },
+        dom: 'lrtip',
+        pageLength: 25,
+        responsive: true,
+        scrollX: true,
+        order: [[0, 'desc']], // Ordenar por fecha descendente
+        initComplete: function() {
+            // Actualizar fecha de actualización
+            updateDataInfo();
+            
+            // Inicializar filtros automáticos
+            initAutoFilters();
+            
+            // Inicializar date range picker
+            initDateRangePicker();
+        }
+    });
+    
+    // Aplicar filtros cuando cambien
+    $('#linea-filter, #proveedor-filter, #fuente-filter, #gestor-filter').on('change', function() {
+        detailedDataTable.draw();
+    });
+    
+    // Búsqueda global
+    $('#global-search').on('keyup', function() {
+        detailedDataTable.search(this.value).draw();
+    });
+}
+
+// Función para actualizar la información de datos
+function updateDataInfo() {
+    const filteredCount = detailedDataTable.rows({ search: 'applied' }).count();
+    const totalCount = allDetailsData.length;
+    document.getElementById('data-update-date').textContent = 
+        `${new Date().toLocaleString('es-CO')}`;
+}
+
+// Función para exportar datos a Excel
+function exportToExcel() {
+    // Obtener datos filtrados
+    const filteredData = detailedDataTable.rows({ search: 'applied' }).data().toArray();
+    
+    // Mapear datos para Excel
+    const excelData = filteredData.map(item => ({
+        'Fecha': item.Fecha,
+        'Documento': item.Documento,
+        'Línea': item.Linea,
+        'Referencia': item.Referencia,
+        'Cantidad': item.Cantidad,
+        'PVP': item.PVP,
+        'Prenda': item.Prenda,
+        'Género': item.Genero,
+        'Clase': item.Clase,
+        'Gestor': item.Gestor,
+        'Proveedor': item.Proveedor,
+        'Fuente': item.Fuente
+    }));
+    
+    // Crear hoja de trabajo
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "DatosDetallados");
+    
+    // Exportar archivo
+    XLSX.writeFile(wb, `datos_detallados_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// Función para aplicar filtros personalizados
+$.fn.dataTable.ext.search.push(
+    function(settings, data, dataIndex) {
+        const rowData = settings.aoData[dataIndex]._aData;
+        
+        // Filtrar por rango de fechas
+        const selectedDates = dateRangePicker.selectedDates;
+        if (selectedDates.length === 2) {
+            const startDate = selectedDates[0];
+            const endDate = new Date(selectedDates[1]);
+            endDate.setHours(23, 59, 59, 999); // Incluir todo el día final
+            
+            if (rowData.FechaObj < startDate || rowData.FechaObj > endDate) {
+                return false;
+            }
+        }
+        
+        // Filtrar por línea
+        const lineaFilter = $('#linea-filter').val();
+        if (lineaFilter && lineaFilter !== rowData.Linea) {
+            return false;
+        }
+        
+        // Filtrar por proveedor
+        const proveedorFilter = $('#proveedor-filter').val();
+        if (proveedorFilter && proveedorFilter !== rowData.Proveedor) {
+            return false;
+        }
+        
+        // Filtrar por fuente
+        const fuenteFilter = $('#fuente-filter').val();
+        if (fuenteFilter && fuenteFilter !== rowData.Fuente) {
+            return false;
+        }
+        
+        // Filtrar por gestor
+        const gestorFilter = $('#gestor-filter').val();
+        if (gestorFilter && gestorFilter !== rowData.Gestor) {
+            return false;
+        }
+        
+        return true;
+    }
+);
+
+// Event listeners
+document.getElementById('refresh-btn').addEventListener('click', function() {
+    detailedDataTable.ajax.reload(null, false); // Mantener paginación y filtros
+    updateDataInfo();
+});
+
+document.getElementById('export-btn').addEventListener('click', exportToExcel);
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
 <script>
 // Variables globales
 let currentReportData = null;
@@ -1739,7 +2320,7 @@ async function loadDataWithRetry(date) {
 
 
 // Función para generar el mensaje de WhatsApp
-function generateWhatsAppMessage() {
+function generateWhatsAppMessage(imageUrl = "") {
     if (!currentReportData) return "";
     
     const diaData = currentReportData.dia.actual;
@@ -1773,7 +2354,8 @@ function generateWhatsAppMessage() {
         flechaGestion = valorGestion < 0 ? '↓' : '↑';
     }
 
-    const mensaje = `¡Bendiciones para todos!
+    // Construir el mensaje base
+    let mensaje = `¡Bendiciones para todos!
 
 Adjunto el Cierre de Ingresos del Día:
 \`${diaNombre}, ${diaNumero} de ${mesNombre} del ${año}\`
@@ -1785,12 +2367,18 @@ Muestra Semanal (S${semanaActual}/S${semanaAnterior}) Gestión ${flechaGestion} 
 * Promedio: *${formatoCantidad(diaData.promedio)}*
 * Ponderado: *${formatoCantidad(diaData.ponderado)}*
 * Desviación: *${formatoCantidad(diaData.desvest)}*
-* Máximo: *${formatoCantidad(diaData.max)}*
+* Máximo: *${formatoCantidad(diaData.max)}*`;
 
-Informe detallado:
-https://andres1-dev.github.io/one/ingresos/informe/generar
+    // Agregar enlaces
+    mensaje += `\n\nEnlaces importantes:
+📊 Reporte detallado: https://andres1-dev.github.io/one/ingresos/informe/generar`;
 
-Quedo atento a sus comentarios.`;
+    if (imageUrl) {
+        mensaje += `\n📷 Resumen visual: ${imageUrl}`;
+    }
+
+    // Cierre del mensaje
+    mensaje += `\n\nQuedo atento a sus comentarios.`;
 
     return encodeURIComponent(mensaje);
 }
@@ -2248,6 +2836,10 @@ async function cargarDatosIniciales() {
         // Procesar datos consolidados
         consolidatedData = procesarDatosConsolidados(validIncomeData, budget);
         budgetData = budget;
+        
+        //mostrarDatosCompletos2025();
+        initDetailedDataTable();
+        initDateRangePicker();
 
     } catch (error) {
         console.error("Error al cargar datos iniciales:", error);
@@ -2768,6 +3360,29 @@ function calculateGrowth(currentPercent, previousPercent) {
     return growth.toFixed(2) + '%';
 }
 
+function mostrarDatosCompletos2025() {
+    // Filtrar solo datos de 2025
+    const datos2025 = consolidatedData.filter(item => item.Año === 2025);
+    
+    console.log("=== DATOS COMPLETOS 2025 (PROCESADOS) ===");
+    console.log("Cantidad de registros:", datos2025.length);
+    console.log("Datos:", datos2025);
+    
+    // Opcional: Mostrar también en una tabla para mejor visualización
+    console.table(datos2025.slice(0, 50)); // Muestra los primeros 50 para no saturar
+    
+    // Opcional: Descargar como JSON
+    const jsonStr = JSON.stringify(datos2025, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'datos_2025_procesados.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
 // ================== FUNCIONES DE API ==================
 
 async function getParsedMainData() {
@@ -3106,127 +3721,107 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 
-
-// Función para capturar y descargar las tarjetas como imagen PNG
-async function captureAndDownloadCards() {
-    try {
-        const captureBtn = document.getElementById('captureBtn');
-        const originalHtml = captureBtn.innerHTML;
-        captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        captureBtn.disabled = true;
-
-        // Abrir todas las tarjetas
-        openAllCards();
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Configuración responsive
-        const isMobile = window.matchMedia("(max-width: 768px)").matches;
-        const cardsContainer = document.querySelector('.cards-container');
-        
-        // Ocultar elementos temporales
-        const elementsToHide = document.querySelectorAll('.date-selector-container');
-        elementsToHide.forEach(el => el.style.visibility = 'hidden');
-
-        // Guardar estilos originales
-        const originalStyles = {
-            width: cardsContainer.style.width,
-            overflow: cardsContainer.style.overflow,
-            margin: cardsContainer.style.margin
-        };
-
-        // Ajustar para captura
-        cardsContainer.style.width = isMobile ? '2400px' : 'fit-content';
-        cardsContainer.style.overflow = 'visible';
-        cardsContainer.style.margin = '0 auto';
-
-        // Configuración de html2canvas para móviles
-        const canvasOptions = {
-            scale: isMobile ? 3 : 2, // Mayor escala en móviles
-            logging: false,
-            useCORS: true,
-            allowTaint: true,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: isMobile ? 2400 : cardsContainer.scrollWidth,
-            windowHeight: cardsContainer.scrollHeight,
-            backgroundColor: '#f5f7fa'
-        };
-
-        // Capturar con retraso para asegurar renderizado
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const canvas = await html2canvas(cardsContainer, canvasOptions);
-
-        // Restaurar estilos
-        elementsToHide.forEach(el => el.style.visibility = 'visible');
-        Object.assign(cardsContainer.style, originalStyles);
-
-        // Crear imagen en máxima calidad
-        const imageQuality = isMobile ? 1.0 : 0.9;
-        const image = canvas.toDataURL('image/png', imageQuality);
-
-        // Descargar
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = `reporte-ingresos-${new Date().toISOString().split('T')[0]}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // WhatsApp
-        const message = generateWhatsAppMessage();
-        openWhatsApp(message);
-
-    } catch (error) {
-        console.error("Error al capturar:", error);
-        alert("Error al generar captura. Intente nuevamente.");
-    } finally {
-        const captureBtn = document.getElementById('captureBtn');
-        if (captureBtn) {
-            captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-            captureBtn.disabled = false;
-        }
+// Función para subir la imagen a Drive y obtener el enlace
+async function uploadImageToDrive(imageData) {
+  try {
+    const response = await fetch('https://script.google.com/macros/s/AKfycbz6sUS28Xza02Kjwg-Eez1TPn4BBj2XcZGF8gKxEHr4Fsxz4eqYoQYHCqx5NWaOP1OR8g/exec', {
+      method: 'POST',
+      body: imageData
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === "success") {
+      return result.imageUrl;
+    } else {
+      console.error("Error al subir la imagen:", result.message);
+      return null;
     }
+  } catch (error) {
+    console.error("Error en la petición:", error);
+    return null;
+  }
 }
 
-// Inicializar el botón de captura
-function initCaptureButton() {
+async function captureAndDownloadCards() {
+  try {
     const captureBtn = document.getElementById('captureBtn');
-    const passwordModal = document.getElementById('passwordModal');
-    const passwordInput = document.getElementById('passwordInput');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const confirmBtn = document.getElementById('confirmBtn');
+    const originalHtml = captureBtn.innerHTML;
+    captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    captureBtn.disabled = true;
 
-    if (!captureBtn) return;
+    // Abrir todas las tarjetas
+    openAllCards();
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    captureBtn.addEventListener('click', () => {
-        passwordModal.style.display = 'flex';
-        passwordInput.focus();
-    });
+    // Configuración responsive (MANTENIENDO TU CONFIGURACIÓN EXACTA)
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+    const cardsContainer = document.querySelector('.cards-container');
+    
+    // Ocultar elementos temporales (MANTENIENDO TU CONFIGURACIÓN)
+    const elementsToHide = document.querySelectorAll('.date-selector-container');
+    elementsToHide.forEach(el => el.style.visibility = 'hidden');
 
-    cancelBtn.addEventListener('click', () => {
-        passwordModal.style.display = 'none';
-        passwordInput.value = '';
-    });
+    // Guardar estilos originales (MANTENIENDO TU CONFIGURACIÓN)
+    const originalStyles = {
+      width: cardsContainer.style.width,
+      overflow: cardsContainer.style.overflow,
+      margin: cardsContainer.style.margin
+    };
 
-    confirmBtn.addEventListener('click', () => {
-        if (passwordInput.value === 'one') {
-            passwordModal.style.display = 'none';
-            passwordInput.value = '';
-            executeCapture(); // Función que ejecuta la captura real
-        } else {
-            alert('Contraseña incorrecta');
-            passwordInput.value = '';
-            passwordInput.focus();
-        }
-    });
+    // Ajustar para captura (MANTENIENDO TU CONFIGURACIÓN)
+    cardsContainer.style.width = isMobile ? '1400px' : 'fit-content';
+    cardsContainer.style.overflow = 'visible';
+    cardsContainer.style.margin = '0 auto';
 
-    // También permitir enviar con Enter
-    passwordInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            confirmBtn.click();
-        }
-    });
+    // Configuración de html2canvas (MANTENIENDO TU CONFIGURACIÓN EXACTA)
+    const canvasOptions = {
+      scale: isMobile ? 3 : 2, // Mayor escala en móviles
+      logging: false,
+      useCORS: true,
+      allowTaint: true,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: isMobile ? 2400 : cardsContainer.scrollWidth,
+      windowHeight: cardsContainer.scrollHeight,
+      backgroundColor: '#f5f7fa'
+    };
+
+    // Capturar con retraso para asegurar renderizado
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const canvas = await html2canvas(cardsContainer, canvasOptions);
+
+    // Restaurar estilos
+    elementsToHide.forEach(el => el.style.visibility = 'visible');
+    Object.assign(cardsContainer.style, originalStyles);
+    
+    // Obtener imagen en base64 (conservando tu configuración de calidad)
+    const imageQuality = isMobile ? 1.0 : 0.9;
+    const imageData = canvas.toDataURL('image/png', imageQuality).split(',')[1];
+    
+    // Subir a Drive y obtener el enlace
+    const imageUrl = await uploadImageToDrive(imageData);
+    
+    // Generar el mensaje de WhatsApp con ambos enlaces
+    const whatsappMessage = generateWhatsAppMessage(imageUrl);
+
+    // Abrir WhatsApp con el mensaje completo
+    window.open(`https://wa.me/573168007979?text=${whatsappMessage}`, '_blank');
+
+  } catch (error) {
+    console.error("Error al capturar:", error);
+    alert("Error al generar captura. Intente nuevamente.");
+  } finally {
+    const captureBtn = document.getElementById('captureBtn');
+    if (captureBtn) {
+      captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+      captureBtn.disabled = false;
+    }
+  }
 }
+
+
+
 
 // Función separada para la captura real
 function initCaptureButton() {
@@ -3329,6 +3924,38 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 
+</script>
+
+<script>
+// Función para verificar la contraseña
+function checkPassword() {
+    const password = prompt("Ingrese la contraseña para enviar el informe:");
+    if (password === "one") {
+        return true;
+    } else {
+        alert("Contraseña incorrecta");
+        return false;
+    }
+}
+
+// Modificar la función initCaptureButton para incluir la verificación
+function initCaptureButton() {
+    const captureBtn = document.getElementById('captureBtn');
+    if (captureBtn) {
+        captureBtn.addEventListener('click', function(e) {
+            if (!checkPassword()) {
+                e.preventDefault();
+                return false;
+            }
+            captureAndDownloadCards();
+        });
+    }
+}
+
+// Asegurarse de que la función se ejecute al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    initCaptureButton();
+});
 </script>
 
 </body>
