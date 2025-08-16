@@ -2624,29 +2624,60 @@ if ('serviceWorker' in navigator) {
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  // Previene que Chrome muestre el prompt automático
   e.preventDefault();
-  // Guarda el evento para poder activarlo después
   deferredPrompt = e;
-  
-  // Opcional: Muestra un botón para instalar
-  const installButton = document.createElement('button');
-  installButton.textContent = 'Instalar App';
-  installButton.style.position = 'fixed';
-  installButton.style.bottom = '20px';
-  installButton.style.right = '20px';
-  installButton.style.zIndex = '1000';
-  installButton.addEventListener('click', () => {
+
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.bottom = '20px';
+  container.style.right = '20px';
+  container.style.background = '#fff';
+  container.style.borderRadius = '15px';
+  container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  container.style.display = 'flex';
+  container.style.alignItems = 'center';
+  container.style.padding = '12px 18px';
+  container.style.cursor = 'pointer';
+  container.style.opacity = '0';
+  container.style.transform = 'translateY(20px)';
+  container.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  container.style.zIndex = '1000';
+
+  const logo = document.createElement('img');
+  logo.src = '/one/ingresos/informe/icons/icon-192.png';
+  logo.style.width = '40px';
+  logo.style.height = '40px';
+  logo.style.borderRadius = '8px';
+  logo.style.marginRight = '10px';
+
+  const text = document.createElement('span');
+  text.textContent = 'Instalar Ingresos MP';
+  text.style.fontFamily = 'sans-serif';
+  text.style.fontSize = '16px';
+  text.style.fontWeight = 'bold';
+  text.style.color = '#007BFF';
+
+  container.appendChild(logo);
+  container.appendChild(text);
+  document.body.appendChild(container);
+
+  setTimeout(() => {
+    container.style.opacity = '1';
+    container.style.transform = 'translateY(0)';
+  }, 100);
+
+  container.addEventListener('click', () => {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === 'accepted') {
-        console.log('Usuario aceptó la instalación');
+        console.log('Instalación aceptada');
       }
+      container.remove();
       deferredPrompt = null;
     });
   });
-  document.body.appendChild(installButton);
 });
+
 
 </script>
 
