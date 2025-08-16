@@ -2620,59 +2620,61 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-<!-- Fuente profesional -->
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-
-<script>
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
 
-  // Contenedor principal
+  // Contenedor del botón
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.bottom = '20px';
   container.style.right = '20px';
   container.style.background = '#ffffff';
-  container.style.borderRadius = '15px';
-  container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  container.style.borderRadius = '12px';
+  container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
   container.style.display = 'flex';
   container.style.alignItems = 'center';
-  container.style.padding = '12px 18px';
+  container.style.padding = '10px 16px';
   container.style.cursor = 'pointer';
   container.style.opacity = '0';
   container.style.transform = 'translateY(20px)';
-  container.style.transition = 'opacity 0.5s ease, transform 0.5s ease, right 0.4s ease';
+  container.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
   container.style.zIndex = '1000';
-  container.style.fontFamily = "'Roboto', sans-serif";
+  container.style.border = '1px solid #e0e0e0';
 
   // Logo
   const logo = document.createElement('img');
   logo.src = '/one/ingresos/informe/icons/icon-192.png';
-  logo.style.width = '40px';
-  logo.style.height = '40px';
+  logo.alt = 'Logo App';
+  logo.style.width = '36px';
+  logo.style.height = '36px';
   logo.style.borderRadius = '8px';
-  logo.style.marginRight = '10px';
+  logo.style.marginRight = '12px';
 
   // Texto
   const text = document.createElement('span');
   text.textContent = 'Instalar Ingresos MP';
+  text.style.fontFamily = `'Segoe UI', 'Roboto', 'Inter', sans-serif`;
   text.style.fontSize = '15px';
   text.style.fontWeight = '500';
-  text.style.color = '#333'; // gris profesional
+  text.style.color = '#333333';
+  text.style.letterSpacing = '0.3px';
 
-  // Icono de instalar
-  const icon = document.createElement('span');
-  icon.textContent = '⬇️';
-  icon.style.marginLeft = '8px';
-  icon.style.fontSize = '18px';
+  // Hover elegante
+  container.addEventListener('mouseenter', () => {
+    container.style.background = '#f9f9f9';
+    container.style.transform = 'scale(1.02)';
+  });
+  container.addEventListener('mouseleave', () => {
+    container.style.background = '#ffffff';
+    container.style.transform = 'scale(1)';
+  });
 
-  // Añadir al contenedor
+  // Ensamblar
   container.appendChild(logo);
   container.appendChild(text);
-  container.appendChild(icon);
   document.body.appendChild(container);
 
   // Animación de entrada
@@ -2681,40 +2683,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     container.style.transform = 'translateY(0)';
   }, 100);
 
-  // Retracción automática a los 2s
-  setTimeout(() => {
-    container.style.right = '-150px'; // se oculta dejando solapa
-  }, 2000);
-
-  // Mostrar solo solapa
-  const tab = document.createElement('div');
-  tab.style.position = 'fixed';
-  tab.style.bottom = '20px';
-  tab.style.right = '0';
-  tab.style.width = '40px';
-  tab.style.height = '50px';
-  tab.style.background = '#ffffff';
-  tab.style.borderTopLeftRadius = '8px';
-  tab.style.borderBottomLeftRadius = '8px';
-  tab.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-  tab.style.display = 'flex';
-  tab.style.alignItems = 'center';
-  tab.style.justifyContent = 'center';
-  tab.style.cursor = 'pointer';
-  tab.style.fontSize = '20px';
-  tab.style.zIndex = '1001';
-  tab.textContent = '📲';
-  tab.style.opacity = '0';
-  tab.style.transition = 'opacity 0.3s ease';
-
-  document.body.appendChild(tab);
-
-  // Mostrar solapa después de retracción
-  setTimeout(() => {
-    tab.style.opacity = '1';
-  }, 2400);
-
-  // Clic en contenedor → instalar
+  // Acción de instalación
   container.addEventListener('click', () => {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
@@ -2722,14 +2691,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
         console.log('Instalación aceptada');
       }
       container.remove();
-      tab.remove();
       deferredPrompt = null;
     });
-  });
-
-  // Clic en solapa → mostrar contenedor otra vez
-  tab.addEventListener('click', () => {
-    container.style.right = '20px';
   });
 });
 
