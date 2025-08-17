@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4361ee">
+  <meta name="description" content="Dashboard de Ingresos de Marca Propia - Grupo TDM">
+  
+  <title>Ingresos de Marca Propia</title>
+  
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="/one/ingresos/informe/manifest.json">
+  
+  <!-- Favicon y icons PWA -->
+  <link rel="icon" href="/one/ingresos/informe/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/one/ingresos/informe/icons/icon-192.png">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  
+  <!-- Fuentes -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="/one/ingresos/informe/css/main.css">
+  <link rel="stylesheet" href="/one/ingresos/informe/css/cards.css">
+  <link rel="stylesheet" href="/one/ingresos/informe/css/responsive.css">
+  
+  <!-- Preload de scripts críticos -->
+  <link rel="preload" href="https://code.jquery.com/jquery-3.6.0.min.js" as="script">
+  <link rel="preload" href="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js" as="script">
+</head>
+<body>
+  <!-- Header -->
+  <header class="dashboard-header" id="app-header">
+    <!-- Se carga dinámicamente desde components/header.html -->
+  </header>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Cargando datos...</div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar" id="loadingProgress"></div>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <main class="main-content">
+    <!-- Sección de tarjetas resumen -->
+    <div class="cards-container" id="cards-container">
+      <!-- Se carga dinámicamente desde components/cards/ -->
+    </div>
+
+    <!-- Sección de DataTable -->
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <h2 class="card-title">
+          <div class="card-icon datos"><i class="fas fa-table"></i></div> 
+          Base de Datos Detallada
+        </h2>
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <span class="date-badge" id="data-update-date">Cargando...</span>
+          <i class="fas fa-chevron-down collapse-indicator"></i>
+        </div>
+      </div>
+
+      <div class="card-content">
+        <!-- Controles de tabla -->
+        <div class="table-controls">
+          <div class="left-controls">
+            <div class="filter-item">
+              <label for="date-range"><i class="fas fa-calendar-alt"></i> Rango:</label>
+              <input type="text" id="date-range" class="form-control date-range-input" placeholder="Seleccionar rango">
+            </div>
+
+            <div class="filter-item">
+              <label for="global-search"><i class="fas fa-search"></i> Buscar:</label>
+              <input type="text" id="global-search" placeholder="Texto..." class="form-control">
+            </div>
+          </div>
+
+          <div class="right-controls">
+            <button type="button" class="table-btn" onclick="openFiltersModal()">
+              <i class="fas fa-filter"></i> Más filtros
+            </button>
+          </div>
+        </div>
+
+        <!-- Botones de acciones -->
+        <div class="table-actions">
+          <button id="refresh-btn" class="btn-icon" title="Actualizar datos">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <button id="export-btn" class="btn-primary">
+            <i class="fas fa-file-excel"></i> Exportar Excel
+          </button>
+        </div>
+
+        <!-- Tabla -->
+        <div class="data-table-container">
+          <table id="detailedDataTable" class="display nowrap" style="width:100%">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Documento</th>
+                <th>Línea</th>
+                <th>Referencia</th>
+                <th>Cantidad</th>
+                <th>PVP</th>
+                <th>Prenda</th>
+                <th>Género</th>
+                <th>Clase</th>
+                <th>Gestor</th>
+                <th>Proveedor</th>
+                <th>Fuente</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Filtros Avanzados -->
+  <div id="filtersModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close" onclick="closeFiltersModal()">&times;</span>
+      <h4><i class="fas fa-sliders-h"></i> Filtros Avanzados</h4>
+
+      <div class="filter-item">
+        <label for="linea-filter"><i class="fas fa-tags"></i> Línea:</label>
+        <select id="linea-filter" class="form-control">
+          <option value="">Todas</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label for="proveedor-filter"><i class="fas fa-industry"></i> Proveedor:</label>
+        <select id="proveedor-filter" class="form-control">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label for="fuente-filter"><i class="fas fa-database"></i> Fuente:</label>
+        <select id="fuente-filter" class="form-control">
+          <option value="">Todas</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label for="gestor-filter"><i class="fas fa-user-tie"></i> Gestor:</label>
+        <select id="gestor-filter" class="form-control">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+      <div style="text-align: right; margin-top: 15px;">
+        <button class="table-btn" onclick="closeFiltersModal()"><i class="fas fa-check"></i> Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer id="app-footer">
+    <!-- Se carga dinámicamente desde components/footer.html -->
+  </footer>
+
+  <!-- Scripts -->
+  <!-- Librerías principales -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+  <!-- Componentes -->
+  <script type="module" src="/one/ingresos/informe/js/components/header.js"></script>
+  <script type="module" src="/one/ingresos/informe/js/components/footer.js"></script>
+  <script type="module" src="/one/ingresos/informe/js/components/cards/daily-card.js"></script>
+  <script type="module" src="/one/ingresos/informe/js/components/cards/monthly-card.js"></script>
+  <script type="module" src="/one/ingresos/informe/js/components/cards/yearly-card.js"></script>
+
+  <!-- Módulos principales -->
+  <script type="module" src="/one/ingresos/informe/js/api.js"></script>
+  <script type="module" src="/one/ingresos/informe/js/datatable.js"></script>
+  <script type="module" src="/one/ingresos/informe/js/charts.js"></script>
+  <script type="module" src="/one/ingresos/informe/js/pwa.js"></script>
+  <script type="module" src="/one/ingresos/informe/js/main.js"></script>
+
+  <!-- Inline script para inicialización -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar PWA
+      if (typeof initPWA === 'function') {
+        initPWA();
+      }
+      
+      // Cargar datos iniciales
+      if (typeof loadInitialData === 'function') {
+        loadInitialData();
+      }
+    });
+  </script>
+</body>
+</html>
