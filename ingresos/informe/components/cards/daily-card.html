@@ -1,0 +1,266 @@
+<!-- components/cards/daily-card.html -->
+<div class="card">
+  <div class="card-header" onclick="toggleCard(this)">
+    <h2 class="card-title">
+      <div class="card-icon dia">
+        <i class="fas fa-calendar-day"></i>
+      </div> 
+      Resumen Diario
+    </h2>
+    <div class="header-right">
+      <span class="date-badge" id="dia-fecha"></span>
+      <i class="fas fa-chevron-down collapse-indicator"></i>
+    </div>
+  </div>
+  
+  <div class="card-content">
+    <div class="data-grid">
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-bullseye"></i> Meta Diaria
+        </div>
+        <p class="data-value" id="dia-meta"></p>
+      </div>
+      
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-money-bill-wave"></i> Ingreso Actual
+        </div>
+        <p class="data-value" id="dia-ingreso"></p>
+      </div>
+      
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-balance-scale"></i> Diferencia
+        </div>
+        <p class="data-value" id="dia-diferencia"></p>
+      </div>
+      
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-percent"></i> Porcentaje
+        </div>
+        <p class="data-value" id="dia-porcentaje"></p>
+      </div>
+    </div>
+    
+    <div class="progress-section">
+      <div class="progress-header">
+        <span class="progress-title">Progreso hacia la meta</span>
+        <span class="progress-percent" id="dia-progressPercent">0%</span>
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar" id="dia-progressBar"></div>
+      </div>
+      <div class="progress-remaining" id="dia-restante"></div>
+    </div>
+    
+    <div class="extra-stats">
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-chart-simple"></i> Gestión Anual
+          <div class="tooltip">
+            <i class="fas fa-info-circle"></i>
+            <span class="tooltiptext">Comparación con el mismo día del año anterior</span>
+          </div>
+        </div>
+        <p class="data-value">
+          <span id="dia-gestion"></span>
+          <span class="trend-icon" id="dia-trendIcon"></span>
+        </p>
+      </div>
+      
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-calculator"></i> Promedio
+          <div class="tooltip">
+            <i class="fas fa-info-circle"></i>
+            <span class="tooltiptext">Promedio simple de ingresos hasta la fecha</span>
+          </div>
+        </div>
+        <p class="data-value info" id="dia-average"></p>
+      </div>
+      
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-weight-hanging"></i> Promedio Ponderado
+          <div class="tooltip">
+            <i class="fas fa-info-circle"></i>
+            <span class="tooltiptext">Promedio ponderado por días hábiles</span>
+          </div>
+        </div>
+        <p class="data-value purple" id="dia-weighted"></p>
+      </div>
+      
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-chart-bar"></i> Desviación Estándar
+          <div class="tooltip">
+            <i class="fas fa-info-circle"></i>
+            <span class="tooltiptext">Variabilidad de los ingresos diarios</span>
+          </div>
+        </div>
+        <p class="data-value" id="dia-desvest"></p>
+      </div>
+      
+      <div class="data-item">
+        <div class="data-label">
+          <i class="fas fa-crown"></i> Máximo
+          <div class="tooltip">
+            <i class="fas fa-info-circle"></i>
+            <span class="tooltiptext">Ingreso diario máximo registrado</span>
+          </div>
+        </div>
+        <p class="data-value positive" id="dia-max"></p>
+      </div>
+    </div>
+    
+    <div class="comparison-container">
+      <div class="comparison-header" onclick="toggleComparison(this)">
+        <div class="comparison-title-container">
+          <i class="fas fa-calendar-day" style="color: var(--primary-color);"></i>
+          <h3 class="comparison-title">Comparativo Año Anterior</h3>
+        </div>
+        <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+      </div>
+      
+      <div class="comparison-content">
+        <div class="comparison-grid">
+          <div class="comparison-item">
+            <div class="comparison-label">Meta</div>
+            <div class="comparison-value" id="dia-metaAnterior"></div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Ingreso</div>
+            <div class="comparison-value" id="dia-ingresoAnterior"></div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Porcentaje</div>
+            <div class="comparison-value" id="dia-porcentajeAnterior"></div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Día del año</div>
+            <div class="comparison-value" id="dia-diaAnterior"></div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Promedio</div>
+            <div class="comparison-value" id="dia-averageAnterior"></div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Ponderado</div>
+            <div class="comparison-value" id="dia-weightedAnterior"></div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Desv. Estándar</div>
+            <div class="comparison-value" id="dia-desvestAnterior"></div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Máximo</div>
+            <div class="comparison-value" id="dia-maxAnterior"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Función para actualizar los datos diarios
+  function updateDailyCard(data) {
+    if (!data) return;
+    
+    const { actual, anterior } = data;
+    
+    // Actualizar datos básicos
+    document.getElementById("dia-fecha").textContent = actual.fecha;
+    document.getElementById("dia-meta").textContent = formatoCantidad(actual.meta);
+    document.getElementById("dia-ingreso").textContent = formatoCantidad(actual.ingreso);
+    
+    // Diferencia
+    const diffEl = document.getElementById("dia-diferencia");
+    diffEl.textContent = formatoCantidad(actual.diferencia);
+    diffEl.className = "data-value " + (actual.diferencia >= 0 ? "positive" : "negative");
+    
+    // Porcentaje
+    document.getElementById("dia-porcentaje").textContent = actual.porcentaje;
+    
+    // Barra de progreso
+    const progressBar = document.getElementById("dia-progressBar");
+    const progressPercent = document.getElementById("dia-progressPercent");
+    let progreso = extraerPorcentaje(actual.porcentaje);
+    let colorBarra;
+    
+    if (progreso < 30) {
+      colorBarra = "linear-gradient(90deg, var(--danger-color), var(--warning-color))";
+    } else if (progreso < 70) {
+      colorBarra = "linear-gradient(90deg, var(--warning-color), #f1c40f)";
+    } else if (progreso < 100) {
+      colorBarra = "linear-gradient(90deg, var(--success-color), #27ae60)";
+    } else {
+      colorBarra = "linear-gradient(90deg, #27ae60, #219653)";
+    }
+    
+    progressBar.style.background = colorBarra;
+    progressPercent.textContent = "0%";
+    
+    setTimeout(() => {
+      progressBar.style.width = progreso + "%";
+      progressPercent.textContent = actual.porcentaje;
+    }, 300);
+    
+    // Mostrar restante
+    document.getElementById("dia-restante").textContent = 
+      `Faltan ${formatoCantidad(actual.meta - actual.ingreso)} para alcanzar la meta`;
+    
+    // Gestión anual
+    const gestEl = document.getElementById("dia-gestion");
+    const trendIcon = document.getElementById("dia-trendIcon");
+    
+    if (actual.gestion) {
+      const gestionValue = extraerPorcentaje(actual.gestion);
+      gestEl.textContent = actual.gestion;
+      
+      if (gestionValue > 5) {
+        gestEl.className = "positive";
+        trendIcon.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+        trendIcon.style.color = "var(--success-color)";
+      } else if (gestionValue < -5) {
+        gestEl.className = "negative";
+        trendIcon.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
+        trendIcon.style.color = "var(--danger-color)";
+      } else {
+        gestEl.className = "neutral";
+        trendIcon.innerHTML = '<i class="fa-solid fa-equals"></i>';
+        trendIcon.style.color = "var(--warning-color)";
+      }
+    }
+    
+    // Estadísticas adicionales
+    document.getElementById("dia-average").textContent = formatoCantidad(actual.promedio);
+    document.getElementById("dia-weighted").textContent = formatoCantidad(actual.ponderado);
+    document.getElementById("dia-desvest").textContent = formatoCantidad(actual.desvest);
+    document.getElementById("dia-max").textContent = formatoCantidad(actual.max);
+    
+    // Comparativo año anterior
+    if (anterior) {
+      document.getElementById("dia-metaAnterior").textContent = formatoCantidad(anterior.meta);
+      document.getElementById("dia-ingresoAnterior").textContent = formatoCantidad(anterior.ingreso);
+      document.getElementById("dia-porcentajeAnterior").textContent = anterior.porcentaje;
+      document.getElementById("dia-diaAnterior").textContent = anterior.dia_letras;
+      document.getElementById("dia-averageAnterior").textContent = formatoCantidad(anterior.promedio);
+      document.getElementById("dia-weightedAnterior").textContent = formatoCantidad(anterior.ponderado);
+      document.getElementById("dia-desvestAnterior").textContent = formatoCantidad(anterior.desvest);
+      document.getElementById("dia-maxAnterior").textContent = formatoCantidad(anterior.max);
+    }
+  }
+
+  // Registrar la función globalmente
+  window.updateDailyCard = updateDailyCard;
+</script>
