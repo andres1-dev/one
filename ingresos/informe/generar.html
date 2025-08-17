@@ -13,7 +13,6 @@
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="icon" href="favicon.ico" type="image/x-icon" sizes="16x16 32x32">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="mask-icon" href="safari-pinned-tab.svg" color="#5bbad5">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <!-- html2canvas -->
@@ -4164,20 +4163,20 @@ let touchStartY = 0;
 let touchCount = 0;
 
 document.addEventListener('touchstart', function(e) {
-    if (e.touches.length >= 2) { // Dos o más dedos
+    if (e.touches.length >= 3) { // Tres o más dedos
         touchStartY = e.touches[0].clientY;
         touchCount = e.touches.length;
     }
 });
 
 document.addEventListener('touchmove', function(e) {
-    if (touchCount >= 2 && e.touches.length >= 2) {
+    if (touchCount >= 3 && e.touches.length >= 3) {
         const touchEndY = e.touches[0].clientY;
         const distanceY = touchEndY - touchStartY;
         
         // Umbral para considerar que es un deslizamiento hacia abajo
         if (distanceY > 100) { // Ajusta este valor según necesites
-            handleTwoFingerSwipeDown();
+            handleThreeFingerSwipeDown();
             touchCount = 0; // Resetear para evitar múltiples activaciones
         }
     }
@@ -4187,7 +4186,7 @@ document.addEventListener('touchend', function() {
     touchCount = 0; // Resetear al levantar los dedos
 });
 
-function handleTwoFingerSwipeDown() {
+function handleThreeFingerSwipeDown() {
     // Evitar múltiples activaciones
     if (document.querySelector('.swipe-refresh-indicator')) return;
     
