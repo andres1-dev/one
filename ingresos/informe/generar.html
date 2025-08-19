@@ -2172,55 +2172,71 @@ let retryCount = 0;
 const MAX_RETRIES = 3;
 
 
-// Frases falsas organizadas por bloques
+// Mensajes falsos organizados por bloques, con varios para bloques largos
 const fakeMessagesByBlock = {
     init: [
-        "Verificando integridad de la sesión...",
-        "Cargando parámetros de conexión...",
-        "Resolviendo dependencias críticas..."
+        "Inicializando parámetros de sesión...",
+        "Verificando dependencias críticas...",
+        "Preparando entorno de ejecución...",
+        "Cargando configuración de seguridad..."
     ],
     connect: [
         "Estableciendo túnel seguro TLS...",
-        "Autenticando credenciales del sistema...",
+        "Autenticando credenciales...",
+        "Resolviendo DNS del servidor...",
         "Negociando protocolo de transferencia..."
     ],
     download: [
-        "Validando checksum de paquetes...",
-        "Fragmentando datos en lotes optimizados...",
-        "Recibiendo cabeceras de metadatos..."
+        "Descargando paquete de datos [1/5]...",
+        "Descargando paquete de datos [2/5]...",
+        "Descargando paquete de datos [3/5]...",
+        "Validando checksum de fragmentos...",
+        "Reensamblando bloques de datos...",
+        "Comprobando cabeceras de metadatos...",
+        "Optimización de flujo de descarga..."
     ],
     sync: [
         "Comparando hashes de tablas...",
         "Actualizando índices secundarios...",
-        "Sincronizando particiones distribuidas..."
+        "Normalizando estructuras de datos...",
+        "Sincronizando particiones distribuidas...",
+        "Verificando consistencia referencial...",
+        "Replicando registros a caché local..."
     ],
     process: [
         "Ejecutando algoritmos de agregación...",
-        "Normalizando estructuras multidimensionales...",
-        "Calculando métricas financieras avanzadas..."
+        "Procesando métricas financieras...",
+        "Calculando series temporales...",
+        "Aplicando fórmulas de consolidación...",
+        "Optimizando consultas SQL complejas..."
     ],
     compile: [
         "Generando informes intermedios...",
         "Unificando resultados en memoria...",
-        "Optimización de consultas SQL..."
+        "Indexando métricas calculadas...",
+        "Preparando estructura de salida..."
     ],
     render: [
-        "Aplicando modelos de visualización...",
-        "Renderizando gráficos en canvas...",
-        "Cargando estilos dinámicos..."
+        "Renderizando gráficos de barras...",
+        "Aplicando estilos dinámicos...",
+        "Generando visualizaciones interactivas...",
+        "Cargando librerías de visualización..."
     ],
     finish: [
         "Liberando recursos temporales...",
         "Confirmando estado de finalización...",
+        "Notificando sistema de auditoría...",
         "Sincronización completada con éxito."
     ]
 };
 
-// Función para mostrar mensajes falsos de un bloque
-async function showBlockMessages(loadingText, block, delay = 200) {
+// Función para mostrar mensajes falsos de un bloque en “loop” hasta que se complete
+async function showBlockMessagesLoop(loadingText, block, stopSignal, delay = 300) {
     const messages = fakeMessagesByBlock[block] || [];
-    for (const msg of messages) {
-        loadingText.textContent = msg;
+    let i = 0;
+    while (!stopSignal.done) {
+        loadingText.textContent = messages[i % messages.length];
+        i++;
         await new Promise(resolve => setTimeout(resolve, delay));
     }
 }
@@ -2239,60 +2255,74 @@ async function updateReportWithDate(newDate, forceReload = false) {
     try {
         // Mostrar overlay de carga
         loadingOverlay.classList.add('active');
-        loadingText.textContent = "Iniciando sincronización de datos...";
         loadingProgress.style.width = '10%';
-        
         updateBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
         updateBtn.style.pointerEvents = 'none';
 
-        await showBlockMessages(loadingText, "init", 180);
+        // Bloque de inicialización
+        let stopSignal = { done: false };
+        showBlockMessagesLoop(loadingText, "init", stopSignal, 250);
+        await new Promise(resolve => setTimeout(resolve, 800)); 
+        stopSignal.done = true;
+
+        // Conexión al servidor
+        loadingProgress.style.width = '20%';
+        stopSignal = { done: false };
+        showBlockMessagesLoop(loadingText, "connect", stopSignal, 250);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        stopSignal.done = true;
 
         if (forceReload || consolidatedData.length === 0 || budgetData.length === 0) {
-            loadingText.textContent = "Conectando con el servidor...";
-            loadingProgress.style.width = '20%';
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            await showBlockMessages(loadingText, "connect", 180);
-
-            loadingText.textContent = "Descargando paquetes de información...";
+            // Descarga de datos (bloque más largo)
             loadingProgress.style.width = '30%';
-
-            await showBlockMessages(loadingText, "download", 180);
-            
+            stopSignal = { done: false };
+            const downloadLoop = showBlockMessagesLoop(loadingText, "download", stopSignal, 350);
             consolidatedData = [];
             budgetData = [];
-            await cargarDatosIniciales();
-
-            loadingText.textContent = "Sincronizando bases de datos locales...";
+            await cargarDatosIniciales();  // <-- este puede tardar mucho
+            stopSignal.done = true;
+            await downloadLoop;
+            
+            // Sincronización
             loadingProgress.style.width = '50%';
-            await showBlockMessages(loadingText, "sync", 180);
+            stopSignal = { done: false };
+            showBlockMessagesLoop(loadingText, "sync", stopSignal, 300);
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            stopSignal.done = true;
         }
 
-        loadingText.textContent = "Procesando cálculos financieros...";
+        // Procesamiento
         loadingProgress.style.width = '65%';
-        await showBlockMessages(loadingText, "process", 180);
-
+        stopSignal = { done: false };
+        showBlockMessagesLoop(loadingText, "process", stopSignal, 250);
         const reporte = await generarReporteCompleto(newDate);
         currentReportData = reporte;
+        stopSignal.done = true;
 
-        loadingText.textContent = "Compilando resultados...";
+        // Compilación
         loadingProgress.style.width = '75%';
-        await showBlockMessages(loadingText, "compile", 180);
+        stopSignal = { done: false };
+        showBlockMessagesLoop(loadingText, "compile", stopSignal, 250);
+        await new Promise(resolve => setTimeout(resolve, 800));
+        stopSignal.done = true;
 
-        loadingText.textContent = "Renderizando visualizaciones...";
+        // Renderizado
         loadingProgress.style.width = '85%';
-        await showBlockMessages(loadingText, "render", 180);
-
+        stopSignal = { done: false };
+        showBlockMessagesLoop(loadingText, "render", stopSignal, 250);
         cargarDatosDia();
         cargarDatosMes();
         cargarDatosAño();
         cargarDatosTendencia();
-        
-        loadingText.textContent = "Finalizando actualización...";
+        stopSignal.done = true;
+
+        // Finalización
         loadingProgress.style.width = '100%';
-        await showBlockMessages(loadingText, "finish", 180);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        stopSignal = { done: false };
+        showBlockMessagesLoop(loadingText, "finish", stopSignal, 250);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        stopSignal.done = true;
+
     } catch (error) {
         console.error("Error:", error);
         loadingText.textContent = "⚠️ Error en la sincronización de datos";
