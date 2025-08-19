@@ -2643,6 +2643,7 @@ async function loadDataWithRetry(date) {
 
 
 // Función para generar el mensaje de WhatsApp
+// Función para generar el mensaje de WhatsApp
 function generateWhatsAppMessage(imageUrl = "") {
     if (!currentReportData) return "";
     
@@ -2677,6 +2678,21 @@ function generateWhatsAppMessage(imageUrl = "") {
         flechaGestion = valorGestion < 0 ? '↓' : '↑';
     }
 
+    // Obtener la tendencia global
+    const tendenciaGlobal = getGlobalTrend();
+    let textoTendencia = '';
+    
+    switch(tendenciaGlobal) {
+        case 'positive':
+            textoTendencia = '↑ Tendencia a la alza';
+            break;
+        case 'negative':
+            textoTendencia = '↓ Tendencia: a la baja';
+            break;
+        default:
+            textoTendencia = 'Tendencia Estable';
+    }
+
     // Construir el mensaje base
     let mensaje = `¡Bendiciones para todos!
 
@@ -2686,6 +2702,8 @@ Adjunto el Cierre de Ingresos del Día:
 *${formatoCantidad(diaData.ingreso)}* unidades | Cumplimiento *${diaData.porcentaje}*
 Meta: *${formatoCantidad(diaData.meta)}* ${comparativoAnterior}
 
+${textoTendencia}
+
 Muestra Semanal (S${semanaActual}/S${semanaAnterior}) Gestión ${flechaGestion} *${diaData.gestion || 'N/A'}*
 * Promedio: *${formatoCantidad(diaData.promedio)}*
 * Ponderado: *${formatoCantidad(diaData.ponderado)}*
@@ -2694,10 +2712,10 @@ Muestra Semanal (S${semanaActual}/S${semanaAnterior}) Gestión ${flechaGestion} 
 
     // Agregar enlaces
     mensaje += `\n\nEnlaces importantes:
-📊 Reporte detallado: https://andres1-dev.github.io/one/ingresos/informe/generar`;
+☆ Link a la aplicación: https://andres1-dev.github.io/one/ingresos/informe/generar`;
 
     if (imageUrl) {
-        mensaje += `\n📷 Resumen visual: ${imageUrl}`;
+        mensaje += `\n★ Resumen visual: ${imageUrl}`;
     }
 
     // Cierre del mensaje
