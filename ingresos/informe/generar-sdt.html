@@ -1301,10 +1301,81 @@
 
 
 
-<?php include("tendencia/index.html"); ?>
+
 <link rel="stylesheet" href="tendencia/style.css">
 <script src="tendencia/script.js"></script>
 
+  <!-- Tarjeta de Tendencias -->
+<div class="card">
+    <div class="card-top-border"></div>
+    <div class="card-header" onclick="toggleCard(this)">
+        <h2 class="card-title"><div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Analisis de Tendencia</h2>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span class="date-badge" id="tendencia-mes"></span>
+            <i class="fas fa-chevron-down collapse-indicator"></i>
+        </div>
+    </div>
+    
+    <div class="card-content">
+        <div class="data-grid">
+            <div class="data-item">
+                <div class="data-label"><i class="fas fa-arrow-trend-up"></i> Tendencia Actual</div>
+                <p class="data-value" id="tendencia-actual"></p>
+            </div>
+            
+            <div class="data-item">
+                <div class="data-label"><i class="fas fa-project-diagram"></i> Proyección Mensual</div>
+                <p class="data-value" id="tendencia-proyeccion"></p>
+            </div>
+            
+            <div class="data-item">
+                <div class="data-label"><i class="fas fa-percent"></i> Crecimiento vs Año Anterior</div>
+                <p class="data-value" id="tendencia-crecimiento"></p>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="tendenciaChart"></canvas>
+        </div>
+        
+        <div class="comparison-container">
+            <div class="comparison-header" onclick="toggleComparison(this)">
+                <div class="comparison-title-container">
+                    <i class="fas fa-calendar-week" style="color: var(--primary-color);"></i>
+                    <h3 class="comparison-title">Análisis Detallado</h3>
+                </div>
+                <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+            </div>
+            
+            <div class="comparison-content">
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <div class="comparison-label">Promedio 3 meses</div>
+                        <div class="comparison-value" id="tendencia-promedio-3m"></div>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <div class="comparison-label">Mejor mes</div>
+                        <div class="comparison-value" id="tendencia-mejor-mes"></div>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <div class="comparison-label">Peor mes</div>
+                        <div class="comparison-value" id="tendencia-peor-mes"></div>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <div class="comparison-label">Variabilidad</div>
+                        <div class="comparison-value" id="tendencia-variabilidad"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+  
 
 <footer>
     <p1>
