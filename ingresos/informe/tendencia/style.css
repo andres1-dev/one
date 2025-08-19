@@ -1,0 +1,33 @@
+<style>
+    /* Estilos específicos para la tarjeta de tendencias */
+    .card-icon.tendencia {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 25px 40;
+    }
+    
+    /* Estilos para los elementos de tendencia */
+    #tendencia-actual.positive { color: var(--success-color); }
+    #tendencia-actual.negative { color: var(--danger-color); }
+    #tendencia-actual.neutral { color: var(--warning-color); }
+    
+    #tendencia-proyeccion.positive { color: var(--success-color); }
+    #tendencia-proyeccion.negative { color: var(--danger-color); }
+    #tendencia-proyeccion.neutral { color: var(--warning-color); }
+    
+    #tendencia-crecimiento.positive { color: var(--success-color); }
+    #tendencia-crecimiento.negative { color: var(--danger-color); }
+    #tendencia-crecimiento.neutral { color: var(--warning-color); }
+    
+    /* Contenedor especial del borde superior */
+.card {
+    margin-top: 25px;   /* separa la tarjeta del borde superior */
+    /* o si quieres que siempre esté dentro con "aire" interno */
+    padding-top: 20px; */
+}
+
+</style>
