@@ -566,7 +566,7 @@
 
 @media (max-width: 768px) {
     body {
-        zoom: 0.8; /* aumenta un 20% */
+        zoom: 0.7; /* aumenta un 20% */
     }
 
     .date-selector-container {
@@ -1310,9 +1310,7 @@
     <div class="card-top-border"></div>
     <div class="card-header" onclick="toggleCard(this)">
         <h2 class="card-title">
-            <div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> 
-            Análisis de Tendencia Financiera
-        </h2>
+            <div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Tendencia</h2>
         <div style="display: flex; align-items: center; gap: 15px;">
             <span class="date-badge" id="tendencia-mes"></span>
             <i class="fas fa-chevron-down collapse-indicator"></i>
@@ -2031,7 +2029,7 @@ function getGlobalTrend() {
 
 
 <footer>
-    <div id="particles-js"></div>
+    <!-- <div id="particles-js"></div> -->
     <p1>
         Developed by Andrés Mendoza</a> 
         © 2025.
@@ -2173,7 +2171,60 @@ let isLoading = false;
 let retryCount = 0;
 const MAX_RETRIES = 3;
 
-// Función para actualizar el reporte con una nueva fecha
+
+// Frases falsas organizadas por bloques
+const fakeMessagesByBlock = {
+    init: [
+        "Verificando integridad de la sesión...",
+        "Cargando parámetros de conexión...",
+        "Resolviendo dependencias críticas..."
+    ],
+    connect: [
+        "Estableciendo túnel seguro TLS...",
+        "Autenticando credenciales del sistema...",
+        "Negociando protocolo de transferencia..."
+    ],
+    download: [
+        "Validando checksum de paquetes...",
+        "Fragmentando datos en lotes optimizados...",
+        "Recibiendo cabeceras de metadatos..."
+    ],
+    sync: [
+        "Comparando hashes de tablas...",
+        "Actualizando índices secundarios...",
+        "Sincronizando particiones distribuidas..."
+    ],
+    process: [
+        "Ejecutando algoritmos de agregación...",
+        "Normalizando estructuras multidimensionales...",
+        "Calculando métricas financieras avanzadas..."
+    ],
+    compile: [
+        "Generando informes intermedios...",
+        "Unificando resultados en memoria...",
+        "Optimización de consultas SQL..."
+    ],
+    render: [
+        "Aplicando modelos de visualización...",
+        "Renderizando gráficos en canvas...",
+        "Cargando estilos dinámicos..."
+    ],
+    finish: [
+        "Liberando recursos temporales...",
+        "Confirmando estado de finalización...",
+        "Sincronización completada con éxito."
+    ]
+};
+
+// Función para mostrar mensajes falsos de un bloque
+async function showBlockMessages(loadingText, block, delay = 200) {
+    const messages = fakeMessagesByBlock[block] || [];
+    for (const msg of messages) {
+        loadingText.textContent = msg;
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+}
+
 // Función para actualizar el reporte con una nueva fecha
 async function updateReportWithDate(newDate, forceReload = false) {
     if (isLoading) return;
@@ -2188,56 +2239,67 @@ async function updateReportWithDate(newDate, forceReload = false) {
     try {
         // Mostrar overlay de carga
         loadingOverlay.classList.add('active');
-        loadingText.textContent = "Actualizando datos...";
+        loadingText.textContent = "Iniciando sincronización de datos...";
         loadingProgress.style.width = '10%';
         
-        // Estado de carga - deshabilitar botón
-        updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        updateBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
         updateBtn.style.pointerEvents = 'none';
-        
-        // Solo recargar datos si es forzado o no hay datos cargados
+
+        await showBlockMessages(loadingText, "init", 180);
+
         if (forceReload || consolidatedData.length === 0 || budgetData.length === 0) {
-            loadingText.textContent = "Cargando datos iniciales...";
-            loadingProgress.style.width = '30%';
+            loadingText.textContent = "Conectando con el servidor...";
+            loadingProgress.style.width = '20%';
+            await new Promise(resolve => setTimeout(resolve, 300));
             
-            // Forzar recarga de datos
+            await showBlockMessages(loadingText, "connect", 180);
+
+            loadingText.textContent = "Descargando paquetes de información...";
+            loadingProgress.style.width = '30%';
+
+            await showBlockMessages(loadingText, "download", 180);
+            
             consolidatedData = [];
             budgetData = [];
             await cargarDatosIniciales();
-            
+
+            loadingText.textContent = "Sincronizando bases de datos locales...";
             loadingProgress.style.width = '50%';
+            await showBlockMessages(loadingText, "sync", 180);
         }
-        
-        // Generar nuevo reporte con la fecha seleccionada
-        loadingText.textContent = "Generando reporte...";
-        loadingProgress.style.width = '70%';
-        
+
+        loadingText.textContent = "Procesando cálculos financieros...";
+        loadingProgress.style.width = '65%';
+        await showBlockMessages(loadingText, "process", 180);
+
         const reporte = await generarReporteCompleto(newDate);
         currentReportData = reporte;
-        
-        // Actualizar la UI con los nuevos datos
-        loadingText.textContent = "Actualizando interfaz...";
-        loadingProgress.style.width = '90%';
-        
+
+        loadingText.textContent = "Compilando resultados...";
+        loadingProgress.style.width = '75%';
+        await showBlockMessages(loadingText, "compile", 180);
+
+        loadingText.textContent = "Renderizando visualizaciones...";
+        loadingProgress.style.width = '85%';
+        await showBlockMessages(loadingText, "render", 180);
+
         cargarDatosDia();
         cargarDatosMes();
         cargarDatosAño();
         cargarDatosTendencia();
         
-        // Finalizar carga
+        loadingText.textContent = "Finalizando actualización...";
         loadingProgress.style.width = '100%';
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await showBlockMessages(loadingText, "finish", 180);
+        await new Promise(resolve => setTimeout(resolve, 500));
         
     } catch (error) {
         console.error("Error:", error);
-        loadingText.textContent = "Error al cargar datos";
+        loadingText.textContent = "⚠️ Error en la sincronización de datos";
         loadingProgress.style.backgroundColor = "#e74c3c";
-        
-        // Esperar un momento antes de ocultar para que el usuario vea el error
         await new Promise(resolve => setTimeout(resolve, 1500));
         
     } finally {
-        // Ocultar overlay de carga
         loadingOverlay.classList.remove('active');
         loadingProgress.style.width = '0%';
         loadingProgress.style.backgroundColor = "";
@@ -2248,12 +2310,12 @@ async function updateReportWithDate(newDate, forceReload = false) {
             updateBtn.style.pointerEvents = 'auto';
         }
         
-        // Resetear progreso después de la animación
         setTimeout(() => {
             loadingProgress.style.width = '0%';
         }, 300);
     }
 }
+
 
 // Función con lógica de reintentos
 async function loadDataWithRetry(date) {
