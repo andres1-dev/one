@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ingresos">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="icon" href="favicon.ico" type="image/x-icon" sizes="16x16 32x32">
+    
+    <!-- Hojas de estilo locales -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/cards.css">
+    <link rel="stylesheet" href="css/trends.css">
+    <link rel="stylesheet" href="css/data-card.css">
+    <link rel="stylesheet" href="css/loading.css">
+    
+    <title>Ingresos de Marca Propia</title>
+</head>
+<body>
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">
+            <i class="fas fa-chart-line"></i> 
+            Ingresos de Marca Propia
+            <button id="updateReportBtn" class="update-btn-small" title="Actualizar Reporte">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </h1>
+        <div class="date-selector-container">
+            <input type="date" id="datePicker" class="date-picker">
+            <button id="captureBtn" class="capture-btn" title="Enviar informe">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Actualizando datos...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="loadingProgress"></div>
+        </div>
+    </div>
+
+    <!-- Cards Container -->
+    <div class="cards-container">
+        <!-- Tarjeta Día -->
+        <div class="card">
+            <div class="card-header" onclick="toggleCard(this)">
+                <h2 class="card-title"><div class="card-icon dia"><i class="fas fa-calendar-day"></i></div> Resumen Diario</h2>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="date-badge" id="dia-fecha"></span>
+                    <i class="fas fa-chevron-down collapse-indicator"></i>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                <div class="data-grid">
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-bullseye"></i> Meta Diaria</div>
+                        <p class="data-value" id="dia-meta"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-money-bill-wave"></i> Ingreso Actual</div>
+                        <p class="data-value" id="dia-ingreso"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-balance-scale"></i> Diferencia</div>
+                        <p class="data-value" id="dia-diferencia"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-percent"></i> Porcentaje</div>
+                        <p class="data-value" id="dia-porcentaje"></p>
+                    </div>
+                </div>
+                
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-title">Progreso hacia la meta</span>
+                        <span class="progress-percent" id="dia-progressPercent">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="dia-progressBar"></div>
+                    </div>
+                    <div class="progress-remaining" id="dia-restante"></div>
+                </div>
+                
+                <div class="extra-stats">
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-chart-simple"></i> Gestión Anual
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Comparación con el mismo día del año anterior</span>
+                            </div>
+                        </div>
+                        <p class="data-value">
+                            <span id="dia-gestion"></span>
+                            <span class="trend-icon" id="dia-trendIcon"></span>
+                        </p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-calculator"></i> Promedio
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Promedio simple de ingresos hasta la fecha</span>
+                            </div>
+                        </div>
+                        <p class="data-value info" id="dia-average"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-weight-hanging"></i> Promedio Ponderado
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Promedio ponderado por días hábiles</span>
+                            </div>
+                        </div>
+                        <p class="data-value purple" id="dia-weighted"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-chart-bar"></i> Desviación Estándar
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Variabilidad de los ingresos diarios</span>
+                            </div>
+                        </div>
+                        <p class="data-value" id="dia-desvest"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-crown"></i> Máximo
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Ingreso diario máximo registrado</span>
+                            </div>
+                        </div>
+                        <p class="data-value positive" id="dia-max"></p>
+                    </div>
+                </div>
+                
+                <div class="comparison-container">
+                    <div class="comparison-header" onclick="toggleComparison(this)">
+                        <div class="comparison-title-container">
+                            <i class="fas fa-calendar-day" style="color: var(--primary-color);"></i>
+                            <h3 class="comparison-title">Comparativo Año Anterior</h3>
+                        </div>
+                        <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+                    </div>
+                    
+                    <div class="comparison-content">
+                        <div class="comparison-grid">
+                            <div class="comparison-item">
+                                <div class="comparison-label">Meta</div>
+                                <div class="comparison-value" id="dia-metaAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Ingreso</div>
+                                <div class="comparison-value" id="dia-ingresoAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Porcentaje</div>
+                                <div class="comparison-value" id="dia-porcentajeAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Día del año</div>
+                                <div class="comparison-value" id="dia-diaAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Promedio</div>
+                                <div class="comparison-value" id="dia-averageAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Ponderado</div>
+                                <div class="comparison-value" id="dia-weightedAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Desv. Estándar</div>
+                                <div class="comparison-value" id="dia-desvestAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Máximo</div>
+                                <div class="comparison-value" id="dia-maxAnterior"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tarjeta Mes -->
+        <div class="card">
+            <div class="card-header" onclick="toggleCard(this)">
+                <h2 class="card-title"><div class="card-icon mes"><i class="fas fa-calendar-alt"></i></div> Resumen Mensual</h2>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="date-badge" id="mes-mes"></span>
+                    <i class="fas fa-chevron-down collapse-indicator"></i>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                <div class="data-grid">
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-bullseye"></i> Meta Mensual</div>
+                        <p class="data-value" id="mes-meta"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-money-bill-wave"></i> Ingreso Actual</div>
+                        <p class="data-value" id="mes-ingreso"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-balance-scale"></i> Diferencia</div>
+                        <p class="data-value" id="mes-diferencia"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-percent"></i> Porcentaje</div>
+                        <p class="data-value" id="mes-porcentaje"></p>
+                    </div>
+                </div>
+                
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-title">Progreso hacia la meta</span>
+                        <span class="progress-percent" id="mes-progressPercent">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="mes-progressBar"></div>
+                    </div>
+                    <div class="progress-remaining" id="mes-restante"></div>
+                </div>
+                
+                <div class="extra-stats">
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-chart-simple"></i> Gestión Anual
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Comparación con el mismo mes del año anterior</span>
+                            </div>
+                        </div>
+                        <p class="data-value">
+                            <span id="mes-gestion"></span>
+                            <span class="trend-icon" id="mes-trendIcon"></span>
+                        </p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-calculator"></i> Promedio
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Promedio simple de ingresos mensuales</span>
+                            </div>
+                        </div>
+                        <p class="data-value info" id="mes-average"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-weight-hanging"></i> Promedio Ponderado
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Promedio ponderado por días hábiles</span>
+                            </div>
+                        </div>
+                        <p class="data-value purple" id="mes-weighted"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-chart-bar"></i> Desviación Estándar
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Variabilidad de los ingresos mensuales</span>
+                            </div>
+                        </div>
+                        <p class="data-value" id="mes-desvest"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-crown"></i> Máximo
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Ingreso mensual máximo registrado</span>
+                            </div>
+                        </div>
+                        <p class="data-value positive" id="mes-max"></p>
+                    </div>
+                </div>
+                
+                <div class="comparison-container">
+                    <div class="comparison-header" onclick="toggleComparison(this)">
+                        <div class="comparison-title-container">
+                            <i class="fas fa-calendar-days" style="color: var(--primary-color);"></i>
+                            <h3 class="comparison-title">Comparativo Año Anterior</h3>
+                        </div>
+                        <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+                    </div>
+                    
+                    <div class="comparison-content">
+                        <div class="comparison-grid">
+                            <div class="comparison-item">
+                                <div class="comparison-label">Meta</div>
+                                <div class="comparison-value" id="mes-metaAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Ingreso</div>
+                                <div class="comparison-value" id="mes-ingresoAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Porcentaje</div>
+                                <div class="comparison-value" id="mes-porcentajeAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Días hábiles</div>
+                                <div class="comparison-value" id="mes-habilAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Promedio</div>
+                                <div class="comparison-value" id="mes-averageAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Ponderado</div>
+                                <div class="comparison-value" id="mes-weightedAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Desv. Estándar</div>
+                                <div class="comparison-value" id="mes-desvestAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Máximo</div>
+                                <div class="comparison-value" id="mes-maxAnterior"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tarjeta Año -->
+        <div class="card">
+            <div class="card-header" onclick="toggleCard(this)">
+                <h2 class="card-title"><div class="card-icon ano"><i class="fas fa-calendar"></i></div> Resumen Anual</h2>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="date-badge" id="año-año"></span>
+                    <i class="fas fa-chevron-down collapse-indicator"></i>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                <div class="data-grid">
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-bullseye"></i> Meta Anual</div>
+                        <p class="data-value" id="año-meta"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-money-bill-wave"></i> Ingreso Actual</div>
+                        <p class="data-value" id="año-ingreso"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-balance-scale"></i> Diferencia</div>
+                        <p class="data-value" id="año-diferencia"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label"><i class="fas fa-percent"></i> Porcentaje</div>
+                        <p class="data-value" id="año-porcentaje"></p>
+                    </div>
+                </div>
+                
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-title">Progreso hacia la meta</span>
+                        <span class="progress-percent" id="año-progressPercent">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="año-progressBar"></div>
+                    </div>
+                    <div class="progress-remaining" id="año-restante"></div>
+                </div>
+                
+                <div class="extra-stats">
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-chart-simple"></i> Gestión
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Comparación con el año anterior completo</span>
+                            </div>
+                        </div>
+                        <p class="data-value">
+                            <span id="año-gestion"></span>
+                            <span class="trend-icon" id="año-trendIcon"></span>
+                        </p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-calculator"></i> Promedio
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Promedio simple de ingresos anuales</span>
+                            </div>
+                        </div>
+                        <p class="data-value info" id="año-average"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-weight-hanging"></i> Promedio Ponderado
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Promedio ponderado por días hábiles</span>
+                            </div>
+                        </div>
+                        <p class="data-value purple" id="año-weighted"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-chart-bar"></i> Desviación Estándar
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Variabilidad de los ingresos anuales</span>
+                            </div>
+                        </div>
+                        <p class="data-value" id="año-desvest"></p>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-crown"></i> Máximo
+                            <div class="tooltip">
+                                <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                                <span class="tooltiptext">Ingreso anual máximo registrado</span>
+                            </div>
+                        </div>
+                        <p class="data-value positive" id="año-max"></p>
+                    </div>
+                </div>
+                
+                <div class="comparison-container">
+                    <div class="comparison-header" onclick="toggleComparison(this)">
+                        <div class="comparison-title-container">
+                            <i class="fas fa-calendar" style="color: var(--primary-color);"></i>
+                            <h3 class="comparison-title">Comparativo Año Anterior</h3>
+                        </div>
+                        <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+                    </div>
+                    
+                    <div class="comparison-content">
+                        <div class="comparison-grid">
+                            <div class="comparison-item">
+                                <div class="comparison-label">Meta</div>
+                                <div class="comparison-value" id="año-metaAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Ingreso</div>
+                                <div class="comparison-value" id="año-ingresoAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Porcentaje</div>
+                                <div class="comparison-value" id="año-porcentajeAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Diferencia</div>
+                                <div class="comparison-value" id="año-diferenciaAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Promedio</div>
+                                <div class="comparison-value" id="año-averageAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Ponderado</div>
+                                <div class="comparison-value" id="año-weightedAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Desv. Estándar</div>
+                                <div class="comparison-value" id="año-desvestAnterior"></div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">Máximo</div>
+                                <div class="comparison-value" id="año-maxAnterior"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trends Card -->
+    <div class="cards-container2">
+        <div class="card trend-analysis-card">
+            <div class="card-top-border"></div>
+            <div class="card-header" onclick="toggleCard(this)">
+                <h2 class="card-title">
+                    <div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Análisis de Tendencia
+                </h2>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="date-badge" id="tendencia-mes"></span>
+                    <i class="fas fa-chevron-down collapse-indicator"></i>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                <!-- Resumen ejecutivo optimizado -->
+                <div class="executive-summary" id="tendencia-resumen">
+                    <div class="summary-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="summary-content">
+                        <p id="tendencia-resumen-texto">Analizando tendencias financieras...</p>
+                        <div class="trend-indicator" id="global-trend-indicator">
+                            <span class="indicator-dot"></span>
+                            <span class="indicator-text">Tendencia global: </span>
+                            <span class="indicator-value">Calculando...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Métricas clave optimizadas -->
+                <div class="data-grid">
+                    <div class="data-item highlight">
+                        <div class="data-label"><i class="fas fa-arrow-trend-up"></i> Tendencia Actual</div>
+                        <p class="data-value" id="tendencia-actual"></p>
+                        <div class="data-description">Comparación con el mes anterior</div>
+                    </div>
+                    
+                    <div class="data-item highlight">
+                        <div class="data-label"><i class="fas fa-project-diagram"></i> Proyección Mensual</div>
+                        <p class="data-value" id="tendencia-proyeccion"></p>
+                        <div class="data-description">Estimación basada en progreso actual</div>
+                    </div>
+                    
+                    <div class="data-item highlight">
+                        <div class="data-label"><i class="fas fa-percent"></i> Crecimiento Interanual</div>
+                        <p class="data-value" id="tendencia-crecimiento"></p>
+                        <div class="data-description">vs mismo periodo año anterior</div>
+                    </div>
+                </div>
+                
+                <!-- Visualización gráfica optimizada -->
+                <div class="chart-container">
+                    <div class="chart-toolbar">
+                        <span class="chart-title">Evolución Mensual Comparativa</span>
+                        <div class="chart-actions">
+                            <button class="chart-action-btn" onclick="exportChartAsImage('tendenciaChart', 'tendencia-financiera')">
+                                <i class="fas fa-download"></i> Exportar
+                            </button>
+                        </div>
+                    </div>
+                    <canvas id="tendenciaChart"></canvas>
+                    <div class="chart-footer">
+                        <span class="chart-note">Comparativa anual de ingresos</span>
+                    </div>
+                </div>
+                
+                <!-- Análisis detallado optimizado -->
+                <div class="comparison-container">
+                    <div class="comparison-header" onclick="toggleComparison(this)">
+                        <div class="comparison-title-container">
+                            <i class="fas fa-chart-bar" style="color: var(--primary-color);"></i>
+                            <h3 class="comparison-title">Métricas de Desempeño Detalladas</h3>
+                        </div>
+                        <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+                    </div>
+                    
+                    <div class="comparison-content">
+                        <div class="comparison-grid">
+                            <div class="comparison-item">
+                                <div class="comparison-label">
+                                    <i class="fas fa-calendar-week"></i> Promedio últimos 3 meses
+                                </div>
+                                <div class="comparison-value" id="tendencia-promedio-3m"></div>
+                                <div class="comparison-description">Media móvil trimestral</div>
+                            </div>
+                            
+                            <div class="comparison-item positive">
+                                <div class="comparison-label">
+                                    <i class="fas fa-trophy"></i> Mejor día
+                                </div>
+                                <div class="comparison-value" id="tendencia-mejor-mes"></div>
+                                <div class="comparison-description">Pico de rendimiento</div>
+                            </div>
+                            
+                            <div class="comparison-item negative">
+                                <div class="comparison-label">
+                                    <i class="fas fa-exclamation-triangle"></i> Peor día
+                                </div>
+                                <div class="comparison-value" id="tendencia-peor-mes"></div>
+                                <div class="comparison-description">Valle de rendimiento</div>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <div class="comparison-label">
+                                    <i class="fas fa-wave-square"></i> Variabilidad
+                                </div>
+                                <div class="comparison-value" id="tendencia-variabilidad"></div>
+                                <div class="comparison-description">Coeficiente de variación</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Card -->
+    <div class="cards-container2">
+        <div class="card">
+            <div class="card-header" onclick="datosToggleCard(this)">
+                <h2 class="card-title">
+                    <div class="card-icon datos"><i class="fas fa-database"></i></div> 
+                    Datos Detallados
+                </h2>
+                <div class="header-controls">
+                    <span class="records-badge" id="datos-contador">Cargando ...</span>
+                    <i class="fas fa-chevron-down collapse-indicator"></i>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                <div class="download-section">
+                    <h3 class="download-title">Exportar datos</h3>
+                    <p class="download-description">Selecciona el formato para descargar los datos</p>
+                    
+                    <div class="download-options">
+                        <div class="download-option" onclick="datosDescargar('csv')">
+                            <div class="option-icon csv">
+                                <i class="fas fa-file-csv"></i>
+                            </div>
+                            <div class="option-info">
+                                <h4>CSV</h4>
+                                <p>Formato de texto plano</p>
+                            </div>
+                            <div class="option-action">
+                                <i class="fas fa-download"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="download-option" onclick="datosDescargar('json')">
+                            <div class="option-icon json">
+                                <i class="fas fa-file-code"></i>
+                            </div>
+                            <div class="option-info">
+                                <h4>JSON</h4>
+                                <p>Estructura de datos</p>
+                            </div>
+                            <div class="option-action">
+                                <i class="fas fa-download"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="download-option" onclick="datosDescargar('excel')">
+                            <div class="option-icon excel">
+                                <i class="fas fa-file-excel"></i>
+                            </div>
+                            <div class="option-info">
+                                <h4>Excel</h4>
+                                <p>Hoja de cálculo</p>
+                            </div>
+                            <div class="option-action">
+                                <i class="fas fa-download"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p1>
+            Developed by Andrés Mendoza © 2025.
+        </p1>
+        <p>
+            Supported by 
+            <a href="https://www.eltemplodelamoda.com/" target="_blank">GrupoTDM</a>.
+        </p>
+        <div class="social-links">
+            <a href="https://www.facebook.com/templodelamoda/?locale=es_LA" target="_blank" aria-label="Facebook">
+                <i class="fab fa-facebook"></i>
+            </a>
+            <a href="https://www.instagram.com/eltemplodelamoda/?hl=es" target="_blank" aria-label="Instagram">
+                <i class="fab fa-instagram"></i>
+            </a>
+            <a href="#" id="whatsappBtn" aria-label="WhatsApp">
+                <i class="fab fa-whatsapp"></i>
+            </a>
+        </div>
+    </footer>
+
+    <!-- Scripts externos -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Scripts locales -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/trends-analysis.js"></script>
+    <script src="js/data-management.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
