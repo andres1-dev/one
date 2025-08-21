@@ -1,0 +1,4669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ingresos">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+<link rel="icon" href="favicon.ico" type="image/x-icon" sizes="16x16 32x32">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="/one/ingresos/informe/manifest.json">
+  
+  <!-- Favicon y icons PWA -->
+  <link rel="icon" href="/one/ingresos/informe/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/one/ingresos/informe/icons/icon-192.png">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<!-- html2canvas -->
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" defer></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+
+<!-- DataTables JS -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+
+<title>Ingresos de Marca Propia</title>
+ 
+<style>
+    :root {
+        --primary-color: #4361ee;
+        --primary-light: #ebedfc;
+        --success-color: #2ecc71;
+        --danger-color: #e74c3c;
+        --warning-color: #f39c12;
+        --info-color: #3498db;
+        --purple-color: #9b59b6;
+        --text-dark: #2c3e50;
+        --text-medium: #7f8c8d;
+        --text-light: #bdc3c7;
+        --bg-light: #f8f9fa;
+        --border-radius: 12px;
+        --box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    
+.update-btn-small {
+    padding: 0; /* Eliminamos el padding para control exacto */
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    transition: var(--transition);
+    position: relative; /* Para posicionamiento preciso */
+}
+
+.update-btn-small i {
+    font-size: 14px; /* Tamaño más adecuado */
+    width: 14px; /* Ancho fijo para consistencia */
+    height: 14px; /* Alto fijo para consistencia */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+/* Estilos para el estado de carga */
+.update-btn-small .fa-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+}
+
+.update-btn-small:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(180deg);
+}
+
+/* Asegura que todos los iconos tengan el mismo espacio */
+.update-btn-small .fa-sync-alt,
+.update-btn-small .fa-spinner,
+.update-btn-small .fa-exclamation-circle {
+    line-height: 1;
+    vertical-align: middle;
+    margin: 0;
+    padding: 0;
+}
+
+/* Efecto de pulsación */
+.update-btn-small:active {
+    transform: scale(0.95) rotate(0deg);
+}
+
+/* Transición suave para la rotación */
+.update-btn-small i {
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+    
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background-color: #ffffff;
+        margin: 0;
+        padding: 10px;
+        color: var(--text-dark);
+        line-height: 1;
+    }
+    
+    .dashboard-header {
+        text-align: center;
+        padding: 30px 20px;
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        color: white;
+        border-radius: var(--border-radius);
+        margin-bottom: 30px;
+        box-shadow: var(--box-shadow);
+    }
+    
+    .dashboard-title {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+    }
+    
+    .date-selector-container {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .date-picker {
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        font-family: inherit;
+        font-size: 14px;
+    }
+
+    .date-picker::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        opacity: 0.8;
+    }
+
+    .update-btn {
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: none;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: var(--transition);
+    }
+
+    .update-btn:hover {
+        background: rgba(255,255,255,0.3);
+    }
+
+    .update-btn i {
+        font-size: 12px;
+    }
+    
+    .cards-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 20px;
+        max-width: auto;
+        margin: 0 auto;
+    }
+    
+    .cards-container2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 20px;
+        max-width: auto;
+        margin: 0 auto;
+    }
+
+    /* Clase especial para la captura */
+    .cards-container.capture-mode {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 20px;
+        max-width: 1400px !important;
+        margin: 0 auto !important;
+    }
+    
+    .card {
+        background: #fff;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 0;
+        transition: var(--transition);
+        overflow: hidden;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0;
+        padding: 25px 30px;
+        border-bottom: 2px solid rgba(0,0,0,0.05);
+        cursor: pointer;
+        user-select: none;
+        transition: var(--transition);
+    }
+    
+    .card-header:hover {
+        background: rgba(0,0,0,0.02);
+    }
+    
+    .card-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+        padding: 0 30px;
+    }
+    
+    .card-content.expanded {
+        max-height: 2000px;
+        padding: 25px 30px;
+    }
+    
+    .collapse-indicator {
+        transition: transform 0.3s ease;
+        color: var(--text-medium);
+        font-size: 16px;
+    }
+    
+    .collapse-indicator.expanded {
+        transform: rotate(180deg);
+    }
+    
+    .card-title {
+        font-size: 20px;
+        margin: 0;
+        font-weight: 700;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: white;
+    }
+    
+    .card-icon.dia { background: linear-gradient(135deg, #4361ee, #3a0ca3); }
+    .card-icon.mes { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+    .card-icon.ano { background: linear-gradient(135deg, #f39c12, #e67e22); }
+    
+    .date-badge {
+        font-size: 14px;
+        color: var(--text-medium);
+        background: var(--bg-light);
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    
+    .data-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    
+    .data-item {
+        background: var(--bg-light);
+        border-radius: 10px;
+        padding: 18px;
+        transition: var(--transition);
+        border: 1px solid rgba(0,0,0,0.03);
+    }
+    
+    .data-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        background: #fff;
+    }
+    
+    .data-label {
+        font-size: 13px;
+        color: var(--text-medium);
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+    }
+    
+    .data-value {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .positive { color: var(--success-color); }
+    .negative { color: var(--danger-color); }
+    .neutral { color: var(--warning-color); }
+    .info { color: var(--info-color); }
+    .purple { color: var(--purple-color); }
+    
+    .trend-icon {
+        font-size: 14px;
+        margin-left: 6px;
+    }
+    
+    /* Progress Bar */
+    .progress-section {
+        margin: 25px 0;
+        padding: 20px;
+        background: rgba(67, 97, 238, 0.03);
+        border-radius: 10px;
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    
+    .progress-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+    
+    .progress-percent {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .progress-container {
+        background-color: #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        height: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        border-radius: 12px;
+        transition: width 1.5s ease-out;
+        position: relative;
+    }
+    
+    .progress-remaining {
+        font-size: 12px;
+        color: var(--text-medium);
+        text-align: right;
+        font-weight: 500;
+    }
+    
+    /* Comparison Box */
+    .comparison-container {
+        margin-top: 25px;
+    }
+    
+    .comparison-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 0;
+        padding: 15px 20px;
+        cursor: pointer;
+        user-select: none;
+        transition: var(--transition);
+        border-radius: var(--border-radius);
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.06) 0%, rgba(58, 12, 163, 0.06) 100%);
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .comparison-header:hover {
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(58, 12, 163, 0.1) 100%);
+    }
+    
+    .comparison-title-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .comparison-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+        padding: 0 20px;
+    }
+    
+    .comparison-content.expanded {
+        max-height: 2000px;
+        padding: 20px;
+    }
+    
+    .comparison-collapse-icon {
+        transition: transform 0.3s ease;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+    
+    .comparison-collapse-icon.expanded {
+        transform: rotate(180deg);
+    }
+    
+    .comparison-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 0;
+    }
+    
+    .comparison-item {
+        font-size: 14px;
+        background: rgba(255,255,255,0.7);
+        padding: 12px;
+        border-radius: 8px;
+    }
+    
+    .comparison-label {
+        color: var(--text-medium);
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .comparison-value {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text-dark);
+    }
+    
+    /* Extra stats for daily view */
+    .extra-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin: 25px 0;
+    }
+    
+    /* Tooltip */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+    }
+    
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 220px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 8px;
+        position: absolute;
+        z-index: 1000;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 12px;
+        font-weight: normal;
+    }
+    
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .cards-container {
+            grid-template-columns: 1fr;
+            max-width: 2500px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .data-grid, .comparison-grid, .extra-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .dashboard-title {
+            font-size: 22px;
+        }
+        
+        .date-selector-container {
+            flex-direction: column;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .data-grid, .comparison-grid, .extra-stats {
+            grid-template-columns: 1fr;
+        }
+        
+        body {
+            padding: 10px;
+        }
+        
+        .cards-container {
+            gap: 20px;
+        }
+    }
+    
+    
+    .capture-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.capture-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.capture-btn i {
+    font-size: 10px;
+}
+
+@media (max-width: 768px) {
+    body {
+        zoom: 0.7; /* aumenta un 20% */
+    }
+
+    .date-selector-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+
+
+.send-report-btn {
+    padding: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    transition: var(--transition);
+    position: relative;
+}
+
+.send-report-btn i {
+    font-size: 16px;
+    transition: var(--transition);
+}
+
+.send-report-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.send-report-btn:active {
+    transform: scale(0.95);
+}
+
+.capture-btn {
+    padding: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    transition: var(--transition);
+}
+
+.capture-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.capture-btn i {
+    font-size: 16px;
+}
+
+
+
+
+ /* Estilo para el botón de instalación */
+.install-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+    padding: 12px 24px;
+    border-radius: 50px;
+    border: none;
+    background: linear-gradient(135deg, #4361ee, #3a0ca3);
+    color: white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(67, 97, 238, 0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transform: translateY(20px);
+    opacity: 0;
+    animation: fadeInUp 0.5s forwards 1s;
+}
+
+.install-btn i {
+    font-size: 16px;
+}
+
+.install-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+    background: linear-gradient(135deg, #3a56d4, #2f0a8a);
+}
+
+.install-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(67, 97, 238, 0.3);
+}
+
+.install-btn.hidden {
+    display: none;
+}
+
+@keyframes fadeInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Efecto de pulsación */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(67, 97, 238, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(67, 97, 238, 0);
+    }
+}
+
+.install-btn.pulse {
+    animation: pulse 2s infinite;
+}
+
+/* Para móviles */
+@media (max-width: 768px) {
+    .install-btn {
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+}
+
+
+</style>
+</head>
+<body>
+
+<div class="dashboard-header">
+    <h1 class="dashboard-title">
+        <i class="fas fa-chart-line"></i> 
+        Ingresos de Marca Propia
+        <button id="updateReportBtn" class="update-btn-small" title="Actualizar Reporte" style="display: none;">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </h1>
+    <div class="date-selector-container">
+        <input type="date" id="datePicker" class="date-picker">
+        
+<button id="captureBtn" class="capture-btn" title="Enviar informe" style="display: none;">
+    <i class="fas fa-paper-plane"></i>
+</button>
+
+
+    </div>
+</div>
+
+
+<!-- Pantalla de carga -->
+<style>
+    /* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(67, 97, 238, 0.2);
+    border-radius: 50%;
+    border-top-color: #4361ee;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #4361ee;
+    margin-top: 15px;
+    text-align: center;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Progress bar for loading */
+.loading-progress {
+    width: 200px;
+    height: 6px;
+    background: rgba(67, 97, 238, 0.1);
+    border-radius: 3px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.loading-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4361ee, #3a0ca3);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+
+
+
+
+</style>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Actualizando datos...</div>
+    <div class="loading-progress">
+        <div class="loading-progress-bar" id="loadingProgress"></div>
+    </div>
+</div>
+
+
+<div class="cards-container">
+    <!-- Tarjeta Día -->
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <h2 class="card-title"><div class="card-icon dia"><i class="fas fa-calendar-day"></i></div> Resumen Diario</h2>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span class="date-badge" id="dia-fecha"></span>
+                <i class="fas fa-chevron-down collapse-indicator"></i>
+            </div>
+        </div>
+        
+        <div class="card-content">
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-bullseye"></i> Meta Diaria</div>
+                    <p class="data-value" id="dia-meta"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-money-bill-wave"></i> Ingreso Actual</div>
+                    <p class="data-value" id="dia-ingreso"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-balance-scale"></i> Diferencia</div>
+                    <p class="data-value" id="dia-diferencia"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-percent"></i> Porcentaje</div>
+                    <p class="data-value" id="dia-porcentaje"></p>
+                </div>
+            </div>
+            
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span class="progress-title">Progreso hacia la meta</span>
+                    <span class="progress-percent" id="dia-progressPercent">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="dia-progressBar"></div>
+                </div>
+                <div class="progress-remaining" id="dia-restante"></div>
+            </div>
+            
+            <div class="extra-stats">
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-chart-simple"></i> Gestión Anual
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Comparación con el mismo día del año anterior</span>
+                        </div>
+                    </div>
+                    <p class="data-value">
+                        <span id="dia-gestion"></span>
+                        <span class="trend-icon" id="dia-trendIcon"></span>
+                    </p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-calculator"></i> Promedio
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Promedio simple de ingresos hasta la fecha</span>
+                        </div>
+                    </div>
+                    <p class="data-value info" id="dia-average"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-weight-hanging"></i> Promedio Ponderado
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Promedio ponderado por días hábiles</span>
+                        </div>
+                    </div>
+                    <p class="data-value purple" id="dia-weighted"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-chart-bar"></i> Desviación Estándar
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Variabilidad de los ingresos diarios</span>
+                        </div>
+                    </div>
+                    <p class="data-value" id="dia-desvest"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-crown"></i> Máximo
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Ingreso diario máximo registrado</span>
+                        </div>
+                    </div>
+                    <p class="data-value positive" id="dia-max"></p>
+                </div>
+            </div>
+            
+            <div class="comparison-container">
+                <div class="comparison-header" onclick="toggleComparison(this)">
+                    <div class="comparison-title-container">
+                        <i class="fas fa-calendar-day" style="color: var(--primary-color);"></i>
+                        <h3 class="comparison-title">Comparativo Año Anterior</h3>
+                    </div>
+                    <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+                </div>
+                
+                <div class="comparison-content">
+                    <div class="comparison-grid">
+                        <div class="comparison-item">
+                            <div class="comparison-label">Meta</div>
+                            <div class="comparison-value" id="dia-metaAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Ingreso</div>
+                            <div class="comparison-value" id="dia-ingresoAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Porcentaje</div>
+                            <div class="comparison-value" id="dia-porcentajeAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Día del año</div>
+                            <div class="comparison-value" id="dia-diaAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Promedio</div>
+                            <div class="comparison-value" id="dia-averageAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Ponderado</div>
+                            <div class="comparison-value" id="dia-weightedAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Desv. Estándar</div>
+                            <div class="comparison-value" id="dia-desvestAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Máximo</div>
+                            <div class="comparison-value" id="dia-maxAnterior"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjeta Mes -->
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <h2 class="card-title"><div class="card-icon mes"><i class="fas fa-calendar-alt"></i></div> Resumen Mensual</h2>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span class="date-badge" id="mes-mes"></span>
+                <i class="fas fa-chevron-down collapse-indicator"></i>
+            </div>
+        </div>
+        
+        <div class="card-content">
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-bullseye"></i> Meta Mensual</div>
+                    <p class="data-value" id="mes-meta"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-money-bill-wave"></i> Ingreso Actual</div>
+                    <p class="data-value" id="mes-ingreso"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-balance-scale"></i> Diferencia</div>
+                    <p class="data-value" id="mes-diferencia"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-percent"></i> Porcentaje</div>
+                    <p class="data-value" id="mes-porcentaje"></p>
+                </div>
+            </div>
+            
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span class="progress-title">Progreso hacia la meta</span>
+                    <span class="progress-percent" id="mes-progressPercent">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="mes-progressBar"></div>
+                </div>
+                <div class="progress-remaining" id="mes-restante"></div>
+            </div>
+            
+            <div class="extra-stats">
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-chart-simple"></i> Gestión Anual
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Comparación con el mismo mes del año anterior</span>
+                        </div>
+                    </div>
+                    <p class="data-value">
+                        <span id="mes-gestion"></span>
+                        <span class="trend-icon" id="mes-trendIcon"></span>
+                    </p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-calculator"></i> Promedio
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Promedio simple de ingresos mensuales</span>
+                        </div>
+                    </div>
+                    <p class="data-value info" id="mes-average"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-weight-hanging"></i> Promedio Ponderado
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Promedio ponderado por días hábiles</span>
+                        </div>
+                    </div>
+                    <p class="data-value purple" id="mes-weighted"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-chart-bar"></i> Desviación Estándar
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Variabilidad de los ingresos mensuales</span>
+                        </div>
+                    </div>
+                    <p class="data-value" id="mes-desvest"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-crown"></i> Máximo
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Ingreso mensual máximo registrado</span>
+                        </div>
+                    </div>
+                    <p class="data-value positive" id="mes-max"></p>
+                </div>
+            </div>
+            
+            <div class="comparison-container">
+                <div class="comparison-header" onclick="toggleComparison(this)">
+                    <div class="comparison-title-container">
+                        <i class="fas fa-calendar-days" style="color: var(--primary-color);"></i>
+                        <h3 class="comparison-title">Comparativo Año Anterior</h3>
+                    </div>
+                    <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+                </div>
+                
+                <div class="comparison-content">
+                    <div class="comparison-grid">
+                        <div class="comparison-item">
+                            <div class="comparison-label">Meta</div>
+                            <div class="comparison-value" id="mes-metaAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Ingreso</div>
+                            <div class="comparison-value" id="mes-ingresoAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Porcentaje</div>
+                            <div class="comparison-value" id="mes-porcentajeAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Días hábiles</div>
+                            <div class="comparison-value" id="mes-habilAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Promedio</div>
+                            <div class="comparison-value" id="mes-averageAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Ponderado</div>
+                            <div class="comparison-value" id="mes-weightedAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Desv. Estándar</div>
+                            <div class="comparison-value" id="mes-desvestAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Máximo</div>
+                            <div class="comparison-value" id="mes-maxAnterior"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjeta Año -->
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <h2 class="card-title"><div class="card-icon ano"><i class="fas fa-calendar"></i></div> Resumen Anual</h2>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span class="date-badge" id="año-año"></span>
+                <i class="fas fa-chevron-down collapse-indicator"></i>
+            </div>
+        </div>
+        
+        <div class="card-content">
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-bullseye"></i> Meta Anual</div>
+                    <p class="data-value" id="año-meta"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-money-bill-wave"></i> Ingreso Actual</div>
+                    <p class="data-value" id="año-ingreso"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-balance-scale"></i> Diferencia</div>
+                    <p class="data-value" id="año-diferencia"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label"><i class="fas fa-percent"></i> Porcentaje</div>
+                    <p class="data-value" id="año-porcentaje"></p>
+                </div>
+            </div>
+            
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span class="progress-title">Progreso hacia la meta</span>
+                    <span class="progress-percent" id="año-progressPercent">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="año-progressBar"></div>
+                </div>
+                <div class="progress-remaining" id="año-restante"></div>
+            </div>
+            
+            <div class="extra-stats">
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-chart-simple"></i> Gestión
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Comparación con el año anterior completo</span>
+                        </div>
+                    </div>
+                    <p class="data-value">
+                        <span id="año-gestion"></span>
+                        <span class="trend-icon" id="año-trendIcon"></span>
+                    </p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-calculator"></i> Promedio
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Promedio simple de ingresos anuales</span>
+                        </div>
+                    </div>
+                    <p class="data-value info" id="año-average"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-weight-hanging"></i> Promedio Ponderado
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Promedio ponderado por días hábiles</span>
+                        </div>
+                    </div>
+                    <p class="data-value purple" id="año-weighted"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-chart-bar"></i> Desviación Estándar
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Variabilidad de los ingresos anuales</span>
+                        </div>
+                    </div>
+                    <p class="data-value" id="año-desvest"></p>
+                </div>
+                
+                <div class="data-item">
+                    <div class="data-label">
+                        <i class="fas fa-crown"></i> Máximo
+                        <div class="tooltip">
+                            <i class="fas fa-info-circle" style="color: var(--text-light); font-size: 12px;"></i>
+                            <span class="tooltiptext">Ingreso anual máximo registrado</span>
+                        </div>
+                    </div>
+                    <p class="data-value positive" id="año-max"></p>
+                </div>
+            </div>
+            
+            <div class="comparison-container">
+                <div class="comparison-header" onclick="toggleComparison(this)">
+                    <div class="comparison-title-container">
+                        <i class="fas fa-calendar" style="color: var(--primary-color);"></i>
+                        <h3 class="comparison-title">Comparativo Año Anterior</h3>
+                    </div>
+                    <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+                </div>
+                
+                <div class="comparison-content">
+                    <div class="comparison-grid">
+                        <div class="comparison-item">
+                            <div class="comparison-label">Meta</div>
+                            <div class="comparison-value" id="año-metaAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Ingreso</div>
+                            <div class="comparison-value" id="año-ingresoAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Porcentaje</div>
+                            <div class="comparison-value" id="año-porcentajeAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Diferencia</div>
+                            <div class="comparison-value" id="año-diferenciaAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Promedio</div>
+                            <div class="comparison-value" id="año-averageAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Ponderado</div>
+                            <div class="comparison-value" id="año-weightedAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Desv. Estándar</div>
+                            <div class="comparison-value" id="año-desvestAnterior"></div>
+                        </div>
+                        
+                        <div class="comparison-item">
+                            <div class="comparison-label">Máximo</div>
+                            <div class="comparison-value" id="año-maxAnterior"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="cards-container2">
+<!-- Tarjeta de Tendencias Mejorada -->
+<div class="card trend-analysis-card">
+    <div class="card-top-border"></div>
+    <div class="card-header" onclick="toggleCard(this)">
+        <h2 class="card-title">
+            <div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Análisis de Tendencia
+        </h2>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span class="date-badge" id="tendencia-mes"></span>
+            <i class="fas fa-chevron-down collapse-indicator"></i>
+        </div>
+    </div>
+    
+    <div class="card-content">
+        <!-- Resumen ejecutivo optimizado -->
+        <div class="executive-summary" id="tendencia-resumen">
+            <div class="summary-icon">
+                <i class="fas fa-lightbulb"></i>
+            </div>
+            <div class="summary-content">
+                <p id="tendencia-resumen-texto">Analizando tendencias financieras...</p>
+                <div class="trend-indicator" id="global-trend-indicator">
+                    <span class="indicator-dot"></span>
+                    <span class="indicator-text">Tendencia global: </span>
+                    <span class="indicator-value">Calculando...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Métricas clave optimizadas -->
+        <div class="data-grid">
+            <div class="data-item highlight">
+                <div class="data-label"><i class="fas fa-arrow-trend-up"></i> Tendencia Actual</div>
+                <p class="data-value" id="tendencia-actual"></p>
+                <div class="data-description">Comparación con el mes anterior</div>
+            </div>
+            
+            <div class="data-item highlight">
+                <div class="data-label"><i class="fas fa-project-diagram"></i> Proyección Mensual</div>
+                <p class="data-value" id="tendencia-proyeccion"></p>
+                <div class="data-description">Estimación basada en progreso actual</div>
+            </div>
+            
+            <div class="data-item highlight">
+                <div class="data-label"><i class="fas fa-percent"></i> Crecimiento Interanual</div>
+                <p class="data-value" id="tendencia-crecimiento"></p>
+                <div class="data-description">vs mismo periodo año anterior</div>
+            </div>
+        </div>
+        
+        <!-- Visualización gráfica optimizada -->
+        <div class="chart-container">
+            <div class="chart-toolbar">
+                <span class="chart-title">Evolución Mensual Comparativa</span>
+                <div class="chart-actions">
+                    <button class="chart-action-btn" onclick="exportChartAsImage('tendenciaChart', 'tendencia-financiera')">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            <canvas id="tendenciaChart"></canvas>
+            <div class="chart-footer">
+                <span class="chart-note">Comparativa anual de ingresos</span>
+            </div>
+        </div>
+        
+        <!-- Análisis detallado optimizado -->
+        <div class="comparison-container">
+            <div class="comparison-header" onclick="toggleComparison(this)">
+                <div class="comparison-title-container">
+                    <i class="fas fa-chart-bar" style="color: var(--primary-color);"></i>
+                    <h3 class="comparison-title">Métricas de Desempeño Detalladas</h3>
+                </div>
+                <i class="fas fa-chevron-down comparison-collapse-icon"></i>
+            </div>
+            
+            <div class="comparison-content">
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <div class="comparison-label">
+                            <i class="fas fa-calendar-week"></i> Promedio últimos 3 meses
+                        </div>
+                        <div class="comparison-value" id="tendencia-promedio-3m"></div>
+                        <div class="comparison-description">Media móvil trimestral</div>
+                    </div>
+                    
+                    <div class="comparison-item positive">
+                        <div class="comparison-label">
+                            <i class="fas fa-trophy"></i> Mejor mes
+                        </div>
+                        <div class="comparison-value" id="tendencia-mejor-mes"></div>
+                        <div class="comparison-description">Pico de rendimiento</div>
+                    </div>
+                    
+                    <div class="comparison-item negative">
+                        <div class="comparison-label">
+                            <i class="fas fa-exclamation-triangle"></i> Peor mes
+                        </div>
+                        <div class="comparison-value" id="tendencia-peor-mes"></div>
+                        <div class="comparison-description">Valle de rendimiento</div>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <div class="comparison-label">
+                            <i class="fas fa-wave-square"></i> Variabilidad
+                        </div>
+                        <div class="comparison-value" id="tendencia-variabilidad"></div>
+                        <div class="comparison-description">Coeficiente de variación</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<style>
+    /* Estilos optimizados para la tarjeta de tendencias */
+.trend-analysis-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-top: 25px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.trend-analysis-card:hover {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+
+.card-icon.tendencia {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 25px 0;
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.chart-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.chart-title {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 16px;
+}
+
+.chart-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.chart-action-btn {
+    background: var(--light-bg);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chart-action-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.chart-footer {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--light-text);
+    text-align: right;
+}
+
+.chart-note {
+    font-style: italic;
+}
+
+/* Estilos para el resumen ejecutivo */
+.executive-summary {
+    background: linear-gradient(135deg, rgba(155, 89, 182, 0.08), rgba(142, 68, 173, 0.05));
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    border-left: 4px solid #9b59b6;
+}
+
+.summary-icon {
+    font-size: 24px;
+    color: #9b59b6;
+    margin-top: 3px;
+}
+
+.summary-content {
+    flex: 1;
+}
+
+.trend-indicator {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    background: #95a5a6; /* Neutral por defecto */
+}
+
+.indicator-text {
+    font-weight: 500;
+    margin-right: 5px;
+    color: var(--text-color);
+}
+
+.indicator-value {
+    font-weight: 600;
+}
+
+/* Estilos para elementos de tendencia */
+.data-item.highlight {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.3s;
+}
+
+.data-item.highlight:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.data-description {
+    font-size: 12px;
+    color: var(--light-text);
+    margin-top: 5px;
+}
+
+#tendencia-actual.positive, 
+#tendencia-proyeccion.positive, 
+#tendencia-crecimiento.positive {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+#tendencia-actual.negative, 
+#tendencia-proyeccion.negative, 
+#tendencia-crecimiento.negative {
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
+#tendencia-actual.neutral, 
+#tendencia-proyeccion.neutral, 
+#tendencia-crecimiento.neutral {
+    color: var(--warning-color);
+    font-weight: 600;
+}
+
+/* Estilos para el análisis detallado */
+.comparison-item {
+    padding: 12px 15px;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.comparison-item:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.comparison-item.positive {
+    border-left: 3px solid var(--success-color);
+}
+
+.comparison-item.negative {
+    border-left: 3px solid var(--danger-color);
+}
+
+.comparison-description {
+    font-size: 12px;
+    color: var(--light-text);
+    margin-top: 4px;
+}
+</style>
+
+<script>
+// Variables para el gráfico
+// Variables para el gráfico
+let tendenciaChart = null;
+let globalTrend = null;
+let tendenciaValues = [];
+
+// Función optimizada para cargar datos de tendencia DIARIA
+function cargarDatosTendencia() {
+    if (!currentReportData) return;
+    
+    const data = currentReportData.mes;
+    const actual = data.actual;
+    const anterior = data.anterior;
+    
+    // 1. Actualizar información básica
+    document.getElementById("tendencia-mes").textContent = `${actual.mes} ${actual.año}`;
+    
+    // 2. Realizar análisis diario
+    const analisisDiario = analizarTendenciaDiaria(actual.año, actual.mes);
+    
+    if (!analisisDiario) {
+        console.error("No se pudieron analizar los datos diarios");
+        return;
+    }
+    
+    // 3. Actualizar UI con análisis diario
+    actualizarTendenciaUI(analisisDiario, actual, anterior);
+    
+    // 4. Generar gráfico con datos diarios
+    generarGraficoTendenciaDiaria(analisisDiario, actual.año, actual.mes);
+    
+    // 5. Calcular estadísticas detalladas (CORREGIDO: pasar el parámetro actual)
+    calcularEstadisticasTendenciaDiaria(analisisDiario, actual.año, actual.mes, actual);
+}
+
+// Función para calcular estadísticas de tendencia DIARIA (CORREGIDO: agregar parámetro actual)
+function calcularEstadisticasTendenciaDiaria(analisisDiario, año, mesActual, actual) {
+    const { datosDiarios, patronesSemanales, diasDestacados, proyeccion } = analisisDiario;
+    
+    // Calcular métricas básicas
+    const ingresos = datosDiarios.map(d => d.Ingreso);
+    const promedio = Math.round(ingresos.reduce((a, b) => a + b, 0) / ingresos.length);
+    const maxIngreso = Math.max(...ingresos);
+    const minIngreso = Math.min(...ingresos);
+    
+    // Encontrar mejor y peor día
+    const mejorDia = datosDiarios.find(d => d.Ingreso === maxIngreso);
+    const peorDia = datosDiarios.find(d => d.Ingreso === minIngreso);
+    
+    // Calcular variabilidad (coeficiente de variación)
+    const desviacion = calcularDesviacionEstandar(ingresos);
+    const variabilidad = ((desviacion / promedio) * 100).toFixed(1) + '%';
+    
+    // Actualizar UI
+    document.getElementById("tendencia-promedio-3m").textContent = formatoCantidad(promedio);
+    
+    if (mejorDia) {
+        document.getElementById("tendencia-mejor-mes").textContent = `${mejorDia.Fecha}: ${formatoCantidad(maxIngreso)}`;
+    }
+    
+    if (peorDia) {
+        document.getElementById("tendencia-peor-mes").textContent = `${peorDia.Fecha}: ${formatoCantidad(minIngreso)}`;
+    }
+    
+    document.getElementById("tendencia-variabilidad").textContent = variabilidad;
+    
+    // Actualizar información de proyección si existe
+    if (proyeccion) {
+        const proyeccionItem = document.createElement('div');
+        proyeccionItem.className = 'comparison-item';
+        proyeccionItem.innerHTML = `
+            <div class="comparison-label">
+                <i class="fas fa-project-diagram"></i> Proyección mensual
+            </div>
+            <div class="comparison-value">${formatoCantidad(proyeccion.proyeccionConservadora)}</div>
+            <div class="comparison-description">Basada en tendencia y patrones</div>
+        `;
+        
+        // Asegurarse de que el contenedor existe antes de agregar
+        const comparisonGrid = document.querySelector('.comparison-grid');
+        if (comparisonGrid) {
+            comparisonGrid.appendChild(proyeccionItem);
+        }
+    }
+    
+    // Calcular tendencia del promedio y agregar al cálculo global (CORREGIDO: usar el parámetro actual)
+    if (actual && actual.meta) {
+        const tendenciaPromedio = promedio > (actual.meta / 30) ? 'positive' : 'negative';
+        tendenciaValues.push(tendenciaPromedio);
+    }
+    
+    // Finalmente determinar la tendencia global con todos los datos
+    determinarTendenciaGlobal();
+}
+
+// Actualizar la UI con los resultados del análisis diario
+function actualizarTendenciaUI(analisisDiario, actual, anterior) {
+    const { proyeccion, patronesSemanales } = analisisDiario;
+    
+    // Actualizar tendencia actual (comparación con mes anterior)
+    if (anterior) {
+        const crecimiento = calculateGrowthValue(actual.ingreso, anterior.ingreso);
+        const tendenciaEl = document.getElementById("tendencia-actual");
+        tendenciaEl.textContent = crecimiento.value;
+        tendenciaEl.className = "data-value " + crecimiento.tendencia;
+        tendenciaValues.push(crecimiento.tendencia);
+    }
+    
+    // Actualizar proyección mensual
+    if (proyeccion) {
+        const proyeccionEl = document.getElementById("tendencia-proyeccion");
+        const diferencia = proyeccion.proyeccionConservadora - actual.meta;
+        const porcentaje = ((diferencia / actual.meta) * 100).toFixed(1);
+        
+        proyeccionEl.textContent = `${formatoCantidad(proyeccion.proyeccionConservadora)} (${porcentaje >= 0 ? '+' : ''}${porcentaje}%)`;
+        proyeccionEl.className = "data-value " + (diferencia >= 0 ? "positive" : "negative");
+        
+        updateResumenEjecutivo('proyeccion', {
+            valor: proyeccion.proyeccionConservadora,
+            meta: actual.meta,
+            porcentaje: porcentaje,
+            tendencia: diferencia >= 0 ? "positive" : "negative"
+        });
+    }
+    
+    // Actualizar crecimiento interanual
+    if (anterior) {
+        const crecimiento = calculateGrowthValue(actual.ingreso, anterior.ingreso);
+        const crecimientoEl = document.getElementById("tendencia-crecimiento");
+        crecimientoEl.textContent = crecimiento.value;
+        crecimientoEl.className = "data-value " + crecimiento.tendencia;
+        tendenciaValues.push(crecimiento.tendencia);
+        
+        updateResumenEjecutivo('interanual', {
+            valor: crecimiento.value,
+            tendencia: crecimiento.tendencia
+        });
+    }
+    
+    // Actualizar resumen con patrones semanales
+    if (patronesSemanales && patronesSemanales.viernes) {
+        const resumenEl = document.getElementById("tendencia-resumen-texto");
+        const promedioViernes = patronesSemanales.viernes.promedio;
+        const promedioGeneral = analisisDiario.datosDiarios.reduce((sum, d) => sum + d.Ingreso, 0) / analisisDiario.datosDiarios.length;
+        const incrementoViernes = ((promedioViernes - promedioGeneral) / promedioGeneral * 100).toFixed(1);
+        
+        resumenEl.textContent = `Patrón detectado: Los viernes tienen un incremento del ${incrementoViernes}% respecto al promedio diario.`;
+    }
+}
+
+// Función para actualizar el resumen ejecutivo
+function updateResumenEjecutivo(tipo, datos) {
+    const resumenEl = document.getElementById("tendencia-resumen-texto");
+    
+    switch(tipo) {
+        case 'actual':
+            resumenEl.textContent = `El mes actual muestra ${datos.tendencia === 'positive' ? 'un crecimiento' : 
+                        datos.tendencia === 'negative' ? 'una disminución' : 'una estabilidad'} ` +
+                        `de ${datos.comparativo} respecto al mes anterior.`;
+            break;
+        case 'proyeccion':
+            const vsMeta = parseFloat(datos.porcentaje);
+            resumenEl.textContent = `Proyección mensual: ${vsMeta >= 0 ? 'supera' : 'está por debajo de'} ` +
+                        `la meta en un ${Math.abs(vsMeta)}%.`;
+            break;
+        case 'interanual':
+            resumenEl.textContent = `En comparación anual, el crecimiento es ${datos.tendencia === 'positive' ? 'positivo' : 
+                        datos.tendencia === 'negative' ? 'negativo' : 'neutral'} (${datos.valor}).`;
+            break;
+    }
+    
+    // Actualizar tendencia global después de cada actualización
+    determinarTendenciaGlobal();
+}
+
+// Función para determinar la tendencia global
+function determinarTendenciaGlobal() {
+    if (!tendenciaValues || tendenciaValues.length === 0) {
+        globalTrend = 'neutral';
+        updateTrendIndicator();
+        return;
+    }
+    
+    // Contar ocurrencias de cada tendencia
+    const counts = {
+        positive: tendenciaValues.filter(t => t === 'positive').length,
+        negative: tendenciaValues.filter(t => t === 'negative').length,
+        neutral: tendenciaValues.filter(t => t === 'neutral').length
+    };
+    
+    // Determinar tendencia predominante
+    if (counts.positive > counts.negative && counts.positive > counts.neutral) {
+        globalTrend = 'positive';
+    } else if (counts.negative > counts.positive && counts.negative > counts.neutral) {
+        globalTrend = 'negative';
+    } else {
+        globalTrend = 'neutral';
+    }
+    
+    updateTrendIndicator();
+}
+
+// Función para actualizar el indicador visual de tendencia
+function updateTrendIndicator() {
+    const indicator = document.getElementById("global-trend-indicator");
+    if (!indicator) return;
+    
+    const dot = indicator.querySelector('.indicator-dot');
+    const value = indicator.querySelector('.indicator-value');
+    
+    if (dot && value) {
+        dot.style.background = globalTrend === 'positive' ? 'var(--success-color)' : 
+                              globalTrend === 'negative' ? 'var(--danger-color)' : 'var(--warning-color)';
+        
+        value.textContent = globalTrend === 'positive' ? 'Alza' : 
+                           globalTrend === 'negative' ? 'Baja' : 'Estable';
+        value.className = 'indicator-value ' + globalTrend;
+    }
+}
+
+// Función para calcular el valor de crecimiento
+function calculateGrowthValue(current, previous) {
+    if (!previous || previous === 0) return { value: "N/A", tendencia: "neutral" };
+    
+    const growth = ((current / previous) - 1) * 100;
+    const absGrowth = Math.abs(growth);
+    let tendencia;
+    
+    if (absGrowth < 5) {
+        tendencia = "neutral";
+    } else if (growth > 0) {
+        tendencia = "positive";
+    } else {
+        tendencia = "negative";
+    }
+    
+    return {
+        value: growth.toFixed(1) + "%",
+        tendencia: tendencia
+    };
+}
+
+// Función optimizada para generar el gráfico de tendencia DIARIA
+function generarGraficoTendenciaDiaria(analisisDiario, año, mesActual) {
+    const { datosDiarios, tendencia, promedioMovil } = analisisDiario;
+    
+    // Preparar datos para el gráfico
+    const labels = datosDiarios.map(d => {
+        const fecha = parseDate(d.Fecha);
+        return `${fecha.getDate()}/${fecha.getMonth() + 1}`;
+    });
+    
+    const dataActual = datosDiarios.map(d => d.Ingreso);
+    
+    // Obtener contexto del canvas
+    const ctx = document.getElementById('tendenciaChart').getContext('2d');
+    
+    // Destruir gráfico anterior si existe
+    if (tendenciaChart) {
+        tendenciaChart.destroy();
+    }
+    
+    // Determinar colores para puntos destacados (viernes)
+    const pointBackgroundColors = datosDiarios.map(d => {
+        const fecha = parseDate(d.Fecha);
+        return fecha.getDay() === 5 ? '#e74c3c' : '#9b59b6'; // Destacar viernes
+    });
+    
+    // Crear nuevo gráfico con datos diarios
+    tendenciaChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Ingresos diarios',
+                    data: dataActual,
+                    borderColor: '#4361ee',
+                    backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    pointBackgroundColor: pointBackgroundColors,
+                    pointRadius: 4,
+                    fill: true
+                },
+                {
+                    label: 'Promedio móvil (7 días)',
+                    data: promedioMovil,
+                    borderColor: '#f39c12',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    borderDash: [5, 5],
+                    fill: false
+                },
+                {
+                    label: 'Tendencia lineal',
+                    data: tendencia,
+                    borderColor: '#2ecc71',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    tension: 0,
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += formatoCantidad(context.parsed.y);
+                            }
+                            return label;
+                        },
+                        afterLabel: function(context) {
+                            if (context.datasetIndex === 0) {
+                                const index = context.dataIndex;
+                                const dia = datosDiarios[index].Dia;
+                                return `Día: ${dia}`;
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatoCantidad(value);
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+// Función para exportar el gráfico como imagen
+function exportChartAsImage(chartId, filename) {
+    const chartCanvas = document.getElementById(chartId);
+    if (!chartCanvas) return;
+    
+    const link = document.createElement('a');
+    link.download = `${filename}-${new Date().toISOString().slice(0,10)}.png`;
+    link.href = chartCanvas.toDataURL('image/png');
+    link.click();
+}
+
+// Función para obtener la tendencia global (para usar en otras partes del código)
+function getGlobalTrend() {
+    return globalTrend || 'neutral';
+}
+</script>
+
+
+
+
+
+<div class="cards-container2">
+    <!-- Tarjeta para visualización de datos -->
+<div class="card">
+    <div class="card-header" onclick="datosToggleCard(this)">
+        <h2 class="card-title">
+            <div class="card-icon datos"><i class="fas fa-database"></i></div> 
+            Datos Detallados
+        </h2>
+        <div class="header-controls">
+            <span class="records-badge" id="datos-contador">Cargando ...</span>
+            <i class="fas fa-chevron-down collapse-indicator"></i>
+        </div>
+    </div>
+    
+    <div class="card-content">
+        <div class="download-section">
+            <h3 class="download-title">Exportar datos</h3>
+            <p class="download-description">Selecciona el formato para descargar los datos</p>
+            
+            <div class="download-options">
+                <div class="download-option" onclick="datosDescargar('csv')">
+                    <div class="option-icon csv">
+                        <i class="fas fa-file-csv"></i>
+                    </div>
+                    <div class="option-info">
+                        <h4>CSV</h4>
+                        <p>Formato de texto plano</p>
+                    </div>
+                    <div class="option-action">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+                
+                <div class="download-option" onclick="datosDescargar('json')">
+                    <div class="option-icon json">
+                        <i class="fas fa-file-code"></i>
+                    </div>
+                    <div class="option-info">
+                        <h4>JSON</h4>
+                        <p>Estructura de datos</p>
+                    </div>
+                    <div class="option-action">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+                
+                <div class="download-option" onclick="datosDescargar('excel')">
+                    <div class="option-icon excel">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <div class="option-info">
+                        <h4>Excel</h4>
+                        <p>Hoja de cálculo</p>
+                    </div>
+                    <div class="option-action">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+            </div>
+            
+
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+/* Estilos para la tarjeta de descarga */
+.card {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 24px;
+    background: white;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    background: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.card-header:hover {
+    background-color: #f9f9f9;
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.card-icon.datos {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    background-color: #6c5ce7;
+    color: white;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.records-badge {
+    background: #f3f4f6;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.collapse-indicator {
+    color: #9ca3af;
+    transition: transform 0.3s;
+}
+
+.card-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+/*.card-content.expanded {
+    max-height: 1000px;
+}*/
+
+.download-section {
+    padding: 24px;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+}
+
+.download-title {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.download-description {
+    margin: 0 0 20px 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.download-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.download-option {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.download-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
+}
+
+.option-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+    font-size: 20px;
+    color: white;
+}
+
+.option-icon.csv {
+    background: #10b981;
+}
+
+.option-icon.json {
+    background: #f59e0b;
+}
+
+.option-icon.excel {
+    background: #059669;
+}
+
+.option-info {
+    flex: 1;
+}
+
+.option-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.option-info p {
+    margin: 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.option-action {
+    color: #9ca3af;
+    font-size: 18px;
+    transition: color 0.2s;
+}
+
+.download-option:hover .option-action {
+    color: #6c5ce7;
+}
+
+.view-table-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #6c5ce7;
+    color: white;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.view-table-btn:hover {
+    background: #5d4fd6;
+}
+
+.table-container {
+    padding: 24px;
+    display: none;
+}
+
+
+</style>
+
+<script>
+// El código JavaScript permanece igual que en tu implementación original
+let datosRegistros = null;
+let datosCargando = false;
+
+// ================= FUNCIONES TARJETA =================
+function datosToggleCard(element) {
+    const content = element.nextElementSibling;
+    const indicador = element.querySelector('.collapse-indicator');
+    const contador = document.getElementById('datos-contador');
+
+    // 👉 Expande o contrae siempre
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        indicador.classList.remove('fa-chevron-up');
+        indicador.classList.add('fa-chevron-down');
+    } else {
+        content.classList.add('expanded');
+        indicador.classList.remove('fa-chevron-down');
+        indicador.classList.add('fa-chevron-up');
+        
+        // 👉 Cargar datos en segundo plano solo la primera vez
+        if (!datosRegistros && !datosCargando) {
+            datosCargando = true;
+            contador.textContent = 'Cargando...';
+            datosCargarEndpoint().then(success => {
+                datosCargando = false;
+                if (!success) {
+                    contador.textContent = 'Error al cargar';
+                    // Ocultar la tarjeta si hay error
+                    content.classList.remove('expanded');
+                    indicador.classList.remove('fa-chevron-up');
+                    indicador.classList.add('fa-chevron-down');
+                }
+            });
+        }
+    }
+}
+
+// ================= FUNCIONES DATOS =================
+async function datosCargarEndpoint() {
+    try {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbwmNpKpXLf6yRSdCxEl-sM5q2eSS797_MMiQsg72l5AAe9pD9RO19EQIu6khG8wF-QwRw/exec');
+        const data = await response.json();
+
+        if (data.status === "success") {
+            datosRegistros = data.data;
+            document.getElementById('datos-contador').textContent = `${data.registros} registros`;
+            return true;
+        } else {
+            throw new Error('Respuesta inválida');
+        }
+    } catch (error) {
+        console.error('Error al cargar datos:', error);
+        alert('Error al cargar los datos. Intente nuevamente.');
+        return false;
+    }
+}
+
+// ================= DESCARGAS =================
+function datosDescargar(formato) {
+    if (!datosRegistros || datosRegistros.length === 0) {
+        alert('No hay datos cargados.');
+        return;
+    }
+
+    switch (formato) {
+        case 'csv': datosDescargarCSV(datosRegistros); break;
+        case 'json': datosDescargarJSON(datosRegistros); break;
+        case 'excel': datosDescargarExcel(datosRegistros); break;
+    }
+}
+
+function datosDescargarCSV(data) {
+    const headers = Object.keys(data[0]).join(';');
+    const csvContent = data.map(row =>
+        Object.values(row).map(v => (typeof v === 'string' && v.includes(',')) ? `"${v}"` : v).join(';')
+    ).join('\n');
+
+    const blob = new Blob([headers + '\n' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'datos.csv';
+    link.click();
+}
+
+function datosDescargarJSON(data) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'datos.json';
+    link.click();
+}
+
+function datosDescargarExcel(data) {
+    // Verificar si SheetJS está disponible
+    if (typeof XLSX === 'undefined') {
+        // Si no está disponible, cargar dinámicamente la biblioteca
+        const script = document.createElement('script');
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
+        script.onload = function() {
+            generarYDescargarExcel(data);
+        };
+        document.head.appendChild(script);
+    } else {
+        // Si ya está disponible, generar directamente
+        generarYDescargarExcel(data);
+    }
+}
+
+function generarYDescargarExcel(data) {
+    try {
+        // Crear un libro de trabajo
+        const wb = XLSX.utils.book_new();
+        
+        // Convertir los datos a una hoja de trabajo
+        const ws = XLSX.utils.json_to_sheet(data);
+        
+        // Añadir la hoja de trabajo al libro
+        XLSX.utils.book_append_sheet(wb, ws, "Datos");
+        
+        // Generar el archivo Excel y descargarlo
+        XLSX.writeFile(wb, 'datos.xlsx');
+        
+    } catch (error) {
+        console.error('Error al generar el archivo Excel:', error);
+        alert('Error al generar el archivo Excel. Verifica la consola para más detalles.');
+    }
+}
+</script>
+</div>
+  
+
+<footer>
+    <p1>
+        Developed by Andrés Mendoza</a> 
+        © 2025.
+    </p1>
+    <p>
+        Supported by 
+        <a href="https://www.eltemplodelamoda.com/" target="_blank">GrupoTDM</a>.
+    </p>
+    <div class="social-links">
+        <a href="https://www.facebook.com/templodelamoda/?locale=es_LA" target="_blank" aria-label="Facebook">
+            <i class="fab fa-facebook"></i>
+        </a>
+        <a href="https://www.instagram.com/eltemplodelamoda/?hl=es" target="_blank" aria-label="Instagram">
+            <i class="fab fa-instagram"></i>
+        </a>
+        <a href="#" id="whatsappBtn" aria-label="WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    </div>
+</footer>
+
+<style>
+/* General footer styling */
+footer {
+    background-color: transparent!; /* Clean white background */
+    color: #999; /* Dark gray text */
+    padding: 20px; /* Inner spacing */
+    margin-top: 20px; /* Top margin */
+    text-align: center;
+    font-family: 'Roboto', sans-serif; /* Minimalistic Material Design font */
+    font-size: 0.95rem; /* Comfortable font size */
+    //border-top: 1px solid #e0e0e0; /* Subtle top border */
+    //box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1); /* Light shadow */
+}
+
+/* Links inside footer */
+footer a {
+    color: #666; /* Material Design blue */
+    font-weight: 500; /* Medium weight */
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: #448aff; /* Lighter blue on hover */
+}
+
+/* Social media icons */
+.social-links {
+    margin-top: 15px; /* Space above social icons */
+}
+
+.social-links a {
+    margin: 0 10px; /* Spacing between icons */
+    font-size: 1.4rem; /* Larger icon size for visibility */
+    transition: transform 0.3s ease;
+}
+
+/* Specific colors for each icon */
+.social-links a[aria-label="Facebook"] i {
+    color: #1877f2; /* Facebook blue */
+}
+
+.social-links a[aria-label="Twitter"] i {
+    color: #1da1f2; /* Twitter blue */
+}
+
+.social-links a[aria-label="Instagram"] i {
+    color: #e1306c; /* Instagram pink */
+}
+
+.social-links a[aria-label="WhatsApp"] i {
+    color: #25d366; /* WhatsApp green */
+}
+
+/* Hover effect for icons */
+.social-links a:hover i {
+    transform: scale(1.2); /* Slight zoom on hover */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    footer {
+        font-size: 0.85rem; /* Adjust font size for smaller screens */
+    }
+    .social-links a {
+        font-size: 1.2rem; /* Adjust icon size for smaller screens */
+    }
+}
+</style>
+
+
+
+<script>
+// Función para inicializar el botón de WhatsApp
+function initWhatsAppButton() {
+    const whatsappBtn = document.getElementById('whatsappBtn');
+    if (whatsappBtn) {
+        whatsappBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Verificar contraseña (igual que en el botón de captura)
+            if (!checkPassword()) {
+                return false;
+            }
+            
+            // Cambiar ícono a spinner mientras se procesa
+            const icon = whatsappBtn.querySelector('i');
+            const originalIconClass = icon.className;
+            icon.className = 'fas fa-spinner fa-spin';
+            
+            // Ejecutar la misma función que el botón de captura
+            captureAndDownloadCards().finally(() => {
+                // Restaurar ícono original
+                icon.className = originalIconClass;
+            });
+        });
+    }
+}
+
+// Asegurarse de que la función se ejecute al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    initWhatsAppButton();
+});
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+// Variables globales
+let currentReportData = null;
+let isLoading = false;
+let retryCount = 0;
+const MAX_RETRIES = 3;
+
+// Función para actualizar el reporte con una nueva fecha
+// Función para actualizar el reporte con una nueva fecha
+async function updateReportWithDate(newDate, forceReload = false) {
+    if (isLoading) return;
+    
+    isLoading = true;
+    retryCount = 0;
+    const updateBtn = document.getElementById('updateReportBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    const loadingProgress = document.getElementById('loadingProgress');
+    
+    try {
+        // Mostrar overlay de carga
+        loadingOverlay.classList.add('active');
+        loadingText.textContent = "Actualizando datos...";
+        loadingProgress.style.width = '10%';
+        
+        // Estado de carga - deshabilitar botón
+        updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        updateBtn.style.pointerEvents = 'none';
+        
+        // Solo recargar datos si es forzado o no hay datos cargados
+        if (forceReload || consolidatedData.length === 0 || budgetData.length === 0) {
+            loadingText.textContent = "Cargando datos iniciales...";
+            loadingProgress.style.width = '30%';
+            
+            // Forzar recarga de datos
+            consolidatedData = [];
+            budgetData = [];
+            await cargarDatosIniciales();
+            
+            loadingProgress.style.width = '50%';
+        }
+        
+        // Generar nuevo reporte con la fecha seleccionada
+        loadingText.textContent = "Generando reporte...";
+        loadingProgress.style.width = '70%';
+        
+        const reporte = await generarReporteCompleto(newDate);
+        currentReportData = reporte;
+        
+        // Actualizar la UI con los nuevos datos
+        loadingText.textContent = "Actualizando interfaz...";
+        loadingProgress.style.width = '90%';
+        
+        cargarDatosDia();
+        cargarDatosMes();
+        cargarDatosAño();
+        cargarDatosTendencia();
+        
+        // Finalizar carga
+        loadingProgress.style.width = '100%';
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+    } catch (error) {
+        console.error("Error:", error);
+        loadingText.textContent = "Error al cargar datos";
+        loadingProgress.style.backgroundColor = "#e74c3c";
+        
+        // Esperar un momento antes de ocultar para que el usuario vea el error
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+    } finally {
+        // Ocultar overlay de carga
+        loadingOverlay.classList.remove('active');
+        loadingProgress.style.width = '0%';
+        loadingProgress.style.backgroundColor = "";
+        
+        isLoading = false;
+        if (updateBtn) {
+            updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            updateBtn.style.pointerEvents = 'auto';
+        }
+        
+        // Resetear progreso después de la animación
+        setTimeout(() => {
+            loadingProgress.style.width = '0%';
+        }, 300);
+    }
+}
+
+// Función con lógica de reintentos
+async function loadDataWithRetry(date) {
+    try {
+        retryCount++;
+        
+        // Forzar recarga de datos
+        consolidatedData = [];
+        budgetData = [];
+        await cargarDatosIniciales();
+        
+        // Generar nuevo reporte
+        const reporte = await generarReporteCompleto(date);
+        currentReportData = reporte;
+        
+        // Actualizar la UI con los nuevos datos
+        cargarDatosDia();
+        cargarDatosMes();
+        cargarDatosAño();
+        
+        // Reiniciar contador de reintentos si tuvo éxito
+        retryCount = 0;
+        
+    } catch (error) {
+        console.error(`Error en intento ${retryCount}:`, error);
+        
+        if (retryCount < MAX_RETRIES) {
+            // Esperar progresivamente más entre reintentos
+            const delay = Math.min(1000 * retryCount, 3000);
+            console.log(`Reintentando en ${delay}ms...`);
+            
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return loadDataWithRetry(date);
+        } else {
+            throw error; // Propagar el error después de máximos reintentos
+        }
+    }
+}
+
+
+// Función para generar el mensaje de WhatsApp
+// Función para generar el mensaje de WhatsApp
+function generateWhatsAppMessage(imageUrl = "") {
+    if (!currentReportData) return "";
+    
+    const diaData = currentReportData.dia.actual;
+    const mesData = currentReportData.mes.actual;
+    const fechaObj = parseDate(diaData.fecha);
+    
+    // Formatear fechas
+    const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    
+    const diaNombre = dias[fechaObj.getDay()];
+    const diaNumero = fechaObj.getDate();
+    const mesNombre = meses[fechaObj.getMonth()];
+    const año = fechaObj.getFullYear();
+    
+    // Datos de semanas
+    const semanaActual = getWeekNumber(fechaObj);
+    const semanaAnterior = semanaActual - 1 > 0 ? semanaActual - 1 : 52;
+    
+    // Preparar comparativo
+    let comparativoAnterior = '';
+    if (currentReportData.dia.anterior) {
+        const fechaAnterior = parseDate(currentReportData.filtros.anterior);
+        comparativoAnterior = `(vs ${fechaAnterior.getDate()} ${meses[fechaAnterior.getMonth()]} ${año-1})`;
+    }
+
+    // Determinar flecha de gestión
+    let flechaGestion = '';
+    if (diaData.gestion) {
+        const valorGestion = parseFloat(diaData.gestion);
+        flechaGestion = valorGestion < 0 ? '↓' : '↑';
+    }
+
+    // Obtener la tendencia global
+    const tendenciaGlobal = getGlobalTrend();
+    let textoTendencia = '';
+    
+    switch(tendenciaGlobal) {
+        case 'positive':
+            textoTendencia = '↑ Tendencia a la alza';
+            break;
+        case 'negative':
+            textoTendencia = '↓ Tendencia a la baja';
+            break;
+        default:
+            textoTendencia = 'Tendencia Estable';
+    }
+
+    // Construir el mensaje base
+    let mensaje = `¡Bendiciones para todos!
+
+Adjunto el Cierre de Ingresos del Día:
+\`${diaNombre}, ${diaNumero} de ${mesNombre} del ${año}\`
+
+*${formatoCantidad(diaData.ingreso)}* unidades | Cumplimiento *${diaData.porcentaje}*
+Meta: *${formatoCantidad(diaData.meta)}* ${comparativoAnterior}
+
+${textoTendencia}
+
+Muestra Semanal (S${semanaActual}/S${semanaAnterior}) Gestión ${flechaGestion} *${diaData.gestion || 'N/A'}*
+* Promedio: *${formatoCantidad(diaData.promedio)}*
+* Ponderado: *${formatoCantidad(diaData.ponderado)}*
+* Desviación: *${formatoCantidad(diaData.desvest)}*
+* Máximo: *${formatoCantidad(diaData.max)}*`;
+
+    // Agregar enlaces
+    mensaje += `\n\nEnlaces importantes:
+☆ Link a la aplicación: https://andres1-dev.github.io/one/ingresos/informe/generar`;
+
+    if (imageUrl) {
+        mensaje += `\n★ Resumen visual: ${imageUrl}`;
+    }
+
+    // Cierre del mensaje
+    mensaje += `\n\nQuedo atento a sus comentarios.`;
+
+    return encodeURIComponent(mensaje);
+}
+
+// Función para abrir WhatsApp
+function openWhatsApp(message) {
+    const phoneNumber = "573168007979";
+    const url = `https://wa.me/${phoneNumber}?text=${message}`;
+    
+    // Solución universal que funciona en iOS
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    
+    // Crear un evento de click confiable
+    const event = document.createEvent('MouseEvents');
+    event.initEvent('click', true, true);
+    
+    // Disparar el evento
+    anchor.dispatchEvent(event);
+    
+    // Forzar apertura en iOS si aún no funciona
+    setTimeout(() => {
+        window.location.href = url;
+    }, 500);
+}
+
+// Función para abrir todas las tarjetas
+function openAllCards() {
+    const cardHeaders = document.querySelectorAll('.card-header');
+    cardHeaders.forEach(header => {
+        const cardContent = header.nextElementSibling;
+        const indicator = header.querySelector('.collapse-indicator');
+        
+        if (!cardContent.classList.contains('expanded')) {
+            cardContent.classList.add('expanded');
+            indicator.classList.add('expanded');
+        }
+    });
+}
+
+
+// Función para inicializar el selector de fecha
+function initDatePicker() {
+    const datePicker = document.getElementById('datePicker');
+    const updateBtn = document.getElementById('updateReportBtn');
+    
+    const today = new Date();
+    datePicker.valueAsDate = today;
+    
+    // Actualizar solo la vista cuando cambie la fecha, sin recargar datos
+    datePicker.addEventListener('change', () => {
+        const selectedDate = datePicker.valueAsDate;
+        if (selectedDate && currentReportData) {
+            // Usar los datos ya cargados para la nueva fecha
+            generarReporteCompleto(selectedDate)
+                .then(reporte => {
+                    currentReportData = reporte;
+                    cargarDatosDia();
+                    cargarDatosMes();
+                    cargarDatosAño();
+                })
+                .catch(error => console.error("Error al generar reporte:", error));
+        }
+    });
+    
+    // Botón manual de actualización - aquí sí forzamos recarga de datos
+    updateBtn.addEventListener('click', () => {
+        const selectedDate = datePicker.valueAsDate || new Date();
+        updateReportWithDate(selectedDate, true); // forceReload = true
+    });
+}
+
+// Formato con separador de miles
+const formatoCantidad = num => {
+    if (typeof num === 'string') {
+        // Si es un string, intentamos convertirlo a número
+        const numValue = parseFloat(num.replace(/\./g, '').replace(',', '.'));
+        return !isNaN(numValue) ? numValue.toLocaleString("es-ES") : num;
+    }
+    return num.toLocaleString("es-ES");
+};
+
+// Función para extraer el valor numérico de un porcentaje
+const extraerPorcentaje = porcentajeStr => {
+    if (!porcentajeStr) return 0;
+    const match = porcentajeStr.match(/(\d+\.?\d*)/);
+    return match ? parseFloat(match[0]) : 0;
+};
+
+// Función para cargar datos del día - CORREGIDA
+function cargarDatosDia() {
+    if (!currentReportData) return;
+    
+    const data = currentReportData.dia;
+    const actual = data.actual;
+    const anterior = data.anterior;
+    
+    document.getElementById("dia-fecha").textContent = `${actual.fecha}`;
+    document.getElementById("dia-meta").textContent = formatoCantidad(actual.meta);
+    document.getElementById("dia-ingreso").textContent = formatoCantidad(actual.ingreso);
+    
+    // Diferencia
+    const diffEl = document.getElementById("dia-diferencia");
+    diffEl.textContent = formatoCantidad(actual.diferencia);
+    diffEl.className = "data-value " + (actual.diferencia >= 0 ? "positive" : "negative");
+    
+    // Porcentaje
+    document.getElementById("dia-porcentaje").textContent = actual.porcentaje;
+    
+    // Barra de progreso
+    const progressBar = document.getElementById("dia-progressBar");
+    const progressPercent = document.getElementById("dia-progressPercent");
+    let progreso = extraerPorcentaje(actual.porcentaje);
+    let colorBarra;
+    
+    if (progreso < 30) {
+        colorBarra = "linear-gradient(90deg, #e74c3c, #f39c12)";
+    } else if (progreso < 70) {
+        colorBarra = "linear-gradient(90deg, #f39c12, #f1c40f)";
+    } else if (progreso < 100) {
+        colorBarra = "linear-gradient(90deg, #2ecc71, #27ae60)";
+    } else {
+        colorBarra = "linear-gradient(90deg, #27ae60, #219653)";
+    }
+    
+    progressBar.style.background = colorBarra;
+    progressPercent.textContent = "0%";
+    
+    setTimeout(() => {
+        progressBar.style.width = progreso + "%";
+        progressPercent.textContent = actual.porcentaje;
+    }, 300);
+    
+    // Mostrar restante
+    document.getElementById("dia-restante").textContent = 
+        `Faltan ${formatoCantidad(actual.meta - actual.ingreso)} para alcanzar la meta`;
+    
+    // Gestión - CORRECCIÓN COMPLETA AQUÍ
+    const gestEl = document.getElementById("dia-gestion");
+    const trendIcon = document.getElementById("dia-trendIcon");
+    
+    if (actual.gestion) {
+        // CORRECCIÓN: Extraer el valor numérico completo (incluyendo signo negativo)
+        const gestionValue = parseFloat(actual.gestion);
+        
+        gestEl.textContent = actual.gestion;
+        
+        // CORRECCIÓN: Usar el valor completo con signo
+        if (gestionValue > 5) {
+            gestEl.className = "positive";
+            trendIcon.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+            trendIcon.style.color = "var(--success-color)";
+        } else if (gestionValue < -5) {
+            gestEl.className = "negative";  // Ahora usa clase negative
+            trendIcon.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';  // Flecha hacia abajo
+            trendIcon.style.color = "var(--danger-color)";  // Color rojo
+        } else {
+            gestEl.className = "neutral";
+            trendIcon.innerHTML = '<i class="fa-solid fa-equals"></i>';
+            trendIcon.style.color = "var(--warning-color)";
+        }
+    } else {
+        gestEl.textContent = "N/A";
+        gestEl.className = "";
+        trendIcon.innerHTML = '';
+    }
+    
+    // Estadísticas adicionales
+    document.getElementById("dia-average").textContent = formatoCantidad(actual.promedio);
+    document.getElementById("dia-weighted").textContent = formatoCantidad(actual.ponderado);
+    document.getElementById("dia-desvest").textContent = formatoCantidad(actual.desvest);
+    document.getElementById("dia-max").textContent = formatoCantidad(actual.max);
+    
+    // Comparativo extendido
+    if (anterior) {
+        document.getElementById("dia-metaAnterior").textContent = formatoCantidad(anterior.meta);
+        document.getElementById("dia-ingresoAnterior").textContent = formatoCantidad(anterior.ingreso);
+        document.getElementById("dia-porcentajeAnterior").textContent = anterior.porcentaje;
+        document.getElementById("dia-diaAnterior").textContent = anterior.dia_letras;
+        document.getElementById("dia-averageAnterior").textContent = formatoCantidad(anterior.promedio);
+        document.getElementById("dia-weightedAnterior").textContent = formatoCantidad(anterior.ponderado);
+        document.getElementById("dia-desvestAnterior").textContent = formatoCantidad(anterior.desvest);
+        document.getElementById("dia-maxAnterior").textContent = formatoCantidad(anterior.max);
+    }
+}
+
+// Función para cargar datos del mes - CORREGIDA
+function cargarDatosMes() {
+    if (!currentReportData) return;
+    
+    const data = currentReportData.mes;
+    const actual = data.actual;
+    const anterior = data.anterior;
+    
+    document.getElementById("mes-mes").textContent = `${actual.mes}`;
+    document.getElementById("mes-meta").textContent = formatoCantidad(actual.meta);
+    document.getElementById("mes-ingreso").textContent = formatoCantidad(actual.ingreso);
+    
+    // Diferencia
+    const diffEl = document.getElementById("mes-diferencia");
+    diffEl.textContent = formatoCantidad(actual.diferencia);
+    diffEl.className = "data-value " + (actual.diferencia >= 0 ? "positive" : "negative");
+    
+    // Porcentaje
+    document.getElementById("mes-porcentaje").textContent = actual.porcentaje;
+    
+    // Barra de progreso
+    const progressBar = document.getElementById("mes-progressBar");
+    const progressPercent = document.getElementById("mes-progressPercent");
+    let progreso = extraerPorcentaje(actual.porcentaje);
+    let colorBarra;
+    
+    if (progreso < 30) {
+        colorBarra = "linear-gradient(90deg, #e74c3c, #f39c12)";
+    } else if (progreso < 70) {
+        colorBarra = "linear-gradient(90deg, #f39c12, #f1c40f)";
+    } else if (progreso < 100) {
+        colorBarra = "linear-gradient(90deg, #2ecc71, #27ae60)";
+    } else {
+        colorBarra = "linear-gradient(90deg, #27ae60, #219653)";
+    }
+    
+    progressBar.style.background = colorBarra;
+    progressPercent.textContent = "0%";
+    
+    setTimeout(() => {
+        progressBar.style.width = progreso + "%";
+        progressPercent.textContent = actual.porcentaje;
+    }, 500);
+    
+    // Mostrar restante
+    document.getElementById("mes-restante").textContent = 
+        `Faltan ${formatoCantidad(actual.meta - actual.ingreso)} para alcanzar la meta`;
+    
+    // Gestión - CORRECCIÓN COMPLETA AQUÍ
+    const gestEl = document.getElementById("mes-gestion");
+    const trendIcon = document.getElementById("mes-trendIcon");
+    
+    if (actual.gestion) {
+        // CORRECCIÓN: Extraer el valor numérico completo (incluyendo signo negativo)
+        const gestionValue = parseFloat(actual.gestion);
+        
+        gestEl.textContent = actual.gestion;
+        
+        // CORRECCIÓN: Usar el valor completo con signo
+        if (gestionValue > 5) {
+            gestEl.className = "positive";
+            trendIcon.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+            trendIcon.style.color = "var(--success-color)";
+        } else if (gestionValue < -5) {
+            gestEl.className = "negative";  // Ahora usa clase negative
+            trendIcon.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';  // Flecha hacia abajo
+            trendIcon.style.color = "var(--danger-color)";  // Color rojo
+        } else {
+            gestEl.className = "neutral";
+            trendIcon.innerHTML = '<i class="fa-solid fa-equals"></i>';
+            trendIcon.style.color = "var(--warning-color)";
+        }
+    } else {
+        gestEl.textContent = "N/A";
+        gestEl.className = "";
+        trendIcon.innerHTML = '';
+    }
+    
+    // Estadísticas adicionales
+    document.getElementById("mes-average").textContent = formatoCantidad(actual.promedio);
+    document.getElementById("mes-weighted").textContent = formatoCantidad(actual.ponderado);
+    document.getElementById("mes-desvest").textContent = formatoCantidad(actual.desvest);
+    document.getElementById("mes-max").textContent = formatoCantidad(actual.max);
+    
+    // Comparativo extendido
+    if (anterior) {
+        document.getElementById("mes-metaAnterior").textContent = formatoCantidad(anterior.meta);
+        document.getElementById("mes-ingresoAnterior").textContent = formatoCantidad(anterior.ingreso);
+        document.getElementById("mes-porcentajeAnterior").textContent = anterior.porcentaje;
+        document.getElementById("mes-habilAnterior").textContent = anterior.registros + " días";
+        document.getElementById("mes-averageAnterior").textContent = formatoCantidad(anterior.promedio);
+        document.getElementById("mes-weightedAnterior").textContent = formatoCantidad(anterior.ponderado);
+        document.getElementById("mes-desvestAnterior").textContent = formatoCantidad(anterior.desvest);
+        document.getElementById("mes-maxAnterior").textContent = formatoCantidad(anterior.max);
+    }
+}
+
+// Función para cargar datos del año - CORREGIDA
+function cargarDatosAño() {
+    if (!currentReportData) return;
+    
+    const data = currentReportData.año;
+    const actual = data.actual;
+    const anterior = data.anterior;
+    
+    document.getElementById("año-año").textContent = actual.año;
+    document.getElementById("año-meta").textContent = formatoCantidad(actual.meta);
+    document.getElementById("año-ingreso").textContent = formatoCantidad(actual.ingreso);
+    
+    // Diferencia
+    const diffEl = document.getElementById("año-diferencia");
+    diffEl.textContent = formatoCantidad(actual.diferencia);
+    diffEl.className = "data-value " + (actual.diferencia >= 0 ? "positive" : "negative");
+    
+    // Porcentaje
+    document.getElementById("año-porcentaje").textContent = actual.porcentaje;
+    
+    // Barra de progreso
+    const progressBar = document.getElementById("año-progressBar");
+    const progressPercent = document.getElementById("año-progressPercent");
+    let progreso = extraerPorcentaje(actual.porcentaje);
+    let colorBarra;
+    
+    if (progreso < 30) {
+        colorBarra = "linear-gradient(90deg, #e74c3c, #f39c12)";
+    } else if (progreso < 70) {
+        colorBarra = "linear-gradient(90deg, #f39c12, #f1c40f)";
+    } else if (progreso < 100) {
+        colorBarra = "linear-gradient(90deg, #2ecc71, #27ae60)";
+    } else {
+        colorBarra = "linear-gradient(90deg, #27ae60, #219653)";
+    }
+    
+    progressBar.style.background = colorBarra;
+    progressPercent.textContent = "0%";
+    
+    setTimeout(() => {
+        progressBar.style.width = progreso + "%";
+        progressPercent.textContent = actual.porcentaje;
+    }, 700);
+    
+    // Mostrar restante
+    document.getElementById("año-restante").textContent = 
+        `Faltan ${formatoCantidad(actual.meta - actual.ingreso)} para alcanzar la meta`;
+    
+    // Gestión - CORRECCIÓN COMPLETA AQUÍ
+    const gestEl = document.getElementById("año-gestion");
+    const trendIcon = document.getElementById("año-trendIcon");
+    
+    if (actual.gestion) {
+        // CORRECCIÓN: Extraer el valor numérico completo (incluyendo signo negativo)
+        const gestionValue = parseFloat(actual.gestion);
+        
+        gestEl.textContent = actual.gestion;
+        
+        // CORRECCIÓN: Usar el valor completo con signo
+        if (gestionValue > 5) {
+            gestEl.className = "positive";
+            trendIcon.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+            trendIcon.style.color = "var(--success-color)";
+        } else if (gestionValue < -5) {
+            gestEl.className = "negative";  // Ahora usa clase negative
+            trendIcon.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';  // Flecha hacia abajo
+            trendIcon.style.color = "var(--danger-color)";  // Color rojo
+        } else {
+            gestEl.className = "neutral";
+            trendIcon.innerHTML = '<i class="fa-solid fa-equals"></i>';
+            trendIcon.style.color = "var(--warning-color)";
+        }
+    } else {
+        gestEl.textContent = "N/A";
+        gestEl.className = "";
+        trendIcon.innerHTML = '';
+    }
+    
+    // Estadísticas adicionales
+    document.getElementById("año-average").textContent = formatoCantidad(actual.promedio);
+    document.getElementById("año-weighted").textContent = formatoCantidad(actual.ponderado);
+    document.getElementById("año-desvest").textContent = formatoCantidad(actual.desvest);
+    document.getElementById("año-max").textContent = formatoCantidad(actual.max);
+    
+    // Comparativo extendido
+    if (anterior) {
+        document.getElementById("año-metaAnterior").textContent = formatoCantidad(anterior.meta);
+        document.getElementById("año-ingresoAnterior").textContent = formatoCantidad(anterior.ingreso);
+        document.getElementById("año-porcentajeAnterior").textContent = anterior.porcentaje;
+        document.getElementById("año-diferenciaAnterior").textContent = formatoCantidad(anterior.diferencia);
+        document.getElementById("año-averageAnterior").textContent = formatoCantidad(anterior.promedio);
+        document.getElementById("año-weightedAnterior").textContent = formatoCantidad(anterior.ponderado);
+        document.getElementById("año-desvestAnterior").textContent = formatoCantidad(anterior.desvest);
+        document.getElementById("año-maxAnterior").textContent = formatoCantidad(anterior.max);
+    }
+}
+
+// Función para colapsar/expandir tarjetas
+function toggleCard(header) {
+    const cardContent = header.nextElementSibling;
+    const indicator = header.querySelector('.collapse-indicator');
+    
+    cardContent.classList.toggle('expanded');
+    indicator.classList.toggle('expanded');
+}
+
+// Función para colapsar/expandir comparativos
+function toggleComparison(header) {
+    const content = header.nextElementSibling;
+    const indicator = header.querySelector('.comparison-collapse-icon');
+    
+    content.classList.toggle('expanded');
+    indicator.classList.toggle('expanded');
+}
+
+// ================== FUNCIONES DE API ==================
+
+// Configuración de APIs
+const API_KEY = 'AIzaSyCrTSddJcCaJCqQ_Cr_PC2zt-eVZAihC38';
+const SPREADSHEET_IDS = {
+    DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+    REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
+    REC2024: "1Gzwybsv6KjGBDc6UeAo57AV5W0gK-bjWTA-AcKLJOlY",
+    BUDGETID: "10P1BtnwjUrSuM4ZajAdUiHXNEzpi4H2zsJvQVYp5jtQ"
+};
+
+// Variables globales
+let consolidatedData = [];
+let budgetData = [];
+
+/**
+ * Función principal que genera el reporte completo
+ * @param {Date|string} [targetDate] - Fecha objetivo (opcional, por defecto fecha actual)
+ * @returns {Promise<Object>} Objeto JSON con el reporte completo
+ */
+
+// 2. Función generarReporteCompleto (manteniendo gestión anual)
+async function generarReporteCompleto(targetDate = new Date()) {
+    try {
+        // 1. Cargar datos si no están en memoria
+        if (consolidatedData.length === 0 || budgetData.length === 0) {
+            await cargarDatosIniciales();
+        }
+
+        // 2. Validar y formatear fecha
+        const fechaObj = parseDate(targetDate);
+        if (!fechaObj) {
+            throw new Error("Fecha no válida");
+        }
+
+        // 3. Buscar fecha actual más cercana con datos
+        const currentYear = fechaObj.getFullYear();
+        const currentResult = findClosestDateWithData(fechaObj, currentYear, consolidatedData);
+        
+        if (!currentResult) {
+            throw new Error("No hay datos disponibles para el año actual");
+        }
+
+        // 4. Obtener fecha equivalente en el año anterior
+        let previousResult = null;
+        const previousYear = currentYear - 1;
+        const previousDate = new Date(fechaObj);
+        previousDate.setFullYear(previousYear);
+        
+        if (consolidatedData.some(d => d.Año === previousYear)) {
+            previousResult = findClosestDateWithData(previousDate, previousYear, consolidatedData);
+        }
+
+        // 5. Generar reporte (manteniendo estructura original)
+        const report = {
+            filtros: {
+                actual: formatDate(currentResult.date),
+                anterior: previousResult ? formatDate(previousResult.date) : null,
+                isExact: currentResult.isExact,
+                previousIsExact: previousResult ? previousResult.isExact : false
+            },
+            dia: {
+                actual: generateDayMetrics(currentResult.data, currentResult.date, consolidatedData, false),
+                anterior: previousResult ? generateDayMetrics(
+                    previousResult.data, 
+                    previousResult.date, 
+                    consolidatedData, 
+                    true,
+                    currentResult.date
+                ) : null
+            },
+            mes: {
+                actual: generatePeriodMetrics('mes', currentResult.date, consolidatedData, false),
+                anterior: previousResult ? generatePeriodMetrics(
+                    'mes', 
+                    previousResult.date, 
+                    consolidatedData, 
+                    true, 
+                    currentResult.date
+                ) : null
+            },
+            año: {
+                actual: generatePeriodMetrics('año', currentResult.date, consolidatedData, false),
+                anterior: previousResult ? generatePeriodMetrics(
+                    'año', 
+                    previousResult.date, 
+                    consolidatedData, 
+                    true, 
+                    currentResult.date
+                ) : null
+            },
+            // Mantener datos para tendencias y gestión anual
+            tendencias: getTrendsData(currentYear, previousYear, consolidatedData)
+        };
+
+        // Calcular gestiones anuales
+        if (report.dia.anterior) {
+            report.dia.actual.gestion = calculateGrowth(
+                report.dia.actual.porcentaje,
+                report.dia.anterior.porcentaje
+            );
+        }
+        if (report.mes.anterior) {
+            report.mes.actual.gestion = calculateGrowth(
+                report.mes.actual.porcentaje,
+                report.mes.anterior.porcentaje
+            );
+        }
+        if (report.año.anterior) {
+            report.año.actual.gestion = calculateGrowth(
+                report.año.actual.porcentaje,
+                report.año.anterior.porcentaje
+            );
+        }
+
+        return report;
+
+    } catch (error) {
+        console.error("Error en generarReporteCompleto:", error);
+        throw error;
+    }
+}
+
+// Función auxiliar para mantener datos de tendencias
+function getTrendsData(currentYear, previousYear, data) {
+    const currentYearData = data.filter(d => d.Año === currentYear);
+    const previousYearData = data.filter(d => d.Año === previousYear);
+    
+    const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 
+                 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    
+    return {
+        meses: meses,
+        actual: meses.reduce((acc, mes) => {
+            acc[mes] = currentYearData
+                .filter(d => d.Mes === mes)
+                .reduce((sum, d) => sum + d.Ingreso, 0);
+            return acc;
+        }, {}),
+        anterior: meses.reduce((acc, mes) => {
+            acc[mes] = previousYearData
+                .filter(d => d.Mes === mes)
+                .reduce((sum, d) => sum + d.Ingreso, 0);
+            return acc;
+        }, {})
+    };
+}
+
+
+// ================== FUNCIONES DE CARGA DE DATOS ==================
+
+// ================== FUNCIÓN ORIGINAL ==================
+async function cargarDatosIniciales() {
+    try {
+        const [mainData, recData, rec2024Data, budget] = await Promise.all([
+            getParsedMainData(),
+            getREC(),
+            getREC2024(),
+            getBudgetData()
+        ]);
+
+        const allIncomeData = [...mainData, ...recData, ...rec2024Data];
+        const validIncomeData = allIncomeData.filter(item => !isAnulado(item));
+
+        // Procesar datos consolidados (solo lo necesario para tarjetas/gráfica)
+        consolidatedData = procesarDatosConsolidados(validIncomeData, budget);
+        budgetData = budget;
+
+        // 👉 Después de terminar la carga principal, se lanza la carga de la tarjeta
+        datosCargarEndpoint();
+
+    } catch (error) {
+        console.error("Error al cargar datos iniciales:", error);
+        throw error;
+    }
+}
+
+
+function procesarDatosConsolidados(incomeData, budget) {
+    const groupedByDate = incomeData.reduce((acc, item) => {
+        const fecha = item.FECHA;
+        if (!fecha) return acc;
+        
+        if (!acc[fecha]) {
+            acc[fecha] = {
+                fecha, 
+                unidades: 0, 
+                count: 0
+            };
+        }
+        
+        acc[fecha].unidades += item.CANTIDAD || 0;
+        acc[fecha].count++;
+        
+        return acc;
+    }, {});
+
+    return Object.values(groupedByDate).map(item => {
+        const dateObj = parseDate(item.fecha);
+        if (!dateObj) return null;
+
+        const mes = getNombreMes(item.fecha);
+        const diaSemana = getDiaSemana(item.fecha);
+        const año = dateObj.getFullYear();
+        const semana = getWeekNumber(dateObj);
+
+        const budgetForMonth = budget.find(b => 
+            b.MES.toUpperCase() === mes.toUpperCase() && 
+            b.ANO === String(año)
+        );
+
+        const metaDiaria = budgetForMonth ? (budgetForMonth.TOTAL / budgetForMonth.HABILES) : 0;
+        const diferencia = item.unidades - metaDiaria;
+        const cumplimiento = metaDiaria > 0 ? (item.unidades / metaDiaria * 100).toFixed(2) + '%' : '0%';
+
+        return {
+            Fecha: formatDate(dateObj),
+            Dia: diaSemana,
+            Semana: semana,
+            Mes: mes.toUpperCase(),
+            Año: año,
+            Ingreso: Math.round(item.unidades),
+            Meta: Math.round(metaDiaria),
+            Diferencia: Math.round(diferencia),
+            Cumplimiento: cumplimiento,
+            TotalRegistros: item.count
+        };
+    }).filter(item => item !== null)
+    .sort((a, b) => parseDate(b.Fecha) - parseDate(a.Fecha));
+}
+// ================== FUNCIONES DE GENERACIÓN DE REPORTE ==================
+
+async function generateComparativeReport(currentDate) {
+    const currentYear = currentDate.getFullYear();
+    const currentDateStr = formatDate(currentDate);
+
+    // Buscar datos exactos o más cercanos
+    let currentDayData = consolidatedData.find(d => 
+        d.Fecha === currentDateStr && d.Año === currentYear
+    );
+    let closestDate = currentDate;
+
+    if (!currentDayData) {
+        closestDate = findClosestDateWithData(currentDate, currentYear, consolidatedData);
+        if (!closestDate) {
+            throw new Error(`No hay datos disponibles para fechas cercanas a ${currentDateStr}`);
+        }
+        const closestDateStr = formatDate(closestDate);
+        currentDayData = consolidatedData.find(d => d.Fecha === closestDateStr && d.Año === currentYear);
+    }
+
+    // Obtener fecha equivalente en el año anterior
+    const previousDate = getEquivalentPreviousYearDate(closestDate, consolidatedData);
+    if (!previousDate) {
+        throw new Error("No se encontraron datos para el año anterior");
+    }
+
+    const previousYear = previousDate.getFullYear();
+    const previousDateStr = formatDate(previousDate);
+    const previousDayData = consolidatedData.find(d => 
+        d.Fecha === previousDateStr && d.Año === previousYear
+    );
+
+    // Filtrar datos por año
+    const currentYearData = consolidatedData.filter(d => d.Año === currentYear);
+    const previousYearData = consolidatedData.filter(d => d.Año === previousYear);
+
+    // Generar reporte
+    const report = {
+        filtros: {
+            actual: formatDate(closestDate),
+            anterior: previousDateStr
+        },
+        dia: {
+            actual: generateDayMetrics(currentDayData, closestDate, currentYearData, false),
+            anterior: previousDayData ? generateDayMetrics(
+                previousDayData, 
+                previousDate, 
+                previousYearData, 
+                true,
+                closestDate
+            ) : null
+        },
+        mes: {
+            actual: generatePeriodMetrics('mes', closestDate, currentYearData, false),
+            anterior: generatePeriodMetrics('mes', previousDate, previousYearData, true, closestDate)
+        },
+        año: {
+            actual: generatePeriodMetrics('año', closestDate, currentYearData, false),
+            anterior: generatePeriodMetrics('año', previousDate, previousYearData, true, closestDate)
+        }
+    };
+
+    // Calcular gestiones
+    if (report.dia.anterior) {
+        report.dia.actual.gestion = calculateGrowth(
+            report.dia.actual.porcentaje,
+            report.dia.anterior.porcentaje
+        );
+    }
+    if (report.mes.anterior) {
+        report.mes.actual.gestion = calculateGrowth(
+            report.mes.actual.porcentaje,
+            report.mes.anterior.porcentaje
+        );
+    }
+    if (report.año.anterior) {
+        report.año.actual.gestion = calculateGrowth(
+            report.año.actual.porcentaje,
+            report.año.anterior.porcentaje
+        );
+    }
+
+    return report;
+}
+
+// ================== FUNCIONES AUXILIARES ==================
+
+// Normalización de datos
+function normalizeLinea(linea) {
+    let normalized = linea.replace(/^LINEA\s*/i, '');
+    return normalized.replace(/\s+/g, '').toUpperCase();
+}
+
+function normalizePVP(pvp) {
+    return pvp.replace(/\$\s*/g, '').replace(/\./g, '').trim();
+}
+
+function normalizeDocumento(documento) {
+    return documento.replace(/^REC/i, '');
+}
+
+// Manejo de fechas
+function normalizeDate(date) {
+    if (!date) return null;
+    if (date.includes('/')) {
+        const [day, month, year] = date.split('/');
+        const dd = day.padStart(2, '0');
+        const mm = month.padStart(2, '0');
+        return new Date(`${year}-${mm}-${dd}T00:00:00-05:00`).toISOString().split('T')[0];
+    }
+    if (date.includes('-')) {
+        return new Date(`${date}T00:00:00-05:00`).toISOString().split('T')[0];
+    }
+    return null;
+}
+
+function formatDate(date) {
+    if (!date) return '';
+    const d = date instanceof Date ? date : new Date(date);
+    const offset = d.getTimezoneOffset() + 300;
+    const colombiaTime = new Date(d.getTime() + offset * 60000);
+    const day = String(colombiaTime.getDate()).padStart(2, '0');
+    const month = String(colombiaTime.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}/${colombiaTime.getFullYear()}`;
+}
+
+function parseDate(dateStr) {
+    if (!dateStr) return null;
+    if (dateStr instanceof Date) return dateStr;
+    if (dateStr.includes('/')) {
+        const [day, month, year] = dateStr.split('/');
+        return new Date(`${year}-${month}-${day}T00:00:00-05:00`);
+    }
+    if (dateStr.includes('-')) {
+        return new Date(`${dateStr}T00:00:00-05:00`);
+    }
+    console.error(`Formato de fecha no reconocido: ${dateStr}`);
+    return null;
+}
+
+// Validación de datos
+function isAnulado(item) {
+    const camposRequeridos = [
+        'CANTIDAD'
+    ];
+    let camposVacios = 0;
+    for (const campo of camposRequeridos) {
+        if (!item[campo] || 
+            (typeof item[campo] === 'number' && item[campo] === 0) ||
+            (typeof item[campo] === 'string' && item[campo].trim() === '')) {
+            camposVacios++;
+            if (camposVacios > 4) return true;
+        }
+    }
+    return camposVacios > 4;
+}
+
+// Funciones de clasificación
+function getGestorByLinea(linea) {
+    const normalizedLinea = normalizeLinea(linea);
+    const gestores = {
+        'ANGELES': 'VILLAMIZAR GOMEZ LUIS',
+        'MODAFRESCA': 'FABIAN MARIN FLOREST',
+        'BASICO': 'CESAR AUGUSTO LOPEZ GIRALDO',
+        'INTIMA': 'KELLY GIOVANA ZULUAGA HOYOS',
+        'URBANO': 'MARYI ANDREA GONZALEZ SILVA',
+        'DEPORTIVO': 'JOHAN STEPHANIE ESPINOSA RAMIREZ',
+        'PRONTAMODA': 'SANCHEZ LOPEZ YULIETH',
+        'ESPECIALES': 'JUAN ESTEBAN ZULUAGA HOYOS',
+        'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS',
+        'DENIM': 'JUAN ESTEBAN ZULUAGA HOYOS',
+        'NEBRASK': 'SANCHEZ LOPEZ YULIETH'
+    };
+    for (const [key, value] of Object.entries(gestores)) {
+        if (normalizedLinea.includes(key)) return value;
+    }
+    return 'GESTOR NO ASIGNADO';
+}
+
+function getProveedorByLinea(linea) {
+    return normalizeLinea(linea).includes('ANGELES') ? 
+        'TEXTILES Y CREACIONES LOS ANGELES SAS' : 
+        'TEXTILES Y CREACIONES EL UNIVERSO SAS';
+}
+
+function getClaseByPVP(pvp) {
+    const valor = parseFloat(pvp);
+    if (isNaN(valor)) return 'NO DEFINIDO';
+    if (valor <= 39900) return 'LINEA';
+    if (valor > 39900 && valor <= 59900) return 'MODA';
+    if (valor > 59900) return 'PRONTAMODA';
+    return 'NO DEFINIDO';
+}
+
+// Funciones de fecha avanzadas
+function getNombreMes(fecha) {
+    const meses = [
+        'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+        'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+    ];
+    try {
+        const d = parseDate(fecha);
+        return meses[d.getMonth()];
+    } catch (e) {
+        console.error(`Error al obtener mes de fecha: ${fecha}`, e);
+        return 'ENERO';
+    }
+}
+
+function getDiaSemana(fecha) {
+    if (!fecha) return 'SIN FECHA';
+    const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const d = parseDate(fecha);
+    const offset = d.getTimezoneOffset() + 300;
+    const colombiaTime = new Date(d.getTime() + offset * 60000);
+    return dias[colombiaTime.getDay()] || 'SIN DÍA';
+}
+
+function getWeekNumber(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+    const week1 = new Date(d.getFullYear(), 0, 4);
+    return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
+// 1. Función para encontrar la fecha más cercana con datos (mejorada)
+function findClosestDateWithData(targetDate, year, data) {
+    const targetTime = parseDate(targetDate).getTime();
+    const yearData = data.filter(d => d.Año === year);
+    
+    if (yearData.length === 0) return null;
+    
+    // Buscar coincidencia exacta
+    const exactMatch = yearData.find(d => {
+        const dDate = parseDate(d.Fecha);
+        return dDate && dDate.getTime() === targetTime;
+    });
+    if (exactMatch) return { date: parseDate(exactMatch.Fecha), isExact: true };
+    
+    // Encontrar la fecha más cercana (anterior o posterior)
+    let closestBefore = null;
+    let closestAfter = null;
+    
+    yearData.forEach(item => {
+        const itemDate = parseDate(item.Fecha);
+        if (!itemDate) return;
+        
+        const itemTime = itemDate.getTime();
+        const diff = itemTime - targetTime;
+        
+        if (diff < 0) { // Fecha anterior
+            if (!closestBefore || itemTime > parseDate(closestBefore.Fecha).getTime()) {
+                closestBefore = item;
+            }
+        } else { // Fecha posterior
+            if (!closestAfter || itemTime < parseDate(closestAfter.Fecha).getTime()) {
+                closestAfter = item;
+            }
+        }
+    });
+    
+    // Determinar la más cercana
+    if (closestBefore && closestAfter) {
+        const beforeDiff = targetTime - parseDate(closestBefore.Fecha).getTime();
+        const afterDiff = parseDate(closestAfter.Fecha).getTime() - targetTime;
+        
+        if (beforeDiff < afterDiff) {
+            return { date: parseDate(closestBefore.Fecha), isExact: false, data: closestBefore };
+        } else if (afterDiff < beforeDiff) {
+            return { date: parseDate(closestAfter.Fecha), isExact: false, data: closestAfter };
+        } else {
+            // Empate - elegir el con más unidades
+            return closestBefore.Ingreso >= closestAfter.Ingreso 
+                ? { date: parseDate(closestBefore.Fecha), isExact: false, data: closestBefore }
+                : { date: parseDate(closestAfter.Fecha), isExact: false, data: closestAfter };
+        }
+    } else if (closestBefore) {
+        return { date: parseDate(closestBefore.Fecha), isExact: false, data: closestBefore };
+    } else if (closestAfter) {
+        return { date: parseDate(closestAfter.Fecha), isExact: false, data: closestAfter };
+    }
+    
+    return null;
+}
+
+function getEquivalentPreviousYearDate(currentDate, data) {
+    const currentYear = currentDate.getFullYear();
+    const previousYear = currentYear - 1;
+    
+    const sameDateLastYear = new Date(currentDate);
+    sameDateLastYear.setFullYear(previousYear);
+    
+    const sameDateLastYearStr = formatDate(sameDateLastYear);
+    const exactMatch = data.find(d => d.Fecha === sameDateLastYearStr && d.Año === previousYear);
+    if (exactMatch) return parseDate(exactMatch.Fecha);
+    
+    return findClosestDateWithData(sameDateLastYear, previousYear, data);
+}
+
+// Funciones estadísticas
+function calculateAverage(data) {
+    if (data.length === 0) return 0;
+    const sum = data.reduce((acc, d) => acc + d.Ingreso, 0);
+    return Math.round(sum / data.length);
+}
+
+function calculateWeightedAvg(data) {
+    if (data.length === 0) return 0;
+    const weights = data.map(d => {
+        const percent = parseFloat(d.Cumplimiento);
+        return isNaN(percent) ? 0 : percent;
+    });
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    if (totalWeight === 0) return 0;
+    const weightedSum = data.reduce((sum, d, i) => {
+        return sum + (d.Ingreso * (weights[i] / totalWeight));
+    }, 0);
+    return Math.round(weightedSum);
+}
+
+function calculateStdDev(data) {
+    if (data.length === 0) return 0;
+    const avg = calculateAverage(data);
+    const squareDiffs = data.map(d => Math.pow(d.Ingreso - avg, 2));
+    const divisor = data.length - 1;
+    const variance = squareDiffs.reduce((sum, val) => sum + val, 0) / divisor;
+    return Math.round(Math.sqrt(variance));
+}
+
+function findMax(data) {
+    if (data.length === 0) return 0;
+    return Math.max(...data.map(d => d.Ingreso));
+}
+
+function calculateGrowth(currentPercent, previousPercent) {
+    if (!previousPercent || previousPercent === '0%') return null;
+    const current = parseFloat(currentPercent);
+    const previous = parseFloat(previousPercent);
+    if (previous === 0) return null;
+    const growth = ((current / previous) - 1) * 100;
+    return growth.toFixed(2) + '%';
+}
+
+function mostrarDatosCompletos2025() {
+    // Filtrar solo datos de 2025
+    const datos2025 = consolidatedData.filter(item => item.Año === 2025);
+    
+    console.log("=== DATOS COMPLETOS 2025 (PROCESADOS) ===");
+    console.log("Cantidad de registros:", datos2025.length);
+    console.log("Datos:", datos2025);
+    
+    // Opcional: Mostrar también en una tabla para mejor visualización
+    console.table(datos2025.slice(0, 50)); // Muestra los primeros 50 para no saturar
+    
+    // Opcional: Descargar como JSON
+    const jsonStr = JSON.stringify(datos2025, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'datos_2025_procesados.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// ================== FUNCIONES DE API ==================
+
+async function getParsedMainData() {
+    try {
+        const range = "DATA2!S2:S";
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.DATA2}/values/${range}?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.values || data.values.length === 0) {
+            throw new Error("No se encontraron datos en la hoja DATA2");
+        }
+
+        return data.values.map(row => {
+            try {
+                const jsonData = JSON.parse(row[0]);
+                return {
+                    //DOCUMENTO: String(jsonData.A || ''),
+                    FECHA: normalizeDate(jsonData.FECHA || ''),
+                    //TALLER: jsonData.TALLER || '',
+                    //LINEA: normalizeLinea(jsonData.LINEA || ''),
+                    //AUDITOR: jsonData.AUDITOR || '',
+                    //ESCANER: jsonData.ESCANER || '',
+                    //LOTE: Number(jsonData.LOTE) || 0,
+                    //REFPROV: String(jsonData.REFPROV || ''),
+                    //DESCRIPCIÓN: jsonData.DESCRIPCIÓN || '',
+                    CANTIDAD: Number(jsonData.CANTIDAD) || 0,
+                    //REFERENCIA: jsonData.REFERENCIA || '',
+                    //TIPO: jsonData.TIPO || '',
+                    //PVP: normalizePVP(jsonData.PVP || ''),
+                    //PRENDA: jsonData.PRENDA || '',
+                    //GENERO: jsonData.GENERO || '',
+                    //GESTOR: jsonData.GESTOR || '',
+                    //PROVEEDOR: jsonData.PROVEEDOR || getProveedorByLinea(jsonData.LINEA || ''),
+                    //CLASE: getClaseByPVP(normalizePVP(jsonData.PVP || '')),
+                    //FUENTE: 'SISPRO',
+                    ANO: '2025'
+                };
+            } catch (e) {
+                console.error("Error al parsear JSON:", e);
+                return null;
+            }
+        }).filter(item => item !== null);
+
+    } catch (error) {
+        console.error("Error en getParsedMainData:", error);
+        throw error;
+    }
+}
+
+async function getREC() {
+    try {
+        const range = "DataBase!A2:AF";
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.REC}/values/${range}?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.values || data.values.length === 0) {
+            throw new Error("No se encontraron datos en la hoja DataBase");
+        }
+
+        return data.values.map(row => {
+            if (!row[0] && !row[1]) return null;
+            const documento = String(row[0] || '');
+            const linea = row[3] || '';
+            return {
+                //DOCUMENTO: normalizeDocumento(documento),
+                FECHA: normalizeDate(row[1] || ''),
+                //TALLER: row[2] || '',
+                //LINEA: normalizeLinea(linea),
+                //AUDITOR: row[4] || '',
+                //ESCANER: row[5] || '',
+                //LOTE: Number(row[8]) || 0,
+                //REFPROV: String(row[6] || ''),
+                //DESCRIPCIÓN: row[9] || '',
+                CANTIDAD: Number(row[18]) || 0,
+                //REFERENCIA: row[26] || '',
+                //TIPO: row[27] || '',
+                //PVP: normalizePVP(row[31] || ''),
+                //PRENDA: row[29] || '',
+                //GENERO: row[30] || '',
+                //GESTOR: getGestorByLinea(linea),
+                //PROVEEDOR: getProveedorByLinea(linea),
+                //CLASE: getClaseByPVP(normalizePVP(row[31] || '')),
+                //FUENTE: 'BUSINT',
+                ANO: '2025'
+            };
+        }).filter(item => item !== null && item.DOCUMENTO !== '');
+
+    } catch (error) {
+        console.error("Error en getREC:", error);
+        throw error;
+    }
+}
+
+async function getREC2024() {
+    try {
+        const range = "DataBase!A2:AF";
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.REC2024}/values/${range}?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.values || data.values.length === 0) {
+            throw new Error("No se encontraron datos en la hoja DataBase de REC2024");
+        }
+
+        return data.values.map(row => {
+            if (!row[0] && !row[1]) return null;
+            //const documento = String(row[0] || '');
+            //const linea = row[3] || '';
+            return {
+                //DOCUMENTO: normalizeDocumento(documento),
+                FECHA: normalizeDate(row[1] || ''),
+                //TALLER: row[2] || '',
+                //LINEA: normalizeLinea(linea),
+                //AUDITOR: row[4] || '',
+                //ESCANER: row[5] || '',
+                //LOTE: Number(row[8]) || 0,
+                //REFPROV: String(row[6] || ''),
+                //DESCRIPCIÓN: row[9] || '',
+                CANTIDAD: Number(row[18]) || 0,
+                //REFERENCIA: row[26] || '',
+                //TIPO: row[27] || '',
+                //PVP: normalizePVP(row[31] || ''),
+                //PRENDA: row[29] || '',
+                //GENERO: row[30] || '',
+                //GESTOR: getGestorByLinea(linea),
+                //PROVEEDOR: getProveedorByLinea(linea),
+                //CLASE: getClaseByPVP(normalizePVP(row[31] || '')),
+                //FUENTE: 'BUSINT',
+                ANO: '2024'
+            };
+        }).filter(item => item !== null && item.DOCUMENTO !== '');
+
+    } catch (error) {
+        console.error("Error en getREC2024:", error);
+        throw error;
+    }
+}
+
+async function getBudgetData() {
+    try {
+        const range2025 = "BUDGET2025!A1:L14";
+        const range2024 = "BUDGET2024!A1:M14";
+        
+        const [response2025, response2024] = await Promise.all([
+            fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.BUDGETID}/values/${range2025}?key=${API_KEY}`),
+            fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.BUDGETID}/values/${range2024}?key=${API_KEY}`)
+        ]);
+
+        const [data2025, data2024] = await Promise.all([
+            response2025.json(),
+            response2024.json()
+        ]);
+
+        const lineas2025 = data2025.values[0].slice(1, -2);
+        const budgets2025 = data2025.values.slice(1).map(row => {
+            return {
+                MES: row[0],
+                ANO: '2025',
+                TOTAL: Number(row[row.length - 2]) || 0,
+                HABILES: Number(row[row.length - 1]) || 0,
+                LINEAS: lineas2025.reduce((acc, linea, idx) => {
+                    acc[linea] = Number(row[idx + 1]) || 0;
+                    return acc;
+                }, {})
+            };
+        });
+
+        const lineas2024 = data2024.values[0].slice(1, -2);
+        const budgets2024 = data2024.values.slice(1).map(row => {
+            return {
+                MES: row[0],
+                ANO: '2024',
+                TOTAL: Number(row[row.length - 2]) || 0,
+                HABILES: Number(row[row.length - 1]) || 0,
+                LINEAS: lineas2024.reduce((acc, linea, idx) => {
+                    acc[linea] = Number(row[idx + 1]) || 0;
+                    return acc;
+                }, {})
+            };
+        });
+
+        return [...budgets2025, ...budgets2024];
+    } catch (error) {
+        console.error("Error en getBudgetData:", error);
+        throw error;
+    }
+}
+
+// ================== FUNCIONES DE MÉTRICAS ==================
+
+function generateDayMetrics(dayData, date, fullYearData, isFromPreviousYear = false, currentAnalysisDate = null) {
+    let weekData, previousWeekData;
+    
+    if (isFromPreviousYear && currentAnalysisDate) {
+        const limitDate = new Date(currentAnalysisDate);
+        limitDate.setFullYear(date.getFullYear());
+        weekData = getWeekData(date, fullYearData, formatDate(limitDate));
+        previousWeekData = getPreviousWeekData(date, fullYearData, formatDate(limitDate));
+    } else {
+        weekData = getWeekData(date, fullYearData);
+        previousWeekData = getPreviousWeekData(date, fullYearData);
+    }
+    
+    return {
+        medicion: "dia",
+        fecha: dayData.Fecha,
+        registros: 1,
+        meta: dayData.Meta,
+        ingreso: dayData.Ingreso,
+        diferencia: dayData.Diferencia,
+        porcentaje: dayData.Cumplimiento,
+        gestion: null,
+        n_semana: dayData.Semana,
+        dia_letras: dayData.Dia,
+        mes: dayData.Mes,
+        año: dayData.Año,
+        promedio: calculateAverage([...weekData, ...previousWeekData]),
+        ponderado: calculateWeightedAvg([...weekData, ...previousWeekData]),
+        desvest: calculateStdDev([...weekData, ...previousWeekData]),
+        max: findMax([...weekData, ...previousWeekData])
+    };
+}
+
+function generatePeriodMetrics(type, date, fullYearData, isFromPreviousYear = false, currentAnalysisDate = null) {
+    const monthName = getNombreMes(formatDate(date));
+    const year = date.getFullYear();
+    
+    let periodData = type === 'mes' 
+        ? fullYearData.filter(d => d.Mes === monthName && d.Año === year)
+        : fullYearData.filter(d => d.Año === year);
+
+    if (isFromPreviousYear && currentAnalysisDate) {
+        const limitDate = new Date(currentAnalysisDate);
+        limitDate.setFullYear(year);
+        const limitDateStr = formatDate(limitDate);
+        
+        periodData = periodData.filter(d => {
+            const dDate = parseDate(d.Fecha);
+            return dDate && dDate <= parseDate(limitDateStr);
+        });
+    }
+
+    const totalMeta = periodData.reduce((sum, d) => sum + d.Meta, 0);
+    const totalIngreso = periodData.reduce((sum, d) => sum + d.Ingreso, 0);
+    const diferencia = totalIngreso - totalMeta;
+    const porcentaje = totalMeta > 0 ? ((totalIngreso / totalMeta) * 100).toFixed(2) + '%' : '0%';
+
+    return {
+        medicion: type,
+        fecha: formatDate(date),
+        registros: periodData.length,
+        meta: Math.round(totalMeta),
+        ingreso: Math.round(totalIngreso),
+        diferencia: Math.round(diferencia),
+        porcentaje: porcentaje,
+        gestion: null,
+        mes: monthName,
+        año: year,
+        promedio: calculateAverage(periodData),
+        ponderado: calculateWeightedAvg(periodData),
+        desvest: calculateStdDev(periodData),
+        max: findMax(periodData)
+    };
+}
+
+function getWeekData(date, data, limitDate = null) {
+    const targetWeek = getWeekNumber(date);
+    const targetYear = date.getFullYear();
+    
+    let weekData = data.filter(d => {
+        const dDate = parseDate(d.Fecha);
+        return dDate && getWeekNumber(dDate) === targetWeek && d.Año === targetYear;
+    });
+    
+    if (limitDate) {
+        const limitTime = parseDate(limitDate).getTime();
+        weekData = weekData.filter(d => {
+            const dDate = parseDate(d.Fecha);
+            return dDate && dDate.getTime() <= limitTime;
+        });
+    }
+    
+    return weekData;
+}
+
+function getPreviousWeekData(date, data, limitDate = null) {
+    const targetWeek = getWeekNumber(date) - 1;
+    const targetYear = date.getFullYear();
+    
+    let weekData;
+    
+    if (targetWeek < 1) {
+        weekData = data.filter(d => {
+            const dDate = parseDate(d.Fecha);
+            return dDate && getWeekNumber(dDate) === 52 && d.Año === targetYear - 1;
+        });
+    } else {
+        weekData = data.filter(d => {
+            const dDate = parseDate(d.Fecha);
+            return dDate && getWeekNumber(dDate) === targetWeek && d.Año === targetYear;
+        });
+    }
+    
+    if (limitDate) {
+        const limitTime = parseDate(limitDate).getTime();
+        weekData = weekData.filter(d => {
+            const dDate = parseDate(d.Fecha);
+            return dDate && dDate.getTime() <= limitTime;
+        });
+    }
+    
+    return weekData;
+}
+
+// Cargar datos iniciales
+document.addEventListener('DOMContentLoaded', async function() {
+    // Inicializar selector de fecha y botones
+    initDatePicker();
+    initCaptureButton();
+    
+    try {
+        // Cargar reporte inicial con fecha actual
+        const today = new Date();
+        await updateReportWithDate(today, true); // forceReload = true para la carga inicial
+        
+        // Colapsar todos los comparativos al inicio
+        document.querySelectorAll('.comparison-content').forEach(content => {
+            content.classList.remove('expanded');
+        });
+    } catch (error) {
+        console.error("Error al cargar el reporte inicial:", error);
+        alert("Error al cargar los datos iniciales. Por favor recargue la página.");
+    }
+});
+
+
+// Función para subir la imagen a Drive y obtener el enlace
+async function uploadImageToDrive(imageData) {
+  try {
+    const response = await fetch('https://script.google.com/macros/s/AKfycbz6sUS28Xza02Kjwg-Eez1TPn4BBj2XcZGF8gKxEHr4Fsxz4eqYoQYHCqx5NWaOP1OR8g/exec', {
+      method: 'POST',
+      body: imageData
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === "success") {
+      return result.imageUrl;
+    } else {
+      console.error("Error al subir la imagen:", result.message);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error en la petición:", error);
+    return null;
+  }
+}
+
+async function captureAndDownloadCards() {
+    try {
+        const captureBtn = document.getElementById('captureBtn');
+        const originalHtml = captureBtn.innerHTML;
+        captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        captureBtn.disabled = true;
+
+        // 1. Abrir todas las tarjetas y guardar estado original
+        const cardHeaders = document.querySelectorAll('.card-header');
+        const originalStates = [];
+        
+        cardHeaders.forEach(header => {
+            const cardContent = header.nextElementSibling;
+            originalStates.push(cardContent.classList.contains('expanded'));
+            if (!cardContent.classList.contains('expanded')) {
+                cardContent.classList.add('expanded');
+                header.querySelector('.collapse-indicator').classList.add('expanded');
+            }
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 2. Configuración para captura
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+        const cardsContainer = document.querySelector('.cards-container');
+        
+        // Ocultar elementos temporales
+        const elementsToHide = document.querySelectorAll('.date-selector-container');
+        elementsToHide.forEach(el => el.style.visibility = 'hidden');
+
+        // Guardar estilos originales
+        const originalStyles = {
+            width: cardsContainer.style.width,
+            overflow: cardsContainer.style.overflow,
+            margin: cardsContainer.style.margin,
+            transform: cardsContainer.style.transform,
+            zoom: document.body.style.zoom
+        };
+
+        // Ajustar para captura
+        cardsContainer.style.width = isMobile ? '1400px' : 'fit-content';
+        cardsContainer.style.overflow = 'visible';
+        cardsContainer.style.margin = '0 auto';
+        if (isMobile) {
+            document.body.style.zoom = '1';
+        }
+
+        // 3. Capturar con html2canvas
+        const canvasOptions = {
+            scale: isMobile ? 3 : 2,
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: isMobile ? 2400 : cardsContainer.scrollWidth,
+            windowHeight: cardsContainer.scrollHeight,
+            backgroundColor: '#f5f7fa'
+        };
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const canvas = await html2canvas(cardsContainer, canvasOptions);
+
+        // 4. Restaurar todo al estado original
+        elementsToHide.forEach(el => el.style.visibility = 'visible');
+        Object.assign(cardsContainer.style, originalStyles);
+        document.body.style.zoom = originalStyles.zoom;
+        
+        // Restaurar estado de las tarjetas
+        cardHeaders.forEach((header, index) => {
+            const cardContent = header.nextElementSibling;
+            const indicator = header.querySelector('.collapse-indicator');
+            
+            if (!originalStates[index]) {
+                cardContent.classList.remove('expanded');
+                indicator.classList.remove('expanded');
+            }
+        });
+
+        // 5. Obtener imagen y subir a Drive
+        const imageQuality = isMobile ? 1.0 : 0.9;
+        const imageData = canvas.toDataURL('image/png', imageQuality).split(',')[1];
+        const imageUrl = await uploadImageToDrive(imageData);
+        
+        // 6. Generar y abrir mensaje de WhatsApp
+        const whatsappMessage = generateWhatsAppMessage(imageUrl);
+        openWhatsApp(whatsappMessage);
+
+    } catch (error) {
+        console.error("Error al capturar:", error);
+        alert("Error al generar captura. Intente nuevamente.");
+    } finally {
+        const captureBtn = document.getElementById('captureBtn');
+        if (captureBtn) {
+            captureBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            captureBtn.disabled = false;
+        }
+    }
+}
+
+// Función para inicializar el botón de captura
+function initCaptureButton() {
+    const captureBtn = document.getElementById('captureBtn');
+    if (captureBtn) {
+        captureBtn.addEventListener('click', function(e) {
+            if (!checkPassword()) {
+                e.preventDefault();
+                return false;
+            }
+            captureAndDownloadCards();
+        });
+    }
+}
+
+// Función separada para la captura real
+function initCaptureButton() {
+    const captureBtn = document.getElementById('captureBtn');
+    if (captureBtn) {
+        captureBtn.addEventListener('click', captureAndDownloadCards);
+    }
+}
+
+</script>
+
+<script>
+// Registrar el Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/one/ingresos/informe/sw.js')
+      .then(registration => {
+        console.log('ServiceWorker registrado con éxito:', registration.scope);
+      })
+      .catch(error => {
+        console.log('Error al registrar ServiceWorker:', error);
+      });
+  });
+}
+
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // Contenedor del botón
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.bottom = '20px';
+  container.style.right = '20px';
+  container.style.background = '#ffffff';
+  container.style.borderRadius = '12px';
+  container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  container.style.display = 'flex';
+  container.style.alignItems = 'center';
+  container.style.padding = '10px 16px';
+  container.style.cursor = 'pointer';
+  container.style.opacity = '0';
+  container.style.transform = 'translateY(20px)';
+  container.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+  container.style.zIndex = '1000';
+  container.style.border = '1px solid #e0e0e0';
+
+  // Logo
+  const logo = document.createElement('img');
+  logo.src = '/one/ingresos/informe/icons/icon-192.png';
+  logo.alt = 'Logo App';
+  logo.style.width = '36px';
+  logo.style.height = '36px';
+  logo.style.borderRadius = '8px';
+  logo.style.marginRight = '12px';
+
+  // Texto
+  const text = document.createElement('span');
+  text.textContent = 'Instalar Ingresos MP';
+  text.style.fontFamily = `'Segoe UI', 'Roboto', 'Inter', sans-serif`;
+  text.style.fontSize = '15px';
+  text.style.fontWeight = '500';
+  text.style.color = '#333333';
+  text.style.letterSpacing = '0.3px';
+
+  // Hover elegante
+  container.addEventListener('mouseenter', () => {
+    container.style.background = '#f9f9f9';
+    container.style.transform = 'scale(1.02)';
+  });
+  container.addEventListener('mouseleave', () => {
+    container.style.background = '#ffffff';
+    container.style.transform = 'scale(1)';
+  });
+
+  // Ensamblar
+  container.appendChild(logo);
+  container.appendChild(text);
+  document.body.appendChild(container);
+
+  // Animación de entrada
+  setTimeout(() => {
+    container.style.opacity = '1';
+    container.style.transform = 'translateY(0)';
+  }, 100);
+
+  // Acción de instalación
+  container.addEventListener('click', () => {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('Instalación aceptada');
+      }
+      container.remove();
+      deferredPrompt = null;
+    });
+  });
+});
+
+
+</script>
+
+<script>
+// Función para verificar la contraseña
+function checkPassword() {
+    const password = prompt("Ingrese la contraseña para enviar el informe:");
+    if (password === "One") {
+        return true;
+    } else {
+        alert("Contraseña incorrecta");
+        return false;
+    }
+}
+
+// Modificar la función initCaptureButton para incluir la verificación
+function initCaptureButton() {
+    const captureBtn = document.getElementById('captureBtn');
+    if (captureBtn) {
+        captureBtn.addEventListener('click', function(e) {
+            if (!checkPassword()) {
+                e.preventDefault();
+                return false;
+            }
+            captureAndDownloadCards();
+        });
+    }
+}
+
+// Asegurarse de que la función se ejecute al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    initCaptureButton();
+});
+
+
+
+// Variables para rastrear gestos
+let touchStartY = 0;
+let touchCount = 0;
+
+document.addEventListener('touchstart', function(e) {
+    if (e.touches.length >= 3) { // Tres o más dedos
+        touchStartY = e.touches[0].clientY;
+        touchCount = e.touches.length;
+    }
+});
+
+document.addEventListener('touchmove', function(e) {
+    if (touchCount >= 3 && e.touches.length >= 3) {
+        const touchEndY = e.touches[0].clientY;
+        const distanceY = touchEndY - touchStartY;
+        
+        // Umbral para considerar que es un deslizamiento hacia abajo
+        if (distanceY > 100) { // Ajusta este valor según necesites
+            handleThreeFingerSwipeDown();
+            touchCount = 0; // Resetear para evitar múltiples activaciones
+        }
+    }
+});
+
+document.addEventListener('touchend', function() {
+    touchCount = 0; // Resetear al levantar los dedos
+});
+
+function handleThreeFingerSwipeDown() {
+    // Evitar múltiples activaciones
+    if (document.querySelector('.swipe-refresh-indicator')) return;
+    
+    // Crear elemento de feedback
+    const feedback = document.createElement('div');
+    feedback.className = 'swipe-refresh-indicator';
+    feedback.innerHTML = '<i class="fas fa-sync-alt"></i> Actualizando datos...';
+    document.body.appendChild(feedback);
+    
+    // Obtener fecha actual seleccionada
+    const datePicker = document.getElementById('datePicker');
+    const selectedDate = datePicker.valueAsDate || new Date();
+    
+    // Actualizar datos
+    updateReportWithDate(selectedDate, true).finally(() => {
+        // Ocultar feedback después de 1 segundo
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            feedback.style.transform = 'translateX(-50%) translateY(-20px)';
+            feedback.style.transition = 'all 0.3s ease';
+            
+            // Eliminar después de la animación
+            setTimeout(() => {
+                feedback.remove();
+            }, 300);
+        }, 1000);
+    });
+}
+
+</script>
+
+<style>
+/* Estilos para el gesto de actualización */
+@keyframes swipeRefresh {
+    0% { transform: translateY(-10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+.swipe-refresh-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(67, 97, 238, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: swipeRefresh 0.3s ease-out;
+}
+
+.swipe-refresh-indicator i {
+    animation: spin 0.8s linear infinite;
+}
+</style>
+
+<script>
+// ================== FUNCIONES DE ANÁLISIS DIARIO ==================
+
+function analizarTendenciaDiaria(año, mes) {
+    if (!consolidatedData || consolidatedData.length === 0) return null;
+    
+    // Obtener datos del mes específico
+    const datosMensuales = consolidatedData.filter(d => 
+        d.Año === año && d.Mes === mes
+    );
+    
+    if (datosMensuales.length === 0) return null;
+    
+    // Ordenar por fecha
+    datosMensuales.sort((a, b) => parseDate(a.Fecha) - parseDate(b.Fecha));
+    
+    // Calcular diferentes métricas
+    const analisis = {
+        datosDiarios: datosMensuales,
+        tendencia: calcularTendenciaLineal(datosMensuales),
+        promedioMovil: calcularPromedioMovil(datosMensuales, 7),
+        patronesSemanales: analizarPatronesSemanales(datosMensuales),
+        desviacionEstandar: calcularDesviacionEstandar(datosMensuales.map(d => d.Ingreso)),
+        proyeccion: calcularProyeccionDiaria(datosMensuales),
+        diasDestacados: identificarDiasDestacados(datosMensuales)
+    };
+    
+    return analisis;
+}
+
+// Calcular tendencia lineal (regresión)
+function calcularTendenciaLineal(datos) {
+    if (!datos || datos.length < 2) return null;
+    
+    const n = datos.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    
+    datos.forEach((d, i) => {
+        sumX += i;
+        sumY += d.Ingreso;
+        sumXY += i * d.Ingreso;
+        sumXX += i * i;
+    });
+    
+    const pendiente = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercepto = (sumY - pendiente * sumX) / n;
+    
+    // Generar puntos de la línea de tendencia
+    return datos.map((d, i) => Math.round(intercepto + pendiente * i));
+}
+
+// Calcular promedio móvil
+function calcularPromedioMovil(datos, ventana = 7) {
+    if (!datos || datos.length < ventana) return null;
+    
+    const promedios = [];
+    
+    for (let i = 0; i < datos.length; i++) {
+        if (i < ventana - 1) {
+            promedios.push(null); // No hay suficientes datos para el promedio
+        } else {
+            const ventanaDatos = datos.slice(i - ventana + 1, i + 1);
+            const suma = ventanaDatos.reduce((total, d) => total + d.Ingreso, 0);
+            promedios.push(Math.round(suma / ventana));
+        }
+    }
+    
+    return promedios;
+}
+
+// Analizar patrones por día de la semana
+function analizarPatronesSemanales(datos) {
+    const diasSemana = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const patrones = {};
+    
+    // Inicializar estructura
+    diasSemana.forEach(dia => {
+        patrones[dia] = {
+            total: 0,
+            count: 0,
+            promedio: 0,
+            dias: []
+        };
+    });
+    
+    // Agrupar por día de la semana
+    datos.forEach(d => {
+        const dia = d.Dia.toLowerCase();
+        if (patrones[dia]) {
+            patrones[dia].total += d.Ingreso;
+            patrones[dia].count++;
+            patrones[dia].dias.push({
+                fecha: d.Fecha,
+                ingreso: d.Ingreso
+            });
+        }
+    });
+    
+    // Calcular promedios
+    Object.keys(patrones).forEach(dia => {
+        if (patrones[dia].count > 0) {
+            patrones[dia].promedio = Math.round(patrones[dia].total / patrones[dia].count);
+        }
+    });
+    
+    return patrones;
+}
+
+// Calcular proyección basada en tendencia y patrones
+function calcularProyeccionDiaria(datos) {
+    if (!datos || datos.length < 5) return null;
+    
+    const ultimaFecha = parseDate(datos[datos.length - 1].Fecha);
+    const diasEnMes = new Date(ultimaFecha.getFullYear(), ultimaFecha.getMonth() + 1, 0).getDate();
+    const diasTranscurridos = datos.length;
+    const diasRestantes = diasEnMes - diasTranscurridos;
+    
+    if (diasRestantes <= 0) return null;
+    
+    // Calcular diferentes métodos de proyección
+    const ingresosAcumulados = datos.reduce((sum, d) => sum + d.Ingreso, 0);
+    const promedioSimple = Math.round(ingresosAcumulados / diasTranscurridos);
+    
+    // Proyección basada en tendencia lineal
+    const tendencia = calcularTendenciaLineal(datos);
+    const ultimaTendencia = tendencia[tendencia.length - 1];
+    const proyeccionTendencia = ultimaTendencia * diasEnMes;
+    
+    // Proyección basada en promedio móvil (últimos 7 días)
+    const ultimos7Dias = datos.slice(-7);
+    const promedioMovil = ultimos7Dias.reduce((sum, d) => sum + d.Ingreso, 0) / ultimos7Dias.length;
+    const proyeccionMovil = Math.round(promedioMovil * diasEnMes);
+    
+    // Proyección considerando patrones semanales
+    const patrones = analizarPatronesSemanales(datos);
+    let proyeccionPatrones = 0;
+    
+    // Simular los días restantes aplicando patrones semanales
+    for (let i = 0; i < diasRestantes; i++) {
+        const fechaProyeccion = new Date(ultimaFecha);
+        fechaProyeccion.setDate(ultimaFecha.getDate() + i + 1);
+        
+        const diaSemana = fechaProyeccion.getDay();
+        const nombreDia = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][diaSemana];
+        
+        if (patrones[nombreDia] && patrones[nombreDia].count > 0) {
+            proyeccionPatrones += patrones[nombreDia].promedio;
+        } else {
+            proyeccionPatrones += promedioSimple;
+        }
+    }
+    
+    proyeccionPatrones += ingresosAcumulados;
+    
+    return {
+        diasTranscurridos,
+        diasRestantes,
+        ingresosAcumulados,
+        promedioDiario: promedioSimple,
+        proyeccionTendencia: Math.round(proyeccionTendencia),
+        proyeccionMovil: Math.round(proyeccionMovil),
+        proyeccionPatrones: Math.round(proyeccionPatrones),
+        proyeccionConservadora: Math.round((proyeccionTendencia + proyeccionMovil + proyeccionPatrones) / 3)
+    };
+}
+
+// Identificar días con comportamiento destacado (alto/bajo)
+function identificarDiasDestacados(datos) {
+    if (!datos || datos.length < 5) return [];
+    
+    const ingresos = datos.map(d => d.Ingreso);
+    const promedio = ingresos.reduce((a, b) => a + b, 0) / ingresos.length;
+    const desviacion = calcularDesviacionEstandar(ingresos);
+    
+    const diasDestacados = [];
+    
+    datos.forEach(d => {
+        const zScore = (d.Ingreso - promedio) / desviacion;
+        
+        if (Math.abs(zScore) > 1.5) { // Más de 1.5 desviaciones estándar
+            diasDestacados.push({
+                fecha: d.Fecha,
+                dia: d.Dia,
+                ingreso: d.Ingreso,
+                desviacion: zScore.toFixed(2),
+                tipo: zScore > 0 ? 'pico' : 'valle'
+            });
+        }
+    });
+    
+    return diasDestacados;
+}
+
+// Calcular desviación estándar
+function calcularDesviacionEstandar(valores) {
+    if (!valores || valores.length < 2) return 0;
+    
+    const n = valores.length;
+    const media = valores.reduce((a, b) => a + b) / n;
+    const sumaDiferencias = valores.reduce((sum, val) => sum + Math.pow(val - media, 2), 0);
+    
+    return Math.sqrt(sumaDiferencias / n);
+}
+</script>
+
+
+</body>
+</html>
