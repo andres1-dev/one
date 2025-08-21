@@ -1,0 +1,45 @@
+{
+  "name": "Sistema de Gestión de Ingresos - Marca Propia",
+  "short_name": "Ingresos MP",
+  "description": "Control, monitoreo y generación de informes detallados sobre ingresos de la marca propia.",
+  "start_url": "/one/ingresos/informe/generar.html",
+  "scope": "/one/ingresos/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#007BFF",
+  "theme_color": "#007BFF",
+  "lang": "es-ES",
+  "dir": "ltr",
+  "categories": ["business", "finance", "productivity"],
+  "screenshots": [
+    {
+      "src": "/one/ingresos/informe/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Panel principal de ingresos"
+    },
+    {
+      "src": "/one/ingresos/informe/screenshots/report.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Generación de informes"
+    }
+  ],
+  "icons": [
+    { "src": "/one/ingresos/informe/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/one/ingresos/informe/icons/icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any" },
+    { "src": "/one/ingresos/informe/icons/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/one/ingresos/informe/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/one/ingresos/informe/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/one/ingresos/informe/icons/icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Informe Diario",
+      "short_name": "Informe Diario",
+      "description": "Acceso directo al informe de ingresos diario",
+      "url": "/one/ingresos/informe/diario.html",
+      "icons": [{ "src": "/one/ingresos/informe/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
