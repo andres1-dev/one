@@ -1,0 +1,372 @@
+:root {
+    --primary-color: #4361ee;
+    --primary-light: #ebedfc;
+    --success-color: #2ecc71;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --info-color: #3498db;
+    --purple-color: #9b59b6;
+    --text-dark: #2c3e50;
+    --text-medium: #7f8c8d;
+    --text-light: #bdc3c7;
+    --bg-light: #f8f9fa;
+    --border-radius: 12px;
+    --box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 10px;
+    color: var(--text-dark);
+    line-height: 1;
+}
+
+.dashboard-header {
+    text-align: center;
+    padding: 30px 20px;
+    background: linear-gradient(135deg, #4361ee, #3a0ca3);
+    color: white;
+    border-radius: var(--border-radius);
+    margin-bottom: 30px;
+    box-shadow: var(--box-shadow);
+}
+
+.dashboard-title {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.date-selector-container {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+.date-picker {
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.date-picker::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.8;
+}
+
+.update-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.update-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.update-btn i {
+    font-size: 12px;
+}
+
+.update-btn-small {
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    transition: var(--transition);
+    position: relative;
+}
+
+.update-btn-small i {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.update-btn-small .fa-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+}
+
+.update-btn-small:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(180deg);
+}
+
+.update-btn-small .fa-sync-alt,
+.update-btn-small .fa-spinner,
+.update-btn-small .fa-exclamation-circle {
+    line-height: 1;
+    vertical-align: middle;
+    margin: 0;
+    padding: 0;
+}
+
+.update-btn-small:active {
+    transform: scale(0.95) rotate(0deg);
+}
+
+.update-btn-small i {
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.capture-btn {
+    padding: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    transition: var(--transition);
+}
+
+.capture-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.capture-btn i {
+    font-size: 16px;
+}
+
+.send-report-btn {
+    padding: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    transition: var(--transition);
+    position: relative;
+}
+
+.send-report-btn i {
+    font-size: 16px;
+    transition: var(--transition);
+}
+
+.send-report-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.send-report-btn:active {
+    transform: scale(0.95);
+}
+
+.install-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+    padding: 12px 24px;
+    border-radius: 50px;
+    border: none;
+    background: linear-gradient(135deg, #4361ee, #3a0ca3);
+    color: white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(67, 97, 238, 0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transform: translateY(20px);
+    opacity: 0;
+    animation: fadeInUp 0.5s forwards 1s;
+}
+
+.install-btn i {
+    font-size: 16px;
+}
+
+.install-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+    background: linear-gradient(135deg, #3a56d4, #2f0a8a);
+}
+
+.install-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(67, 97, 238, 0.3);
+}
+
+.install-btn.hidden {
+    display: none;
+}
+
+@keyframes fadeInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(67, 97, 238, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(67, 97, 238, 0);
+    }
+}
+
+.install-btn.pulse {
+    animation: pulse 2s infinite;
+}
+
+footer {
+    background-color: transparent;
+    color: #999;
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.95rem;
+}
+
+footer a {
+    color: #666;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: #448aff;
+}
+
+.social-links {
+    margin-top: 15px;
+}
+
+.social-links a {
+    margin: 0 10px;
+    font-size: 1.4rem;
+    transition: transform 0.3s ease;
+}
+
+.social-links a[aria-label="Facebook"] i {
+    color: #1877f2;
+}
+
+.social-links a[aria-label="Instagram"] i {
+    color: #e1306c;
+}
+
+.social-links a[aria-label="WhatsApp"] i {
+    color: #25d366;
+}
+
+.social-links a:hover i {
+    transform: scale(1.2);
+}
+
+@keyframes swipeRefresh {
+    0% { transform: translateY(-10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+.swipe-refresh-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(67, 97, 238, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: swipeRefresh 0.3s ease-out;
+}
+
+.swipe-refresh-indicator i {
+    animation: spin 0.8s linear infinite;
+}
+
+@media (max-width: 768px) {
+    body {
+        zoom: 0.7;
+    }
+
+    .date-selector-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .install-btn {
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+    
+    footer {
+        font-size: 0.85rem;
+    }
+    
+    .social-links a {
+        font-size: 1.2rem;
+    }
+}
