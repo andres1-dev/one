@@ -391,3 +391,28 @@ function initCaptureButton() {
         captureBtn.addEventListener('click', captureAndDownloadCards);
     }
 }
+
+
+function getTrendsData(currentYear, previousYear, data) {
+    const currentYearData = data.filter(d => d.Año === currentYear);
+    const previousYearData = data.filter(d => d.Año === previousYear);
+    
+    const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 
+                 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    
+    return {
+        meses: meses,
+        actual: meses.reduce((acc, mes) => {
+            acc[mes] = currentYearData
+                .filter(d => d.Mes === mes)
+                .reduce((sum, d) => sum + d.Ingreso, 0);
+            return acc;
+        }, {}),
+        anterior: meses.reduce((acc, mes) => {
+            acc[mes] = previousYearData
+                .filter(d => d.Mes === mes)
+                .reduce((sum, d) => sum + d.Ingreso, 0);
+            return acc;
+        }, {})
+    };
+}
