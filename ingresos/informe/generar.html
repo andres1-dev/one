@@ -3258,7 +3258,21 @@ function cargarDatosMes() {
     const actual = data.actual;
     const anterior = data.anterior;
     
-    document.getElementById("mes-mes").textContent = `${actual.mes}`;
+    // Mostrar el rango de fechas en el badge
+    const fechaInicio = consolidatedData
+        .filter(d => d.Mes === actual.mes && d.Año === actual.año)
+        .sort((a, b) => parseDate(a.Fecha) - parseDate(b.Fecha))[0];
+    
+    const fechaFin = parseDate(currentReportData.filtros.actual);
+    
+    let rangoTexto = `${actual.mes} ${actual.año}`;
+    if (fechaInicio) {
+        const diaInicio = parseDate(fechaInicio.Fecha).getDate();
+        const diaFin = fechaFin.getDate();
+        rangoTexto = `${actual.mes} ${actual.año} (${diaInicio}-${diaFin})`;
+    }
+    
+    document.getElementById("mes-mes").textContent = rangoTexto;
     document.getElementById("mes-meta").textContent = formatoCantidad(actual.meta);
     document.getElementById("mes-ingreso").textContent = formatoCantidad(actual.ingreso);
     
@@ -3355,7 +3369,23 @@ function cargarDatosAño() {
     const actual = data.actual;
     const anterior = data.anterior;
     
-    document.getElementById("año-año").textContent = actual.año;
+    // Mostrar el rango de fechas en el badge
+    const fechaInicio = consolidatedData
+        .filter(d => d.Año === actual.año)
+        .sort((a, b) => parseDate(a.Fecha) - parseDate(b.Fecha))[0];
+    
+    const fechaFin = parseDate(currentReportData.filtros.actual);
+    
+    let rangoTexto = `Año ${actual.año}`;
+    if (fechaInicio) {
+        const mesInicio = getNombreMes(fechaInicio.Fecha);
+        const diaInicio = parseDate(fechaInicio.Fecha).getDate();
+        const mesFin = getNombreMes(formatDate(fechaFin));
+        const diaFin = fechaFin.getDate();
+        rangoTexto = `${actual.año} (${diaInicio} ${mesInicio} - ${diaFin} ${mesFin})`;
+    }
+    
+    document.getElementById("año-año").textContent = rangoTexto;
     document.getElementById("año-meta").textContent = formatoCantidad(actual.meta);
     document.getElementById("año-ingreso").textContent = formatoCantidad(actual.ingreso);
     
@@ -3979,17 +4009,28 @@ function findClosestDateWithData(targetDate, year, data) {
     return null;
 }
 
+// Función para obtener fecha equivalente en año anterior mejorada
 function getEquivalentPreviousYearDate(currentDate, data) {
     const currentYear = currentDate.getFullYear();
     const previousYear = currentYear - 1;
     
+    // Buscar fecha exacta del año anterior
     const sameDateLastYear = new Date(currentDate);
     sameDateLastYear.setFullYear(previousYear);
     
+    // Verificar si existe data para esa fecha exacta
     const sameDateLastYearStr = formatDate(sameDateLastYear);
     const exactMatch = data.find(d => d.Fecha === sameDateLastYearStr && d.Año === previousYear);
-    if (exactMatch) return parseDate(exactMatch.Fecha);
     
+    if (exactMatch) {
+        return {
+            date: parseDate(exactMatch.Fecha),
+            isExact: true,
+            data: exactMatch
+        };
+    }
+    
+    // Si no hay fecha exacta, buscar la más cercana
     return findClosestDateWithData(sameDateLastYear, previousYear, data);
 }
 
@@ -4285,14 +4326,17 @@ function generateDayMetrics(dayData, date, fullYearData, isFromPreviousYear = fa
     };
 }
 
+// Función para generar métricas de período (mes y año) corregida
 function generatePeriodMetrics(type, date, fullYearData, isFromPreviousYear = false, currentAnalysisDate = null) {
     const monthName = getNombreMes(formatDate(date));
     const year = date.getFullYear();
     
+    // Filtrar datos hasta la fecha seleccionada
     let periodData = type === 'mes' 
         ? fullYearData.filter(d => d.Mes === monthName && d.Año === year)
         : fullYearData.filter(d => d.Año === year);
 
+    // Si es una comparación con año anterior, limitar hasta la fecha equivalente
     if (isFromPreviousYear && currentAnalysisDate) {
         const limitDate = new Date(currentAnalysisDate);
         limitDate.setFullYear(year);
@@ -4302,8 +4346,16 @@ function generatePeriodMetrics(type, date, fullYearData, isFromPreviousYear = fa
             const dDate = parseDate(d.Fecha);
             return dDate && dDate <= parseDate(limitDateStr);
         });
+    } else {
+        // Para el período actual, limitar hasta la fecha seleccionada
+        const selectedDateStr = formatDate(date);
+        periodData = periodData.filter(d => {
+            const dDate = parseDate(d.Fecha);
+            return dDate && dDate <= parseDate(selectedDateStr);
+        });
     }
 
+    // Resto del cálculo permanece igual
     const totalMeta = periodData.reduce((sum, d) => sum + d.Meta, 0);
     const totalIngreso = periodData.reduce((sum, d) => sum + d.Ingreso, 0);
     const diferencia = totalIngreso - totalMeta;
@@ -4326,6 +4378,7 @@ function generatePeriodMetrics(type, date, fullYearData, isFromPreviousYear = fa
         max: findMax(periodData)
     };
 }
+
 
 function getWeekData(date, data, limitDate = null) {
     const targetWeek = getWeekNumber(date);
