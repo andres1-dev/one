@@ -1,7 +1,6 @@
 // sw.js
 const CACHE_NAME = 'ingresos-marca-propia-v2';
 const ASSETS_TO_CACHE = [
-  '/one/ingresos/informe/generar.html',
   '/one/ingresos/informe/icons/icon-192.png',
   '/one/ingresos/informe/icons/icon-512.png',
   '/one/ingresos/informe/icons/icon-512-maskable.png'
