@@ -4550,10 +4550,10 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/one/ingresos/informe/sw.js')
       .then(registration => {
-        console.log('ServiceWorker registrado con éxito:', registration.scope);
+        //console.log('ServiceWorker registrado con éxito:', registration.scope);
       })
       .catch(error => {
-        console.log('Error al registrar ServiceWorker:', error);
+        //console.log('Error al registrar ServiceWorker:', error);
       });
   });
 }
