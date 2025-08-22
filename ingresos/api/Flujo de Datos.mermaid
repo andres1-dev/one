@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant U as Usuario
+    participant M as main.js
+    participant A as api.js
+    participant R as report-generation.js
+    participant D as data-loading.js
+    participant V as Vista HTML
+    
+    U->>M: Interacción (cambio fecha, click)
+    M->>A: Solicitar datos
+    A->>Google Sheets: API Request
+    Google Sheets-->>A: Datos JSON
+    A-->>M: Datos procesados
+    M->>R: Generar reporte
+    R->>R: Procesar métricas
+    R-->>M: Reporte completo
+    M->>D: Actualizar UI
+    D->>V: Renderizar datos
+    V-->>U: Mostrar información
