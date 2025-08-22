@@ -2328,70 +2328,96 @@ function agruparPorSemanas(datos) {
 
 <div class="cards-container2">
     <!-- Tarjeta para visualización de datos -->
-<div class="card">
-    <div class="card-header" onclick="datosToggleCard(this)">
-        <h2 class="card-title">
-            <div class="card-icon datos"><i class="fas fa-database"></i></div> 
-            Datos Detallados
-        </h2>
-        <div class="header-controls">
-            <span class="records-badge" id="datos-contador">Cargando ...</span>
-            <i class="fas fa-chevron-down collapse-indicator"></i>
-        </div>
-    </div>
-    
-    <div class="card-content">
-        <div class="download-section">
-            <h3 class="download-title">Exportar datos</h3>
-            <p class="download-description">Selecciona el formato para descargar los datos</p>
-            
-            <div class="download-options">
-                <div class="download-option" onclick="datosDescargar('csv')">
-                    <div class="option-icon csv">
-                        <i class="fas fa-file-csv"></i>
-                    </div>
-                    <div class="option-info">
-                        <h4>CSV</h4>
-                        <p>Formato de texto plano</p>
-                    </div>
-                    <div class="option-action">
-                        <i class="fas fa-download"></i>
-                    </div>
-                </div>
-                
-                <div class="download-option" onclick="datosDescargar('json')">
-                    <div class="option-icon json">
-                        <i class="fas fa-file-code"></i>
-                    </div>
-                    <div class="option-info">
-                        <h4>JSON</h4>
-                        <p>Estructura de datos</p>
-                    </div>
-                    <div class="option-action">
-                        <i class="fas fa-download"></i>
-                    </div>
-                </div>
-                
-                <div class="download-option" onclick="datosDescargar('excel')">
-                    <div class="option-icon excel">
-                        <i class="fas fa-file-excel"></i>
-                    </div>
-                    <div class="option-info">
-                        <h4>Excel</h4>
-                        <p>Hoja de cálculo</p>
-                    </div>
-                    <div class="option-action">
-                        <i class="fas fa-download"></i>
-                    </div>
-                </div>
+    <div class="card">
+        <div class="card-header" onclick="datosToggleCard(this)">
+            <h2 class="card-title">
+                <div class="card-icon datos"><i class="fas fa-database"></i></div> 
+                Datos Detallados
+            </h2>
+            <div class="header-controls">
+                <span class="records-badge" id="datos-contador">Cargando ...</span>
+                <i class="fas fa-chevron-down collapse-indicator"></i>
             </div>
-            
-
         </div>
         
-        
+        <div class="card-content">
+            <div class="download-section">
+                <h3 class="download-title">Exportar datos</h3>
+                <p class="download-description">Selecciona el formato para descargar los datos</p>
+                
+                <div class="download-options">
+                    
+                    <div class="download-option" onclick="datosDescargar('csv')">
+                        <div class="option-icon csv">
+                            <i class="fas fa-file-csv"></i>
+                        </div>
+                        <div class="option-info">
+                            <h4>CSV</h4>
+                            <p>Formato de texto plano</p>
+                        </div>
+                        <div class="option-action">
+                            <i class="fas fa-download"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="download-option" onclick="datosDescargar('json')">
+                        <div class="option-icon json">
+                            <i class="fas fa-file-code"></i>
+                        </div>
+                        <div class="option-info">
+                            <h4>JSON</h4>
+                            <p>Estructura de datos</p>
+                        </div>
+                        <div class="option-action">
+                            <i class="fas fa-download"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="download-option" onclick="datosDescargar('excel')">
+                        <div class="option-icon excel">
+                            <i class="fas fa-file-excel"></i>
+                        </div>
+                        <div class="option-info">
+                            <h4>Excel</h4>
+                            <p>Hoja de cálculo</p>
+                        </div>
+                        <div class="option-action">
+                            <i class="fas fa-download"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="download-option" onclick="datosDescargarExcelFiltrado()">
+                        <div class="option-icon excel">
+                            <i class="fas fa-filter"></i>
+                        </div>
+                        <div class="option-info">
+                            <h4>Excel (Filtrado)</h4>
+                            <input 
+  type="text" 
+  id="filtro-fechas" 
+  placeholder="Rango de fechas" 
+  class="flatpickr-input" 
+  readonly
+  style="padding:4px 8px; border:0.5px solid #ddd; border-radius:8px; width:140px; font-size:10px; color:#666; cursor:pointer;"
+>
+
+                        </div>
+                        <div class="option-action">
+                            <i class="fas fa-download"></i>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <!-- Flatpickr CSS -->
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+                <!-- Flatpickr JS -->
+                <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+            </div>
+        </div>
     </div>
 </div>
+
 
 <style>
 /* Estilos para la tarjeta de descarga */
@@ -2717,6 +2743,99 @@ function generarYDescargarExcel(data) {
         alert('Error al generar el archivo Excel. Verifica la consola para más detalles.');
     }
 }
+
+let rangoSeleccionado = [];
+
+// --- Helpers para fechas ---
+function normalizarInicio(fecha) {
+    return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 0, 0, 0, 0);
+}
+
+function normalizarFin(fecha) {
+    return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 23, 59, 59, 999);
+}
+
+// Parsear fecha respetando zona horaria local (Bogotá)
+function parseFechaLocal(fechaStr) {
+    // Si trae hora (ej: 2025-08-22T15:30:00), usamos new Date directo
+    if (fechaStr.includes("T")) {
+        return new Date(fechaStr);
+    }
+    // Si viene como "YYYY-MM-DD" la parseamos manualmente
+    const [y, m, d] = fechaStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
+}
+
+// Formato final YYYY-MM-DD (solo fecha, sin hora, respetando zona local)
+function toFechaLocalYYYYMMDD(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    const hoy = new Date();
+    const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    const fechaActual = hoy; // ✅ usamos la fecha actual como fin por defecto
+
+    // Guardamos el rango por defecto
+    rangoSeleccionado = [primerDiaMes, fechaActual];
+
+    flatpickr("#filtro-fechas", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        defaultDate: [primerDiaMes, fechaActual], // ✅ de inicio de mes hasta hoy
+        onChange: function(selectedDates) {
+            if (selectedDates.length === 1) {
+                // Selección de un solo día → lo tratamos como rango de 1 día
+                rangoSeleccionado = [selectedDates[0], selectedDates[0]];
+            } else if (selectedDates.length === 2) {
+                rangoSeleccionado = selectedDates;
+            }
+        }
+    });
+});
+
+function datosDescargarExcelFiltrado() {
+    if (!datosRegistros || datosRegistros.length === 0) {
+        alert('No hay datos cargados.');
+        return;
+    }
+
+    if (!rangoSeleccionado || rangoSeleccionado.length < 2) {
+        alert('Selecciona un rango válido de fechas.');
+        return;
+    }
+
+    const inicio = normalizarInicio(rangoSeleccionado[0]);
+    const fin = normalizarFin(rangoSeleccionado[1]);
+
+    const datosFiltrados = datosRegistros.filter(registro => {
+        const fecha = parseFechaLocal(registro.FECHA); // <-- FECHA debe coincidir con tu campo real
+        return fecha >= inicio && fecha <= fin;
+    });
+
+    if (datosFiltrados.length === 0) {
+        alert('No hay datos en el rango seleccionado.');
+        return;
+    }
+
+    // 🔹 Convertimos todas las fechas a formato YYYY-MM-DD
+    const datosConFechas = datosFiltrados.map(registro => {
+        const copia = { ...registro };
+        copia.FECHA = toFechaLocalYYYYMMDD(parseFechaLocal(registro.FECHA));
+        return copia;
+    });
+
+    datosDescargarExcel(datosConFechas);
+}
+
+
+
+
+
+
 </script>
 </div>
   
