@@ -4560,9 +4560,43 @@ if ('serviceWorker' in navigator) {
 
 let deferredPrompt;
 
+// En tu evento beforeinstallprompt
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
+  
+  // Mostrar tu botón existente de instalación
+  const installBtn = document.querySelector('.install-btn');
+  if (installBtn) {
+    installBtn.style.display = 'block';
+    installBtn.classList.add('pulse'); // Animación para llamar la atención
+  }
+});
+
+// Agregar evento al botón existente
+document.querySelector('.install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  
+  deferredPrompt = null;
+  
+  // Ocultar el botón después de la instalación
+  document.querySelector('.install-btn').style.display = 'none';
+});
+
+// Verificar si la app ya está instalada
+window.addEventListener('load', () => {
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('App is running in standalone mode');
+    // Ocultar el botón de instalación si ya está instalada
+    const installBtn = document.querySelector('.install-btn');
+    if (installBtn) {
+      installBtn.style.display = 'none';
+    }
+  }
+});
 
   // Contenedor del botón
   const container = document.createElement('div');
