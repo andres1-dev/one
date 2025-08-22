@@ -20,7 +20,7 @@ async function uploadImageToDrive(imageData) {
     console.error("Error en la petición:", error);
     return null;
   }
-}
+} 
 
 async function captureAndDownloadCards() {
     try {
