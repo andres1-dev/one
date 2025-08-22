@@ -127,7 +127,6 @@ function generateWhatsAppMessage(imageUrl = "") {
     if (!currentReportData) return "";
     
     const diaData = currentReportData.dia.actual;
-    const mesData = currentReportData.mes.actual;
     const fechaObj = parseDate(diaData.fecha);
     
     // Formatear fechas
@@ -176,7 +175,7 @@ function generateWhatsAppMessage(imageUrl = "") {
     let mensaje = `¡Bendiciones para todos!
 
 Adjunto el Cierre de Ingresos del Día:
-\`${diaNombre, ${diaNumero} de ${mesNombre} del ${año}\`
+\`${diaNombre}, ${diaNumero} de ${mesNombre} del ${año}\`
 
 *${formatoCantidad(diaData.ingreso)}* unidades | Cumplimiento *${diaData.porcentaje}*
 Meta: *${formatoCantidad(diaData.meta)}* ${comparativoAnterior}
