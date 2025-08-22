@@ -2,8 +2,6 @@
 const CACHE_NAME = 'ingresos-marca-propia-v2';
 const ASSETS_TO_CACHE = [
   '/one/ingresos/informe/generar.html',
-  '/one/ingresos/informe/styles.css',
-  '/one/ingresos/informe/script.js',
   '/one/ingresos/informe/icons/icon-192.png',
   '/one/ingresos/informe/icons/icon-512.png',
   '/one/ingresos/informe/icons/icon-512-maskable.png'
