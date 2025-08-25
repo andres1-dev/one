@@ -1,0 +1,77 @@
+<!doctype html> 
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acceso temporalmente restringido</title>
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-ZSmHgFAOxA6L4KMoU7rznV8dW4A8kMiKlq4G+9z6ZT6Teoexkz0cSYIwb3W5s0otbWgVrX9sYDNJ+cxj7xM8UQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <style>
+    body{
+      margin:0; padding:0;
+      height:100vh; display:flex; align-items:center; justify-content:center;
+      font-family: Inter, Arial, sans-serif;
+      background: #0f172a;
+      color:#e5e7eb;
+      line-height:1.6;
+    }
+    .card{
+      max-width:700px; padding:2rem 2.5rem;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(148,163,184,.25);
+      border-radius:18px;
+      box-shadow:0 20px 40px rgba(0,0,0,.45);
+      text-align:center;
+    }
+    h1{ font-size:2rem; margin:.8rem 0 1rem; color:#38bdf8 }
+    h2{ font-size:1.2rem; margin:1.5rem 0 .8rem; color:#a78bfa }
+    p{ margin:.6rem 0; }
+    .callout{
+      margin-top:1.2rem; padding:1rem 1.2rem;
+      background:rgba(56,189,248,.08);
+      border:1px solid rgba(56,189,248,.25);
+      border-radius:14px;
+      font-size:.95rem;
+      text-align:left;
+    }
+    .icon-lock{
+      width:64px; height:64px;
+      margin-bottom:.8rem;
+      color:#38bdf8;
+      display:inline-block;
+      filter: drop-shadow(0 4px 10px rgba(56,189,248,.3));
+    }
+    ul{ text-align:left; margin:0.6rem 0 0; padding-left:1.2rem }
+    ul li{ margin:.4rem 0; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <!-- Icono personalizado -->
+    <svg class="icon-lock" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M17 8V7a5 5 0 1 0-10 0v1H5v14h14V8h-2Zm-8-1a3 3 0 1 1 6 0v1H9V7Zm8 13H7V10h10v10Zm-5-3a2 2 0 0 0 2-2h-2v-2a2 2 0 0 0-2 2 2 2 0 0 0 2 2Z"/>
+    </svg>
+
+    <h1>Acceso temporalmente restringido</h1>
+    <p>
+      Esta interfaz ha sido bloqueada mientras se ejecutan procesos de <strong>validación</strong> en el área de recepción.  
+      La operación de la aplicación continúa bajo protocolos internos de seguridad y control.
+    </p>
+
+    <h2><i class="fa-solid fa-circle-info"></i> Motivos del bloqueo</h2>
+    <ul>
+      <li><strong>Regularización de estatus:</strong> atención a <em>pendientes administrativos</em> que incluyen autorizaciones y casos de cumplimiento que requieren validación adicional.</li>
+      <li><strong>Protección de datos:</strong> limitar el acceso hasta concluir revisiones y garantizar la integridad de la información.</li>
+    </ul>
+
+    <div class="callout">
+      <i class="fa-solid fa-shield-halved"></i>
+      <strong>Qué significa:</strong> la plataforma se encuentra en <em>modo de resguardo</em>.  
+      Los registros permanecen íntegros y auditables; sólo personal autorizado puede acceder a información operativa hasta la finalización del proceso de regularización.
+    </div>
+  </main>
+</body>
+</html>
