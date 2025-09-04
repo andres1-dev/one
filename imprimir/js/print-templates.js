@@ -580,7 +580,6 @@ function abrirPlantillaImpresion(datos, options = {}) {
             let principales = [], secundarias = [], mayoristas = [];
             let distribucionFinal = {};
             let porcentajes = {};
-            let totalesPorCliente = {}; // Nuevo objeto para almacenar totales por cliente
 
             clientes.forEach(cliente => {
                 porcentajes[cliente] = datos.DISTRIBUCION.Clientes[cliente].porcentaje || '';
@@ -630,7 +629,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                 <th>Total</th>`);
             
             clientesOrdenados.forEach(cliente => {
-                ventana.document.write(`<th>${cliente}<br>${porcentajes[cliente] || ''} (${totalesPorCliente[cliente]})</th>`);
+                ventana.document.write(`<th>${cliente}${porcentajes[cliente] ? '<br>' + porcentajes[cliente] : ''}</th>`);
             });
             
             ventana.document.write(`</tr>
