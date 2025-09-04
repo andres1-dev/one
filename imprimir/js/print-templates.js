@@ -629,7 +629,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                 <th>Total</th>`);
             
             clientesOrdenados.forEach(cliente => {
-                ventana.document.write(`<th>${cliente}${porcentajes[cliente] ? '<br>' + porcentajes[cliente] : ''}</th>`);
+                ventana.document.write(`<th>${cliente}<br>${porcentajes[cliente] || ''} (${totalesPorCliente[cliente]})</th>`);
             });
             
             ventana.document.write(`</tr>
