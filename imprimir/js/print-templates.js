@@ -580,6 +580,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
             let principales = [], secundarias = [], mayoristas = [];
             let distribucionFinal = {};
             let porcentajes = {};
+            let totalesPorCliente = {}; // Nuevo objeto para almacenar totales por cliente
 
             clientes.forEach(cliente => {
                 porcentajes[cliente] = datos.DISTRIBUCION.Clientes[cliente].porcentaje || '';
