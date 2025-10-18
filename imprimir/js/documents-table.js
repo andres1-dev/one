@@ -79,13 +79,11 @@ async function obtenerDocumentosDesdeDATA() {
     }
 }
 
-// Función para validar si un documento debe mostrarse
-function debeMostrarseDocumento(documento) {
-    // Si el estado es ELABORACION o PAUSADO y tiene un responsable de la lista, NO mostrarlo
+// Función para validar si un documento puede mostrar el dropdown de responsables
+function puedeMostrarDropdownResponsable(documento) {
+    // Si el estado es ELABORACION o PAUSADO, NO mostrar dropdown de responsables
     if (ESTADOS_SIN_RESPONSABLES.includes(documento.estado)) {
-        if (documento.colaborador && listaResponsables.includes(documento.colaborador)) {
-            return false;
-        }
+        return false;
     }
     return true;
 }
@@ -99,7 +97,7 @@ async function cargarTablaDocumentos() {
         // 2. Obtener documentos desde DATA
         const datosDATA = await obtenerDocumentosDesdeDATA();
         
-        // 3. Combinar con datos globales y filtrar
+        // 3. Combinar con datos globales
         const documentosCombinados = await combinarConDatosGlobales(datosDATA);
         
         // 4. Inicializar DataTable
@@ -126,7 +124,7 @@ async function combinarConDatosGlobales(datosDATA) {
         });
     }
 
-    // Procesar y combinar datos
+    // Procesar y combinar datos - SIN FILTRAR DOCUMENTOS
     const documentosProcesados = datosDATA
         .map((row, index) => {
             // Saltar fila si no hay datos suficientes
@@ -136,7 +134,7 @@ async function combinarConDatosGlobales(datosDATA) {
             const estado = String(row[3] || '').trim().toUpperCase();
             const colaborador = String(row[4] || '').trim();
             
-            // Validar documento y estado
+            // Validar documento y estado (solo mostrar estados permitidos)
             if (!documento || !ESTADOS_PERMITIDOS.includes(estado)) {
                 return null;
             }
@@ -155,11 +153,11 @@ async function combinarConDatosGlobales(datosDATA) {
                     (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                      Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
                 datosCompletos: datosCompletos,
+                puedeMostrarDropdown: puedeMostrarDropdownResponsable({ estado, colaborador }), // Solo para la columna
                 rawData: row
             };
         })
-        .filter(doc => doc !== null)
-        .filter(doc => debeMostrarseDocumento(doc)); // Filtrar documentos que no deben mostrarse
+        .filter(doc => doc !== null); // Solo filtrar documentos nulos, no por estado
 
     return documentosProcesados;
 }
@@ -192,8 +190,8 @@ function inicializarDataTable(documentos) {
             { 
                 data: 'colaborador',
                 render: function(data, type, row) {
-                    // Si no tiene colaborador, mostrar dropdown para asignar
-                    if (!data) {
+                    // Si no tiene colaborador Y puede mostrar dropdown, mostrar para asignar
+                    if (!data && row.puedeMostrarDropdown) {
                         return `
                             <div class="d-flex align-items-center">
                                 <span class="text-danger me-2"><i class="fas fa-times-circle"></i></span>
@@ -204,6 +202,16 @@ function inicializarDataTable(documentos) {
                                         `<option value="${resp}">${resp}</option>`
                                     ).join('')}
                                 </select>
+                            </div>
+                        `;
+                    }
+                    
+                    // Si no tiene colaborador pero NO puede mostrar dropdown (ELABORACION/PAUSADO)
+                    if (!data && !row.puedeMostrarDropdown) {
+                        return `
+                            <div class="d-flex align-items-center">
+                                <span class="text-warning me-2"><i class="fas fa-exclamation-triangle"></i></span>
+                                <span class="text-muted">No aplica</span>
                             </div>
                         `;
                     }
@@ -293,6 +301,8 @@ function inicializarDataTable(documentos) {
 // Función para asignar colaborador
 async function asignarColaborador(rec, colaborador) {
     try {
+        console.log(`Asignando colaborador ${colaborador} al documento REC${rec}`);
+        
         // Aquí iría la lógica para guardar en Google Sheets
         mostrarMensaje(`Colaborador ${colaborador} asignado a REC${rec}`, 'success');
         
