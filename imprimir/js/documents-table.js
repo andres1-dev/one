@@ -1,12 +1,70 @@
 // Configuración de DataTable para documentos disponibles
 let documentosTable = null;
+let listaResponsables = [];
 
 // Estados permitidos para mostrar
 const ESTADOS_PERMITIDOS = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 
+// Estados que no permiten responsables específicos
+const ESTADOS_SIN_RESPONSABLES = ['ELABORACION', 'PAUSADO'];
+
+// Función para cargar la lista de responsables
+async function cargarResponsables() {
+    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error('Error al obtener responsables');
+        
+        const data = await response.json();
+        const values = data.values || [];
+        
+        // Filtrar responsables activos (columna B = true)
+        listaResponsables = values
+            .filter(row => row[1] === 'true')
+            .map(row => row[0].trim())
+            .filter(nombre => nombre !== '');
+            
+        console.log('Responsables cargados:', listaResponsables);
+        return listaResponsables;
+        
+    } catch (error) {
+        console.error('Error cargando responsables:', error);
+        // Si hay error, usar lista por defecto
+        listaResponsables = [
+            'VILLAMIZAR GOMEZ LUIS',
+            'FABIAN MARIN FLOREZ',
+            'CESAR AUGUSTO LOPEZ GIRALDO',
+            'KELLY GIOVANA ZULUAGA HOYOS',
+            'MARYI ANDREA GONZALEZ SILVA',
+            'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
+            'SANCHEZ LOPEZ YULIETH',
+            'JUAN ESTEBAN ZULUAGA HOYOS'
+        ];
+        return listaResponsables;
+    }
+}
+
+// Función para validar si un documento puede tener responsable
+function puedeTenerResponsable(documento) {
+    // Si el estado es ELABORACION o PAUSADO, no puede tener responsables de la lista
+    if (ESTADOS_SIN_RESPONSABLES.includes(documento.estado)) {
+        if (documento.colaborador && listaResponsables.includes(documento.colaborador)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Función para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
+        // Cargar responsables primero
+        await cargarResponsables();
+        
         // Mostrar loader
         if (documentosTable) {
             documentosTable.destroy();
@@ -48,7 +106,7 @@ async function obtenerDocumentosCombinados() {
         });
 
         // Procesar y combinar datos
-        return values
+        const documentosProcesados = values
             .map((row, index) => {
                 const documento = String(row[0] || '').trim();
                 const estado = String(row[3] || '').trim().toUpperCase();
@@ -62,13 +120,13 @@ async function obtenerDocumentosCombinados() {
                     estado: estado,
                     colaborador: colaborador,
                     fecha: row[1] || '',
-                    linea: row[2] || '',
                     lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
                     refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
                     tieneClientes: datosCompletos ? 
                         (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                          Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
                     datosCompletos: datosCompletos,
+                    puedeTenerResponsable: true, // Se calculará después
                     rawData: row
                 };
             })
@@ -76,6 +134,13 @@ async function obtenerDocumentosCombinados() {
                 doc.rec && 
                 ESTADOS_PERMITIDOS.includes(doc.estado)
             );
+
+        // Validar qué documentos pueden tener responsables
+        documentosProcesados.forEach(doc => {
+            doc.puedeTenerResponsable = puedeTenerResponsable(doc);
+        });
+
+        return documentosProcesados;
             
     } catch (error) {
         console.error('Error obteniendo documentos:', error);
@@ -106,35 +171,46 @@ function inicializarDataTable(documentos) {
             { 
                 data: 'colaborador',
                 render: function(data, type, row) {
+                    const puedeAsignar = row.puedeTenerResponsable;
+                    
                     if (!data) {
-                        return `
-                            <div class="d-flex align-items-center">
-                                <span class="text-danger me-2"><i class="fas fa-times-circle"></i></span>
-                                <select class="form-select form-select-sm asignar-colaborador" 
-                                        data-rec="${row.rec}" style="min-width: 150px;">
-                                    <option value="">Seleccionar responsable</option>
-                                    <option value="VILLAMIZAR GOMEZ LUIS">VILLAMIZAR GOMEZ LUIS</option>
-                                    <option value="FABIAN MARIN FLOREZ">FABIAN MARIN FLOREZ</option>
-                                    <option value="CESAR AUGUSTO LOPEZ GIRALDO">CESAR AUGUSTO LOPEZ GIRALDO</option>
-                                    <option value="KELLY GIOVANA ZULUAGA HOYOS">KELLY GIOVANA ZULUAGA HOYOS</option>
-                                    <option value="MARYI ANDREA GONZALEZ SILVA">MARYI ANDREA GONZALEZ SILVA</option>
-                                    <option value="JOHAN STEPHANIE ESPÍNOSA RAMIREZ">JOHAN STEPHANIE ESPÍNOSA RAMIREZ</option>
-                                    <option value="SANCHEZ LOPEZ YULIETH">SANCHEZ LOPEZ YULIETH</option>
-                                    <option value="JUAN ESTEBAN ZULUAGA HOYOS">JUAN ESTEBAN ZULUAGA HOYOS</option>
-                                </select>
-                            </div>
-                        `;
+                        if (puedeAsignar) {
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <span class="text-danger me-2"><i class="fas fa-times-circle"></i></span>
+                                    <select class="form-select form-select-sm asignar-colaborador" 
+                                            data-rec="${row.rec}" style="min-width: 180px;">
+                                        <option value="">Seleccionar responsable</option>
+                                        ${listaResponsables.map(resp => 
+                                            `<option value="${resp}">${resp}</option>`
+                                        ).join('')}
+                                    </select>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <span class="text-warning me-2"><i class="fas fa-exclamation-triangle"></i></span>
+                                    <span class="text-muted">No requiere responsable</span>
+                                </div>
+                            `;
+                        }
                     }
+                    
+                    // Si ya tiene colaborador asignado
+                    const esResponsableLista = listaResponsables.includes(data);
+                    const icono = esResponsableLista ? 'fa-check-circle text-success' : 'fa-user text-info';
+                    
                     return `
                         <div class="d-flex align-items-center">
-                            <span class="text-success me-2"><i class="fas fa-check-circle"></i></span>
+                            <span class="me-2"><i class="fas ${icono}"></i></span>
                             <span>${data}</span>
+                            ${!puedeAsignar ? '<span class="badge bg-warning ms-2">No permitido</span>' : ''}
                         </div>
                     `;
                 }
             },
             { data: 'fecha' },
-            { data: 'linea' },
             { 
                 data: 'lote',
                 render: function(data) {
@@ -152,13 +228,15 @@ function inicializarDataTable(documentos) {
                 render: function(data) {
                     const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
                     const tieneClientes = data.tieneClientes;
+                    const puedeImprimir = data.puedeTenerResponsable;
                     
-                    const btnImprimirClass = tieneColaborador && tieneClientes ? 'btn-primary' : 'btn-secondary';
-                    const btnImprimirDisabled = !(tieneColaborador && tieneClientes) ? 'disabled' : '';
+                    const btnImprimirClass = (tieneColaborador && tieneClientes && puedeImprimir) ? 'btn-primary' : 'btn-secondary';
+                    const btnImprimirDisabled = !(tieneColaborador && tieneClientes && puedeImprimir) ? 'disabled' : '';
                     
-                    const tooltipImprimir = tieneColaborador && tieneClientes ? 
-                        'Imprimir solo clientes' : 
-                        (!tieneColaborador ? 'Sin colaborador asignado' : 'Sin clientes asignados');
+                    let tooltipImprimir = 'Imprimir solo clientes';
+                    if (!tieneColaborador) tooltipImprimir = 'Sin colaborador asignado';
+                    else if (!tieneClientes) tooltipImprimir = 'Sin clientes asignados';
+                    else if (!puedeImprimir) tooltipImprimir = 'Estado no permite impresión';
                     
                     return `
                         <div class="btn-group btn-group-sm">
@@ -171,11 +249,6 @@ function inicializarDataTable(documentos) {
                                     onclick="buscarDocumentoEnTabla('${data.rec}')"
                                     title="Ver detalles completos">
                                 <i class="fas fa-search"></i>
-                            </button>
-                            <button class="btn btn-success btn-action" 
-                                    onclick="mostrarOpcionesDocumento('${data.rec}')"
-                                    title="Opciones de impresión">
-                                <i class="fas fa-cog"></i>
                             </button>
                         </div>
                     `;
@@ -201,7 +274,9 @@ function inicializarDataTable(documentos) {
             $('.asignar-colaborador').on('change', function() {
                 const rec = $(this).data('rec');
                 const colaborador = $(this).val();
-                asignarColaborador(rec, colaborador);
+                if (colaborador) {
+                    asignarColaborador(rec, colaborador);
+                }
             });
         },
         drawCallback: function() {
@@ -209,7 +284,9 @@ function inicializarDataTable(documentos) {
             $('.asignar-colaborador').on('change', function() {
                 const rec = $(this).data('rec');
                 const colaborador = $(this).val();
-                asignarColaborador(rec, colaborador);
+                if (colaborador) {
+                    asignarColaborador(rec, colaborador);
+                }
             });
         }
     });
@@ -217,8 +294,6 @@ function inicializarDataTable(documentos) {
 
 // Función para asignar colaborador
 async function asignarColaborador(rec, colaborador) {
-    if (!colaborador) return;
-    
     try {
         // Aquí implementarías la lógica para guardar en Google Sheets
         console.log(`Asignando colaborador ${colaborador} al documento REC${rec}`);
@@ -247,12 +322,6 @@ function imprimirSoloClientesDesdeTabla(rec) {
 function buscarDocumentoEnTabla(rec) {
     document.getElementById('recInput').value = rec;
     buscarPorREC();
-}
-
-// Función para mostrar opciones de impresión específicas
-function mostrarOpcionesDocumento(rec) {
-    document.getElementById('recInput').value = rec;
-    mostrarOpcionesImpresion();
 }
 
 // Función para mostrar mensajes
