@@ -14,7 +14,6 @@ async function obtenerResponsablesDesdeSheets() {
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
     
     try {
-        console.log('Obteniendo responsables desde Google Sheets...');
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A:B?key=${API_KEY}`;
         const response = await fetch(url);
         
@@ -23,7 +22,6 @@ async function obtenerResponsablesDesdeSheets() {
         }
         
         const data = await response.json();
-        console.log('Datos crudos de responsables:', data);
         
         if (!data.values || data.values.length === 0) {
             throw new Error('No se encontraron datos en la hoja RESPONSABLES');
@@ -32,7 +30,6 @@ async function obtenerResponsablesDesdeSheets() {
         // Procesar datos - columna A: nombre, columna B: activo (true/false)
         const responsables = [];
         
-        // Empezar desde la fila 1 (índice 0) para incluir encabezados si existen
         for (let i = 0; i < data.values.length; i++) {
             const row = data.values[i];
             const nombre = row[0] ? String(row[0]).trim() : '';
@@ -42,8 +39,6 @@ async function obtenerResponsablesDesdeSheets() {
                 responsables.push(nombre);
             }
         }
-        
-        console.log('Responsables activos encontrados:', responsables);
         
         if (responsables.length === 0) {
             throw new Error('No se encontraron responsables activos en la hoja RESPONSABLES');
@@ -63,7 +58,6 @@ async function obtenerDocumentosDesdeDATA() {
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
     
     try {
-        console.log('Obteniendo documentos desde DATA...');
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A:E?key=${API_KEY}`;
         const response = await fetch(url);
         
@@ -72,7 +66,6 @@ async function obtenerDocumentosDesdeDATA() {
         }
         
         const data = await response.json();
-        console.log('Datos crudos de DATA:', data);
         
         if (!data.values || data.values.length === 0) {
             throw new Error('No se encontraron datos en la hoja DATA');
@@ -86,9 +79,9 @@ async function obtenerDocumentosDesdeDATA() {
     }
 }
 
-// Función para validar si un documento puede tener responsable
-function puedeTenerResponsable(documento) {
-    // Si el estado es ELABORACION o PAUSADO, no puede tener responsables de la lista
+// Función para validar si un documento debe mostrarse
+function debeMostrarseDocumento(documento) {
+    // Si el estado es ELABORACION o PAUSADO y tiene un responsable de la lista, NO mostrarlo
     if (ESTADOS_SIN_RESPONSABLES.includes(documento.estado)) {
         if (documento.colaborador && listaResponsables.includes(documento.colaborador)) {
             return false;
@@ -100,27 +93,20 @@ function puedeTenerResponsable(documento) {
 // Función principal para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
-        console.log('Iniciando carga de tabla de documentos...');
-        
         // 1. Obtener responsables desde RESPONSABLES
         listaResponsables = await obtenerResponsablesDesdeSheets();
-        console.log('Responsables cargados:', listaResponsables);
         
         // 2. Obtener documentos desde DATA
         const datosDATA = await obtenerDocumentosDesdeDATA();
-        console.log('Documentos de DATA:', datosDATA);
         
-        // 3. Combinar con datos globales
+        // 3. Combinar con datos globales y filtrar
         const documentosCombinados = await combinarConDatosGlobales(datosDATA);
-        console.log('Documentos combinados:', documentosCombinados);
         
         // 4. Inicializar DataTable
         if (documentosTable) {
             documentosTable.destroy();
         }
         inicializarDataTable(documentosCombinados);
-        
-        console.log('Tabla de documentos cargada exitosamente');
         
     } catch (error) {
         console.error('Error en cargarTablaDocumentos:', error);
@@ -139,8 +125,6 @@ async function combinarConDatosGlobales(datosDATA) {
             }
         });
     }
-    
-    console.log('Mapa de datos globales:', datosGlobalesMap);
 
     // Procesar y combinar datos
     const documentosProcesados = datosDATA
@@ -171,16 +155,11 @@ async function combinarConDatosGlobales(datosDATA) {
                     (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                      Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
                 datosCompletos: datosCompletos,
-                puedeTenerResponsable: true, // Se calculará después
                 rawData: row
             };
         })
-        .filter(doc => doc !== null);
-
-    // Validar qué documentos pueden tener responsables
-    documentosProcesados.forEach(doc => {
-        doc.puedeTenerResponsable = puedeTenerResponsable(doc);
-    });
+        .filter(doc => doc !== null)
+        .filter(doc => debeMostrarseDocumento(doc)); // Filtrar documentos que no deben mostrarse
 
     return documentosProcesados;
 }
@@ -213,41 +192,27 @@ function inicializarDataTable(documentos) {
             { 
                 data: 'colaborador',
                 render: function(data, type, row) {
-                    const puedeAsignar = row.puedeTenerResponsable;
-                    
+                    // Si no tiene colaborador, mostrar dropdown para asignar
                     if (!data) {
-                        if (puedeAsignar) {
-                            return `
-                                <div class="d-flex align-items-center">
-                                    <span class="text-danger me-2"><i class="fas fa-times-circle"></i></span>
-                                    <select class="form-select form-select-sm asignar-colaborador" 
-                                            data-rec="${row.rec}" style="min-width: 180px;">
-                                        <option value="">Seleccionar responsable</option>
-                                        ${listaResponsables.map(resp => 
-                                            `<option value="${resp}">${resp}</option>`
-                                        ).join('')}
-                                    </select>
-                                </div>
-                            `;
-                        } else {
-                            return `
-                                <div class="d-flex align-items-center">
-                                    <span class="text-warning me-2"><i class="fas fa-exclamation-triangle"></i></span>
-                                    <span class="text-muted">No requiere responsable</span>
-                                </div>
-                            `;
-                        }
+                        return `
+                            <div class="d-flex align-items-center">
+                                <span class="text-danger me-2"><i class="fas fa-times-circle"></i></span>
+                                <select class="form-select form-select-sm asignar-colaborador" 
+                                        data-rec="${row.rec}" style="min-width: 180px;">
+                                    <option value="">Seleccionar responsable</option>
+                                    ${listaResponsables.map(resp => 
+                                        `<option value="${resp}">${resp}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                        `;
                     }
                     
-                    // Si ya tiene colaborador asignado
-                    const esResponsableLista = listaResponsables.includes(data);
-                    const icono = esResponsableLista ? 'fa-check-circle text-success' : 'fa-user text-info';
-                    
+                    // Si ya tiene colaborador asignado, mostrar normalmente
                     return `
                         <div class="d-flex align-items-center">
-                            <span class="me-2"><i class="fas ${icono}"></i></span>
+                            <span class="text-success me-2"><i class="fas fa-check-circle"></i></span>
                             <span>${data}</span>
-                            ${!puedeAsignar ? '<span class="badge bg-warning ms-2">No permitido</span>' : ''}
                         </div>
                     `;
                 }
@@ -270,15 +235,13 @@ function inicializarDataTable(documentos) {
                 render: function(data) {
                     const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
                     const tieneClientes = data.tieneClientes;
-                    const puedeImprimir = data.puedeTenerResponsable;
                     
-                    const btnImprimirClass = (tieneColaborador && tieneClientes && puedeImprimir) ? 'btn-primary' : 'btn-secondary';
-                    const btnImprimirDisabled = !(tieneColaborador && tieneClientes && puedeImprimir) ? 'disabled' : '';
+                    const btnImprimirClass = (tieneColaborador && tieneClientes) ? 'btn-primary' : 'btn-secondary';
+                    const btnImprimirDisabled = !(tieneColaborador && tieneClientes) ? 'disabled' : '';
                     
                     let tooltipImprimir = 'Imprimir solo clientes';
                     if (!tieneColaborador) tooltipImprimir = 'Sin colaborador asignado';
                     else if (!tieneClientes) tooltipImprimir = 'Sin clientes asignados';
-                    else if (!puedeImprimir) tooltipImprimir = 'Estado no permite impresión';
                     
                     return `
                         <div class="btn-group btn-group-sm">
@@ -305,7 +268,6 @@ function inicializarDataTable(documentos) {
         responsive: true,
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
         initComplete: function() {
-            console.log('DataTable inicializada correctamente');
             // Agregar evento para los select de colaboradores
             $('.asignar-colaborador').on('change', function() {
                 const rec = $(this).data('rec');
@@ -331,8 +293,6 @@ function inicializarDataTable(documentos) {
 // Función para asignar colaborador
 async function asignarColaborador(rec, colaborador) {
     try {
-        console.log(`Asignando colaborador ${colaborador} al documento REC${rec}`);
-        
         // Aquí iría la lógica para guardar en Google Sheets
         mostrarMensaje(`Colaborador ${colaborador} asignado a REC${rec}`, 'success');
         
@@ -392,13 +352,10 @@ function mostrarError(mensaje) {
 
 // Cargar tabla cuando la página esté lista
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM cargado, iniciando carga de tabla...');
-    
     // Esperar a que los datos globales estén cargados
     const checkDataLoaded = setInterval(() => {
         if (datosGlobales && Array.isArray(datosGlobales)) {
             clearInterval(checkDataLoaded);
-            console.log('Datos globales cargados, procediendo con tabla...');
             cargarTablaDocumentos();
         }
     }, 1000);
@@ -407,7 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         clearInterval(checkDataLoaded);
         if (!documentosTable) {
-            console.log('Timeout - cargando tabla sin datos globales');
             cargarTablaDocumentos();
         }
     }, 10000);
