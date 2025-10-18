@@ -1,6 +1,7 @@
 // Configuración de DataTable para documentos disponibles
 let documentosTable = null;
 let listaResponsables = [];
+let responsablesDisponibles = [];
 
 // Estados permitidos para mostrar
 const ESTADOS_PERMITIDOS = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
@@ -14,7 +15,6 @@ async function obtenerResponsablesDesdeSheets() {
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
     
     try {
-        console.log('Obteniendo responsables desde Google Sheets...');
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A:B?key=${API_KEY}`;
         const response = await fetch(url);
         
@@ -23,7 +23,6 @@ async function obtenerResponsablesDesdeSheets() {
         }
         
         const data = await response.json();
-        console.log('Datos crudos de responsables:', data);
         
         if (!data.values || data.values.length === 0) {
             throw new Error('No se encontraron datos en la hoja RESPONSABLES');
@@ -32,7 +31,6 @@ async function obtenerResponsablesDesdeSheets() {
         // Procesar datos - columna A: nombre, columna B: activo (true/false)
         const responsables = [];
         
-        // Empezar desde la fila 1 (índice 0) para incluir encabezados si existen
         for (let i = 0; i < data.values.length; i++) {
             const row = data.values[i];
             const nombre = row[0] ? String(row[0]).trim() : '';
@@ -42,8 +40,6 @@ async function obtenerResponsablesDesdeSheets() {
                 responsables.push(nombre);
             }
         }
-        
-        console.log('Responsables activos encontrados:', responsables);
         
         if (responsables.length === 0) {
             throw new Error('No se encontraron responsables activos en la hoja RESPONSABLES');
@@ -63,7 +59,6 @@ async function obtenerDocumentosDesdeDATA() {
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
     
     try {
-        console.log('Obteniendo documentos desde DATA...');
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A:E?key=${API_KEY}`;
         const response = await fetch(url);
         
@@ -72,7 +67,6 @@ async function obtenerDocumentosDesdeDATA() {
         }
         
         const data = await response.json();
-        console.log('Datos crudos de DATA:', data);
         
         if (!data.values || data.values.length === 0) {
             throw new Error('No se encontraron datos en la hoja DATA');
@@ -84,6 +78,26 @@ async function obtenerDocumentosDesdeDATA() {
         console.error('Error obteniendo documentos:', error);
         throw new Error(`No se pudieron cargar los documentos: ${error.message}`);
     }
+}
+
+// Función para filtrar responsables disponibles
+function filtrarResponsablesDisponibles(documentos) {
+    // Obtener responsables que ya están asignados a documentos en estados ELABORACION/PAUSADO
+    const responsablesOcupados = new Set();
+    
+    documentos.forEach(doc => {
+        if (ESTADOS_SIN_RESPONSABLES.includes(doc.estado) && doc.colaborador) {
+            responsablesOcupados.add(doc.colaborador);
+        }
+    });
+    
+    // Filtrar la lista de responsables para excluir los ocupados
+    responsablesDisponibles = listaResponsables.filter(responsable => 
+        !responsablesOcupados.has(responsable)
+    );
+    
+    console.log('Responsables ocupados:', Array.from(responsablesOcupados));
+    console.log('Responsables disponibles:', responsablesDisponibles);
 }
 
 // Función para validar si un documento puede tener responsable
@@ -100,27 +114,23 @@ function puedeTenerResponsable(documento) {
 // Función principal para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
-        console.log('Iniciando carga de tabla de documentos...');
-        
         // 1. Obtener responsables desde RESPONSABLES
         listaResponsables = await obtenerResponsablesDesdeSheets();
-        console.log('Responsables cargados:', listaResponsables);
         
         // 2. Obtener documentos desde DATA
         const datosDATA = await obtenerDocumentosDesdeDATA();
-        console.log('Documentos de DATA:', datosDATA);
         
         // 3. Combinar con datos globales
         const documentosCombinados = await combinarConDatosGlobales(datosDATA);
-        console.log('Documentos combinados:', documentosCombinados);
         
-        // 4. Inicializar DataTable
+        // 4. Filtrar responsables disponibles
+        filtrarResponsablesDisponibles(documentosCombinados);
+        
+        // 5. Inicializar DataTable
         if (documentosTable) {
             documentosTable.destroy();
         }
         inicializarDataTable(documentosCombinados);
-        
-        console.log('Tabla de documentos cargada exitosamente');
         
     } catch (error) {
         console.error('Error en cargarTablaDocumentos:', error);
@@ -139,8 +149,6 @@ async function combinarConDatosGlobales(datosDATA) {
             }
         });
     }
-    
-    console.log('Mapa de datos globales:', datosGlobalesMap);
 
     // Procesar y combinar datos
     const documentosProcesados = datosDATA
@@ -217,15 +225,18 @@ function inicializarDataTable(documentos) {
                     
                     if (!data) {
                         if (puedeAsignar) {
+                            // Usar la lista filtrada de responsables disponibles
+                            const opcionesResponsables = responsablesDisponibles.map(resp => 
+                                `<option value="${resp}">${resp}</option>`
+                            ).join('');
+                            
                             return `
                                 <div class="d-flex align-items-center">
                                     <span class="text-danger me-2"><i class="fas fa-times-circle"></i></span>
                                     <select class="form-select form-select-sm asignar-colaborador" 
                                             data-rec="${row.rec}" style="min-width: 180px;">
                                         <option value="">Seleccionar responsable</option>
-                                        ${listaResponsables.map(resp => 
-                                            `<option value="${resp}">${resp}</option>`
-                                        ).join('')}
+                                        ${opcionesResponsables}
                                     </select>
                                 </div>
                             `;
@@ -242,12 +253,12 @@ function inicializarDataTable(documentos) {
                     // Si ya tiene colaborador asignado
                     const esResponsableLista = listaResponsables.includes(data);
                     const icono = esResponsableLista ? 'fa-check-circle text-success' : 'fa-user text-info';
+                    const estaDisponible = responsablesDisponibles.includes(data);
                     
                     return `
                         <div class="d-flex align-items-center">
                             <span class="me-2"><i class="fas ${icono}"></i></span>
-                            <span>${data}</span>
-                            ${!puedeAsignar ? '<span class="badge bg-warning ms-2">No permitido</span>' : ''}
+                            <span class="${estaDisponible ? '' : 'text-muted'}">${data}</span>
                         </div>
                     `;
                 }
@@ -270,15 +281,15 @@ function inicializarDataTable(documentos) {
                 render: function(data) {
                     const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
                     const tieneClientes = data.tieneClientes;
-                    const puedeImprimir = data.puedeTenerResponsable;
+                    const puedeImprimir = data.puedeTenerResponsable && tieneColaborador && tieneClientes;
                     
-                    const btnImprimirClass = (tieneColaborador && tieneClientes && puedeImprimir) ? 'btn-primary' : 'btn-secondary';
-                    const btnImprimirDisabled = !(tieneColaborador && tieneClientes && puedeImprimir) ? 'disabled' : '';
+                    const btnImprimirClass = puedeImprimir ? 'btn-primary' : 'btn-secondary';
+                    const btnImprimirDisabled = !puedeImprimir ? 'disabled' : '';
                     
                     let tooltipImprimir = 'Imprimir solo clientes';
                     if (!tieneColaborador) tooltipImprimir = 'Sin colaborador asignado';
                     else if (!tieneClientes) tooltipImprimir = 'Sin clientes asignados';
-                    else if (!puedeImprimir) tooltipImprimir = 'Estado no permite impresión';
+                    else if (!data.puedeTenerResponsable) tooltipImprimir = 'Estado no permite impresión';
                     
                     return `
                         <div class="btn-group btn-group-sm">
@@ -305,7 +316,6 @@ function inicializarDataTable(documentos) {
         responsive: true,
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
         initComplete: function() {
-            console.log('DataTable inicializada correctamente');
             // Agregar evento para los select de colaboradores
             $('.asignar-colaborador').on('change', function() {
                 const rec = $(this).data('rec');
@@ -392,13 +402,10 @@ function mostrarError(mensaje) {
 
 // Cargar tabla cuando la página esté lista
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM cargado, iniciando carga de tabla...');
-    
     // Esperar a que los datos globales estén cargados
     const checkDataLoaded = setInterval(() => {
         if (datosGlobales && Array.isArray(datosGlobales)) {
             clearInterval(checkDataLoaded);
-            console.log('Datos globales cargados, procediendo con tabla...');
             cargarTablaDocumentos();
         }
     }, 1000);
@@ -407,7 +414,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         clearInterval(checkDataLoaded);
         if (!documentosTable) {
-            console.log('Timeout - cargando tabla sin datos globales');
             cargarTablaDocumentos();
         }
     }, 10000);
