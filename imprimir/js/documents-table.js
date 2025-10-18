@@ -8,37 +8,81 @@ const ESTADOS_PERMITIDOS = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 // Estados que no permiten responsables específicos
 const ESTADOS_SIN_RESPONSABLES = ['ELABORACION', 'PAUSADO'];
 
-// Función para cargar la lista de responsables
-async function cargarResponsables() {
+// Función independiente para obtener responsables desde Google Sheets
+async function obtenerResponsablesDesdeSheets() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
     
     try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
+        console.log('Obteniendo responsables desde Google Sheets...');
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A:B?key=${API_KEY}`;
         const response = await fetch(url);
         
-        if (!response.ok) throw new Error('Error al obtener responsables');
-        
-        const data = await response.json();
-        const values = data.values || [];
-        
-        // Filtrar responsables activos (columna B = true)
-        listaResponsables = values
-            .filter(row => row[1] && row[1].toString().toLowerCase() === 'true')
-            .map(row => row[0].trim())
-            .filter(nombre => nombre !== '');
-            
-        console.log('Responsables cargados:', listaResponsables);
-        
-        if (listaResponsables.length === 0) {
-            throw new Error('No se encontraron responsables activos');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
         }
         
-        return listaResponsables;
+        const data = await response.json();
+        console.log('Datos crudos de responsables:', data);
+        
+        if (!data.values || data.values.length === 0) {
+            throw new Error('No se encontraron datos en la hoja RESPONSABLES');
+        }
+        
+        // Procesar datos - columna A: nombre, columna B: activo (true/false)
+        const responsables = [];
+        
+        // Empezar desde la fila 1 (índice 0) para incluir encabezados si existen
+        for (let i = 0; i < data.values.length; i++) {
+            const row = data.values[i];
+            const nombre = row[0] ? String(row[0]).trim() : '';
+            const activo = row[1] ? String(row[1]).trim().toLowerCase() === 'true' : false;
+            
+            if (nombre && activo) {
+                responsables.push(nombre);
+            }
+        }
+        
+        console.log('Responsables activos encontrados:', responsables);
+        
+        if (responsables.length === 0) {
+            throw new Error('No se encontraron responsables activos en la hoja RESPONSABLES');
+        }
+        
+        return responsables;
         
     } catch (error) {
-        console.error('Error cargando responsables:', error);
-        throw error; // Propagar el error en lugar de usar lista por defecto
+        console.error('Error obteniendo responsables:', error);
+        throw new Error(`No se pudieron cargar los responsables: ${error.message}`);
+    }
+}
+
+// Función para obtener documentos de DATA
+async function obtenerDocumentosDesdeDATA() {
+    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    
+    try {
+        console.log('Obteniendo documentos desde DATA...');
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A:E?key=${API_KEY}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Datos crudos de DATA:', data);
+        
+        if (!data.values || data.values.length === 0) {
+            throw new Error('No se encontraron datos en la hoja DATA');
+        }
+        
+        return data.values;
+        
+    } catch (error) {
+        console.error('Error obteniendo documentos:', error);
+        throw new Error(`No se pudieron cargar los documentos: ${error.message}`);
     }
 }
 
@@ -53,98 +97,102 @@ function puedeTenerResponsable(documento) {
     return true;
 }
 
-// Función para cargar la tabla de documentos
+// Función principal para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
-        // Cargar responsables primero - SI FALLA, NO CONTINUAR
-        listaResponsables = await cargarResponsables();
+        console.log('Iniciando carga de tabla de documentos...');
         
-        // Mostrar loader
+        // 1. Obtener responsables desde RESPONSABLES
+        listaResponsables = await obtenerResponsablesDesdeSheets();
+        console.log('Responsables cargados:', listaResponsables);
+        
+        // 2. Obtener documentos desde DATA
+        const datosDATA = await obtenerDocumentosDesdeDATA();
+        console.log('Documentos de DATA:', datosDATA);
+        
+        // 3. Combinar con datos globales
+        const documentosCombinados = await combinarConDatosGlobales(datosDATA);
+        console.log('Documentos combinados:', documentosCombinados);
+        
+        // 4. Inicializar DataTable
         if (documentosTable) {
             documentosTable.destroy();
         }
-
-        // Obtener datos combinados de DATA y datos globales
-        const documentosDisponibles = await obtenerDocumentosCombinados();
+        inicializarDataTable(documentosCombinados);
         
-        // Inicializar DataTable
-        inicializarDataTable(documentosDisponibles);
+        console.log('Tabla de documentos cargada exitosamente');
         
     } catch (error) {
-        console.error('Error al cargar tabla de documentos:', error);
-        mostrarError('Error al cargar los responsables: ' + error.message);
+        console.error('Error en cargarTablaDocumentos:', error);
+        mostrarError(error.message);
     }
 }
 
-// Función para obtener datos combinados de DATA y datos globales
-async function obtenerDocumentosCombinados() {
-    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
-    
-    try {
-        // Obtener datos básicos de la hoja DATA
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:E?key=${API_KEY}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) throw new Error('Error al obtener datos de la hoja DATA');
-        
-        const data = await response.json();
-        const values = data.values || [];
-        
-        // Crear mapa de datos globales para búsqueda rápida
-        const datosGlobalesMap = {};
+// Función para combinar datos de DATA con datos globales
+async function combinarConDatosGlobales(datosDATA) {
+    // Crear mapa de datos globales para búsqueda rápida
+    const datosGlobalesMap = {};
+    if (datosGlobales && Array.isArray(datosGlobales)) {
         datosGlobales.forEach(item => {
             if (item.REC) {
                 datosGlobalesMap[item.REC] = item;
             }
         });
-
-        // Procesar y combinar datos
-        const documentosProcesados = values
-            .map((row, index) => {
-                const documento = String(row[0] || '').trim();
-                const estado = String(row[3] || '').trim().toUpperCase();
-                const colaborador = String(row[4] || '').trim();
-                
-                // Buscar información adicional en datosGlobales
-                const datosCompletos = datosGlobalesMap[documento];
-                
-                return {
-                    rec: documento,
-                    estado: estado,
-                    colaborador: colaborador,
-                    fecha: row[1] || '',
-                    lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
-                    refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
-                    tieneClientes: datosCompletos ? 
-                        (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
-                         Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
-                    datosCompletos: datosCompletos,
-                    puedeTenerResponsable: true, // Se calculará después
-                    rawData: row
-                };
-            })
-            .filter(doc => 
-                doc.rec && 
-                ESTADOS_PERMITIDOS.includes(doc.estado)
-            );
-
-        // Validar qué documentos pueden tener responsables
-        documentosProcesados.forEach(doc => {
-            doc.puedeTenerResponsable = puedeTenerResponsable(doc);
-        });
-
-        return documentosProcesados;
-            
-    } catch (error) {
-        console.error('Error obteniendo documentos:', error);
-        throw error;
     }
+    
+    console.log('Mapa de datos globales:', datosGlobalesMap);
+
+    // Procesar y combinar datos
+    const documentosProcesados = datosDATA
+        .map((row, index) => {
+            // Saltar fila si no hay datos suficientes
+            if (row.length < 5) return null;
+            
+            const documento = String(row[0] || '').trim();
+            const estado = String(row[3] || '').trim().toUpperCase();
+            const colaborador = String(row[4] || '').trim();
+            
+            // Validar documento y estado
+            if (!documento || !ESTADOS_PERMITIDOS.includes(estado)) {
+                return null;
+            }
+            
+            // Buscar información adicional en datosGlobales
+            const datosCompletos = datosGlobalesMap[documento];
+            
+            return {
+                rec: documento,
+                estado: estado,
+                colaborador: colaborador,
+                fecha: row[1] || '',
+                lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
+                refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
+                tieneClientes: datosCompletos ? 
+                    (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
+                     Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
+                datosCompletos: datosCompletos,
+                puedeTenerResponsable: true, // Se calculará después
+                rawData: row
+            };
+        })
+        .filter(doc => doc !== null);
+
+    // Validar qué documentos pueden tener responsables
+    documentosProcesados.forEach(doc => {
+        doc.puedeTenerResponsable = puedeTenerResponsable(doc);
+    });
+
+    return documentosProcesados;
 }
 
 // Función para inicializar DataTable
 function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
+    
+    if (documentos.length === 0) {
+        table.html('<tr><td colspan="7" class="text-center">No se encontraron documentos con los estados permitidos</td></tr>');
+        return;
+    }
     
     documentosTable = table.DataTable({
         data: documentos,
@@ -256,14 +304,8 @@ function inicializarDataTable(documentos) {
         pageLength: 25,
         responsive: true,
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
-        buttons: [
-            {
-                extend: 'colvis',
-                text: '<i class="fas fa-columns me-1"></i>Columnas',
-                className: 'btn btn-secondary'
-            }
-        ],
         initComplete: function() {
+            console.log('DataTable inicializada correctamente');
             // Agregar evento para los select de colaboradores
             $('.asignar-colaborador').on('change', function() {
                 const rec = $(this).data('rec');
@@ -289,10 +331,9 @@ function inicializarDataTable(documentos) {
 // Función para asignar colaborador
 async function asignarColaborador(rec, colaborador) {
     try {
-        // Aquí implementarías la lógica para guardar en Google Sheets
         console.log(`Asignando colaborador ${colaborador} al documento REC${rec}`);
         
-        // Por ahora, mostramos un mensaje y recargamos la tabla
+        // Aquí iría la lógica para guardar en Google Sheets
         mostrarMensaje(`Colaborador ${colaborador} asignado a REC${rec}`, 'success');
         
         // Recargar tabla después de un breve delay
@@ -351,11 +392,23 @@ function mostrarError(mensaje) {
 
 // Cargar tabla cuando la página esté lista
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM cargado, iniciando carga de tabla...');
+    
     // Esperar a que los datos globales estén cargados
     const checkDataLoaded = setInterval(() => {
-        if (datosGlobales && datosGlobales.length > 0) {
+        if (datosGlobales && Array.isArray(datosGlobales)) {
             clearInterval(checkDataLoaded);
+            console.log('Datos globales cargados, procediendo con tabla...');
             cargarTablaDocumentos();
         }
-    }, 500);
+    }, 1000);
+    
+    // Timeout de seguridad
+    setTimeout(() => {
+        clearInterval(checkDataLoaded);
+        if (!documentosTable) {
+            console.log('Timeout - cargando tabla sin datos globales');
+            cargarTablaDocumentos();
+        }
+    }, 10000);
 });
