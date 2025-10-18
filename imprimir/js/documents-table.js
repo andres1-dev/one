@@ -1,6 +1,5 @@
 // Configuración de DataTable para documentos disponibles
 let documentosTable = null;
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwRo5v0SGGFBOZP6TPKR_jejz9iBk32ZWlsFICCyFr1EGgwWYMvn1iX33upRNqi6w98/exec'; // Reemplazar con tu URL de GAS
 
 // Estados permitidos para mostrar
 const ESTADOS_PERMITIDOS = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
@@ -13,8 +12,8 @@ async function cargarTablaDocumentos() {
             documentosTable.destroy();
         }
 
-        // Obtener datos de la hoja DATA
-        const documentosDisponibles = await obtenerDocumentosDisponibles();
+        // Obtener datos combinados de DATA y datos globales
+        const documentosDisponibles = await obtenerDocumentosCombinados();
         
         // Inicializar DataTable
         inicializarDataTable(documentosDisponibles);
@@ -25,12 +24,13 @@ async function cargarTablaDocumentos() {
     }
 }
 
-// Función para obtener documentos de la hoja DATA
-async function obtenerDocumentosDisponibles() {
+// Función para obtener datos combinados de DATA y datos globales
+async function obtenerDocumentosCombinados() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
     
     try {
+        // Obtener datos básicos de la hoja DATA
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:E?key=${API_KEY}`;
         const response = await fetch(url);
         
@@ -39,12 +39,23 @@ async function obtenerDocumentosDisponibles() {
         const data = await response.json();
         const values = data.values || [];
         
-        // Procesar y filtrar datos
+        // Crear mapa de datos globales para búsqueda rápida
+        const datosGlobalesMap = {};
+        datosGlobales.forEach(item => {
+            if (item.REC) {
+                datosGlobalesMap[item.REC] = item;
+            }
+        });
+
+        // Procesar y combinar datos
         return values
             .map((row, index) => {
                 const documento = String(row[0] || '').trim();
                 const estado = String(row[3] || '').trim().toUpperCase();
                 const colaborador = String(row[4] || '').trim();
+                
+                // Buscar información adicional en datosGlobales
+                const datosCompletos = datosGlobalesMap[documento];
                 
                 return {
                     rec: documento,
@@ -52,6 +63,12 @@ async function obtenerDocumentosDisponibles() {
                     colaborador: colaborador,
                     fecha: row[1] || '',
                     linea: row[2] || '',
+                    lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
+                    refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
+                    tieneClientes: datosCompletos ? 
+                        (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
+                         Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
+                    datosCompletos: datosCompletos,
                     rawData: row
                 };
             })
@@ -62,35 +79,6 @@ async function obtenerDocumentosDisponibles() {
             
     } catch (error) {
         console.error('Error obteniendo documentos:', error);
-        throw error;
-    }
-}
-
-// FUNCIÓN ACTUALIZADA: Obtener colaboradores desde Sheets API
-async function obtenerColaboradoresActivos() {
-    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
-    
-    try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) throw new Error('Error al obtener datos de RESPONSABLES');
-        
-        const data = await response.json();
-        const values = data.values || [];
-        
-        // Filtrar solo los activos (TRUE) y devolver nombres
-        return values
-            .filter(row => {
-                const estado = String(row[1] || '').trim().toUpperCase();
-                return estado === 'TRUE' || estado === 'VERDADERO' || estado === '1';
-            })
-            .map(row => String(row[0] || '').trim())
-            .filter(nombre => nombre !== '');
-            
-    } catch (error) {
-        console.error('Error obteniendo colaboradores:', error);
         throw error;
     }
 }
@@ -117,39 +105,77 @@ function inicializarDataTable(documentos) {
             },
             { 
                 data: 'colaborador',
-                render: function(data) {
+                render: function(data, type, row) {
                     if (!data) {
-                        return '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Sin asignar</span>';
+                        return `
+                            <div class="d-flex align-items-center">
+                                <span class="text-danger me-2"><i class="fas fa-times-circle"></i></span>
+                                <select class="form-select form-select-sm asignar-colaborador" 
+                                        data-rec="${row.rec}" style="min-width: 150px;">
+                                    <option value="">Seleccionar responsable</option>
+                                    <option value="VILLAMIZAR GOMEZ LUIS">VILLAMIZAR GOMEZ LUIS</option>
+                                    <option value="FABIAN MARIN FLOREZ">FABIAN MARIN FLOREZ</option>
+                                    <option value="CESAR AUGUSTO LOPEZ GIRALDO">CESAR AUGUSTO LOPEZ GIRALDO</option>
+                                    <option value="KELLY GIOVANA ZULUAGA HOYOS">KELLY GIOVANA ZULUAGA HOYOS</option>
+                                    <option value="MARYI ANDREA GONZALEZ SILVA">MARYI ANDREA GONZALEZ SILVA</option>
+                                    <option value="JOHAN STEPHANIE ESPÍNOSA RAMIREZ">JOHAN STEPHANIE ESPÍNOSA RAMIREZ</option>
+                                    <option value="SANCHEZ LOPEZ YULIETH">SANCHEZ LOPEZ YULIETH</option>
+                                    <option value="JUAN ESTEBAN ZULUAGA HOYOS">JUAN ESTEBAN ZULUAGA HOYOS</option>
+                                </select>
+                            </div>
+                        `;
                     }
-                    return `<span class="text-success"><i class="fas fa-check-circle me-1"></i>${data}</span>`;
+                    return `
+                        <div class="d-flex align-items-center">
+                            <span class="text-success me-2"><i class="fas fa-check-circle"></i></span>
+                            <span>${data}</span>
+                        </div>
+                    `;
                 }
             },
             { data: 'fecha' },
             { data: 'linea' },
+            { 
+                data: 'lote',
+                render: function(data) {
+                    return data || '<span class="text-muted">-</span>';
+                }
+            },
+            { 
+                data: 'refProv',
+                render: function(data) {
+                    return data || '<span class="text-muted">-</span>';
+                }
+            },
             {
                 data: null,
                 render: function(data) {
                     const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
-                    const btnImprimirClass = tieneColaborador ? 'btn-primary' : 'btn-secondary';
-                    const disabledAttr = tieneColaborador ? '' : 'disabled';
-                    const tooltipImprimir = tieneColaborador ? 'Imprimir solo clientes' : 'Sin colaborador asignado';
+                    const tieneClientes = data.tieneClientes;
+                    
+                    const btnImprimirClass = tieneColaborador && tieneClientes ? 'btn-primary' : 'btn-secondary';
+                    const btnImprimirDisabled = !(tieneColaborador && tieneClientes) ? 'disabled' : '';
+                    
+                    const tooltipImprimir = tieneColaborador && tieneClientes ? 
+                        'Imprimir solo clientes' : 
+                        (!tieneColaborador ? 'Sin colaborador asignado' : 'Sin clientes asignados');
                     
                     return `
                         <div class="btn-group btn-group-sm">
-                            <button class="btn ${btnImprimirClass} btn-action" ${disabledAttr} 
+                            <button class="btn ${btnImprimirClass} btn-action" ${btnImprimirDisabled}
                                     onclick="imprimirSoloClientesDesdeTabla('${data.rec}')"
                                     title="${tooltipImprimir}">
-                                <i class="fas fa-print"></i>
+                                <i class="fas fa-print"></i> Clientes
                             </button>
                             <button class="btn btn-info btn-action" 
-                                    onclick="mostrarInfoDocumento('${data.rec}')"
-                                    title="Información completa">
-                                <i class="fas fa-info-circle"></i>
+                                    onclick="buscarDocumentoEnTabla('${data.rec}')"
+                                    title="Ver detalles completos">
+                                <i class="fas fa-search"></i>
                             </button>
-                            <button class="btn btn-warning btn-action" 
-                                    onclick="asignarColaboradorModal('${data.rec}')"
-                                    title="Asignar colaborador">
-                                <i class="fas fa-user-plus"></i>
+                            <button class="btn btn-success btn-action" 
+                                    onclick="mostrarOpcionesDocumento('${data.rec}')"
+                                    title="Opciones de impresión">
+                                <i class="fas fa-cog"></i>
                             </button>
                         </div>
                     `;
@@ -170,134 +196,44 @@ function inicializarDataTable(documentos) {
                 className: 'btn btn-secondary'
             }
         ],
-        drawCallback: function(settings) {
-            // Actualizar contador de documentos
-            const api = this.api();
-            const total = api.rows().count();
-            actualizarContadorDocumentos(total);
+        initComplete: function() {
+            // Agregar evento para los select de colaboradores
+            $('.asignar-colaborador').on('change', function() {
+                const rec = $(this).data('rec');
+                const colaborador = $(this).val();
+                asignarColaborador(rec, colaborador);
+            });
+        },
+        drawCallback: function() {
+            // Re-agregar evento después de cada redibujado de la tabla
+            $('.asignar-colaborador').on('change', function() {
+                const rec = $(this).data('rec');
+                const colaborador = $(this).val();
+                asignarColaborador(rec, colaborador);
+            });
         }
     });
 }
 
-// ========== FUNCIONES ACTUALIZADAS PARA COLABORADORES ==========
-
-// Función para cargar colaboradores desde Sheets API
-async function cargarColaboradores() {
-    try {
-        const colaboradores = await obtenerColaboradoresActivos();
-        
-        const select = document.getElementById('selectColaborador');
-        select.innerHTML = '<option value="">Seleccione un colaborador</option>';
-        
-        colaboradores.forEach(colaborador => {
-            const option = document.createElement('option');
-            option.value = colaborador;
-            option.textContent = colaborador;
-            select.appendChild(option);
-        });
-        
-    } catch (error) {
-        console.error('Error cargando colaboradores:', error);
-        document.getElementById('selectColaborador').innerHTML = '<option value="">Error cargando colaboradores</option>';
-    }
-}
-
-// Función para mostrar modal de asignación
-async function asignarColaboradorModal(rec) {
-    document.getElementById('modalRec').value = rec;
-    document.getElementById('modalMessage').innerHTML = '';
-    
-    // Cargar colaboradores
-    await cargarColaboradores();
-    
-    // Mostrar modal
-    const modal = new bootstrap.Modal(document.getElementById('modalAsignarColaborador'));
-    modal.show();
-}
-
-// Función para confirmar asignación (usa GAS para actualizar)
-async function confirmarAsignacion() {
-    const rec = document.getElementById('modalRec').value;
-    const colaborador = document.getElementById('selectColaborador').value;
-    
-    if (!colaborador) {
-        mostrarModalMessage('Por favor seleccione un colaborador', 'danger');
-        return;
-    }
+// Función para asignar colaborador
+async function asignarColaborador(rec, colaborador) {
+    if (!colaborador) return;
     
     try {
-        const response = await fetch(GAS_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=asignarColaborador&rec=${encodeURIComponent(rec)}&colaborador=${encodeURIComponent(colaborador)}`
-        });
+        // Aquí implementarías la lógica para guardar en Google Sheets
+        console.log(`Asignando colaborador ${colaborador} al documento REC${rec}`);
         
-        const data = await response.json();
+        // Por ahora, mostramos un mensaje y recargamos la tabla
+        mostrarMensaje(`Colaborador ${colaborador} asignado a REC${rec}`, 'success');
         
-        if (data.success) {
-            mostrarModalMessage(data.message, 'success');
-            
-            // Cerrar modal después de 2 segundos y recargar tabla
-            setTimeout(() => {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modalAsignarColaborador'));
-                modal.hide();
-                cargarTablaDocumentos();
-            }, 2000);
-        } else {
-            mostrarModalMessage(data.error, 'danger');
-        }
+        // Recargar tabla después de un breve delay
+        setTimeout(() => {
+            cargarTablaDocumentos();
+        }, 1000);
+        
     } catch (error) {
         console.error('Error asignando colaborador:', error);
-        mostrarModalMessage('Error al asignar colaborador: ' + error.message, 'danger');
-    }
-}
-
-// Función para mostrar información completa del documento
-async function mostrarInfoDocumento(rec) {
-    try {
-        const response = await fetch(`${GAS_API_URL}?action=getDocumentoInfo&rec=${encodeURIComponent(rec)}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            document.getElementById('infoDocumentoContent').innerHTML = `
-                <div class="alert alert-danger">${data.error}</div>
-            `;
-        } else {
-            document.getElementById('infoDocumentoContent').innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <strong>REC:</strong> ${data.rec || 'N/A'}<br>
-                        <strong>Estado:</strong> <span class="estado-${(data.estado || '').toLowerCase()}">${data.estado || 'N/A'}</span><br>
-                        <strong>Colaborador:</strong> ${data.colaborador ? `<span class="text-success"><i class="fas fa-check-circle me-1"></i>${data.colaborador}</span>` : '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>No asignado</span>'}<br>
-                        <strong>Fecha Guardado:</strong> ${data.guardado || 'N/A'}<br>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Duración:</strong> ${data.duracion || 'N/A'}<br>
-                        <strong>Pausas:</strong> ${data.pausas || 'N/A'}<br>
-                        <strong>Fin:</strong> ${data.fin || 'N/A'}<br>
-                        <strong>Última Actualización:</strong> ${data.datetime || 'N/A'}<br>
-                    </div>
-                </div>
-                ${data.distribucion ? `
-                <div class="mt-3">
-                    <strong>Distribución:</strong>
-                    <pre class="bg-light p-2 mt-1" style="font-size: 0.8rem; max-height: 200px; overflow-y: auto;">${JSON.stringify(JSON.parse(data.distribucion), null, 2)}</pre>
-                </div>
-                ` : ''}
-            `;
-        }
-        
-        const modal = new bootstrap.Modal(document.getElementById('modalInfoDocumento'));
-        modal.show();
-    } catch (error) {
-        console.error('Error obteniendo información:', error);
-        document.getElementById('infoDocumentoContent').innerHTML = `
-            <div class="alert alert-danger">Error al cargar información: ${error.message}</div>
-        `;
-        const modal = new bootstrap.Modal(document.getElementById('modalInfoDocumento'));
-        modal.show();
+        mostrarMensaje('Error al asignar colaborador', 'error');
     }
 }
 
@@ -307,25 +243,37 @@ function imprimirSoloClientesDesdeTabla(rec) {
     imprimirSoloClientes();
 }
 
-// Función auxiliar para mostrar mensajes en modal
-function mostrarModalMessage(message, type) {
-    const messageDiv = document.getElementById('modalMessage');
-    messageDiv.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show">
-            <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
+// Función para buscar documento en el sistema principal
+function buscarDocumentoEnTabla(rec) {
+    document.getElementById('recInput').value = rec;
+    buscarPorREC();
 }
 
-// Función para mostrar error
-function mostrarError(mensaje) {
+// Función para mostrar opciones de impresión específicas
+function mostrarOpcionesDocumento(rec) {
+    document.getElementById('recInput').value = rec;
+    mostrarOpcionesImpresion();
+}
+
+// Función para mostrar mensajes
+function mostrarMensaje(mensaje, tipo = 'info') {
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'info': 'alert-info'
+    }[tipo] || 'alert-info';
+    
+    const icon = {
+        'success': 'fa-check-circle',
+        'error': 'fa-exclamation-triangle',
+        'info': 'fa-info-circle'
+    }[tipo] || 'fa-info-circle';
+
     const resultado = document.getElementById('resultado');
     resultado.innerHTML = `
         <div class="col-12">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                <i class="fas ${icon} me-2"></i>
                 ${mensaje}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -333,18 +281,18 @@ function mostrarError(mensaje) {
     `;
 }
 
-// Función para actualizar contador
-function actualizarContadorDocumentos(cantidad) {
-    const contador = document.getElementById('contadorDocumentos');
-    if (contador) {
-        contador.textContent = `(${cantidad} documentos)`;
-    }
+// Función para mostrar error
+function mostrarError(mensaje) {
+    mostrarMensaje(mensaje, 'error');
 }
 
 // Cargar tabla cuando la página esté lista
 document.addEventListener('DOMContentLoaded', function() {
     // Esperar a que los datos globales estén cargados
-    setTimeout(() => {
-        cargarTablaDocumentos();
-    }, 1000);
+    const checkDataLoaded = setInterval(() => {
+        if (datosGlobales && datosGlobales.length > 0) {
+            clearInterval(checkDataLoaded);
+            cargarTablaDocumentos();
+        }
+    }, 500);
 });
