@@ -15,173 +15,44 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #34495e;
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --info: #3498db;
-            --radius: 8px;
-        }
-
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .card {
-            border: none;
-            border-radius: var(--radius);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-        }
-
-        .card-header {
-            background-color: white;
-            border-bottom: 2px solid #e9ecef;
-            font-weight: 600;
-        }
-
-        .table th {
-            border-top: none;
-            font-weight: 600;
-            color: var(--primary);
-            background-color: #f8f9fa;
-        }
-
-        .btn {
-            border-radius: var(--radius);
-            font-weight: 500;
-        }
-
-        .btn-icon {
-            margin-right: 0.5rem;
-        }
-
-        /* Estados de documentos */
-        .estado-pendiente {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        .estado-directo {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        .estado-elaboracion {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        .estado-pausado {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        /* Botones de acción */
-        .btn-action {
-            padding: 0.25rem 0.5rem;
-            margin: 0.1rem;
-            font-size: 0.875rem;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .btn-group {
-                width: 100%;
-            }
-            
-            .btn-group .btn {
-                flex: 1;
-            }
-            
-            .table-responsive {
-                font-size: 0.875rem;
-            }
-        }
-
-        /* Loader personalizado */
-        #loader {
-            padding: 2rem;
-        }
-
-        .spinner-border {
-            width: 3rem;
-            height: 3rem;
-        }
-
-        .header-system {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 var(--radius) var(--radius);
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="container-fluid">
-        <!-- Header Mejorado -->
-        <header class="header-system">
-            <div class="container">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h1 class="h2 mb-2">
-                            <i class="fas fa-file-invoice me-2"></i>
-                            Sistema de Gestión de Documentos
-                        </h1>
-                        <p class="mb-0 opacity-75">Gestión e impresión de documentos REC</p>
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <button type="button" class="btn btn-outline-light" onclick="cargarTablaDocumentos()">
-                            <i class="fas fa-sync-alt me-1"></i> Actualizar Tabla
-                        </button>
-                    </div>
-                </div>
+        <!-- Header -->
+        <header class="row bg-primary text-white p-3 mb-4">
+            <div class="col-12">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-file-invoice me-2"></i>
+                    Sistema de Gestión de Documentos
+                </h1>
             </div>
         </header>
 
-        <!-- Contenido Principal -->
-        <div class="container">
-            <!-- Búsqueda Rápida -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-search me-2"></i>
-                                Búsqueda Rápida
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3 align-items-end">
-                                <div class="col-md-8">
-                                    <label for="recInput" class="form-label">Número de Documento (REC)</label>
-                                    <input type="text" class="form-control" id="recInput" 
-                                           placeholder="Ej: 12345">
-                                </div>
-                                <div class="col-md-4">
-                                    <button type="button" class="btn btn-primary w-100" onclick="imprimirSoloClientes()">
-                                        <i class="fas fa-print me-1"></i> Imprimir Solo Clientes
+        <!-- Búsqueda Individual -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-search me-2"></i>
+                            Búsqueda Individual de Documentos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label for="recInput" class="form-label">Número de Documento (REC)</label>
+                                <input type="text" class="form-control" id="recInput" 
+                                       placeholder="Ej: 12345 o 12345,12346,12347">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-primary" onclick="buscarPorREC()">
+                                        <i class="fas fa-search me-1"></i> Buscar
+                                    </button>
+                                    <button type="button" class="btn btn-info" onclick="imprimirSoloClientes()">
+                                        <i class="fas fa-users me-1"></i> Solo Clientes
                                     </button>
                                 </div>
                             </div>
@@ -189,119 +60,63 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Tabla de Documentos Disponibles -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-list me-2"></i>
-                                Documentos Disponibles para Impresión
-                                <small class="text-muted ms-2" id="contadorDocumentos"></small>
-                            </h5>
-                            <div>
-                                <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="cargarTablaDocumentos()">
-                                    <i class="fas fa-sync-alt me-1"></i> Actualizar
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="documentosTable" class="table table-striped table-hover w-100">
-                                    <thead>
-                                        <tr>
-                                            <th>Documento (REC)</th>
-                                            <th>Estado</th>
-                                            <th>Colaborador</th>
-                                            <th>Fecha Guardado</th>
-                                            <th>Línea</th>
-                                            <th>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Los datos se cargarán dinámicamente -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Loader -->
-            <div id="loader" class="text-center" style="display: none;">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-                <p class="mt-2">Cargando datos...</p>
-            </div>
-
-            <!-- Resultados -->
-            <div id="resultado">
-                <!-- Aquí se mostrarán los resultados de búsqueda -->
-            </div>
         </div>
-    </div>
 
-    <!-- Modal para asignar colaborador -->
-    <div class="modal fade" id="modalAsignarColaborador" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-user-plus me-2"></i>
-                        Asignar Colaborador
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Documento REC</label>
-                        <input type="text" class="form-control" id="modalRec" readonly>
+        <!-- Tabla de Documentos Disponibles -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            Documentos Disponibles para Impresión
+                        </h5>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="cargarTablaDocumentos()">
+                                <i class="fas fa-sync-alt me-1"></i> Actualizar
+                            </button>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Mostrando: PENDIENTE, DIRECTO, ELABORACIÓN, PAUSADO
+                            </small>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Seleccionar Colaborador</label>
-                        <select class="form-select" id="selectColaborador">
-                            <option value="">Cargando colaboradores...</option>
-                        </select>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="documentosTable" class="table table-striped table-hover w-100">
+                                <thead>
+                                    <tr>
+                                        <th>Documento (REC)</th>
+                                        <th>Estado</th>
+                                        <th>Responsable</th>
+                                        <th>Fecha</th>
+                                        <th>Línea</th>
+                                        <th>Lote</th>
+                                        <th>RefProv</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Los datos se cargarán dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div id="modalMessage"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Cancelar
-                    </button>
-                    <button type="button" class="btn btn-primary" onclick="confirmarAsignacion()">
-                        <i class="fas fa-save me-1"></i> Asignar
-                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal para información del documento -->
-    <div class="modal fade" id="modalInfoDocumento" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Información Completa del Documento
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="infoDocumentoContent">
-                        <!-- La información se cargará dinámicamente -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Cerrar
-                    </button>
-                </div>
+        <!-- Loader -->
+        <div id="loader" class="text-center" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
             </div>
+            <p class="mt-2">Cargando datos...</p>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultado" class="row">
+            <!-- Aquí se mostrarán los resultados de búsqueda -->
         </div>
     </div>
 
@@ -323,153 +138,24 @@
     <script src="js/documents-table.js"></script>
 
     <script>
-        // Función global para cargar colaboradores
-        async function cargarColaboradores() {
-            try {
-                const response = await fetch(`${GAS_API_URL}?action=getResponsables`);
-                const data = await response.json();
-                
-                if (data.responsables) {
-                    const select = document.getElementById('selectColaborador');
-                    select.innerHTML = '<option value="">Seleccione un colaborador</option>';
-                    
-                    data.responsables.forEach(colaborador => {
-                        const option = document.createElement('option');
-                        option.value = colaborador;
-                        option.textContent = colaborador;
-                        select.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Error cargando colaboradores:', error);
-                document.getElementById('selectColaborador').innerHTML = '<option value="">Error cargando colaboradores</option>';
-            }
-        }
+    // Función simplificada para buscar documento
+    function buscarDocumentoEnTabla(rec) {
+        document.getElementById('recInput').value = rec;
+        buscarPorREC();
+    }
 
-        // Función para mostrar modal de asignación
-        async function asignarColaboradorModal(rec) {
-            document.getElementById('modalRec').value = rec;
-            document.getElementById('modalMessage').innerHTML = '';
-            
-            // Cargar colaboradores
-            await cargarColaboradores();
-            
-            // Mostrar modal
-            const modal = new bootstrap.Modal(document.getElementById('modalAsignarColaborador'));
-            modal.show();
-        }
+    // Función para imprimir solo clientes desde la tabla
+    function imprimirSoloClientesDesdeTabla(rec) {
+        document.getElementById('recInput').value = rec;
+        imprimirSoloClientes();
+    }
 
-        // Función para confirmar asignación
-        async function confirmarAsignacion() {
-            const rec = document.getElementById('modalRec').value;
-            const colaborador = document.getElementById('selectColaborador').value;
-            
-            if (!colaborador) {
-                mostrarModalMessage('Por favor seleccione un colaborador', 'danger');
-                return;
-            }
-            
-            try {
-                const response = await fetch(GAS_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=asignarColaborador&rec=${encodeURIComponent(rec)}&colaborador=${encodeURIComponent(colaborador)}`
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    mostrarModalMessage(data.message, 'success');
-                    
-                    // Cerrar modal después de 2 segundos y recargar tabla
-                    setTimeout(() => {
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAsignarColaborador'));
-                        modal.hide();
-                        cargarTablaDocumentos();
-                    }, 2000);
-                } else {
-                    mostrarModalMessage(data.error, 'danger');
-                }
-            } catch (error) {
-                console.error('Error asignando colaborador:', error);
-                mostrarModalMessage('Error al asignar colaborador: ' + error.message, 'danger');
-            }
-        }
-
-        // Función para mostrar información completa del documento
-        async function mostrarInfoDocumento(rec) {
-            try {
-                const response = await fetch(`${GAS_API_URL}?action=getDocumentoInfo&rec=${encodeURIComponent(rec)}`);
-                const data = await response.json();
-                
-                if (data.error) {
-                    document.getElementById('infoDocumentoContent').innerHTML = `
-                        <div class="alert alert-danger">${data.error}</div>
-                    `;
-                } else {
-                    document.getElementById('infoDocumentoContent').innerHTML = `
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>REC:</strong> ${data.rec || 'N/A'}<br>
-                                <strong>Estado:</strong> <span class="estado-${(data.estado || '').toLowerCase()}">${data.estado || 'N/A'}</span><br>
-                                <strong>Colaborador:</strong> ${data.colaborador ? `<span class="text-success"><i class="fas fa-check-circle me-1"></i>${data.colaborador}</span>` : '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>No asignado</span>'}<br>
-                                <strong>Fecha Guardado:</strong> ${data.guardado || 'N/A'}<br>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Duración:</strong> ${data.duracion || 'N/A'}<br>
-                                <strong>Pausas:</strong> ${data.pausas || 'N/A'}<br>
-                                <strong>Fin:</strong> ${data.fin || 'N/A'}<br>
-                                <strong>Última Actualización:</strong> ${data.datetime || 'N/A'}<br>
-                            </div>
-                        </div>
-                        ${data.distribucion ? `
-                        <div class="mt-3">
-                            <strong>Distribución:</strong>
-                            <pre class="bg-light p-2 mt-1" style="font-size: 0.8rem; max-height: 200px; overflow-y: auto;">${JSON.stringify(JSON.parse(data.distribucion), null, 2)}</pre>
-                        </div>
-                        ` : ''}
-                    `;
-                }
-                
-                const modal = new bootstrap.Modal(document.getElementById('modalInfoDocumento'));
-                modal.show();
-            } catch (error) {
-                console.error('Error obteniendo información:', error);
-                document.getElementById('infoDocumentoContent').innerHTML = `
-                    <div class="alert alert-danger">Error al cargar información: ${error.message}</div>
-                `;
-                const modal = new bootstrap.Modal(document.getElementById('modalInfoDocumento'));
-                modal.show();
-            }
-        }
-
-        // Función auxiliar para mostrar mensajes en modal
-        function mostrarModalMessage(message, type) {
-            const messageDiv = document.getElementById('modalMessage');
-            messageDiv.innerHTML = `
-                <div class="alert alert-${type} alert-dismissible fade show">
-                    <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle me-2"></i>
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-        }
-
-        // Actualizar contador de documentos
-        function actualizarContadorDocumentos(cantidad) {
-            const contador = document.getElementById('contadorDocumentos');
-            contador.textContent = `(${cantidad} documentos)`;
-        }
-
-        // Cargar tabla cuando la página esté lista
-        document.addEventListener('DOMContentLoaded', function() {
-            // Esperar a que los datos globales estén cargados
-            setTimeout(() => {
-                cargarTablaDocumentos();
-            }, 1000);
-        });
+    // Función para mostrar opciones de documento
+    function mostrarOpcionesDocumento(rec) {
+        document.getElementById('recInput').value = rec;
+        // Enfocarse en la búsqueda individual para mostrar opciones
+        buscarPorREC();
+    }
     </script>
 </body>
 </html>
