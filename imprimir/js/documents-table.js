@@ -66,6 +66,35 @@ async function obtenerDocumentosDisponibles() {
     }
 }
 
+// FUNCIÓN ACTUALIZADA: Obtener colaboradores desde Sheets API
+async function obtenerColaboradoresActivos() {
+    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error('Error al obtener datos de RESPONSABLES');
+        
+        const data = await response.json();
+        const values = data.values || [];
+        
+        // Filtrar solo los activos (TRUE) y devolver nombres
+        return values
+            .filter(row => {
+                const estado = String(row[1] || '').trim().toUpperCase();
+                return estado === 'TRUE' || estado === 'VERDADERO' || estado === '1';
+            })
+            .map(row => String(row[0] || '').trim())
+            .filter(nombre => nombre !== '');
+            
+    } catch (error) {
+        console.error('Error obteniendo colaboradores:', error);
+        throw error;
+    }
+}
+
 // Función para inicializar DataTable
 function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
@@ -140,29 +169,33 @@ function inicializarDataTable(documentos) {
                 text: '<i class="fas fa-columns me-1"></i>Columnas',
                 className: 'btn btn-secondary'
             }
-        ]
+        ],
+        drawCallback: function(settings) {
+            // Actualizar contador de documentos
+            const api = this.api();
+            const total = api.rows().count();
+            actualizarContadorDocumentos(total);
+        }
     });
 }
 
-// ========== NUEVAS FUNCIONES PARA GAS ==========
+// ========== FUNCIONES ACTUALIZADAS PARA COLABORADORES ==========
 
-// Función para cargar colaboradores desde GAS
+// Función para cargar colaboradores desde Sheets API
 async function cargarColaboradores() {
     try {
-        const response = await fetch(`${GAS_API_URL}?action=getResponsables`);
-        const data = await response.json();
+        const colaboradores = await obtenerColaboradoresActivos();
         
-        if (data.responsables) {
-            const select = document.getElementById('selectColaborador');
-            select.innerHTML = '<option value="">Seleccione un colaborador</option>';
-            
-            data.responsables.forEach(colaborador => {
-                const option = document.createElement('option');
-                option.value = colaborador;
-                option.textContent = colaborador;
-                select.appendChild(option);
-            });
-        }
+        const select = document.getElementById('selectColaborador');
+        select.innerHTML = '<option value="">Seleccione un colaborador</option>';
+        
+        colaboradores.forEach(colaborador => {
+            const option = document.createElement('option');
+            option.value = colaborador;
+            option.textContent = colaborador;
+            select.appendChild(option);
+        });
+        
     } catch (error) {
         console.error('Error cargando colaboradores:', error);
         document.getElementById('selectColaborador').innerHTML = '<option value="">Error cargando colaboradores</option>';
@@ -182,7 +215,7 @@ async function asignarColaboradorModal(rec) {
     modal.show();
 }
 
-// Función para confirmar asignación
+// Función para confirmar asignación (usa GAS para actualizar)
 async function confirmarAsignacion() {
     const rec = document.getElementById('modalRec').value;
     const colaborador = document.getElementById('selectColaborador').value;
@@ -236,8 +269,8 @@ async function mostrarInfoDocumento(rec) {
                 <div class="row">
                     <div class="col-md-6">
                         <strong>REC:</strong> ${data.rec || 'N/A'}<br>
-                        <strong>Estado:</strong> ${data.estado || 'N/A'}<br>
-                        <strong>Colaborador:</strong> ${data.colaborador || 'No asignado'}<br>
+                        <strong>Estado:</strong> <span class="estado-${(data.estado || '').toLowerCase()}">${data.estado || 'N/A'}</span><br>
+                        <strong>Colaborador:</strong> ${data.colaborador ? `<span class="text-success"><i class="fas fa-check-circle me-1"></i>${data.colaborador}</span>` : '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>No asignado</span>'}<br>
                         <strong>Fecha Guardado:</strong> ${data.guardado || 'N/A'}<br>
                     </div>
                     <div class="col-md-6">
@@ -250,7 +283,7 @@ async function mostrarInfoDocumento(rec) {
                 ${data.distribucion ? `
                 <div class="mt-3">
                     <strong>Distribución:</strong>
-                    <pre class="bg-light p-2 mt-1">${JSON.stringify(JSON.parse(data.distribucion), null, 2)}</pre>
+                    <pre class="bg-light p-2 mt-1" style="font-size: 0.8rem; max-height: 200px; overflow-y: auto;">${JSON.stringify(JSON.parse(data.distribucion), null, 2)}</pre>
                 </div>
                 ` : ''}
             `;
@@ -279,10 +312,33 @@ function mostrarModalMessage(message, type) {
     const messageDiv = document.getElementById('modalMessage');
     messageDiv.innerHTML = `
         <div class="alert alert-${type} alert-dismissible fade show">
+            <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle me-2"></i>
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     `;
+}
+
+// Función para mostrar error
+function mostrarError(mensaje) {
+    const resultado = document.getElementById('resultado');
+    resultado.innerHTML = `
+        <div class="col-12">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    `;
+}
+
+// Función para actualizar contador
+function actualizarContadorDocumentos(cantidad) {
+    const contador = document.getElementById('contadorDocumentos');
+    if (contador) {
+        contador.textContent = `(${cantidad} documentos)`;
+    }
 }
 
 // Cargar tabla cuando la página esté lista
