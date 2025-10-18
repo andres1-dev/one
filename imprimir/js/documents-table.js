@@ -24,27 +24,21 @@ async function cargarResponsables() {
         
         // Filtrar responsables activos (columna B = true)
         listaResponsables = values
-            .filter(row => row[1] === 'true')
+            .filter(row => row[1] && row[1].toString().toLowerCase() === 'true')
             .map(row => row[0].trim())
             .filter(nombre => nombre !== '');
             
         console.log('Responsables cargados:', listaResponsables);
+        
+        if (listaResponsables.length === 0) {
+            throw new Error('No se encontraron responsables activos');
+        }
+        
         return listaResponsables;
         
     } catch (error) {
         console.error('Error cargando responsables:', error);
-        // Si hay error, usar lista por defecto
-        listaResponsables = [
-            'VILLAMIZAR GOMEZ LUIS',
-            'FABIAN MARIN FLOREZ',
-            'CESAR AUGUSTO LOPEZ GIRALDO',
-            'KELLY GIOVANA ZULUAGA HOYOS',
-            'MARYI ANDREA GONZALEZ SILVA',
-            'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
-            'SANCHEZ LOPEZ YULIETH',
-            'JUAN ESTEBAN ZULUAGA HOYOS'
-        ];
-        return listaResponsables;
+        throw error; // Propagar el error en lugar de usar lista por defecto
     }
 }
 
@@ -62,8 +56,8 @@ function puedeTenerResponsable(documento) {
 // Función para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
-        // Cargar responsables primero
-        await cargarResponsables();
+        // Cargar responsables primero - SI FALLA, NO CONTINUAR
+        listaResponsables = await cargarResponsables();
         
         // Mostrar loader
         if (documentosTable) {
@@ -78,7 +72,7 @@ async function cargarTablaDocumentos() {
         
     } catch (error) {
         console.error('Error al cargar tabla de documentos:', error);
-        mostrarError('Error al cargar los documentos: ' + error.message);
+        mostrarError('Error al cargar los responsables: ' + error.message);
     }
 }
 
