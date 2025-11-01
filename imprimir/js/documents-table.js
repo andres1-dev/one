@@ -5,6 +5,14 @@ let listaResponsables = [];
 // Estados permitidos para mostrar
 const ESTADOS_PERMITIDOS = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 
+// Estados y sus acciones permitidas
+const ACCIONES_ESTADO = {
+    'PENDIENTE': ['PAUSAR', 'FINALIZAR', 'RESTABLECER'],
+    'DIRECTO': ['PAUSAR', 'FINALIZAR', 'RESTABLECER'],
+    'ELABORACION': ['REANUDAR', 'FINALIZAR', 'RESTABLECER'],
+    'PAUSADO': ['REANUDAR', 'FINALIZAR', 'RESTABLECER']
+};
+
 // Función para calcular cantidad total de un documento
 function calcularCantidadTotal(documento) {
     if (!documento.datosCompletos) return 0;
@@ -122,6 +130,40 @@ async function obtenerDocumentosCombinados() {
     }
 }
 
+// Función para determinar qué acciones mostrar según el estado
+function obtenerAccionesDisponibles(estado) {
+    return ACCIONES_ESTADO[estado] || [];
+}
+
+// Función para cambiar estado del documento
+function cambiarEstadoDocumento(rec, nuevoEstado) {
+    console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
+    // Aquí iría la lógica para actualizar en Google Sheets
+    mostrarMensaje(`Estado de REC${rec} cambiado a ${nuevoEstado}`, 'success');
+    
+    // Recargar tabla después de un breve delay
+    setTimeout(() => {
+        cargarTablaDocumentos();
+    }, 1000);
+}
+
+// Función para restablecer documento
+function restablecerDocumento(rec) {
+    const password = prompt('Ingrese la contraseña para restablecer:');
+    if (password === 'cmendoza') {
+        console.log(`Restableciendo documento REC${rec}`);
+        // Aquí iría la lógica para restablecer en Google Sheets
+        mostrarMensaje(`Documento REC${rec} restablecido correctamente`, 'success');
+        
+        // Recargar tabla después de un breve delay
+        setTimeout(() => {
+            cargarTablaDocumentos();
+        }, 1000);
+    } else if (password !== null) {
+        alert('Contraseña incorrecta');
+    }
+}
+
 // Función para inicializar DataTable
 function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
@@ -191,33 +233,67 @@ function inicializarDataTable(documentos) {
                 render: function(data) {
                     const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
                     const tieneClientes = data.tieneClientes;
+                    const accionesDisponibles = obtenerAccionesDisponibles(data.estado);
                     
-                    const btnClass = (tieneColaborador && tieneClientes) ? 'btn-primary' : 'btn-secondary';
-                    const btnDisabled = !(tieneColaborador && tieneClientes) ? 'disabled' : '';
+                    // Botón de imprimir clientes
+                    const btnImprimirClass = (tieneColaborador && tieneClientes) ? 'btn-primary' : 'btn-secondary';
+                    const btnImprimirDisabled = !(tieneColaborador && tieneClientes) ? 'disabled' : '';
                     
-                    let tooltip = 'Imprimir solo clientes';
-                    if (!tieneColaborador) tooltip = 'Sin colaborador asignado';
-                    else if (!tieneClientes) tooltip = 'Sin clientes asignados';
+                    let tooltipImprimir = 'Imprimir solo clientes';
+                    if (!tieneColaborador) tooltipImprimir = 'Sin colaborador asignado';
+                    else if (!tieneClientes) tooltipImprimir = 'Sin clientes asignados';
                     
-                    return `
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn ${btnClass} btn-sm" ${btnDisabled}
+                    let botonesAcciones = `
+                        <div class="btn-group-vertical btn-group-sm" style="min-width: 120px;">
+                            <!-- Botón Imprimir Clientes -->
+                            <button class="btn ${btnImprimirClass} btn-sm mb-1" ${btnImprimirDisabled}
                                     onclick="imprimirSoloClientesDesdeTabla('${data.rec}')"
-                                    title="${tooltip}">
-                                <i class="fas fa-print"></i>
+                                    title="${tooltipImprimir}">
+                                <i class="fas fa-print me-1"></i>Clientes
                             </button>
-                            <button class="btn btn-info btn-sm" 
-                                    onclick="buscarDocumentoEnTabla('${data.rec}')"
-                                    title="Ver detalles">
-                                <i class="fas fa-search"></i>
-                            </button>
+                            <div class="btn-group btn-group-sm">
+                    `;
+                    
+                    // Botones de estado según disponibilidad
+                    if (accionesDisponibles.includes('PAUSAR')) {
+                        botonesAcciones += `
+                            <button class="btn btn-warning btn-sm" 
+                                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
+                                    title="Pausar documento">
+                                <i class="fas fa-pause"></i>
+                            </button>`;
+                    }
+                    
+                    if (accionesDisponibles.includes('REANUDAR')) {
+                        botonesAcciones += `
                             <button class="btn btn-success btn-sm" 
-                                    onclick="mostrarOpcionesDesdeTabla('${data.rec}')"
-                                    title="Opciones de impresión">
-                                <i class="fas fa-cog"></i>
+                                    onclick="cambiarEstadoDocumento('${data.rec}', 'ELABORACION')"
+                                    title="Reanudar documento">
+                                <i class="fas fa-play"></i>
+                            </button>`;
+                    }
+                    
+                    if (accionesDisponibles.includes('FINALIZAR')) {
+                        botonesAcciones += `
+                            <button class="btn btn-info btn-sm" 
+                                    onclick="cambiarEstadoDocumento('${data.rec}', 'FINALIZADO')"
+                                    title="Finalizar documento">
+                                <i class="fas fa-check"></i>
+                            </button>`;
+                    }
+                    
+                    // Botón de restablecer (siempre disponible)
+                    botonesAcciones += `
+                            <button class="btn btn-danger btn-sm" 
+                                    onclick="restablecerDocumento('${data.rec}')"
+                                    title="Restablecer documento">
+                                <i class="fas fa-undo"></i>
                             </button>
+                            </div>
                         </div>
                     `;
+                    
+                    return botonesAcciones;
                 },
                 orderable: false
             }
