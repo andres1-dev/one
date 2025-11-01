@@ -111,14 +111,15 @@ async function cargarResponsables() {
         console.error('Error cargando responsables:', error);
         // Lista por defecto en caso de error
         listaResponsables = [
-            'VILLAMIZAR GOMEZ LUIS',
-            'FABIAN MARIN FLOREZ',
-            'CESAR AUGUSTO LOPEZ GIRALDO',
-            'KELLY GIOVANA ZULUAGA HOYOS',
-            'MARYI ANDREA GONZALEZ SILVA',
-            'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
-            'SANCHEZ LOPEZ YULIETH',
-            'JUAN ESTEBAN ZULUAGA HOYOS'
+            'NICOLE VALERIA MONCALEANO DIAZ',
+            'KELLY TATIANA FERNANDEZ ASTUDILLO',
+            'PILAR CRISTINA JARAMILLO SANCHEZ',
+            'LESLY CAMILA OCHOA PEDRAZA',
+            'ANGIE LIZETH POLO CAPERA',
+            'REYES PADILLA DONELLY',
+            'NAILEN GABRIELA ZAPATA VIERA',
+            'PAULA VANESSA SANCHEZ ERAZO',
+            'PAOLA ANDREA ESCOBEDO JUSPIAN'
         ];
         return listaResponsables;
     }
