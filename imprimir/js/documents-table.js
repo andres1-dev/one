@@ -1,10 +1,51 @@
 // Configuración de DataTable para documentos disponibles
 let documentosTable = null;
+let listaResponsables = [];
 
 // Estados permitidos para mostrar
 let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
+
+// Función para cargar responsables desde Google Sheets
+async function cargarResponsables() {
+    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error('Error al obtener responsables');
+        
+        const data = await response.json();
+        const values = data.values || [];
+        
+        // Filtrar responsables activos (columna B = true)
+        listaResponsables = values
+            .filter(row => row[1] === 'true' || row[1] === 'TRUE')
+            .map(row => row[0].trim())
+            .filter(nombre => nombre !== '');
+            
+        console.log('Responsables cargados:', listaResponsables);
+        return listaResponsables;
+        
+    } catch (error) {
+        console.error('Error cargando responsables:', error);
+        // Lista por defecto en caso de error
+        listaResponsables = [
+            'VILLAMIZAR GOMEZ LUIS',
+            'FABIAN MARIN FLOREZ',
+            'CESAR AUGUSTO LOPEZ GIRALDO',
+            'KELLY GIOVANA ZULUAGA HOYOS',
+            'MARYI ANDREA GONZALEZ SILVA',
+            'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
+            'SANCHEZ LOPEZ YULIETH',
+            'JUAN ESTEBAN ZULUAGA HOYOS'
+        ];
+        return listaResponsables;
+    }
+}
 
 // Función para calcular cantidad total de un documento
 function calcularCantidadTotal(documento) {
@@ -60,6 +101,9 @@ function toggleFinalizados() {
 // Función para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
+        // Cargar responsables primero
+        await cargarResponsables();
+        
         if (documentosTable) {
             documentosTable.destroy();
         }
@@ -127,6 +171,34 @@ async function obtenerDocumentosCombinados() {
         console.error('Error obteniendo documentos:', error);
         throw error;
     }
+}
+
+// Función para generar el select de responsables
+function generarSelectResponsables(rec, responsableActual = '') {
+    const opciones = listaResponsables.map(resp => 
+        `<option value="${resp}" ${resp === responsableActual ? 'selected' : ''}>${resp}</option>`
+    ).join('');
+    
+    return `
+        <select class="form-select form-select-sm select-responsable" 
+                data-rec="${rec}" 
+                style="min-width: 180px; font-size: 0.8rem;">
+            <option value="">Sin responsable</option>
+            ${opciones}
+        </select>
+    `;
+}
+
+// Función para cambiar responsable
+function cambiarResponsable(rec, responsable) {
+    console.log(`Cambiando responsable de REC${rec} a: ${responsable}`);
+    // Aquí iría la lógica para guardar en Google Sheets
+    mostrarMensaje(`Responsable de REC${rec} actualizado a ${responsable}`, 'success');
+    
+    // Recargar tabla después de un breve delay
+    setTimeout(() => {
+        cargarTablaDocumentos();
+    }, 1000);
 }
 
 // Función para cambiar estado del documento
@@ -246,11 +318,8 @@ function inicializarDataTable(documentos) {
             },
             { 
                 data: 'colaborador',
-                render: function(data) {
-                    if (!data || data.trim() === '') {
-                        return '<span class="text-muted small">-</span>';
-                    }
-                    return `<span class="small">${data}</span>`;
+                render: function(data, type, row) {
+                    return generarSelectResponsables(row.rec, data);
                 }
             },
             { 
@@ -300,8 +369,25 @@ function inicializarDataTable(documentos) {
             { responsivePriority: 1, targets: 0 },
             { responsivePriority: 2, targets: 8 },
             { responsivePriority: 3, targets: 4 },
-            { responsivePriority: 4, targets: 1 }
-        ]
+            { responsivePriority: 4, targets: 1 },
+            { responsivePriority: 5, targets: 2 }
+        ],
+        initComplete: function() {
+            // Agregar evento change a los selects de responsables
+            $('.select-responsable').on('change', function() {
+                const rec = $(this).data('rec');
+                const responsable = $(this).val();
+                cambiarResponsable(rec, responsable);
+            });
+        },
+        drawCallback: function() {
+            // Re-agregar evento después de cada redibujado de la tabla
+            $('.select-responsable').on('change', function() {
+                const rec = $(this).data('rec');
+                const responsable = $(this).val();
+                cambiarResponsable(rec, responsable);
+            });
+        }
     });
 }
 
