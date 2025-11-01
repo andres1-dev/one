@@ -217,55 +217,66 @@
     <!-- Script modificado para la tabla -->
     <script src="js/documents-table.js"></script>
 
-    <script>
-    // Funciones globales simplificadas
-    function buscarDocumentoEnTabla(rec) {
-        document.getElementById('recInput').value = rec;
-        buscarPorREC();
-    }
+   <script>
+// Funciones globales simplificadas
+function buscarDocumentoEnTabla(rec) {
+    document.getElementById('recInput').value = rec;
+    buscarPorREC();
+}
 
-    function imprimirSoloClientesDesdeTabla(rec) {
-        document.getElementById('recInput').value = rec;
-        imprimirSoloClientes();
-    }
+function imprimirSoloClientesDesdeTabla(rec) {
+    document.getElementById('recInput').value = rec;
+    imprimirSoloClientes();
+}
 
-    function mostrarOpcionesDesdeTabla(rec) {
-        document.getElementById('recInput').value = rec;
-        mostrarOpcionesImpresion();
-    }
+function mostrarOpcionesDesdeTabla(rec) {
+    document.getElementById('recInput').value = rec;
+    mostrarOpcionesImpresion();
+}
 
-    // Inicializar Flatpickr
-    document.addEventListener('DOMContentLoaded', function() {
-        flatpickr("#filtroFecha", {
-            mode: "range",
-            locale: "es",
-            dateFormat: "d/m/Y",
-            allowInput: true,
-            onClose: function(selectedDates, dateStr, instance) {
-                if (selectedDates.length === 2) {
-                    filtrarPorFecha(selectedDates[0], selectedDates[1]);
-                }
+// Variables globales para flatpickr
+let flatpickrInstance = null;
+
+// Inicializar Flatpickr
+document.addEventListener('DOMContentLoaded', function() {
+    flatpickrInstance = flatpickr("#filtroFecha", {
+        mode: "range",
+        locale: "es",
+        dateFormat: "d/m/Y",
+        allowInput: true,
+        onClose: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length === 2) {
+                aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
+            } else if (selectedDates.length === 0) {
+                // Si se limpia el input, quitar filtro
+                limpiarFiltros();
             }
-        });
-    });
-
-    function filtrarPorFecha(fechaInicio, fechaFin) {
-        if (window.documentosTable) {
-            // Convertir fechas a formato comparable
-            const inicioStr = fechaInicio.toLocaleDateString('es-ES');
-            const finStr = fechaFin.toLocaleDateString('es-ES');
-            
-            window.documentosTable.draw();
         }
-    }
+    });
+});
 
-    function limpiarFiltros() {
+function aplicarFiltroFecha(fechaInicio, fechaFin) {
+    if (window.aplicarFiltroFecha) {
+        window.aplicarFiltroFecha(fechaInicio, fechaFin);
+    }
+}
+
+function limpiarFiltros() {
+    if (window.limpiarFiltros) {
+        window.limpiarFiltros();
+    } else {
+        // Fallback si la función no está disponible aún
         document.getElementById('filtroFecha').value = '';
         document.getElementById('recInput').value = '';
         if (window.documentosTable) {
             window.documentosTable.search('').draw();
         }
     }
-    </script>
+}
+
+// Hacer las funciones disponibles globalmente
+window.aplicarFiltroFecha = aplicarFiltroFecha;
+window.limpiarFiltros = limpiarFiltros;
+</script>
 </body>
 </html>
