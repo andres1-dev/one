@@ -2,11 +2,89 @@
 let documentosTable = null;
 let listaResponsables = [];
 let timers = {}; // Almacenar los intervalos de tiempo
+let documentosGlobales = []; // Almacenar todos los documentos para los consolidados
 
 // Estados permitidos para mostrar
 let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
+
+// Función para formatear fecha a solo fecha (sin hora)
+function formatearFechaSolo(fechaHoraStr) {
+    if (!fechaHoraStr) return '-';
+    
+    try {
+        // Si tiene formato con hora "1/11/2025 10:32:30"
+        if (fechaHoraStr.includes(' ')) {
+            return fechaHoraStr.split(' ')[0]; // Retorna solo "1/11/2025"
+        }
+        
+        // Si ya es solo fecha
+        return fechaHoraStr;
+    } catch (e) {
+        console.error('Error formateando fecha:', e);
+        return fechaHoraStr;
+    }
+}
+
+// Función para convertir fecha a objeto Date para comparación
+function parsearFecha(fechaStr) {
+    if (!fechaStr) return null;
+    
+    try {
+        // Formato "1/11/2025"
+        const [day, month, year] = fechaStr.split('/');
+        return new Date(year, month - 1, day);
+    } catch (e) {
+        console.error('Error parseando fecha:', e);
+        return null;
+    }
+}
+
+// Función para calcular consolidados
+function calcularConsolidados(documentos) {
+    const consolidados = {
+        pendientes: { count: 0, unidades: 0 },
+        proceso: { count: 0, unidades: 0 },
+        directos: { count: 0, unidades: 0 },
+        total: { count: 0, unidades: 0 }
+    };
+
+    documentos.forEach(doc => {
+        if (ESTADOS_VISIBLES.includes(doc.estado)) {
+            consolidados.total.count++;
+            consolidados.total.unidades += doc.cantidad || 0;
+
+            if (doc.estado === 'PENDIENTE') {
+                consolidados.pendientes.count++;
+                consolidados.pendientes.unidades += doc.cantidad || 0;
+            } else if (doc.estado === 'DIRECTO') {
+                consolidados.directos.count++;
+                consolidados.directos.unidades += doc.cantidad || 0;
+            } else if (doc.estado === 'ELABORACION' || doc.estado === 'PAUSADO') {
+                consolidados.proceso.count++;
+                consolidados.proceso.unidades += doc.cantidad || 0;
+            }
+        }
+    });
+
+    return consolidados;
+}
+
+// Función para actualizar las tarjetas de resumen
+function actualizarTarjetasResumen(consolidados) {
+    document.getElementById('contadorPendientes').textContent = consolidados.pendientes.count;
+    document.getElementById('unidadesPendientes').textContent = `${consolidados.pendientes.unidades} unidades`;
+    
+    document.getElementById('contadorProceso').textContent = consolidados.proceso.count;
+    document.getElementById('unidadesProceso').textContent = `${consolidados.proceso.unidades} unidades`;
+    
+    document.getElementById('contadorDirectos').textContent = consolidados.directos.count;
+    document.getElementById('unidadesDirectos').textContent = `${consolidados.directos.unidades} unidades`;
+    
+    document.getElementById('contadorTotal').textContent = consolidados.total.count;
+    document.getElementById('unidadesTotal').textContent = `${consolidados.total.unidades} unidades`;
+}
 
 // Función para convertir hh:mm:ss a milisegundos
 function tiempoAMilisegundos(tiempo) {
@@ -69,24 +147,6 @@ function calcularDuracionDesdeSheets(datos) {
 
         return milisegundosATiempo(msTotal);
     }
-}
-
-// Función para formatear fecha a un formato válido
-function formatearFecha(fechaStr) {
-    if (!fechaStr) return null;
-    
-    // Si ya es una fecha válida
-    if (fechaStr.includes('-')) {
-        return fechaStr;
-    }
-    
-    // Si está en formato DD/MM/YYYY
-    if (fechaStr.includes('/')) {
-        const [day, month, year] = fechaStr.split('/');
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    }
-    
-    return null;
 }
 
 // Función para iniciar/actualizar timers
@@ -237,6 +297,12 @@ async function cargarTablaDocumentos() {
         }
 
         const documentosDisponibles = await obtenerDocumentosCombinados();
+        documentosGlobales = documentosDisponibles; // Guardar para filtros
+        
+        // Calcular y mostrar consolidados
+        const consolidados = calcularConsolidados(documentosDisponibles);
+        actualizarTarjetasResumen(consolidados);
+        
         inicializarDataTable(documentosDisponibles);
         
     } catch (error) {
@@ -273,7 +339,8 @@ async function obtenerDocumentosCombinados() {
                 const documento = String(row[0] || '').trim();
                 const estado = String(row[3] || '').trim().toUpperCase();
                 const colaborador = String(row[4] || '').trim();
-                const fecha = formatearFecha(row[1] || '');
+                const fechaHora = row[1] || ''; // Fecha completa con hora
+                const fechaSolo = formatearFechaSolo(fechaHora); // Solo fecha para mostrar
                 
                 // Datos de duración desde columnas F-K
                 const datetime_inicio = row[5] || '';    // Col F - DATETIME
@@ -290,7 +357,9 @@ async function obtenerDocumentosCombinados() {
                     rec: documento,
                     estado: estado,
                     colaborador: colaborador,
-                    fecha: fecha,
+                    fecha: fechaSolo, // Solo fecha para mostrar
+                    fecha_completa: fechaHora, // Fecha completa para tooltip
+                    fecha_objeto: parsearFecha(fechaSolo), // Para filtros
                     cantidad: cantidadTotal,
                     lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
                     refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
@@ -521,8 +590,13 @@ function inicializarDataTable(documentos) {
             },
             { 
                 data: 'fecha',
-                render: function(data) {
-                    return data ? `<span class="small">${data}</span>` : '<span class="text-muted small">-</span>';
+                render: function(data, type, row) {
+                    const fechaCompleta = row.fecha_completa || data;
+                    return `
+                        <span class="small" title="${fechaCompleta}">
+                            ${data}
+                        </span>
+                    `;
                 }
             },
             { 
