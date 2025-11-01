@@ -1,11 +1,88 @@
 // Configuración de DataTable para documentos disponibles
 let documentosTable = null;
 let listaResponsables = [];
+let timers = {}; // Almacenar los intervalos de tiempo
 
 // Estados permitidos para mostrar
 let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
+
+// Función para calcular la duración desde la fecha del documento
+function calcularDuracion(fechaDocumento, estado) {
+    if (!fechaDocumento) return '--:--:--';
+    
+    const fechaInicio = new Date(fechaDocumento);
+    if (isNaN(fechaInicio.getTime())) return '--:--:--';
+    
+    const ahora = new Date();
+    let diferencia = ahora - fechaInicio;
+    
+    // Si está pausado o finalizado, no contar el tiempo
+    if (estado === 'PAUSADO' || estado === 'FINALIZADO') {
+        return 'Pausado';
+    }
+    
+    // Calcular horas, minutos y segundos
+    const horas = Math.floor(diferencia / (1000 * 60 * 60));
+    const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+    const segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
+    
+    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+}
+
+// Función para formatear fecha a un formato válido
+function formatearFecha(fechaStr) {
+    if (!fechaStr) return null;
+    
+    // Si ya es una fecha válida
+    if (fechaStr.includes('-')) {
+        return fechaStr;
+    }
+    
+    // Si está en formato DD/MM/YYYY
+    if (fechaStr.includes('/')) {
+        const [day, month, year] = fechaStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    
+    return null;
+}
+
+// Función para iniciar/actualizar timers
+function iniciarTimers(documentos) {
+    // Limpiar timers anteriores
+    Object.keys(timers).forEach(rec => {
+        clearInterval(timers[rec]);
+        delete timers[rec];
+    });
+    
+    // Iniciar timers para documentos activos
+    documentos.forEach(doc => {
+        if (doc.estado !== 'PAUSADO' && doc.estado !== 'FINALIZADO' && doc.fecha) {
+            timers[doc.rec] = setInterval(() => {
+                actualizarDuracionEnTabla(doc.rec);
+            }, 1000);
+        }
+    });
+}
+
+// Función para actualizar la duración en la tabla
+function actualizarDuracionEnTabla(rec) {
+    if (documentosTable) {
+        const fila = documentosTable.row((idx, data) => data.rec === rec);
+        if (fila.any()) {
+            const datos = fila.data();
+            const nuevaDuracion = calcularDuracion(datos.fecha, datos.estado);
+            
+            // Actualizar solo si la duración cambió
+            const celdaDuracion = $(fila.node()).find('.duracion-tiempo');
+            if (celdaDuracion.length && celdaDuracion.text() !== nuevaDuracion) {
+                celdaDuracion.text(nuevaDuracion);
+            }
+        }
+    }
+}
 
 // Función para cargar responsables desde Google Sheets
 async function cargarResponsables() {
@@ -154,6 +231,7 @@ async function obtenerDocumentosCombinados() {
                 const documento = String(row[0] || '').trim();
                 const estado = String(row[3] || '').trim().toUpperCase();
                 const colaborador = String(row[4] || '').trim();
+                const fecha = formatearFecha(row[1] || '');
                 
                 const datosCompletos = datosGlobalesMap[documento];
                 const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
@@ -162,7 +240,7 @@ async function obtenerDocumentosCombinados() {
                     rec: documento,
                     estado: estado,
                     colaborador: colaborador,
-                    fecha: row[1] || '',
+                    fecha: fecha,
                     cantidad: cantidadTotal,
                     lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
                     refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
@@ -243,6 +321,22 @@ function cambiarResponsable(rec, responsable) {
 // Función para cambiar estado del documento
 function cambiarEstadoDocumento(rec, nuevoEstado) {
     console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
+    
+    // Detener o iniciar timer según el nuevo estado
+    if (nuevoEstado === 'PAUSADO' || nuevoEstado === 'FINALIZADO') {
+        if (timers[rec]) {
+            clearInterval(timers[rec]);
+            delete timers[rec];
+        }
+    } else if (nuevoEstado === 'ELABORACION') {
+        // Reiniciar timer si vuelve a elaboración
+        if (!timers[rec]) {
+            timers[rec] = setInterval(() => {
+                actualizarDuracionEnTabla(rec);
+            }, 1000);
+        }
+    }
+    
     mostrarMensaje(`Estado de REC${rec} cambiado a ${nuevoEstado}`, 'success');
     
     setTimeout(() => {
@@ -255,6 +349,13 @@ function restablecerDocumento(rec) {
     const password = prompt('Ingrese la contraseña para restablecer:');
     if (password === 'cmendoza') {
         console.log(`Restableciendo documento REC${rec}`);
+        
+        // Detener timer si existe
+        if (timers[rec]) {
+            clearInterval(timers[rec]);
+            delete timers[rec];
+        }
+        
         mostrarMensaje(`Documento REC${rec} restablecido correctamente`, 'success');
         
         setTimeout(() => {
@@ -368,6 +469,16 @@ function inicializarDataTable(documentos) {
                 }
             },
             { 
+                data: null,
+                render: function(data) {
+                    const duracion = calcularDuracion(data.fecha, data.estado);
+                    const clase = data.estado === 'PAUSADO' ? 'text-warning' : 
+                                 data.estado === 'FINALIZADO' ? 'text-muted' : 'text-info';
+                    
+                    return `<span class="duracion-tiempo ${clase} small font-monospace">${duracion}</span>`;
+                }
+            },
+            { 
                 data: 'cantidad',
                 render: function(data) {
                     return `<strong class="text-success">${data}</strong>`;
@@ -405,11 +516,12 @@ function inicializarDataTable(documentos) {
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
         order: [[0, 'desc']],
         columnDefs: [
-            { responsivePriority: 1, targets: 0 },
-            { responsivePriority: 2, targets: 8 },
-            { responsivePriority: 3, targets: 4 },
-            { responsivePriority: 4, targets: 1 },
-            { responsivePriority: 5, targets: 2 }
+            { responsivePriority: 1, targets: 0 }, // Documento
+            { responsivePriority: 2, targets: 9 }, // Acciones
+            { responsivePriority: 3, targets: 5 }, // Cantidad
+            { responsivePriority: 4, targets: 4 }, // Duración
+            { responsivePriority: 5, targets: 1 }, // Estado
+            { responsivePriority: 6, targets: 2 }  // Responsable
         ],
         initComplete: function() {
             // Agregar evento change a los selects de responsables
@@ -418,6 +530,9 @@ function inicializarDataTable(documentos) {
                 const responsable = $(this).val();
                 cambiarResponsable(rec, responsable);
             });
+            
+            // Iniciar timers para documentos activos
+            iniciarTimers(documentos);
         },
         drawCallback: function() {
             // Re-agregar evento después de cada redibujado de la tabla
@@ -425,6 +540,13 @@ function inicializarDataTable(documentos) {
                 const rec = $(this).data('rec');
                 const responsable = $(this).val();
                 cambiarResponsable(rec, responsable);
+            });
+        },
+        destroyCallback: function() {
+            // Limpiar todos los timers al destruir la tabla
+            Object.keys(timers).forEach(rec => {
+                clearInterval(timers[rec]);
+                delete timers[rec];
             });
         }
     });
@@ -462,4 +584,11 @@ document.addEventListener('DOMContentLoaded', function() {
             cargarTablaDocumentos();
         }
     }, 500);
+});
+
+// Limpiar timers cuando se cierre la página
+window.addEventListener('beforeunload', function() {
+    Object.keys(timers).forEach(rec => {
+        clearInterval(timers[rec]);
+    });
 });
