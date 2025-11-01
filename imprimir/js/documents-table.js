@@ -693,7 +693,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
 // Función para restablecer documento (ACTUALIZADA CON ACTUALIZACIÓN INMEDIATA)
 async function restablecerDocumento(rec) {
     const password = prompt('Ingrese la contraseña para restablecer:');
-    if (password === 'cmendoza') {
+    if (password === 'one') {
         try {
             console.log(`Restableciendo documento REC${rec}`);
             
