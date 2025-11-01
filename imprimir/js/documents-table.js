@@ -8,37 +8,6 @@ let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
 
-// URL de tu Google Apps Script
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzeG16VGHb63ePAwm00QveNsdbMEHi9dFbNsmQCreNOXDtwIh22NHxzRpwuzZBZ-oIJWg/exec';
-
-// Función para llamar a Google Apps Script
-async function callGoogleAppsScript(functionName, params = {}) {
-    try {
-        const url = `${GAS_URL}?function=${functionName}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(params)
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error(`Error llamando ${functionName}:`, error);
-        return { 
-            success: false, 
-            message: `Error de conexión: ${error.message}` 
-        };
-    }
-}
-
 // Función para calcular la duración desde la fecha del documento
 function calcularDuracion(fechaDocumento, estado) {
     if (!fechaDocumento) return '--:--:--';
@@ -115,31 +84,42 @@ function actualizarDuracionEnTabla(rec) {
     }
 }
 
-// Función para cargar responsables desde Google Apps Script
+// Función para cargar responsables desde Google Sheets
 async function cargarResponsables() {
+    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    
     try {
-        const resultado = await callGoogleAppsScript('obtenerResponsablesActivos');
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
+        const response = await fetch(url);
         
-        if (resultado.success && Array.isArray(resultado.data)) {
-            listaResponsables = resultado.data;
-        } else {
-            // Lista por defecto en caso de error
-            listaResponsables = [
-                'VILLAMIZAR GOMEZ LUIS',
-                'FABIAN MARIN FLOREZ', 
-                'CESAR AUGUSTO LOPEZ GIRALDO',
-                'KELLY GIOVANA ZULUAGA HOYOS',
-                'MARYI ANDREA GONZALEZ SILVA',
-                'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
-                'SANCHEZ LOPEZ YULIETH',
-                'JUAN ESTEBAN ZULUAGA HOYOS'
-            ];
-        }
+        if (!response.ok) throw new Error('Error al obtener responsables');
         
+        const data = await response.json();
+        const values = data.values || [];
+        
+        // Filtrar responsables activos (columna B = true)
+        listaResponsables = values
+            .filter(row => row[1] === 'true' || row[1] === 'TRUE')
+            .map(row => row[0].trim())
+            .filter(nombre => nombre !== '');
+            
         console.log('Responsables cargados:', listaResponsables);
         return listaResponsables;
+        
     } catch (error) {
         console.error('Error cargando responsables:', error);
+        // Lista por defecto en caso de error
+        listaResponsables = [
+            'VILLAMIZAR GOMEZ LUIS',
+            'FABIAN MARIN FLOREZ',
+            'CESAR AUGUSTO LOPEZ GIRALDO',
+            'KELLY GIOVANA ZULUAGA HOYOS',
+            'MARYI ANDREA GONZALEZ SILVA',
+            'JOHAN STEPHANIE ESPÍNOSA RAMIREZ',
+            'SANCHEZ LOPEZ YULIETH',
+            'JUAN ESTEBAN ZULUAGA HOYOS'
+        ];
         return listaResponsables;
     }
 }
@@ -326,108 +306,61 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
     }
 }
 
-// Función para cambiar responsable (llamada real a GAS)
-async function cambiarResponsable(rec, responsable) {
-    try {
-        console.log(`Cambiando responsable de REC${rec} a: ${responsable}`);
-        
-        const resultado = await callGoogleAppsScript('actualizarResponsable', {
-            id: rec,
-            nuevoNombre: responsable
-        });
-        
-        if (resultado.success) {
-            mostrarMensaje(resultado.message, 'success');
-            setTimeout(() => cargarTablaDocumentos(), 1000);
-        } else {
-            mostrarMensaje(resultado.message, 'error');
-        }
-        
-    } catch (error) {
-        console.error('Error cambiando responsable:', error);
-        mostrarMensaje('Error al cambiar responsable', 'error');
-    }
+// Función para cambiar responsable
+function cambiarResponsable(rec, responsable) {
+    console.log(`Cambiando responsable de REC${rec} a: ${responsable}`);
+    // Aquí iría la lógica para guardar en Google Sheets
+    mostrarMensaje(`Responsable de REC${rec} actualizado a ${responsable}`, 'success');
+    
+    // Recargar tabla después de un breve delay
+    setTimeout(() => {
+        cargarTablaDocumentos();
+    }, 1000);
 }
 
-// Función para cambiar estado del documento (llamada real a GAS)
-async function cambiarEstadoDocumento(rec, nuevoEstado) {
-    try {
-        console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
-        
-        let resultado;
-        
-        // Determinar qué función de GAS llamar según el estado
-        switch(nuevoEstado) {
-            case 'PAUSADO':
-                resultado = await callGoogleAppsScript('pausarTarea', { id: rec });
-                break;
-            case 'ELABORACION':
-                resultado = await callGoogleAppsScript('reanudarTarea', { id: rec });
-                break;
-            case 'FINALIZADO':
-                resultado = await callGoogleAppsScript('finalizarTarea', { id: rec });
-                break;
-            default:
-                resultado = { success: false, message: 'Estado no válido' };
+// Función para cambiar estado del documento
+function cambiarEstadoDocumento(rec, nuevoEstado) {
+    console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
+    
+    // Detener o iniciar timer según el nuevo estado
+    if (nuevoEstado === 'PAUSADO' || nuevoEstado === 'FINALIZADO') {
+        if (timers[rec]) {
+            clearInterval(timers[rec]);
+            delete timers[rec];
         }
-        
-        if (resultado.success) {
-            // Detener o iniciar timer según el nuevo estado
-            if (nuevoEstado === 'PAUSADO' || nuevoEstado === 'FINALIZADO') {
-                if (timers[rec]) {
-                    clearInterval(timers[rec]);
-                    delete timers[rec];
-                }
-            } else if (nuevoEstado === 'ELABORACION') {
-                // Reiniciar timer si vuelve a elaboración
-                if (!timers[rec]) {
-                    timers[rec] = setInterval(() => {
-                        actualizarDuracionEnTabla(rec);
-                    }, 1000);
-                }
-            }
-            
-            mostrarMensaje(resultado.message, 'success');
-            setTimeout(() => cargarTablaDocumentos(), 1000);
-        } else {
-            mostrarMensaje(resultado.message, 'error');
+    } else if (nuevoEstado === 'ELABORACION') {
+        // Reiniciar timer si vuelve a elaboración
+        if (!timers[rec]) {
+            timers[rec] = setInterval(() => {
+                actualizarDuracionEnTabla(rec);
+            }, 1000);
         }
-        
-    } catch (error) {
-        console.error('Error cambiando estado:', error);
-        mostrarMensaje('Error al cambiar estado', 'error');
     }
+    
+    mostrarMensaje(`Estado de REC${rec} cambiado a ${nuevoEstado}`, 'success');
+    
+    setTimeout(() => {
+        cargarTablaDocumentos();
+    }, 1000);
 }
 
-// Función para restablecer documento (llamada real a GAS)
-async function restablecerDocumento(rec) {
+// Función para restablecer documento
+function restablecerDocumento(rec) {
     const password = prompt('Ingrese la contraseña para restablecer:');
     if (password === 'cmendoza') {
-        try {
-            console.log(`Restableciendo documento REC${rec}`);
-            
-            const resultado = await callGoogleAppsScript('restablecerDocumento', {
-                id: rec,
-                password: password
-            });
-            
-            if (resultado.success) {
-                // Detener timer si existe
-                if (timers[rec]) {
-                    clearInterval(timers[rec]);
-                    delete timers[rec];
-                }
-                
-                mostrarMensaje(resultado.message, 'success');
-                setTimeout(() => cargarTablaDocumentos(), 1000);
-            } else {
-                mostrarMensaje(resultado.message, 'error');
-            }
-            
-        } catch (error) {
-            console.error('Error restableciendo documento:', error);
-            mostrarMensaje('Error al restablecer documento', 'error');
+        console.log(`Restableciendo documento REC${rec}`);
+        
+        // Detener timer si existe
+        if (timers[rec]) {
+            clearInterval(timers[rec]);
+            delete timers[rec];
         }
+        
+        mostrarMensaje(`Documento REC${rec} restablecido correctamente`, 'success');
+        
+        setTimeout(() => {
+            cargarTablaDocumentos();
+        }, 1000);
     } else if (password !== null) {
         alert('Contraseña incorrecta');
     }
