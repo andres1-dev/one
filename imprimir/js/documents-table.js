@@ -1,17 +1,10 @@
 // Configuración de DataTable para documentos disponibles
 let documentosTable = null;
-let listaResponsables = [];
 
 // Estados permitidos para mostrar
-const ESTADOS_PERMITIDOS = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
-
-// Estados y sus acciones permitidas
-const ACCIONES_ESTADO = {
-    'PENDIENTE': ['PAUSAR', 'FINALIZAR', 'RESTABLECER'],
-    'DIRECTO': ['PAUSAR', 'FINALIZAR', 'RESTABLECER'],
-    'ELABORACION': ['REANUDAR', 'FINALIZAR', 'RESTABLECER'],
-    'PAUSADO': ['REANUDAR', 'FINALIZAR', 'RESTABLECER']
-};
+let mostrarFinalizados = false;
+const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
+const ESTADOS_FINALIZADOS = ['FINALIZADO'];
 
 // Función para calcular cantidad total de un documento
 function calcularCantidadTotal(documento) {
@@ -45,18 +38,33 @@ function calcularCantidadTotal(documento) {
     return cantidad;
 }
 
+// Función para obtener estados según configuración
+function obtenerEstadosParaMostrar() {
+    return mostrarFinalizados 
+        ? [...ESTADOS_VISIBLES, ...ESTADOS_FINALIZADOS]
+        : ESTADOS_VISIBLES;
+}
+
+// Función para alternar visibilidad de finalizados
+function toggleFinalizados() {
+    mostrarFinalizados = !mostrarFinalizados;
+    const btn = document.getElementById('btnToggleFinalizados');
+    if (btn) {
+        btn.innerHTML = mostrarFinalizados 
+            ? '<i class="fas fa-eye-slash me-1"></i>Ocultar Finalizados'
+            : '<i class="fas fa-eye me-1"></i>Mostrar Finalizados';
+    }
+    cargarTablaDocumentos();
+}
+
 // Función para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
-        // Mostrar loader
         if (documentosTable) {
             documentosTable.destroy();
         }
 
-        // Obtener datos combinados
         const documentosDisponibles = await obtenerDocumentosCombinados();
-        
-        // Inicializar DataTable
         inicializarDataTable(documentosDisponibles);
         
     } catch (error) {
@@ -65,13 +73,12 @@ async function cargarTablaDocumentos() {
     }
 }
 
-// Función para obtener datos combinados de DATA y datos globales
+// Función para obtener datos combinados
 async function obtenerDocumentosCombinados() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
     
     try {
-        // Obtener datos básicos de la hoja DATA
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:E?key=${API_KEY}`;
         const response = await fetch(url);
         
@@ -80,7 +87,6 @@ async function obtenerDocumentosCombinados() {
         const data = await response.json();
         const values = data.values || [];
         
-        // Crear mapa de datos globales para búsqueda rápida
         const datosGlobalesMap = {};
         datosGlobales.forEach(item => {
             if (item.REC) {
@@ -88,17 +94,14 @@ async function obtenerDocumentosCombinados() {
             }
         });
 
-        // Procesar y combinar datos
+        const estadosParaMostrar = obtenerEstadosParaMostrar();
         const documentosProcesados = values
-            .map((row, index) => {
+            .map((row) => {
                 const documento = String(row[0] || '').trim();
                 const estado = String(row[3] || '').trim().toUpperCase();
                 const colaborador = String(row[4] || '').trim();
                 
-                // Buscar información adicional en datosGlobales
                 const datosCompletos = datosGlobalesMap[documento];
-                
-                // Calcular cantidad total
                 const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
                 
                 return {
@@ -113,14 +116,10 @@ async function obtenerDocumentosCombinados() {
                     tieneClientes: datosCompletos ? 
                         (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                          Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
-                    datosCompletos: datosCompletos,
-                    rawData: row
+                    datosCompletos: datosCompletos
                 };
             })
-            .filter(doc => 
-                doc.rec && 
-                ESTADOS_PERMITIDOS.includes(doc.estado)
-            );
+            .filter(doc => doc.rec && estadosParaMostrar.includes(doc.estado));
 
         return documentosProcesados;
             
@@ -130,18 +129,11 @@ async function obtenerDocumentosCombinados() {
     }
 }
 
-// Función para determinar qué acciones mostrar según el estado
-function obtenerAccionesDisponibles(estado) {
-    return ACCIONES_ESTADO[estado] || [];
-}
-
 // Función para cambiar estado del documento
 function cambiarEstadoDocumento(rec, nuevoEstado) {
     console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
-    // Aquí iría la lógica para actualizar en Google Sheets
     mostrarMensaje(`Estado de REC${rec} cambiado a ${nuevoEstado}`, 'success');
     
-    // Recargar tabla después de un breve delay
     setTimeout(() => {
         cargarTablaDocumentos();
     }, 1000);
@@ -152,16 +144,78 @@ function restablecerDocumento(rec) {
     const password = prompt('Ingrese la contraseña para restablecer:');
     if (password === 'cmendoza') {
         console.log(`Restableciendo documento REC${rec}`);
-        // Aquí iría la lógica para restablecer en Google Sheets
         mostrarMensaje(`Documento REC${rec} restablecido correctamente`, 'success');
         
-        // Recargar tabla después de un breve delay
         setTimeout(() => {
             cargarTablaDocumentos();
         }, 1000);
     } else if (password !== null) {
         alert('Contraseña incorrecta');
     }
+}
+
+// Función para determinar acciones según estado
+function obtenerBotonesAccion(data) {
+    const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
+    const tieneClientes = data.tieneClientes;
+    const puedeImprimir = tieneColaborador && tieneClientes;
+    
+    let botonesEstado = '';
+    
+    // Lógica de estados simplificada
+    if (data.estado === 'PAUSADO') {
+        botonesEstado = `
+            <button class="btn btn-success btn-sm" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'ELABORACION')"
+                    title="Reanudar">
+                <i class="fas fa-play"></i>
+            </button>`;
+    } else if (data.estado === 'ELABORACION') {
+        botonesEstado = `
+            <button class="btn btn-warning btn-sm" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
+                    title="Pausar">
+                <i class="fas fa-pause"></i>
+            </button>`;
+    } else if (data.estado === 'PENDIENTE' || data.estado === 'DIRECTO') {
+        botonesEstado = `
+            <button class="btn btn-warning btn-sm" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
+                    title="Pausar">
+                <i class="fas fa-pause"></i>
+            </button>`;
+    }
+    
+    // Botón finalizar (siempre disponible excepto para FINALIZADO)
+    if (data.estado !== 'FINALIZADO') {
+        botonesEstado += `
+            <button class="btn btn-info btn-sm" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'FINALIZADO')"
+                    title="Finalizar">
+                <i class="fas fa-check"></i>
+            </button>`;
+    }
+    
+    return `
+        <div class="btn-group btn-group-sm">
+            <!-- Imprimir Clientes (solo ícono) -->
+            <button class="btn ${puedeImprimir ? 'btn-primary' : 'btn-secondary'} btn-sm" 
+                    ${puedeImprimir ? '' : 'disabled'}
+                    onclick="imprimirSoloClientesDesdeTabla('${data.rec}')"
+                    title="${puedeImprimir ? 'Imprimir clientes' : 'No se puede imprimir'}">
+                <i class="fas fa-print"></i>
+            </button>
+            
+            ${botonesEstado}
+            
+            <!-- Restablecer (siempre disponible) -->
+            <button class="btn btn-danger btn-sm" 
+                    onclick="restablecerDocumento('${data.rec}')"
+                    title="Restablecer">
+                <i class="fas fa-undo"></i>
+            </button>
+        </div>
+    `;
 }
 
 // Función para inicializar DataTable
@@ -184,7 +238,8 @@ function inicializarDataTable(documentos) {
                         'PENDIENTE': 'badge bg-warning',
                         'DIRECTO': 'badge bg-success',
                         'ELABORACION': 'badge bg-info',
-                        'PAUSADO': 'badge bg-secondary'
+                        'PAUSADO': 'badge bg-secondary',
+                        'FINALIZADO': 'badge bg-dark'
                     };
                     return `<span class="${clases[data] || 'badge bg-light text-dark'}">${data}</span>`;
                 }
@@ -193,7 +248,7 @@ function inicializarDataTable(documentos) {
                 data: 'colaborador',
                 render: function(data) {
                     if (!data || data.trim() === '') {
-                        return '<span class="text-muted small">Sin asignar</span>';
+                        return '<span class="text-muted small">-</span>';
                     }
                     return `<span class="small">${data}</span>`;
                 }
@@ -230,71 +285,7 @@ function inicializarDataTable(documentos) {
             },
             {
                 data: null,
-                render: function(data) {
-                    const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
-                    const tieneClientes = data.tieneClientes;
-                    const accionesDisponibles = obtenerAccionesDisponibles(data.estado);
-                    
-                    // Botón de imprimir clientes
-                    const btnImprimirClass = (tieneColaborador && tieneClientes) ? 'btn-primary' : 'btn-secondary';
-                    const btnImprimirDisabled = !(tieneColaborador && tieneClientes) ? 'disabled' : '';
-                    
-                    let tooltipImprimir = 'Imprimir solo clientes';
-                    if (!tieneColaborador) tooltipImprimir = 'Sin colaborador asignado';
-                    else if (!tieneClientes) tooltipImprimir = 'Sin clientes asignados';
-                    
-                    let botonesAcciones = `
-                        <div class="btn-group-vertical btn-group-sm" style="min-width: 120px;">
-                            <!-- Botón Imprimir Clientes -->
-                            <button class="btn ${btnImprimirClass} btn-sm mb-1" ${btnImprimirDisabled}
-                                    onclick="imprimirSoloClientesDesdeTabla('${data.rec}')"
-                                    title="${tooltipImprimir}">
-                                <i class="fas fa-print me-1"></i>Clientes
-                            </button>
-                            <div class="btn-group btn-group-sm">
-                    `;
-                    
-                    // Botones de estado según disponibilidad
-                    if (accionesDisponibles.includes('PAUSAR')) {
-                        botonesAcciones += `
-                            <button class="btn btn-warning btn-sm" 
-                                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
-                                    title="Pausar documento">
-                                <i class="fas fa-pause"></i>
-                            </button>`;
-                    }
-                    
-                    if (accionesDisponibles.includes('REANUDAR')) {
-                        botonesAcciones += `
-                            <button class="btn btn-success btn-sm" 
-                                    onclick="cambiarEstadoDocumento('${data.rec}', 'ELABORACION')"
-                                    title="Reanudar documento">
-                                <i class="fas fa-play"></i>
-                            </button>`;
-                    }
-                    
-                    if (accionesDisponibles.includes('FINALIZAR')) {
-                        botonesAcciones += `
-                            <button class="btn btn-info btn-sm" 
-                                    onclick="cambiarEstadoDocumento('${data.rec}', 'FINALIZADO')"
-                                    title="Finalizar documento">
-                                <i class="fas fa-check"></i>
-                            </button>`;
-                    }
-                    
-                    // Botón de restablecer (siempre disponible)
-                    botonesAcciones += `
-                            <button class="btn btn-danger btn-sm" 
-                                    onclick="restablecerDocumento('${data.rec}')"
-                                    title="Restablecer documento">
-                                <i class="fas fa-undo"></i>
-                            </button>
-                            </div>
-                        </div>
-                    `;
-                    
-                    return botonesAcciones;
-                },
+                render: obtenerBotonesAccion,
                 orderable: false
             }
         ],
@@ -304,12 +295,12 @@ function inicializarDataTable(documentos) {
         pageLength: 50,
         responsive: true,
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
-        order: [[0, 'desc']], // Ordenar por documento descendente
+        order: [[0, 'desc']],
         columnDefs: [
-            { responsivePriority: 1, targets: 0 }, // Documento
-            { responsivePriority: 2, targets: 8 }, // Acciones
-            { responsivePriority: 3, targets: 4 }, // Cantidad
-            { responsivePriority: 4, targets: 1 }  // Estado
+            { responsivePriority: 1, targets: 0 },
+            { responsivePriority: 2, targets: 8 },
+            { responsivePriority: 3, targets: 4 },
+            { responsivePriority: 4, targets: 1 }
         ]
     });
 }
@@ -321,18 +312,12 @@ function mostrarMensaje(mensaje, tipo = 'info') {
         'error': 'alert-danger',
         'info': 'alert-info'
     }[tipo] || 'alert-info';
-    
-    const icon = {
-        'success': 'fa-check-circle',
-        'error': 'fa-exclamation-triangle',
-        'info': 'fa-info-circle'
-    }[tipo] || 'fa-info-circle';
 
     const resultado = document.getElementById('resultado');
     resultado.innerHTML = `
         <div class="col-12">
             <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-                <i class="fas ${icon} me-2"></i>
+                <i class="fas fa-info-circle me-2"></i>
                 ${mensaje}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -340,14 +325,12 @@ function mostrarMensaje(mensaje, tipo = 'info') {
     `;
 }
 
-// Función para mostrar error
 function mostrarError(mensaje) {
     mostrarMensaje(mensaje, 'error');
 }
 
 // Cargar tabla cuando la página esté lista
 document.addEventListener('DOMContentLoaded', function() {
-    // Esperar a que los datos globales estén cargados
     const checkDataLoaded = setInterval(() => {
         if (datosGlobales && datosGlobales.length > 0) {
             clearInterval(checkDataLoaded);
