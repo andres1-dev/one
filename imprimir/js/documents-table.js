@@ -3,6 +3,7 @@ let documentosTable = null;
 let listaResponsables = [];
 let timers = {}; // Almacenar los intervalos de tiempo
 let documentosGlobales = []; // Almacenar todos los documentos para los consolidados
+let rangoFechasSeleccionado = null; // Almacenar rango de fechas para filtrado
 
 // Estados permitidos para mostrar
 let mostrarFinalizados = false;
@@ -29,14 +30,14 @@ function formatearFechaSolo(fechaHoraStr) {
 
 // Función para convertir fecha a objeto Date para comparación
 function parsearFecha(fechaStr) {
-    if (!fechaStr) return null;
+    if (!fechaStr || fechaStr === '-') return null;
     
     try {
         // Formato "1/11/2025"
         const [day, month, year] = fechaStr.split('/');
-        return new Date(year, month - 1, day);
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     } catch (e) {
-        console.error('Error parseando fecha:', e);
+        console.error('Error parseando fecha:', e, 'String:', fechaStr);
         return null;
     }
 }
@@ -181,6 +182,77 @@ function actualizarDuracionEnTabla(rec) {
                 celdaDuracion.text(nuevaDuracion);
             }
         }
+    }
+}
+
+// Función para configurar filtro de fecha en DataTables
+function configurarFiltroFecha() {
+    if (documentosTable) {
+        // Agregar filtro personalizado para fechas
+        $.fn.dataTable.ext.search.push(
+            function(settings, data, dataIndex) {
+                if (!rangoFechasSeleccionado) {
+                    return true; // Mostrar todos si no hay filtro
+                }
+
+                const fechaFilaStr = data[3]; // Columna de fecha (índice 3)
+                if (!fechaFilaStr || fechaFilaStr === '-') {
+                    return false; // Ocultar filas sin fecha
+                }
+
+                try {
+                    const fechaFila = parsearFecha(fechaFilaStr);
+                    if (!fechaFila) return false;
+
+                    const [fechaInicio, fechaFin] = rangoFechasSeleccionado;
+                    
+                    // Ajustar fechas para comparación (incluir todo el día)
+                    const inicio = new Date(fechaInicio);
+                    inicio.setHours(0, 0, 0, 0);
+                    
+                    const fin = new Date(fechaFin);
+                    fin.setHours(23, 59, 59, 999);
+
+                    return fechaFila >= inicio && fechaFila <= fin;
+                } catch (e) {
+                    console.error('Error filtrando fecha:', e);
+                    return false;
+                }
+            }
+        );
+    }
+}
+
+// Función para aplicar filtro de fecha
+function aplicarFiltroFecha(fechaInicio, fechaFin) {
+    rangoFechasSeleccionado = [fechaInicio, fechaFin];
+    
+    if (documentosTable) {
+        documentosTable.draw();
+        
+        // Recalcular consolidados con datos filtrados
+        const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
+        const consolidados = calcularConsolidados(datosFiltrados);
+        actualizarTarjetasResumen(consolidados);
+    }
+}
+
+// Función para limpiar filtros
+function limpiarFiltros() {
+    rangoFechasSeleccionado = null;
+    document.getElementById('filtroFecha').value = '';
+    document.getElementById('recInput').value = '';
+    
+    if (documentosTable) {
+        // Remover filtros personalizados
+        $.fn.dataTable.ext.search = [];
+        configurarFiltroFecha(); // Volver a agregar el filtro
+        
+        documentosTable.search('').draw();
+        
+        // Recalcular consolidados con todos los datos
+        const consolidados = calcularConsolidados(documentosGlobales);
+        actualizarTarjetasResumen(consolidados);
     }
 }
 
@@ -560,6 +632,9 @@ function obtenerBotonesAccion(data) {
 function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
     
+    // Limpiar filtros anteriores
+    $.fn.dataTable.ext.search = [];
+    
     documentosTable = table.DataTable({
         data: documentos,
         columns: [
@@ -662,6 +737,9 @@ function inicializarDataTable(documentos) {
                 cambiarResponsable(rec, responsable);
             });
             
+            // Configurar filtro de fecha
+            configurarFiltroFecha();
+            
             // Iniciar timers para documentos activos
             iniciarTimers(documentos);
         },
@@ -671,13 +749,6 @@ function inicializarDataTable(documentos) {
                 const rec = $(this).data('rec');
                 const responsable = $(this).val();
                 cambiarResponsable(rec, responsable);
-            });
-        },
-        destroyCallback: function() {
-            // Limpiar todos los timers al destruir la tabla
-            Object.keys(timers).forEach(rec => {
-                clearInterval(timers[rec]);
-                delete timers[rec];
             });
         }
     });
@@ -723,3 +794,11 @@ window.addEventListener('beforeunload', function() {
         clearInterval(timers[rec]);
     });
 });
+
+// Hacer funciones disponibles globalmente
+window.aplicarFiltroFecha = aplicarFiltroFecha;
+window.limpiarFiltros = limpiarFiltros;
+window.cambiarEstadoDocumento = cambiarEstadoDocumento;
+window.restablecerDocumento = restablecerDocumento;
+window.imprimirSoloClientesDesdeTabla = imprimirSoloClientesDesdeTabla;
+window.buscarDocumentoEnTabla = buscarDocumentoEnTabla;
