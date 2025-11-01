@@ -74,17 +74,22 @@ function calcularConsolidados(documentos) {
 
 // Función para actualizar las tarjetas de resumen
 function actualizarTarjetasResumen(consolidados) {
-    document.getElementById('contadorPendientes').textContent = consolidados.pendientes.count;
-    document.getElementById('unidadesPendientes').textContent = `${consolidados.pendientes.unidades} unidades`;
+    const pendientesElement = document.getElementById('contadorPendientes');
+    const procesoElement = document.getElementById('contadorProceso');
+    const directosElement = document.getElementById('contadorDirectos');
+    const totalElement = document.getElementById('contadorTotal');
     
-    document.getElementById('contadorProceso').textContent = consolidados.proceso.count;
-    document.getElementById('unidadesProceso').textContent = `${consolidados.proceso.unidades} unidades`;
+    if (pendientesElement) pendientesElement.textContent = consolidados.pendientes.count;
+    if (document.getElementById('unidadesPendientes')) document.getElementById('unidadesPendientes').textContent = `${consolidados.pendientes.unidades} unidades`;
     
-    document.getElementById('contadorDirectos').textContent = consolidados.directos.count;
-    document.getElementById('unidadesDirectos').textContent = `${consolidados.directos.unidades} unidades`;
+    if (procesoElement) procesoElement.textContent = consolidados.proceso.count;
+    if (document.getElementById('unidadesProceso')) document.getElementById('unidadesProceso').textContent = `${consolidados.proceso.unidades} unidades`;
     
-    document.getElementById('contadorTotal').textContent = consolidados.total.count;
-    document.getElementById('unidadesTotal').textContent = `${consolidados.total.unidades} unidades`;
+    if (directosElement) directosElement.textContent = consolidados.directos.count;
+    if (document.getElementById('unidadesDirectos')) document.getElementById('unidadesDirectos').textContent = `${consolidados.directos.unidades} unidades`;
+    
+    if (totalElement) totalElement.textContent = consolidados.total.count;
+    if (document.getElementById('unidadesTotal')) document.getElementById('unidadesTotal').textContent = `${consolidados.total.unidades} unidades`;
 }
 
 // Función para convertir hh:mm:ss a milisegundos
@@ -185,9 +190,12 @@ function actualizarDuracionEnTabla(rec) {
     }
 }
 
-// Función para configurar filtro de fecha en DataTables
+// Función para configurar filtro de fecha CORREGIDA
 function configurarFiltroFecha() {
     if (documentosTable) {
+        // Limpiar filtros anteriores
+        $.fn.dataTable.ext.search = [];
+        
         // Agregar filtro personalizado para fechas
         $.fn.dataTable.ext.search.push(
             function(settings, data, dataIndex) {
@@ -195,14 +203,12 @@ function configurarFiltroFecha() {
                     return true; // Mostrar todos si no hay filtro
                 }
 
-                const fechaFilaStr = data[3]; // Columna de fecha (índice 3)
-                if (!fechaFilaStr || fechaFilaStr === '-') {
-                    return false; // Ocultar filas sin fecha
-                }
-
                 try {
-                    const fechaFila = parsearFecha(fechaFilaStr);
-                    if (!fechaFila) return false;
+                    // Obtener los datos completos de la fila
+                    const rowData = documentosTable.row(dataIndex).data();
+                    if (!rowData || !rowData.fecha_objeto) {
+                        return false;
+                    }
 
                     const [fechaInicio, fechaFin] = rangoFechasSeleccionado;
                     
@@ -213,6 +219,7 @@ function configurarFiltroFecha() {
                     const fin = new Date(fechaFin);
                     fin.setHours(23, 59, 59, 999);
 
+                    const fechaFila = new Date(rowData.fecha_objeto);
                     return fechaFila >= inicio && fechaFila <= fin;
                 } catch (e) {
                     console.error('Error filtrando fecha:', e);
@@ -240,8 +247,12 @@ function aplicarFiltroFecha(fechaInicio, fechaFin) {
 // Función para limpiar filtros
 function limpiarFiltros() {
     rangoFechasSeleccionado = null;
-    document.getElementById('filtroFecha').value = '';
-    document.getElementById('recInput').value = '';
+    if (document.getElementById('filtroFecha')) {
+        document.getElementById('filtroFecha').value = '';
+    }
+    if (document.getElementById('recInput')) {
+        document.getElementById('recInput').value = '';
+    }
     
     if (documentosTable) {
         // Remover filtros personalizados
@@ -763,15 +774,17 @@ function mostrarMensaje(mensaje, tipo = 'info') {
     }[tipo] || 'alert-info';
 
     const resultado = document.getElementById('resultado');
-    resultado.innerHTML = `
-        <div class="col-12">
-            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-                <i class="fas fa-info-circle me-2"></i>
-                ${mensaje}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    if (resultado) {
+        resultado.innerHTML = `
+            <div class="col-12">
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    ${mensaje}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    }
 }
 
 function mostrarError(mensaje) {
@@ -802,3 +815,5 @@ window.cambiarEstadoDocumento = cambiarEstadoDocumento;
 window.restablecerDocumento = restablecerDocumento;
 window.imprimirSoloClientesDesdeTabla = imprimirSoloClientesDesdeTabla;
 window.buscarDocumentoEnTabla = buscarDocumentoEnTabla;
+window.toggleFinalizados = toggleFinalizados;
+window.cargarTablaDocumentos = cargarTablaDocumentos;
