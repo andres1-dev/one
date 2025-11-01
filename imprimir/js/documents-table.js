@@ -47,6 +47,16 @@ async function cargarResponsables() {
     }
 }
 
+// Función para obtener responsables disponibles para un documento específico
+function obtenerResponsablesDisponibles(documentos, documentoActual) {
+    const responsablesAsignados = documentos
+        .filter(doc => doc.rec !== documentoActual.rec) // Excluir el documento actual
+        .map(doc => doc.colaborador)
+        .filter(resp => resp && resp.trim() !== '' && resp !== 'Sin responsable');
+    
+    return listaResponsables.filter(resp => !responsablesAsignados.includes(resp));
+}
+
 // Función para calcular cantidad total de un documento
 function calcularCantidadTotal(documento) {
     if (!documento.datosCompletos) return 0;
@@ -173,20 +183,49 @@ async function obtenerDocumentosCombinados() {
     }
 }
 
+// Función para verificar si un responsable puede ser modificado
+function puedeModificarResponsable(documento) {
+    // No se puede modificar si ya tiene un responsable asignado
+    return !documento.colaborador || documento.colaborador.trim() === '';
+}
+
 // Función para generar el select de responsables
-function generarSelectResponsables(rec, responsableActual = '') {
-    const opciones = listaResponsables.map(resp => 
-        `<option value="${resp}" ${resp === responsableActual ? 'selected' : ''}>${resp}</option>`
-    ).join('');
+function generarSelectResponsables(rec, responsableActual = '', todosDocumentos, documentoActual) {
+    const puedeModificar = puedeModificarResponsable(documentoActual);
+    const responsablesDisponibles = puedeModificar 
+        ? obtenerResponsablesDisponibles(todosDocumentos, documentoActual)
+        : [];
     
-    return `
-        <select class="form-select form-select-sm select-responsable" 
-                data-rec="${rec}" 
-                style="min-width: 180px; font-size: 0.8rem;">
+    let opciones = '';
+    
+    if (puedeModificar) {
+        // Puede seleccionar responsable
+        opciones = `
             <option value="">Sin responsable</option>
-            ${opciones}
-        </select>
-    `;
+            ${responsablesDisponibles.map(resp => 
+                `<option value="${resp}" ${resp === responsableActual ? 'selected' : ''}>${resp}</option>`
+            ).join('')}
+        `;
+        
+        return `
+            <select class="form-select form-select-sm select-responsable" 
+                    data-rec="${rec}" 
+                    style="min-width: 180px; font-size: 0.8rem;">
+                ${opciones}
+            </select>
+        `;
+    } else {
+        // No puede modificar, mostrar como texto
+        const tieneResponsable = responsableActual && responsableActual.trim() !== '';
+        const texto = tieneResponsable ? responsableActual : 'Sin responsable';
+        const clase = tieneResponsable ? 'text-success' : 'text-muted';
+        
+        return `
+            <span class="${clase} small" title="Responsable asignado - No modificable">
+                <i class="fas fa-user me-1"></i>${texto}
+            </span>
+        `;
+    }
 }
 
 // Función para cambiar responsable
@@ -319,7 +358,7 @@ function inicializarDataTable(documentos) {
             { 
                 data: 'colaborador',
                 render: function(data, type, row) {
-                    return generarSelectResponsables(row.rec, data);
+                    return generarSelectResponsables(row.rec, data, documentos, row);
                 }
             },
             { 
