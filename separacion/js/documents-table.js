@@ -28,7 +28,7 @@ function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
         icon: tipo,
         position: 'center',
         showConfirmButton: false,
-        timer: 1500,
+        timer: 500,
         timerProgressBar: true
     });
 }
@@ -918,7 +918,7 @@ async function cambiarResponsable(rec, responsable) {
             icon: 'info',
             position: 'center',
             showConfirmButton: false,
-            timer: 1500,
+            timer: 15000,
             timerProgressBar: true,
             allowOutsideClick: false,
             didOpen: () => {
@@ -989,7 +989,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             icon: 'info',
             position: 'center',
             showConfirmButton: false,
-            timer: 1500,
+            timer: 15000,
             timerProgressBar: true,
             allowOutsideClick: false,
             didOpen: () => {
@@ -1080,7 +1080,7 @@ async function restablecerDocumento(rec) {
             icon: 'info',
             position: 'center',
             showConfirmButton: false,
-            timer: 1500,
+            timer: 15000,
             timerProgressBar: true,
             allowOutsideClick: false,
             didOpen: () => {
