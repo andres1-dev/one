@@ -1295,6 +1295,12 @@ function inicializarDataTable(documentos) {
                 }
             },
             { 
+                data: 'linea',
+                render: function(data) {
+                    return data ? `<span class="small">${data}</span>` : '-';
+                }
+            },
+            { 
                 data: 'lote',
                 render: function(data) {
                     return data ? `<span class="small">${data}</span>` : '-';
@@ -1302,12 +1308,6 @@ function inicializarDataTable(documentos) {
             },
             { 
                 data: 'refProv',
-                render: function(data) {
-                    return data ? `<span class="small">${data}</span>` : '-';
-                }
-            },
-            { 
-                data: 'linea',
                 render: function(data) {
                     return data ? `<span class="small">${data}</span>` : '-';
                 }
@@ -1322,8 +1322,8 @@ function inicializarDataTable(documentos) {
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        pageLength: 25,
-        order: [[0, 'asc']],
+        pageLength: 10,
+        order: [[2, 'asc']],
         responsive: true,
         autoWidth: false,
         stateSave: true, // Guardar estado de la tabla
