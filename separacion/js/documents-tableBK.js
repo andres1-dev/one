@@ -554,7 +554,7 @@ async function obtenerDocumentosCombinados() {
 // Resto de funciones (cambiarResponsable, cambiarEstadoDocumento, etc.)
 // ... [mantener las funciones restantes sin cambios]
 
-async function cambiarResponsable(rec, responsable) {
+/*async function cambiarResponsable(rec, responsable) {
     try {
         console.log(`Asignando responsable ${responsable} a REC${rec}`);
         mostrarMensaje(`Asignando responsable a REC${rec}...`, 'info');
@@ -574,6 +574,65 @@ async function cambiarResponsable(rec, responsable) {
     } catch (error) {
         console.error('Error cambiando responsable:', error);
         mostrarError('Error al asignar responsable: ' + error.message);
+    }
+}*/
+
+async function cambiarResponsable(rec, responsable) {
+    try {
+        console.log(`Asignando responsable ${responsable} a REC${rec}`);
+        mostrarMensaje(`Asignando responsable a REC${rec}...`, 'info');
+        
+        const result = await llamarAPI({
+            action: 'asignarResponsable',
+            id: rec,
+            responsable: responsable
+        });
+        
+        if (result.success) {
+            mostrarMensaje(`✅ Responsable de REC${rec} actualizado a ${responsable}`, 'success');
+            
+            // ESPERAR un momento para garantizar que la base de datos se actualice
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // RECARGAR los datos globales desde main.js antes de actualizar la tabla
+            await recargarDatosGlobales();
+            
+            // Ahora actualizar la tabla con los nuevos datos
+            await actualizarInmediatamente();
+            
+        } else {
+            mostrarError(result.message || 'Error al asignar responsable');
+        }
+    } catch (error) {
+        console.error('Error cambiando responsable:', error);
+        mostrarError('Error al asignar responsable: ' + error.message);
+    }
+}
+
+// Nueva función para recargar datos globales
+async function recargarDatosGlobales() {
+    try {
+        console.log('Recargando datos globales...');
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'block';
+        }
+        
+        // Llamar a la función cargarDatos de main.js para recargar todo
+        if (typeof cargarDatos === 'function') {
+            await cargarDatos();
+        } else {
+            console.warn('Función cargarDatos no disponible, recargando página...');
+            location.reload();
+        }
+        
+        if (loader) {
+            loader.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error recargando datos globales:', error);
+        // En caso de error, recargar la página completa
+        location.reload();
     }
 }
 
