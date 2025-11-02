@@ -262,31 +262,6 @@
     window.mostrarOpcionesDesdeTabla = mostrarOpcionesDesdeTabla;
     </script>
 
-    <script>
-// Función global para forzar recarga completa
-window.recargarDatosCompletos = async function() {
-    try {
-        const loader = document.getElementById('loader');
-        if (loader) loader.style.display = 'block';
-        
-        // Llamar a la función de carga principal
-        await cargarDatos();
-        
-        // Recargar la tabla también
-        if (window.cargarTablaDocumentos) {
-            await cargarTablaDocumentos();
-        }
-        
-        if (loader) loader.style.display = 'none';
-        return true;
-    } catch (error) {
-        console.error('Error en recarga completa:', error);
-        if (loader) loader.style.display = 'none';
-        return false;
-    }
-};
-</script>
-    
     
 </body>
 </html>
