@@ -290,7 +290,7 @@ body {
 }
 
 .table th {
-    background: var(--light-color);
+    //background: var(--light-color);
     border-bottom: 2px solid var(--border-color);
     font-weight: 600;
     color: var(--dark-color);
