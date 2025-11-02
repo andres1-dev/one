@@ -575,7 +575,8 @@ async function obtenerDocumentosCombinados() {
         console.error('Error cambiando responsable:', error);
         mostrarError('Error al asignar responsable: ' + error.message);
     }
-}*/
+}
+*/
 
 async function cambiarResponsable(rec, responsable) {
     try {
@@ -609,32 +610,6 @@ async function cambiarResponsable(rec, responsable) {
     }
 }
 
-// Nueva función para recargar datos globales
-async function recargarDatosGlobales() {
-    try {
-        console.log('Recargando datos globales...');
-        const loader = document.getElementById('loader');
-        if (loader) {
-            loader.style.display = 'block';
-        }
-        
-        // Llamar a la función cargarDatos de main.js para recargar todo
-        if (typeof cargarDatos === 'function') {
-            await cargarDatos();
-        } else {
-            console.warn('Función cargarDatos no disponible, recargando página...');
-            location.reload();
-        }
-        
-        if (loader) {
-            loader.style.display = 'none';
-        }
-    } catch (error) {
-        console.error('Error recargando datos globales:', error);
-        // En caso de error, recargar la página completa
-        location.reload();
-    }
-}
 
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     try {
