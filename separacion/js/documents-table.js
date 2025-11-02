@@ -174,8 +174,9 @@ async function llamarAPI(params) {
     }
 }
 
+
 // Función OPTIMIZADA para actualizar solo una fila específica
-async function actualizarFilaEspecifica(rec) {
+/*async function actualizarFilaEspecifica(rec) {
     if (!documentosTable) return;
     
     try {
@@ -206,6 +207,91 @@ async function actualizarFilaEspecifica(rec) {
         const fechaSolo = formatearFechaSolo(fechaHora);
         const fechaObjeto = parsearFecha(fechaSolo);
         
+        const datosCompletos = datosGlobales.find(d => d.REC === documento);
+        const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
+        
+        const documentoActualizado = {
+            rec: documento,
+            estado: estado,
+            colaborador: colaborador,
+            fecha: fechaSolo,
+            fecha_completa: fechaHora,
+            fecha_objeto: fechaObjeto,
+            cantidad: cantidadTotal,
+            lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
+            refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
+            linea: datosCompletos ? (datosCompletos.LINEA || '') : '',
+            tieneClientes: datosCompletos ? 
+                (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
+                 Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
+            datosCompletos: datosCompletos,
+            datetime_inicio: rowData[5] || '',
+            datetime_fin: rowData[6] || '',
+            duracion_guardada: rowData[7] || '',
+            pausas: rowData[8] || '',
+            datetime_pausas: rowData[9] || '',
+            duracion_pausas: rowData[10] || ''
+        };
+        
+        // Actualizar la fila en DataTable
+        const fila = documentosTable.row((idx, data) => data.rec === rec);
+        if (fila.any()) {
+            fila.data(documentoActualizado).draw(false); // false = no cambiar de página
+            console.log(`Fila REC${rec} actualizada exitosamente`);
+        }
+        
+        // Actualizar documentosGlobales
+        const index = documentosGlobales.findIndex(d => d.rec === rec);
+        if (index !== -1) {
+            documentosGlobales[index] = documentoActualizado;
+        }
+        
+        // Recalcular consolidados
+        const consolidados = calcularConsolidados(documentosGlobales);
+        actualizarTarjetasResumen(consolidados);
+        
+    } catch (error) {
+        console.error('Error actualizando fila específica:', error);
+    }
+}
+*/
+
+// Función MEJORADA para actualizar solo una fila específica
+async function actualizarFilaEspecifica(rec) {
+    if (!documentosTable) return;
+    
+    try {
+        console.log(`Actualizando solo fila REC${rec}`);
+        
+        // PRIMERO: Actualizar datos globales para tener información actualizada
+        await actualizarDatosGlobales();
+        
+        // Obtener datos actualizados solo para este documento
+        const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const values = data.values || [];
+        
+        // Encontrar el documento específico
+        const rowData = values.find(row => String(row[0] || '').trim() === rec);
+        
+        if (!rowData) {
+            console.warn(`No se encontró REC${rec}`);
+            return;
+        }
+        
+        // Procesar el documento con datos globales ACTUALIZADOS
+        const documento = String(rowData[0] || '').trim();
+        const estado = String(rowData[3] || '').trim().toUpperCase();
+        const colaborador = String(rowData[4] || '').trim();
+        const fechaHora = rowData[1] || '';
+        const fechaSolo = formatearFechaSolo(fechaHora);
+        const fechaObjeto = parsearFecha(fechaSolo);
+        
+        // BUSCAR en datosGlobales ACTUALIZADOS
         const datosCompletos = datosGlobales.find(d => d.REC === documento);
         const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
         
@@ -338,7 +424,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
 }
 
 // Función para actualizar datos globales después de cambios
-async function actualizarDatosGlobales() {
+/*async function actualizarDatosGlobales() {
     try {
         console.log('Actualizando datos globales...');
         
@@ -356,6 +442,28 @@ async function actualizarDatosGlobales() {
         return false;
     }
 }
+*/
+    
+// Función MEJORADA para actualizar datos globales después de cambios
+async function actualizarDatosGlobales() {
+    try {
+        console.log('Actualizando datos globales...');
+        
+        // Recargar los datos desde la API usando la función existente
+        if (typeof cargarDatos === 'function') {
+            await cargarDatos();
+            console.log('Datos globales actualizados correctamente');
+            return true;
+        } else {
+            console.warn('Función cargarDatos no disponible');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error actualizando datos globales:', error);
+        return false;
+    }
+}
+
 
 // Función para formatear fecha a solo fecha (sin hora)
 function formatearFechaSolo(fechaHoraStr) {
@@ -899,7 +1007,7 @@ async function obtenerDocumentosCombinados() {
 }
 
 // Función OPTIMIZADA para cambiar responsable
-async function cambiarResponsable(rec, responsable) {
+/** async function cambiarResponsable(rec, responsable) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de responsable...');
@@ -941,6 +1049,75 @@ async function cambiarResponsable(rec, responsable) {
             
             // Actualizar SOLO la fila específica
             await actualizarFilaEspecifica(rec);
+            
+        } else {
+            await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
+        }
+    } catch (error) {
+        console.error('Error cambiando responsable:', error);
+        Swal.close();
+        await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
+    } finally {
+        actualizacionEnProgreso = false;
+    }
+}
+*/
+
+// Función OPTIMIZADA para cambiar responsable - ACTUALIZADA
+async function cambiarResponsable(rec, responsable) {
+    // Evitar múltiples llamadas simultáneas
+    if (actualizacionEnProgreso) {
+        console.log('Actualización en progreso, ignorando cambio de responsable...');
+        return;
+    }
+    
+    try {
+        console.log(`Asignando responsable ${responsable} a REC${rec}`);
+        
+        actualizacionEnProgreso = true;
+        
+        // Mostrar loading compacto
+        const loadingToast = Swal.fire({
+            title: 'Asignando...',
+            text: responsable,
+            icon: 'info',
+            position: 'center',
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // 1. PRIMERO actualizar datos globales
+        console.log('Actualizando datos globales antes del cambio...');
+        await actualizarDatosGlobales();
+        
+        // 2. Llamar a la API para asignar responsable
+        const result = await llamarAPI({
+            action: 'asignarResponsable',
+            id: rec,
+            responsable: responsable
+        });
+        
+        // Cerrar loading
+        Swal.close();
+        
+        if (result.success) {
+            // 3. ACTUALIZACIÓN INMEDIATA: Actualizar datos globales DESPUÉS del cambio
+            console.log('Actualizando datos globales después del cambio...');
+            await actualizarDatosGlobales();
+            
+            // 4. ACTUALIZAR SOLO LA FILA ESPECÍFICA
+            await actualizarFilaEspecifica(rec);
+            
+            // 5. Forzar redibujado de la tabla para actualizar selects
+            if (documentosTable) {
+                documentosTable.draw(false);
+            }
+            
+            // Mostrar éxito breve
+            await mostrarNotificacion('✓ Asignado', responsable, 'success');
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
