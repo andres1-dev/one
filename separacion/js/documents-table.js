@@ -408,16 +408,19 @@ function obtenerResponsablesDisponibles(documentos, documentoActual) {
 }
 
 // Función para calcular cantidad total de un documento
+// Función CORREGIDA para calcular cantidad total de un documento
 function calcularCantidadTotal(documento) {
     if (!documento.datosCompletos) return 0;
     
     let cantidad = 0;
     
+    // PRINCIPAL: Usar solo CANTIDAD si existe
     if (documento.datosCompletos.CANTIDAD) {
-        cantidad += parseInt(documento.datosCompletos.CANTIDAD) || 0;
+        cantidad = parseInt(documento.datosCompletos.CANTIDAD) || 0;
     }
     
-    if (documento.datosCompletos.DISTRIBUCION && documento.datosCompletos.DISTRIBUCION.Clientes) {
+    // ALTERNATIVA: Si no hay CANTIDAD, calcular desde distribución
+    if (cantidad === 0 && documento.datosCompletos.DISTRIBUCION && documento.datosCompletos.DISTRIBUCION.Clientes) {
         Object.values(documento.datosCompletos.DISTRIBUCION.Clientes).forEach(cliente => {
             if (cliente.distribucion && Array.isArray(cliente.distribucion)) {
                 cliente.distribucion.forEach(item => {
@@ -427,12 +430,14 @@ function calcularCantidadTotal(documento) {
         });
     }
     
+    // OPCIÓN: Si quieres incluir anexos (descomenta solo si es necesario)
     if (documento.datosCompletos.ANEXOS && Array.isArray(documento.datosCompletos.ANEXOS)) {
         documento.datosCompletos.ANEXOS.forEach(anexo => {
             cantidad += parseInt(anexo.CANTIDAD) || 0;
         });
     }
     
+    console.log(`Cantidad calculada para REC${documento.rec}: ${cantidad}`);
     return cantidad;
 }
 
