@@ -399,3 +399,270 @@ body {
     border: 1px solid var(--light-color) !important;
 }
 
+
+/* ===== ANIMACIONES PARA ACTUALIZACIONES EN TIEMPO REAL ===== */
+
+/* Animación para elementos actualizados */
+@keyframes pulseUpdate {
+    0% {
+        background-color: rgba(52, 152, 219, 0.2);
+        transform: scale(1);
+    }
+    50% {
+        background-color: rgba(52, 152, 219, 0.4);
+        transform: scale(1.05);
+    }
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
+}
+
+.actualizado {
+    animation: pulseUpdate 0.6s ease-out;
+}
+
+/* Animaciones para toast notifications */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+}
+
+/* Estilo para el indicador de última actualización */
+#ultima-actualizacion {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+#ultima-actualizacion:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    transform: scale(1.05);
+}
+
+/* Animación para filas actualizadas en la tabla */
+@keyframes highlightRow {
+    0% {
+        background-color: rgba(52, 152, 219, 0.3);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.row-updated {
+    animation: highlightRow 1s ease-out;
+}
+
+/* Spinner personalizado para actualización */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.fa-sync-alt.fa-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Estilo para el badge de última actualización responsive */
+@media (max-width: 768px) {
+    #ultima-actualizacion {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    #indicador-actualizacion {
+        top: 60px;
+        right: 10px;
+        padding: 8px 15px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Transición suave para cambios en los contadores */
+.resumen-count {
+    transition: all 0.3s ease;
+}
+
+.resumen-count.actualizado {
+    color: var(--accent-color);
+    font-weight: 900;
+}
+
+/* Efecto de destello para actualizaciones importantes */
+@keyframes flashUpdate {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.flash-update {
+    animation: flashUpdate 0.5s ease-in-out 2;
+}
+
+/* Estilo para notificaciones toast */
+.toast-notification {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Indicador de sincronización en curso */
+.syncing::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px solid var(--accent-color);
+    border-radius: inherit;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.02);
+    }
+}
+
+/* Estado de carga suave para la tabla */
+.table-loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.table-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Mejorar visibilidad del header con badges */
+.header .d-flex {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 576px) {
+    .header h1 {
+        font-size: 1.1rem;
+    }
+    
+    .header .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .header .d-flex > div {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+/* Efecto hover mejorado para botones de acción */
+.btn-group-sm .btn {
+    transition: all 0.2s ease;
+}
+
+.btn-group-sm .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-group-sm .btn:active {
+    transform: translateY(0);
+}
+
+/* Indicador visual de cambio en select de responsables */
+.select-responsable {
+    transition: all 0.3s ease;
+}
+
+.select-responsable:focus {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Animación para cards de resumen */
+.resumen-card {
+    transition: all 0.3s ease;
+}
+
+.resumen-card.actualizado {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+}
+
+/* Feedback visual para acciones */
+@keyframes successPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(39, 174, 96, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0);
+    }
+}
+
+.success-feedback {
+    animation: successPulse 0.6s ease-out;
+}
+
+/* Modo oscuro para notificaciones (opcional) */
+@media (prefers-color-scheme: dark) {
+    .toast-notification {
+        background: #2c3e50;
+        color: white;
+    }
+    
+    #indicador-actualizacion {
+        background: linear-gradient(135deg, #434343 0%, #000000 100%);
+    }
+}
+
