@@ -1,4 +1,4 @@
-// ConfiguraciÃ³n de DataTable para documentos disponibles
+// Configuración de DataTable para documentos disponibles
 let documentosTable = null;
 let listaResponsables = [];
 let timers = {}; // Almacenar los intervalos de tiempo
@@ -20,7 +20,7 @@ let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
 
-// FunciÃ³n para mostrar notificaciones con SweetAlert2 en el CENTRO
+// Función para mostrar notificaciones con SweetAlert2 en el CENTRO
 function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
     return Swal.fire({
         title: titulo,
@@ -28,12 +28,12 @@ function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
         icon: tipo,
         position: 'center',
         showConfirmButton: false,
-        timer: 3000,
+        //timer: 3000,
         timerProgressBar: true
     });
 }
 
-// FunciÃ³n para mostrar confirmaciÃ³n con SweetAlert2 en el CENTRO
+// Función para mostrar confirmación con SweetAlert2 en el CENTRO
 async function mostrarConfirmacion(titulo, texto, tipo = 'info') {
     const result = await Swal.fire({
         title: titulo,
@@ -41,7 +41,7 @@ async function mostrarConfirmacion(titulo, texto, tipo = 'info') {
         icon: tipo,
         position: 'center',
         showCancelButton: true,
-        confirmButtonText: 'SÃ­, continuar',
+        confirmButtonText: 'Sí, continuar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33'
@@ -49,7 +49,7 @@ async function mostrarConfirmacion(titulo, texto, tipo = 'info') {
     return result.isConfirmed;
 }
 
-// FunciÃ³n para mostrar input con SweetAlert2 en el CENTRO
+// Función para mostrar input con SweetAlert2 en el CENTRO
 async function mostrarInput(titulo, texto, tipo = 'text') {
     const { value } = await Swal.fire({
         title: titulo,
@@ -70,7 +70,7 @@ async function mostrarInput(titulo, texto, tipo = 'text') {
     return value;
 }
 
-// FunciÃ³n para mostrar loading EN EL CENTRO
+// Función para mostrar loading EN EL CENTRO
 function mostrarLoading(titulo = 'Procesando...', texto = '') {
     return Swal.fire({
         title: titulo,
@@ -84,7 +84,7 @@ function mostrarLoading(titulo = 'Procesando...', texto = '') {
     });
 }
 
-// FunciÃ³n para guardar estado actual de la tabla
+// Función para guardar estado actual de la tabla
 function guardarEstadoTabla() {
     if (!documentosTable) return null;
     
@@ -96,16 +96,16 @@ function guardarEstadoTabla() {
     };
 }
 
-// FunciÃ³n para restaurar estado de la tabla
+// Función para restaurar estado de la tabla
 function restaurarEstadoTabla(estado) {
     if (!documentosTable || !estado) return;
     
-    // Restaurar bÃºsqueda
+    // Restaurar búsqueda
     if (estado.search) {
         documentosTable.search(estado.search);
     }
     
-    // Restaurar pÃ¡gina
+    // Restaurar página
     if (estado.page !== undefined) {
         documentosTable.page(estado.page).draw('page');
     }
@@ -119,7 +119,7 @@ function restaurarEstadoTabla(estado) {
     if (estado.estadoFiltros) {
         filtrosActivos = { ...estado.estadoFiltros };
         
-        // Restaurar bÃºsqueda en input
+        // Restaurar búsqueda en input
         if (document.getElementById('recInput')) {
             document.getElementById('recInput').value = filtrosActivos.busqueda || '';
         }
@@ -131,7 +131,7 @@ function restaurarEstadoTabla(estado) {
     }
 }
 
-// FunciÃ³n para llamar a la API
+// Función para llamar a la API
 async function llamarAPI(params) {
     try {
         const queryString = new URLSearchParams(params).toString();
@@ -169,12 +169,12 @@ async function llamarAPI(params) {
         return { 
             success: false, 
             error: error.message,
-            message: 'Error de conexiÃ³n con el servidor'
+            message: 'Error de conexión con el servidor'
         };
     }
 }
 
-// FunciÃ³n OPTIMIZADA para actualizar solo una fila específica
+// Función OPTIMIZADA para actualizar solo una fila específica
 async function actualizarFilaEspecifica(rec) {
     if (!documentosTable) return;
     
@@ -254,7 +254,7 @@ async function actualizarFilaEspecifica(rec) {
     }
 }
 
-// FunciÃ³n MEJORADA para actualizar inmediatamente despuÃ©s de un cambio
+// Función MEJORADA para actualizar inmediatamente después de un cambio
 async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null) {
     // Evitar múltiples actualizaciones simultáneas
     if (actualizacionEnProgreso && !forzarRecarga) {
@@ -305,7 +305,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
             iniciarTimers(documentosDisponibles);
         }
         
-        // Restaurar estado despuÃ©s de cargar
+        // Restaurar estado después de cargar
         if (estadoTabla) {
             setTimeout(() => {
                 restaurarEstadoTabla(estadoTabla);
@@ -322,7 +322,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
         console.log('Tabla actualizada correctamente');
         
     } catch (error) {
-        console.error('Error en actualizaciÃ³n inmediata:', error);
+        console.error('Error en actualización inmediata:', error);
         const loader = document.getElementById('loader');
         if (loader) {
             loader.style.display = 'none';
@@ -337,7 +337,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
     }
 }
 
-// FunciÃ³n para actualizar datos globales despuÃ©s de cambios
+// Función para actualizar datos globales después de cambios
 async function actualizarDatosGlobales() {
     try {
         console.log('Actualizando datos globales...');
@@ -348,7 +348,7 @@ async function actualizarDatosGlobales() {
             console.log('Datos globales actualizados correctamente');
             return true;
         } else {
-            console.warn('FunciÃ³n cargarDatos no disponible');
+            console.warn('Función cargarDatos no disponible');
             return false;
         }
     } catch (error) {
@@ -357,7 +357,7 @@ async function actualizarDatosGlobales() {
     }
 }
 
-// FunciÃ³n para formatear fecha a solo fecha (sin hora)
+// Función para formatear fecha a solo fecha (sin hora)
 function formatearFechaSolo(fechaHoraStr) {
     if (!fechaHoraStr) return '-';
     
@@ -372,26 +372,26 @@ function formatearFechaSolo(fechaHoraStr) {
     }
 }
 
-// FunciÃ³n CORREGIDA para convertir fecha string a objeto Date
+// Función CORREGIDA para convertir fecha string a objeto Date
 function parsearFecha(fechaStr) {
     if (!fechaStr || fechaStr === '-') return null;
     
     try {
-        // Formato esperado: "1/11/2025" (dÃ­a/mes/aÃ±o)
+        // Formato esperado: "1/11/2025" (día/mes/año)
         const partes = fechaStr.split('/');
         if (partes.length !== 3) return null;
         
         const dia = parseInt(partes[0], 10);
         const mes = parseInt(partes[1], 10);
-        const anio = parseInt(partes[2], 10);
+        const año = parseInt(partes[2], 10);
         
-        // Validar que sean nÃºmeros vÃ¡lidos
-        if (isNaN(dia) || isNaN(mes) || isNaN(anio)) return null;
+        // Validar que sean números válidos
+        if (isNaN(dia) || isNaN(mes) || isNaN(año)) return null;
         
         // Crear fecha (mes - 1 porque en JS los meses van de 0-11)
-        const fecha = new Date(anio, mes - 1, dia);
+        const fecha = new Date(año, mes - 1, dia);
         
-        // Verificar que la fecha sea vÃ¡lida
+        // Verificar que la fecha sea válida
         if (isNaN(fecha.getTime())) return null;
         
         return fecha;
@@ -401,7 +401,7 @@ function parsearFecha(fechaStr) {
     }
 }
 
-// FunciÃ³n para calcular consolidados
+// Función para calcular consolidados
 function calcularConsolidados(documentos) {
     const consolidados = {
         pendientes: { count: 0, unidades: 0 },
@@ -431,7 +431,7 @@ function calcularConsolidados(documentos) {
     return consolidados;
 }
 
-// FunciÃ³n para actualizar las tarjetas de resumen
+// Función para actualizar las tarjetas de resumen
 function actualizarTarjetasResumen(consolidados) {
     const pendientesElement = document.getElementById('contadorPendientes');
     const procesoElement = document.getElementById('contadorProceso');
@@ -451,7 +451,7 @@ function actualizarTarjetasResumen(consolidados) {
     if (document.getElementById('unidadesTotal')) document.getElementById('unidadesTotal').textContent = `${consolidados.total.unidades} unidades`;
 }
 
-// FunciÃ³n para convertir hh:mm:ss a milisegundos
+// Función para convertir hh:mm:ss a milisegundos
 function tiempoAMilisegundos(tiempo) {
     if (!tiempo) return 0;
     try {
@@ -466,7 +466,7 @@ function tiempoAMilisegundos(tiempo) {
     }
 }
 
-// FunciÃ³n para convertir milisegundos a hh:mm:ss
+// Función para convertir milisegundos a hh:mm:ss
 function milisegundosATiempo(ms) {
     const totalSec = Math.floor(ms / 1000);
     const horas = Math.floor(totalSec / 3600).toString().padStart(2, '0');
@@ -475,7 +475,7 @@ function milisegundosATiempo(ms) {
     return `${horas}:${minutos}:${segundos}`;
 }
 
-// FunciÃ³n para calcular la duraciÃ³n usando las columnas F-K
+// Función para calcular la duración usando las columnas F-K
 function calcularDuracionDesdeSheets(datos) {
     const {
         estado,
@@ -509,7 +509,7 @@ function calcularDuracionDesdeSheets(datos) {
     }
 }
 
-// FunciÃ³n para iniciar/actualizar timers
+// Función para iniciar/actualizar timers
 function iniciarTimers(documentos) {
     Object.keys(timers).forEach(rec => {
         clearInterval(timers[rec]);
@@ -525,7 +525,7 @@ function iniciarTimers(documentos) {
     });
 }
 
-// FunciÃ³n para actualizar la duraciÃ³n en la tabla
+// Función para actualizar la duración en la tabla
 function actualizarDuracionEnTabla(rec) {
     if (documentosTable) {
         const fila = documentosTable.row((idx, data) => data.rec === rec);
@@ -541,7 +541,7 @@ function actualizarDuracionEnTabla(rec) {
     }
 }
 
-// FunciÃ³n CORREGIDA para configurar filtro de fecha
+// Función CORREGIDA para configurar filtro de fecha
 function configurarFiltroFecha() {
     // Remover filtros anteriores
     $.fn.dataTable.ext.search.pop();
@@ -581,7 +581,7 @@ function configurarFiltroFecha() {
     );
 }
 
-// FunciÃ³n CORREGIDA para aplicar filtro de fecha
+// Función CORREGIDA para aplicar filtro de fecha
 function aplicarFiltroFecha(fechaInicio, fechaFin) {
     console.log('Aplicando filtro de fecha:', fechaInicio, fechaFin);
     
@@ -603,14 +603,14 @@ function aplicarFiltroFecha(fechaInicio, fechaFin) {
         
         // Recalcular consolidados con datos filtrados
         const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
-        console.log('Documentos despuÃ©s del filtro:', datosFiltrados.length);
+        console.log('Documentos después del filtro:', datosFiltrados.length);
         
         const consolidados = calcularConsolidados(datosFiltrados);
         actualizarTarjetasResumen(consolidados);
     }
 }
 
-// FunciÃ³n para limpiar filtros
+// Función para limpiar filtros
 function limpiarFiltros() {
     console.log('Limpiando filtros...');
     
@@ -641,7 +641,7 @@ function limpiarFiltros() {
     }
 }
 
-// FunciÃ³n para cargar responsables desde Google Sheets
+// Función para cargar responsables desde Google Sheets
 async function cargarResponsables() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
@@ -680,7 +680,7 @@ async function cargarResponsables() {
     }
 }
 
-// FunciÃ³n para obtener responsables disponibles para un documento especÃ­fico
+// Función para obtener responsables disponibles para un documento específico
 function obtenerResponsablesDisponibles(documentos, documentoActual) {
     const responsablesAsignados = documentos
         .filter(doc => doc.rec !== documentoActual.rec)
@@ -690,7 +690,7 @@ function obtenerResponsablesDisponibles(documentos, documentoActual) {
     return listaResponsables.filter(resp => !responsablesAsignados.includes(resp));
 }
 
-// FunciÃ³n para calcular cantidad total de un documento
+// Función para calcular cantidad total de un documento
 function calcularCantidadTotal(documento) {
     if (!documento.datosCompletos) return 0;
     
@@ -701,14 +701,14 @@ function calcularCantidadTotal(documento) {
     return cantidad;
 }
 
-// FunciÃ³n para obtener estados segÃºn configuraciÃ³n
+// Función para obtener estados según configuración
 function obtenerEstadosParaMostrar() {
     return mostrarFinalizados 
         ? [...ESTADOS_VISIBLES, ...ESTADOS_FINALIZADOS]
         : ESTADOS_VISIBLES;
 }
 
-// FunciÃ³n para alternar visibilidad de finalizados
+// Función para alternar visibilidad de finalizados
 function toggleFinalizados() {
     mostrarFinalizados = !mostrarFinalizados;
     const btn = document.getElementById('btnToggleFinalizados');
@@ -720,7 +720,7 @@ function toggleFinalizados() {
     actualizarInmediatamente(true);
 }
 
-// FunciÃ³n MEJORADA para cargar la tabla de documentos
+// Función MEJORADA para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
         console.log('Iniciando carga de tabla de documentos...');
@@ -758,9 +758,9 @@ async function cargarTablaDocumentos() {
                         <th>Estado</th>
                         <th>Responsable</th>
                         <th>Fecha</th>
-                        <th>DuraciÃ³n</th>
+                        <th>Duración</th>
                         <th>Cantidad</th>
-                        <th>LÃ­nea</th>
+                        <th>Línea</th>
                         <th>Lote</th>
                         <th>RefProv</th>
                         <th>Acciones</th>
@@ -798,9 +798,9 @@ async function cargarTablaDocumentos() {
                     <th>Estado</th>
                     <th>Responsable</th>
                     <th>Fecha</th>
-                    <th>DuraciÃ³n</th>
+                    <th>Duración</th>
                     <th>Cantidad</th>
-                    <th>LÃ­nea</th>
+                    <th>Línea</th>
                     <th>Lote</th>
                     <th>RefProv</th>
                     <th>Acciones</th>
@@ -819,7 +819,7 @@ async function cargarTablaDocumentos() {
     }
 }
 
-// FunciÃ³n para obtener datos combinados
+// Función para obtener datos combinados
 async function obtenerDocumentosCombinados() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
@@ -841,7 +841,7 @@ async function obtenerDocumentosCombinados() {
                 }
             });
         } else {
-            console.warn('datosGlobales estÃ¡ vacÃ­o o no disponible');
+            console.warn('datosGlobales está vacío o no disponible');
         }
 
         const estadosParaMostrar = obtenerEstadosParaMostrar();
@@ -898,7 +898,7 @@ async function obtenerDocumentosCombinados() {
     }
 }
 
-// FunciÃ³n OPTIMIZADA para cambiar responsable
+// Función OPTIMIZADA para cambiar responsable
 async function cambiarResponsable(rec, responsable) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
@@ -918,7 +918,7 @@ async function cambiarResponsable(rec, responsable) {
             icon: 'info',
             position: 'center',
             showConfirmButton: false,
-            timer: 15000,
+            //timer: 15000,
             timerProgressBar: true,
             allowOutsideClick: false,
             didOpen: () => {
@@ -936,7 +936,7 @@ async function cambiarResponsable(rec, responsable) {
         Swal.close();
         
         if (result.success) {
-            // Mostrar Ã©xito breve
+            // Mostrar éxito breve
             mostrarNotificacion('✓ Asignado', responsable, 'success');
             
             // Actualizar SOLO la fila específica
@@ -954,7 +954,7 @@ async function cambiarResponsable(rec, responsable) {
     }
 }
 
-// FunciÃ³n OPTIMIZADA para cambiar estado del documento
+// Función OPTIMIZADA para cambiar estado del documento
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
@@ -989,7 +989,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             icon: 'info',
             position: 'center',
             showConfirmButton: false,
-            timer: 15000,
+            //timer: 15000,
             timerProgressBar: true,
             allowOutsideClick: false,
             didOpen: () => {
@@ -1010,7 +1010,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 break;
             default:
                 Swal.close();
-                await mostrarNotificacion('Error', 'Estado no vÃ¡lido', 'error');
+                await mostrarNotificacion('Error', 'Estado no válido', 'error');
                 actualizacionEnProgreso = false;
                 return;
         }
@@ -1055,19 +1055,19 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
     }
 }
 
-// FunciÃ³n OPTIMIZADA para restablecer documento
+// Función OPTIMIZADA para restablecer documento
 async function restablecerDocumento(rec) {
     try {
         const password = await mostrarInput(
             'Restablecer Documento',
-            'Ingrese la contraseÃ±a para restablecer REC' + rec,
+            'Ingrese la contraseña para restablecer REC' + rec,
             'password'
         );
         
         if (!password) return;
         
         if (password !== 'one') {
-            await mostrarNotificacion('Error', 'ContraseÃ±a incorrecta', 'error');
+            await mostrarNotificacion('Error', 'Contraseña incorrecta', 'error');
             return;
         }
         
@@ -1080,7 +1080,7 @@ async function restablecerDocumento(rec) {
             icon: 'info',
             position: 'center',
             showConfirmButton: false,
-            timer: 15000,
+            //timer: 15000,
             timerProgressBar: true,
             allowOutsideClick: false,
             didOpen: () => {
@@ -1223,7 +1223,7 @@ function obtenerBotonesAccion(data) {
 function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
     
-    // Limpiar bÃºsquedas anteriores
+    // Limpiar búsquedas anteriores
     $.fn.dataTable.ext.search = [];
     
     documentosTable = table.DataTable({
@@ -1333,7 +1333,7 @@ function inicializarDataTable(documentos) {
                 );
             }
             
-            // Aplicar bÃºsqueda guardada si existe
+            // Aplicar búsqueda guardada si existe
             if (filtrosActivos.busqueda) {
                 api.search(filtrosActivos.busqueda).draw();
             }
@@ -1352,7 +1352,7 @@ function inicializarDataTable(documentos) {
         }
     });
     
-    // Evento para bÃºsqueda por REC
+    // Evento para búsqueda por REC
     $('#recInput').on('input', function() {
         const searchTerm = $(this).val().trim();
         filtrosActivos.busqueda = searchTerm;
@@ -1365,20 +1365,20 @@ function inicializarDataTable(documentos) {
     });
 }
 
-// FunciÃ³n MEJORADA para imprimir clientes
+// Función MEJORADA para imprimir clientes
 async function imprimirSoloClientesDesdeTabla(rec) {
     try {
         console.log(`Imprimiendo clientes para REC${rec}`);
         
         // Mostrar loading EN EL CENTRO
-        mostrarLoading('Preparando impresiÃ³n', `Cargando datos de REC${rec}`);
+        mostrarLoading('Preparando impresión', `Cargando datos de REC${rec}`);
 
         // Buscar el documento actualizado en los datos globales
         const documento = datosGlobales.find(doc => doc.REC === rec);
         
         if (!documento) {
             Swal.close();
-            await mostrarNotificacion('Error', `No se encontrÃ³ el documento REC${rec}`, 'error');
+            await mostrarNotificacion('Error', `No se encontró el documento REC${rec}`, 'error');
             return;
         }
 
@@ -1389,7 +1389,7 @@ async function imprimirSoloClientesDesdeTabla(rec) {
             return;
         }
 
-        // Preparar datos para impresiÃ³n
+        // Preparar datos para impresión
         const datosImpresion = {
             rec: rec,
             fecha: documento.FECHA || '',
@@ -1402,26 +1402,26 @@ async function imprimirSoloClientesDesdeTabla(rec) {
 
         Swal.close();
         
-        // Llamar a la funciÃ³n de impresiÃ³n
+        // Llamar a la función de impresión
         if (typeof imprimirSoloClientes === 'function') {
             imprimirSoloClientes(datosImpresion);
-            await mostrarNotificacion('Listo', `Preparando impresiÃ³n de REC${rec}`, 'success');
+            await mostrarNotificacion('Listo', `Preparando impresión de REC${rec}`, 'success');
         } else {
-            await mostrarNotificacion('Error', 'FunciÃ³n de impresiÃ³n no disponible', 'error');
+            await mostrarNotificacion('Error', 'Función de impresión no disponible', 'error');
         }
         
     } catch (error) {
         console.error('Error al imprimir clientes:', error);
         Swal.close();
-        await mostrarNotificacion('Error', 'Error al preparar la impresiÃ³n: ' + error.message, 'error');
+        await mostrarNotificacion('Error', 'Error al preparar la impresión: ' + error.message, 'error');
     }
 }
 
-// Inicializar cuando el DOM estÃ© listo
+// Inicializar cuando el DOM esté listo
 $(document).ready(function() {
     console.log('Inicializando documents-table.js');
     
-    // Esperar a que los datos globales estÃ©n cargados
+    // Esperar a que los datos globales estén cargados
     const checkDataLoaded = setInterval(() => {
         if (typeof datosGlobales !== 'undefined') {
             clearInterval(checkDataLoaded);
