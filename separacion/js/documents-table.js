@@ -18,28 +18,17 @@ let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
 
-// Función para mostrar notificaciones con SweetAlert2 con iconos
+// Función para mostrar notificaciones con SweetAlert2 con iconos nativos
 function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
-    const iconos = {
-        'success': 'success',
-        'error': 'error',
-        'warning': 'warning',
-        'info': 'info',
-        'question': 'question'
-    };
-
     return Swal.fire({
         title: titulo,
         text: mensaje,
-        icon: iconos[tipo] || 'info',
+        icon: tipo,
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
         timer: 3000,
-        timerProgressBar: true,
-        customClass: {
-            popup: 'swal2-popup-custom'
-        }
+        timerProgressBar: true
     });
 }
 
@@ -53,10 +42,7 @@ async function mostrarConfirmacion(titulo, texto, tipo = 'warning') {
         confirmButtonText: 'Sí, continuar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        customClass: {
-            popup: 'swal2-popup-custom'
-        }
+        cancelButtonColor: '#d33'
     });
     return result.isConfirmed;
 }
@@ -72,9 +58,6 @@ async function mostrarInput(titulo, texto, tipo = 'text') {
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        customClass: {
-            popup: 'swal2-popup-custom'
-        },
         inputValidator: (value) => {
             if (!value) {
                 return 'Este campo es obligatorio';
@@ -92,9 +75,6 @@ function mostrarLoading(titulo = 'Procesando...', texto = '') {
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
-        },
-        customClass: {
-            popup: 'swal2-popup-custom'
         }
     });
 }
@@ -740,8 +720,8 @@ async function cambiarResponsable(rec, responsable) {
     try {
         console.log(`Asignando responsable ${responsable} a REC${rec}`);
         
-        // Mostrar loading con icono
-        mostrarLoading('Asignando responsable...', `Asignando ${responsable} a REC${rec}`);
+        // Mostrar loading
+        mostrarLoading('Asignando responsable', `Asignando ${responsable} a REC${rec}`);
 
         const result = await llamarAPI({
             action: 'asignarResponsable',
@@ -753,8 +733,8 @@ async function cambiarResponsable(rec, responsable) {
             // Cerrar loading
             Swal.close();
             
-            // Mostrar éxito con icono
-            await mostrarNotificacion('¡Éxito!', `✅ Responsable de REC${rec} actualizado a ${responsable}`, 'success');
+            // Mostrar éxito con icono nativo
+            await mostrarNotificacion('Responsable asignado', `Responsable de REC${rec} actualizado a ${responsable}`, 'success');
             
             // Actualizar datos globales para obtener la información más reciente
             const datosActualizados = await actualizarDatosGlobales();
@@ -770,12 +750,12 @@ async function cambiarResponsable(rec, responsable) {
             }
         } else {
             Swal.close();
-            await mostrarNotificacion('Error', `❌ ${result.message || 'Error al asignar responsable'}`, 'error');
+            await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
         }
     } catch (error) {
         console.error('Error cambiando responsable:', error);
         Swal.close();
-        await mostrarNotificacion('Error', `❌ Error al asignar responsable: ${error.message}`, 'error');
+        await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
     }
 }
 
@@ -784,8 +764,8 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
     try {
         console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
         
-        // Mostrar loading con icono
-        mostrarLoading('Cambiando estado...', `Cambiando estado de REC${rec} a ${nuevoEstado}`);
+        // Mostrar loading
+        mostrarLoading('Cambiando estado', `Cambiando estado de REC${rec} a ${nuevoEstado}`);
 
         let action;
         switch(nuevoEstado) {
@@ -800,7 +780,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 break;
             default:
                 Swal.close();
-                await mostrarNotificacion('Error', '❌ Estado no válido', 'error');
+                await mostrarNotificacion('Error', 'Estado no válido', 'error');
                 return;
         }
         
@@ -825,16 +805,16 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             }
             
             Swal.close();
-            await mostrarNotificacion('¡Éxito!', `✅ Estado de REC${rec} cambiado a ${nuevoEstado}`, 'success');
+            await mostrarNotificacion('Estado actualizado', `Estado de REC${rec} cambiado a ${nuevoEstado}`, 'success');
             await actualizarInmediatamente();
         } else {
             Swal.close();
-            await mostrarNotificacion('Error', `❌ ${result.message || 'Error al cambiar estado'}`, 'error');
+            await mostrarNotificacion('Error', result.message || 'Error al cambiar estado', 'error');
         }
     } catch (error) {
         console.error('Error cambiando estado:', error);
         Swal.close();
-        await mostrarNotificacion('Error', `❌ Error al cambiar estado: ${error.message}`, 'error');
+        await mostrarNotificacion('Error', 'Error al cambiar estado: ' + error.message, 'error');
     }
 }
 
@@ -842,14 +822,14 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
 async function restablecerDocumento(rec) {
     try {
         const password = await mostrarInput(
-            '🔐 Restablecer Documento',
+            'Restablecer Documento',
             'Ingrese la contraseña para restablecer REC' + rec,
             'password'
         );
         
         if (password && password === 'one') {
-            // Mostrar loading con icono
-            mostrarLoading('Restableciendo...', `Restableciendo REC${rec}`);
+            // Mostrar loading
+            mostrarLoading('Restableciendo documento', `Restableciendo REC${rec}`);
 
             const result = await llamarAPI({
                 action: 'restablecer',
@@ -865,18 +845,18 @@ async function restablecerDocumento(rec) {
                 }
                 
                 Swal.close();
-                await mostrarNotificacion('¡Éxito!', `✅ Documento REC${rec} restablecido correctamente`, 'success');
+                await mostrarNotificacion('Documento restablecido', `Documento REC${rec} restablecido correctamente`, 'success');
                 await actualizarInmediatamente();
             } else {
                 Swal.close();
-                await mostrarNotificacion('Error', `❌ ${result.message || 'Error al restablecer'}`, 'error');
+                await mostrarNotificacion('Error', result.message || 'Error al restablecer', 'error');
             }
         } else if (password !== null && password !== 'one') {
-            await mostrarNotificacion('Error', '❌ Contraseña incorrecta', 'error');
+            await mostrarNotificacion('Error', 'Contraseña incorrecta', 'error');
         }
     } catch (error) {
         console.error('Error restableciendo documento:', error);
-        await mostrarNotificacion('Error', `❌ Error al restablecer documento: ${error.message}`, 'error');
+        await mostrarNotificacion('Error', 'Error al restablecer documento: ' + error.message, 'error');
     }
 }
 
@@ -1128,22 +1108,22 @@ async function imprimirSoloClientesDesdeTabla(rec) {
     try {
         console.log(`Imprimiendo clientes para REC${rec}`);
         
-        // Mostrar loading con icono
-        mostrarLoading('🖨️ Preparando impresión...', `Cargando datos de REC${rec}`);
+        // Mostrar loading
+        mostrarLoading('Preparando impresión', `Cargando datos de REC${rec}`);
 
         // Buscar el documento actualizado en los datos globales
         const documento = datosGlobales.find(doc => doc.REC === rec);
         
         if (!documento) {
             Swal.close();
-            await mostrarNotificacion('Error', `❌ No se encontró el documento REC${rec}`, 'error');
+            await mostrarNotificacion('Error', `No se encontró el documento REC${rec}`, 'error');
             return;
         }
 
         if (!documento.DISTRIBUCION || !documento.DISTRIBUCION.Clientes || 
             Object.keys(documento.DISTRIBUCION.Clientes).length === 0) {
             Swal.close();
-            await mostrarNotificacion('Error', `❌ No hay clientes asignados para REC${rec}`, 'error');
+            await mostrarNotificacion('Error', `No hay clientes asignados para REC${rec}`, 'error');
             return;
         }
 
@@ -1163,15 +1143,15 @@ async function imprimirSoloClientesDesdeTabla(rec) {
         // Llamar a la función de impresión
         if (typeof imprimirSoloClientes === 'function') {
             imprimirSoloClientes(datosImpresion);
-            await mostrarNotificacion('¡Listo!', `✅ Preparando impresión de REC${rec}`, 'success');
+            await mostrarNotificacion('Listo', `Preparando impresión de REC${rec}`, 'success');
         } else {
-            await mostrarNotificacion('Error', '❌ Función de impresión no disponible', 'error');
+            await mostrarNotificacion('Error', 'Función de impresión no disponible', 'error');
         }
         
     } catch (error) {
         console.error('Error al imprimir clientes:', error);
         Swal.close();
-        await mostrarNotificacion('Error', `❌ Error al preparar la impresión: ${error.message}`, 'error');
+        await mostrarNotificacion('Error', 'Error al preparar la impresión: ' + error.message, 'error');
     }
 }
 
