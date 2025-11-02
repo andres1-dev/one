@@ -175,6 +175,7 @@ async function llamarAPI(params) {
 }
 
 // Función OPTIMIZADA para actualizar solo una fila específica
+// Función MEJORADA para actualizar solo una fila específica
 async function actualizarFilaEspecifica(rec) {
     if (!documentosTable) return;
     
@@ -206,6 +207,7 @@ async function actualizarFilaEspecifica(rec) {
         const fechaSolo = formatearFechaSolo(fechaHora);
         const fechaObjeto = parsearFecha(fechaSolo);
         
+        // BUSCAR EN DATOS GLOBALES ACTUALIZADOS
         const datosCompletos = datosGlobales.find(d => d.REC === documento);
         const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
         
@@ -223,7 +225,7 @@ async function actualizarFilaEspecifica(rec) {
             tieneClientes: datosCompletos ? 
                 (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                  Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
-            datosCompletos: datosCompletos,
+            datosCompletos: datosCompletos, // ESTO ES CLAVE PARA LA IMPRESIÓN
             datetime_inicio: rowData[5] || '',
             datetime_fin: rowData[6] || '',
             duracion_guardada: rowData[7] || '',
@@ -237,12 +239,19 @@ async function actualizarFilaEspecifica(rec) {
         if (fila.any()) {
             fila.data(documentoActualizado).draw(false); // false = no cambiar de página
             console.log(`Fila REC${rec} actualizada exitosamente`);
+            
+            // ACTUALIZAR INTERFAZ: Forzar redibujado del select de responsables
+            const rowNode = fila.node();
+            const selectCell = $(rowNode).find('td:eq(2)'); // Columna de responsable
+            selectCell.html(generarSelectResponsables(rec, colaborador, documentosGlobales, documentoActualizado));
         }
         
         // Actualizar documentosGlobales
         const index = documentosGlobales.findIndex(d => d.rec === rec);
         if (index !== -1) {
             documentosGlobales[index] = documentoActualizado;
+        } else {
+            documentosGlobales.push(documentoActualizado);
         }
         
         // Recalcular consolidados
@@ -899,6 +908,7 @@ async function obtenerDocumentosCombinados() {
 }
 
 // Función OPTIMIZADA para cambiar responsable
+// Función OPTIMIZADA para cambiar responsable - VERSIÓN CORREGIDA
 async function cambiarResponsable(rec, responsable) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
@@ -918,8 +928,6 @@ async function cambiarResponsable(rec, responsable) {
             icon: 'info',
             position: 'center',
             showConfirmButton: false,
-            //timer: 15000,
-            //timerProgressBar: true,
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -937,10 +945,15 @@ async function cambiarResponsable(rec, responsable) {
         
         if (result.success) {
             // Mostrar éxito breve
-            mostrarNotificacion('✓ Asignado', responsable, 'success');
+            await mostrarNotificacion('✓ Asignado', responsable, 'success');
             
-            // Actualizar SOLO la fila específica
+            // ACTUALIZACIÓN INMEDIATA: Actualizar datos globales primero
+            await actualizarDatosGlobales();
+            
+            // ACTUALIZACIÓN INMEDIATA: Actualizar SOLO la fila específica
             await actualizarFilaEspecifica(rec);
+            
+            console.log(`Responsable ${responsable} asignado a REC${rec} - Tabla actualizada`);
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
@@ -1151,11 +1164,12 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
     } else {
         const tieneResponsable = responsableActual && responsableActual.trim() !== '';
         const texto = tieneResponsable ? responsableActual : 'Sin responsable';
-        const clase = tieneResponsable ? 'text-success' : 'text-muted';
+        const clase = tieneResponsable ? 'text-success fw-bold' : 'text-muted';
+        const icono = tieneResponsable ? 'fa-user-check' : 'fa-user';
         
         return `
             <span class="${clase} small" title="Responsable asignado - No modificable">
-                <i class="fas fa-user me-1"></i>${texto}
+                <i class="fas ${icono} me-1"></i>${texto}
             </span>
         `;
     }
@@ -1366,26 +1380,30 @@ function inicializarDataTable(documentos) {
 }
 
 // Función MEJORADA para imprimir clientes
+// Función MEJORADA para imprimir clientes
 async function imprimirSoloClientesDesdeTabla(rec) {
     try {
         console.log(`Imprimiendo clientes para REC${rec}`);
         
-        // Mostrar loading EN EL CENTRO
-        mostrarLoading('Preparando impresión', `Cargando datos de REC${rec}`);
-
-        // Buscar el documento actualizado en los datos globales
+        // Buscar el documento en datosGlobales ACTUALIZADOS
         const documento = datosGlobales.find(doc => doc.REC === rec);
         
         if (!documento) {
-            Swal.close();
-            await mostrarNotificacion('Error', `No se encontró el documento REC${rec}`, 'error');
+            await mostrarNotificacion('Error', `No se encontró el documento REC${rec} en datos globales`, 'error');
             return;
         }
 
+        // Verificar que tenga clientes
         if (!documento.DISTRIBUCION || !documento.DISTRIBUCION.Clientes || 
             Object.keys(documento.DISTRIBUCION.Clientes).length === 0) {
-            Swal.close();
             await mostrarNotificacion('Error', `No hay clientes asignados para REC${rec}`, 'error');
+            return;
+        }
+
+        // Verificar que tenga responsable asignado
+        const documentoEnTabla = documentosGlobales.find(doc => doc.rec === rec);
+        if (!documentoEnTabla || !documentoEnTabla.colaborador || documentoEnTabla.colaborador.trim() === '') {
+            await mostrarNotificacion('Error', `No hay responsable asignado para REC${rec}`, 'error');
             return;
         }
 
@@ -1397,22 +1415,20 @@ async function imprimirSoloClientesDesdeTabla(rec) {
             refProv: documento.REFPROV || '',
             linea: documento.LINEA || '',
             cantidad: documento.CANTIDAD || 0,
-            clientes: documento.DISTRIBUCION.Clientes
+            clientes: documento.DISTRIBUCION.Clientes,
+            responsable: documentoEnTabla.colaborador // Incluir responsable
         };
 
-        Swal.close();
-        
         // Llamar a la función de impresión
         if (typeof imprimirSoloClientes === 'function') {
             imprimirSoloClientes(datosImpresion);
-            await mostrarNotificacion('Listo', `Preparando impresión de REC${rec}`, 'success');
+            await mostrarNotificacion('Éxito', `Imprimiendo REC${rec}`, 'success');
         } else {
             await mostrarNotificacion('Error', 'Función de impresión no disponible', 'error');
         }
         
     } catch (error) {
         console.error('Error al imprimir clientes:', error);
-        Swal.close();
         await mostrarNotificacion('Error', 'Error al preparar la impresión: ' + error.message, 'error');
     }
 }
