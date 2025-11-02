@@ -67,13 +67,15 @@ async function mostrarInput(titulo, texto, tipo = 'text') {
     return value;
 }
 
-// Función para mostrar loading
+// Función para mostrar loading CON ICONO
 function mostrarLoading(titulo = 'Procesando...', texto = '') {
-    Swal.fire({
+    return Swal.fire({
         title: titulo,
         text: texto,
+        icon: 'info',
         allowOutsideClick: false,
-        didOpen: () => {
+        showConfirmButton: false,
+        willOpen: () => {
             Swal.showLoading();
         }
     });
@@ -715,13 +717,13 @@ async function obtenerDocumentosCombinados() {
     }
 }
 
-// Función mejorada para cambiar responsable con actualización de datos
+// Función CORREGIDA para cambiar responsable con actualización de datos
 async function cambiarResponsable(rec, responsable) {
     try {
         console.log(`Asignando responsable ${responsable} a REC${rec}`);
         
-        // Mostrar loading
-        mostrarLoading('Asignando responsable', `Asignando ${responsable} a REC${rec}`);
+        // Mostrar loading CON ICONO
+        const loadingAlert = mostrarLoading('Asignando responsable', `Asignando ${responsable} a REC${rec}`);
 
         const result = await llamarAPI({
             action: 'asignarResponsable',
@@ -729,27 +731,18 @@ async function cambiarResponsable(rec, responsable) {
             responsable: responsable
         });
         
+        // Cerrar loading inmediatamente después de la respuesta
+        Swal.close();
+        
         if (result.success) {
-            // Cerrar loading
-            Swal.close();
-            
-            // Mostrar éxito con icono nativo
+            // Mostrar éxito
             await mostrarNotificacion('Responsable asignado', `Responsable de REC${rec} actualizado a ${responsable}`, 'success');
             
-            // Actualizar datos globales para obtener la información más reciente
-            const datosActualizados = await actualizarDatosGlobales();
+            // ACTUALIZAR LA TABLA INMEDIATAMENTE - sin esperar datos globales
+            console.log('Recargando tabla después de asignar responsable...');
+            await actualizarInmediatamente();
             
-            if (datosActualizados) {
-                console.log('Datos actualizados correctamente, recargando tabla...');
-                // Recargar la tabla con los datos actualizados
-                await actualizarInmediatamente();
-            } else {
-                console.log('Recargando tabla sin actualizar datos globales...');
-                // Si no se pudieron actualizar los datos globales, al menos recargar la tabla
-                await actualizarInmediatamente();
-            }
         } else {
-            Swal.close();
             await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
         }
     } catch (error) {
@@ -759,13 +752,13 @@ async function cambiarResponsable(rec, responsable) {
     }
 }
 
-// Función mejorada para cambiar estado del documento
+// Función CORREGIDA para cambiar estado del documento
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     try {
         console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
         
-        // Mostrar loading
-        mostrarLoading('Cambiando estado', `Cambiando estado de REC${rec} a ${nuevoEstado}`);
+        // Mostrar loading CON ICONO
+        const loadingAlert = mostrarLoading('Cambiando estado', `Cambiando estado de REC${rec} a ${nuevoEstado}`);
 
         let action;
         switch(nuevoEstado) {
@@ -789,6 +782,9 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             id: rec
         });
         
+        // Cerrar loading inmediatamente después de la respuesta
+        Swal.close();
+        
         if (result.success) {
             // Manejar timers
             if (nuevoEstado === 'PAUSADO' || nuevoEstado === 'FINALIZADO') {
@@ -804,11 +800,9 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 }
             }
             
-            Swal.close();
             await mostrarNotificacion('Estado actualizado', `Estado de REC${rec} cambiado a ${nuevoEstado}`, 'success');
             await actualizarInmediatamente();
         } else {
-            Swal.close();
             await mostrarNotificacion('Error', result.message || 'Error al cambiar estado', 'error');
         }
     } catch (error) {
@@ -818,7 +812,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
     }
 }
 
-// Función mejorada para restablecer documento
+// Función CORREGIDA para restablecer documento
 async function restablecerDocumento(rec) {
     try {
         const password = await mostrarInput(
@@ -828,14 +822,17 @@ async function restablecerDocumento(rec) {
         );
         
         if (password && password === 'one') {
-            // Mostrar loading
-            mostrarLoading('Restableciendo documento', `Restableciendo REC${rec}`);
+            // Mostrar loading CON ICONO
+            const loadingAlert = mostrarLoading('Restableciendo documento', `Restableciendo REC${rec}`);
 
             const result = await llamarAPI({
                 action: 'restablecer',
                 id: rec,
                 password: password
             });
+            
+            // Cerrar loading inmediatamente después de la respuesta
+            Swal.close();
             
             if (result.success) {
                 // Detener timer si existe
@@ -844,11 +841,9 @@ async function restablecerDocumento(rec) {
                     delete timers[rec];
                 }
                 
-                Swal.close();
                 await mostrarNotificacion('Documento restablecido', `Documento REC${rec} restablecido correctamente`, 'success');
                 await actualizarInmediatamente();
             } else {
-                Swal.close();
                 await mostrarNotificacion('Error', result.message || 'Error al restablecer', 'error');
             }
         } else if (password !== null && password !== 'one') {
@@ -1108,8 +1103,8 @@ async function imprimirSoloClientesDesdeTabla(rec) {
     try {
         console.log(`Imprimiendo clientes para REC${rec}`);
         
-        // Mostrar loading
-        mostrarLoading('Preparando impresión', `Cargando datos de REC${rec}`);
+        // Mostrar loading CON ICONO
+        const loadingAlert = mostrarLoading('Preparando impresión', `Cargando datos de REC${rec}`);
 
         // Buscar el documento actualizado en los datos globales
         const documento = datosGlobales.find(doc => doc.REC === rec);
