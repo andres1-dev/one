@@ -306,9 +306,9 @@ body {
     border-color: var(--light-color);
 }
 
-.table-striped tbody tr:nth-of-type(odd) {
+/*.table-striped tbody tr:nth-of-type(odd) {
     background-color: rgba(236, 240, 241, 0.5);
-}
+}*/
 
 .table-hover tbody tr:hover {
     background-color: rgba(52, 152, 219, 0.05);
