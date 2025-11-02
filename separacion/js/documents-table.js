@@ -18,26 +18,26 @@ let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
 
-// Función para mostrar notificaciones con SweetAlert2 con iconos nativos
+// Función para mostrar notificaciones con SweetAlert2 en el CENTRO
 function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
     return Swal.fire({
         title: titulo,
         text: mensaje,
         icon: tipo,
-        toast: true,
-        position: 'top-end',
+        position: 'center',
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true
     });
 }
 
-// Función para mostrar confirmación con SweetAlert2
+// Función para mostrar confirmación con SweetAlert2 en el CENTRO
 async function mostrarConfirmacion(titulo, texto, tipo = 'warning') {
     const result = await Swal.fire({
         title: titulo,
         text: texto,
         icon: tipo,
+        position: 'center',
         showCancelButton: true,
         confirmButtonText: 'Sí, continuar',
         cancelButtonText: 'Cancelar',
@@ -47,12 +47,13 @@ async function mostrarConfirmacion(titulo, texto, tipo = 'warning') {
     return result.isConfirmed;
 }
 
-// Función para mostrar input con SweetAlert2
+// Función para mostrar input con SweetAlert2 en el CENTRO
 async function mostrarInput(titulo, texto, tipo = 'text') {
     const { value } = await Swal.fire({
         title: titulo,
         input: tipo,
         inputLabel: texto,
+        position: 'center',
         showCancelButton: true,
         confirmButtonText: 'Aceptar',
         cancelButtonText: 'Cancelar',
@@ -67,15 +68,15 @@ async function mostrarInput(titulo, texto, tipo = 'text') {
     return value;
 }
 
-// Función para mostrar loading CON ICONO
+// Función para mostrar loading EN EL CENTRO
 function mostrarLoading(titulo = 'Procesando...', texto = '') {
     return Swal.fire({
         title: titulo,
         text: texto,
-        icon: 'info',
+        position: 'center',
         allowOutsideClick: false,
         showConfirmButton: false,
-        willOpen: () => {
+        didOpen: () => {
             Swal.showLoading();
         }
     });
@@ -171,41 +172,60 @@ async function llamarAPI(params) {
     }
 }
 
-// Función para actualizar inmediatamente después de un cambio
-async function actualizarInmediatamente() {
+// Función MEJORADA para actualizar inmediatamente después de un cambio
+async function actualizarInmediatamente(forzarRecarga = false) {
     let estadoTabla = null;
     
     try {
         // Guardar estado actual antes de cualquier cambio
         estadoTabla = guardarEstadoTabla();
         
+        // Mostrar loader global
         const loader = document.getElementById('loader');
         if (loader) {
             loader.style.display = 'block';
         }
 
-        // Ocultar tabla durante la actualización para evitar parpadeo
-        if (documentosTable) {
-            $('#documentosTable').closest('.table-responsive').fadeOut(100);
-        }
+        console.log('Actualizando tabla...', { forzarRecarga });
 
-        await cargarTablaDocumentos();
+        // Si se fuerza recarga o no hay tabla, cargar completamente
+        if (forzarRecarga || !documentosTable) {
+            console.log('Recargando tabla completa...');
+            await cargarTablaDocumentos();
+        } else {
+            console.log('Actualizando datos existentes...');
+            // Solo actualizar los datos de la tabla existente
+            const documentosDisponibles = await obtenerDocumentosCombinados();
+            documentosGlobales = documentosDisponibles;
+            
+            const consolidados = calcularConsolidados(documentosDisponibles);
+            actualizarTarjetasResumen(consolidados);
+            
+            // Actualizar DataTable con nuevos datos
+            documentosTable.clear();
+            documentosTable.rows.add(documentosDisponibles);
+            documentosTable.draw();
+            
+            // Reiniciar timers
+            iniciarTimers(documentosDisponibles);
+        }
         
         // Restaurar estado después de cargar
         if (estadoTabla) {
             setTimeout(() => {
                 restaurarEstadoTabla(estadoTabla);
-                $('#documentosTable').closest('.table-responsive').fadeIn(300);
-            }, 500);
-        } else {
-            $('#documentosTable').closest('.table-responsive').fadeIn(300);
+            }, 100);
         }
         
+        // Ocultar loader
         if (loader) {
             setTimeout(() => {
                 loader.style.display = 'none';
             }, 500);
         }
+        
+        console.log('Tabla actualizada correctamente');
+        
     } catch (error) {
         console.error('Error en actualización inmediata:', error);
         const loader = document.getElementById('loader');
@@ -213,10 +233,10 @@ async function actualizarInmediatamente() {
             loader.style.display = 'none';
         }
         // Restaurar estado incluso en error
-        if (estadoTabla) {
+        if (estadoTabla && documentosTable) {
             restaurarEstadoTabla(estadoTabla);
-            $('#documentosTable').closest('.table-responsive').fadeIn(300);
         }
+        throw error;
     }
 }
 
@@ -600,12 +620,14 @@ function toggleFinalizados() {
             ? '<i class="fas fa-eye-slash me-1"></i>Ocultar Finalizados'
             : '<i class="fas fa-eye me-1"></i>Mostrar Finalizados';
     }
-    actualizarInmediatamente();
+    actualizarInmediatamente(true);
 }
 
-// Función para cargar la tabla de documentos
+// Función MEJORADA para cargar la tabla de documentos
 async function cargarTablaDocumentos() {
     try {
+        console.log('Iniciando carga de tabla de documentos...');
+        
         const loader = document.getElementById('loader');
         if (loader) {
             loader.style.display = 'block';
@@ -613,30 +635,90 @@ async function cargarTablaDocumentos() {
 
         await cargarResponsables();
         
+        // Destruir tabla existente si hay una
         if (documentosTable) {
             documentosTable.destroy();
+            documentosTable = null;
         }
 
         const documentosDisponibles = await obtenerDocumentosCombinados();
         documentosGlobales = documentosDisponibles;
         
+        console.log('Documentos disponibles:', documentosDisponibles.length);
+        
         const consolidados = calcularConsolidados(documentosDisponibles);
         actualizarTarjetasResumen(consolidados);
         
-        inicializarDataTable(documentosDisponibles);
+        // Inicializar DataTable solo si hay datos
+        if (documentosDisponibles.length > 0) {
+            inicializarDataTable(documentosDisponibles);
+        } else {
+            // Mostrar mensaje de no hay datos
+            $('#documentosTable').html(`
+                <thead class="table-light">
+                    <tr>
+                        <th>Documento</th>
+                        <th>Estado</th>
+                        <th>Responsable</th>
+                        <th>Fecha</th>
+                        <th>Duración</th>
+                        <th>Cantidad</th>
+                        <th>Línea</th>
+                        <th>Lote</th>
+                        <th>RefProv</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            No se encontraron documentos
+                        </td>
+                    </tr>
+                </tbody>
+            `);
+        }
         
         if (loader) {
             loader.style.display = 'none';
         }
         
+        console.log('Tabla de documentos cargada correctamente');
+        
     } catch (error) {
         console.error('Error al cargar tabla de documentos:', error);
-        mostrarNotificacion('Error', 'Error al cargar los documentos: ' + error.message, 'error');
         
         const loader = document.getElementById('loader');
         if (loader) {
             loader.style.display = 'none';
         }
+        
+        // Mostrar error en la tabla
+        $('#documentosTable').html(`
+            <thead class="table-light">
+                <tr>
+                    <th>Documento</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Fecha</th>
+                    <th>Duración</th>
+                    <th>Cantidad</th>
+                    <th>Línea</th>
+                    <th>Lote</th>
+                    <th>RefProv</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="10" class="text-center text-danger py-4">
+                        Error al cargar los documentos: ${error.message}
+                    </td>
+                </tr>
+            </tbody>
+        `);
+        
+        mostrarNotificacion('Error', 'Error al cargar los documentos: ' + error.message, 'error');
     }
 }
 
@@ -655,11 +737,15 @@ async function obtenerDocumentosCombinados() {
         const values = data.values || [];
         
         const datosGlobalesMap = {};
-        datosGlobales.forEach(item => {
-            if (item.REC) {
-                datosGlobalesMap[item.REC] = item;
-            }
-        });
+        if (datosGlobales && datosGlobales.length > 0) {
+            datosGlobales.forEach(item => {
+                if (item.REC) {
+                    datosGlobalesMap[item.REC] = item;
+                }
+            });
+        } else {
+            console.warn('datosGlobales está vacío o no disponible');
+        }
 
         const estadosParaMostrar = obtenerEstadosParaMostrar();
         const documentosProcesados = values
@@ -707,8 +793,6 @@ async function obtenerDocumentosCombinados() {
             .filter(doc => doc.rec && estadosParaMostrar.includes(doc.estado));
 
         console.log('Documentos procesados:', documentosProcesados.length);
-        console.log('Ejemplo de fecha_objeto:', documentosProcesados[0]?.fecha_objeto);
-
         return documentosProcesados;
             
     } catch (error) {
@@ -722,8 +806,8 @@ async function cambiarResponsable(rec, responsable) {
     try {
         console.log(`Asignando responsable ${responsable} a REC${rec}`);
         
-        // Mostrar loading CON ICONO
-        const loadingAlert = mostrarLoading('Asignando responsable', `Asignando ${responsable} a REC${rec}`);
+        // Mostrar loading EN EL CENTRO
+        mostrarLoading('Asignando responsable', `Asignando ${responsable} a REC${rec}`);
 
         const result = await llamarAPI({
             action: 'asignarResponsable',
@@ -735,12 +819,16 @@ async function cambiarResponsable(rec, responsable) {
         Swal.close();
         
         if (result.success) {
-            // Mostrar éxito
+            // Mostrar éxito EN EL CENTRO
             await mostrarNotificacion('Responsable asignado', `Responsable de REC${rec} actualizado a ${responsable}`, 'success');
             
-            // ACTUALIZAR LA TABLA INMEDIATAMENTE - sin esperar datos globales
-            console.log('Recargando tabla después de asignar responsable...');
-            await actualizarInmediatamente();
+            // ACTUALIZAR DATOS GLOBALES PRIMERO para garantizar información actualizada
+            console.log('Actualizando datos globales después de asignar responsable...');
+            await actualizarDatosGlobales();
+            
+            // LUEGO ACTUALIZAR LA TABLA
+            console.log('Actualizando tabla después de asignar responsable...');
+            await actualizarInmediatamente(true);
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
@@ -757,8 +845,8 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
     try {
         console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
         
-        // Mostrar loading CON ICONO
-        const loadingAlert = mostrarLoading('Cambiando estado', `Cambiando estado de REC${rec} a ${nuevoEstado}`);
+        // Mostrar loading EN EL CENTRO
+        mostrarLoading('Cambiando estado', `Cambiando estado de REC${rec} a ${nuevoEstado}`);
 
         let action;
         switch(nuevoEstado) {
@@ -801,7 +889,11 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             }
             
             await mostrarNotificacion('Estado actualizado', `Estado de REC${rec} cambiado a ${nuevoEstado}`, 'success');
-            await actualizarInmediatamente();
+            
+            // Actualizar datos globales y tabla
+            await actualizarDatosGlobales();
+            await actualizarInmediatamente(true);
+            
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al cambiar estado', 'error');
         }
@@ -822,8 +914,8 @@ async function restablecerDocumento(rec) {
         );
         
         if (password && password === 'one') {
-            // Mostrar loading CON ICONO
-            const loadingAlert = mostrarLoading('Restableciendo documento', `Restableciendo REC${rec}`);
+            // Mostrar loading EN EL CENTRO
+            mostrarLoading('Restableciendo documento', `Restableciendo REC${rec}`);
 
             const result = await llamarAPI({
                 action: 'restablecer',
@@ -842,7 +934,11 @@ async function restablecerDocumento(rec) {
                 }
                 
                 await mostrarNotificacion('Documento restablecido', `Documento REC${rec} restablecido correctamente`, 'success');
-                await actualizarInmediatamente();
+                
+                // Actualizar datos globales y tabla
+                await actualizarDatosGlobales();
+                await actualizarInmediatamente(true);
+                
             } else {
                 await mostrarNotificacion('Error', result.message || 'Error al restablecer', 'error');
             }
@@ -957,6 +1053,7 @@ function obtenerBotonesAccion(data) {
 function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
     
+    // Limpiar búsquedas anteriores
     $.fn.dataTable.ext.search = [];
     
     documentosTable = table.DataTable({
@@ -1098,13 +1195,13 @@ function inicializarDataTable(documentos) {
     });
 }
 
-// Función mejorada para imprimir clientes
+// Función MEJORADA para imprimir clientes
 async function imprimirSoloClientesDesdeTabla(rec) {
     try {
         console.log(`Imprimiendo clientes para REC${rec}`);
         
-        // Mostrar loading CON ICONO
-        const loadingAlert = mostrarLoading('Preparando impresión', `Cargando datos de REC${rec}`);
+        // Mostrar loading EN EL CENTRO
+        mostrarLoading('Preparando impresión', `Cargando datos de REC${rec}`);
 
         // Buscar el documento actualizado en los datos globales
         const documento = datosGlobales.find(doc => doc.REC === rec);
@@ -1154,39 +1251,37 @@ async function imprimirSoloClientesDesdeTabla(rec) {
 $(document).ready(function() {
     console.log('Inicializando documents-table.js');
     
-    // Configurar flatpickr para filtro de fecha si existe
-    if (document.getElementById('filtroFecha')) {
-        window.flatpickrInstance = flatpickr("#filtroFecha", {
-            mode: "range",
-            dateFormat: "Y-m-d",
-            locale: "es",
-            onChange: function(selectedDates, dateStr) {
-                if (selectedDates.length === 2) {
-                    aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
-                } else if (selectedDates.length === 0) {
-                    // Limpiar filtro de fecha cuando se borra
-                    rangoFechasSeleccionado = null;
-                    filtrosActivos.fecha = null;
-                    if (documentosTable) {
-                        documentosTable.draw();
+    // Esperar a que los datos globales estén cargados
+    const checkDataLoaded = setInterval(() => {
+        if (typeof datosGlobales !== 'undefined') {
+            clearInterval(checkDataLoaded);
+            console.log('Datos globales disponibles, cargando tabla...');
+            
+            // Configurar flatpickr para filtro de fecha si existe
+            if (document.getElementById('filtroFecha')) {
+                window.flatpickrInstance = flatpickr("#filtroFecha", {
+                    mode: "range",
+                    dateFormat: "Y-m-d",
+                    locale: "es",
+                    onChange: function(selectedDates, dateStr) {
+                        if (selectedDates.length === 2) {
+                            aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
+                        } else if (selectedDates.length === 0) {
+                            // Limpiar filtro de fecha cuando se borra
+                            rangoFechasSeleccionado = null;
+                            filtrosActivos.fecha = null;
+                            if (documentosTable) {
+                                documentosTable.draw();
+                            }
+                        }
                     }
-                }
+                });
             }
-        });
-    }
-    
-    // Evento para limpiar filtros
-    $('#btnLimpiarFiltros').on('click', function() {
-        limpiarFiltros();
-    });
-    
-    // Evento para toggle finalizados
-    $('#btnToggleFinalizados').on('click', function() {
-        toggleFinalizados();
-    });
-    
-    // Cargar tabla inicial
-    cargarTablaDocumentos();
+            
+            // Cargar tabla inicial
+            cargarTablaDocumentos();
+        }
+    }, 100);
 });
 
 // Exportar funciones para uso global
