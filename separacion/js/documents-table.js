@@ -899,7 +899,7 @@ async function obtenerDocumentosCombinados() {
 }
 
 // FunciÃ³n OPTIMIZADA para cambiar responsable
-/*async function cambiarResponsable(rec, responsable) {
+async function cambiarResponsable(rec, responsable) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de responsable...');
@@ -953,81 +953,6 @@ async function obtenerDocumentosCombinados() {
         actualizacionEnProgreso = false;
     }
 }
-*/
-
-async function cambiarResponsable(rec, responsable) {
-    // Evitar múltiples llamadas simultáneas
-    if (actualizacionEnProgreso) {
-        console.log('Actualización en progreso, ignorando cambio de responsable...');
-        return;
-    }
-    
-    try {
-        console.log(`Asignando responsable ${responsable} a REC${rec}`);
-        
-        actualizacionEnProgreso = true;
-        
-        // Mostrar loading compacto
-        const loadingToast = Swal.fire({
-            title: 'Asignando...',
-            text: responsable,
-            icon: 'info',
-            position: 'center',
-            showConfirmButton: false,
-            timerProgressBar: true,
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        const result = await llamarAPI({
-            action: 'asignarResponsable',
-            id: rec,
-            responsable: responsable
-        });
-        
-        // Cerrar loading
-        Swal.close();
-        
-        if (result.success) {
-            // Mostrar éxito breve
-            mostrarNotificacion('✓ Asignado', responsable, 'success');
-            
-            // Actualizar SOLO la fila específica
-            await actualizarFilaEspecifica(rec);
-
-            // opcional: aquí NO llamamos a cargarTablaDocumentos para no bloquear;
-            // la recarga global la hacemos en finally (ver abajo) para garantizar coherencia.
-            
-        } else {
-            await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
-        }
-    } catch (error) {
-        console.error('Error cambiando responsable:', error);
-        Swal.close();
-        await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
-    } finally {
-        // liberar flag primero
-        actualizacionEnProgreso = false;
-
-        // Llamada no bloqueante a cargarTablaDocumentos para refrescar la tabla completa
-        // Se hace con un pequeño retraso para evitar solapamiento con actualizarFilaEspecifica.
-        // No usamos await: es fire-and-forget, así no rompemos la lógica actual.
-        try {
-            setTimeout(() => {
-                // Si quieres evitar recargar cuando ya hubo error, podrías comprobar alguna condición aquí.
-                cargarTablaDocumentos().catch(err => {
-                    console.error('Error al recargar la tabla después de cambiar responsable:', err);
-                });
-            }, 200); // 200ms es un valor seguro; ajústalo si prefieres 0/100/300 ms
-        } catch (e) {
-            // por seguridad, atrapa cualquier error de scheduling
-            console.error('No se pudo programar la recarga de la tabla:', e);
-        }
-    }
-}
-
 
 // FunciÃ³n OPTIMIZADA para cambiar estado del documento
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
