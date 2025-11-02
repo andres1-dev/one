@@ -438,43 +438,6 @@ function toggleFinalizados() {
 }
 
 // Función para cargar la tabla de documentos
-/*async function cargarTablaDocumentos() {
-    try {
-        const loader = document.getElementById('loader');
-        if (loader) {
-            loader.style.display = 'block';
-        }
-
-        await cargarResponsables();
-        
-        if (documentosTable) {
-            documentosTable.destroy();
-        }
-
-        const documentosDisponibles = await obtenerDocumentosCombinados();
-        documentosGlobales = documentosDisponibles;
-        
-        const consolidados = calcularConsolidados(documentosDisponibles);
-        actualizarTarjetasResumen(consolidados);
-        
-        inicializarDataTable(documentosDisponibles);
-        
-        if (loader) {
-            loader.style.display = 'none';
-        }
-        
-    } catch (error) {
-        console.error('Error al cargar tabla de documentos:', error);
-        mostrarError('Error al cargar los documentos: ' + error.message);
-        
-        const loader = document.getElementById('loader');
-        if (loader) {
-            loader.style.display = 'none';
-        }
-    }
-}
-*/
-
 async function cargarTablaDocumentos() {
     try {
         const loader = document.getElementById('loader');
@@ -482,12 +445,6 @@ async function cargarTablaDocumentos() {
             loader.style.display = 'block';
         }
 
-        // 🔥 **VERIFICAR que datosGlobales esté cargado**
-        if (!datosGlobales || datosGlobales.length === 0) {
-            console.log('datosGlobales vacío, recargando...');
-            await recargarDatosGlobales();
-        }
-        
         await cargarResponsables();
         
         if (documentosTable) {
@@ -964,13 +921,6 @@ window.addEventListener('beforeunload', function() {
     Object.keys(timers).forEach(rec => {
         clearInterval(timers[rec]);
     });
-});
-
-// Al final de documents-table.js, agregar:
-document.addEventListener('datosRecargados', function(event) {
-    console.log('Datos globales recargados, actualizando tabla...');
-    // La tabla se actualizará automáticamente porque cargarTablaDocumentos 
-    // usa datosGlobales que ya fueron actualizados
 });
 
 window.aplicarFiltroFecha = aplicarFiltroFecha;
