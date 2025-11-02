@@ -536,4 +536,4 @@ async function cargarDatos() {
 }
 
 // Cargar los datos al iniciar la página
-window.cargarDatos = cargarDatos;
+window.onload = cargarDatos;
