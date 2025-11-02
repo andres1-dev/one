@@ -554,30 +554,6 @@ async function obtenerDocumentosCombinados() {
 // Resto de funciones (cambiarResponsable, cambiarEstadoDocumento, etc.)
 // ... [mantener las funciones restantes sin cambios]
 
-/*async function cambiarResponsable(rec, responsable) {
-    try {
-        console.log(`Asignando responsable ${responsable} a REC${rec}`);
-        mostrarMensaje(`Asignando responsable a REC${rec}...`, 'info');
-        
-        const result = await llamarAPI({
-            action: 'asignarResponsable',
-            id: rec,
-            responsable: responsable
-        });
-        
-        if (result.success) {
-            mostrarMensaje(`✅ Responsable de REC${rec} actualizado a ${responsable}`, 'success');
-            await actualizarInmediatamente();
-        } else {
-            mostrarError(result.message || 'Error al asignar responsable');
-        }
-    } catch (error) {
-        console.error('Error cambiando responsable:', error);
-        mostrarError('Error al asignar responsable: ' + error.message);
-    }
-}
-*/
-
 async function cambiarResponsable(rec, responsable) {
     try {
         console.log(`Asignando responsable ${responsable} a REC${rec}`);
@@ -591,16 +567,7 @@ async function cambiarResponsable(rec, responsable) {
         
         if (result.success) {
             mostrarMensaje(`✅ Responsable de REC${rec} actualizado a ${responsable}`, 'success');
-            
-            // ESPERAR un momento para garantizar que la base de datos se actualice
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // RECARGAR los datos globales desde main.js antes de actualizar la tabla
-            await recargarDatosGlobales();
-            
-            // Ahora actualizar la tabla con los nuevos datos
             await actualizarInmediatamente();
-            
         } else {
             mostrarError(result.message || 'Error al asignar responsable');
         }
@@ -609,7 +576,6 @@ async function cambiarResponsable(rec, responsable) {
         mostrarError('Error al asignar responsable: ' + error.message);
     }
 }
-
 
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     try {
