@@ -758,7 +758,7 @@ body {
 .text-info { color: var(--info-color) !important; }
 .text-warning { color: var(--warning-color) !important; }
 
-//.fw-bold { font-weight: 700 !important; }
+.fw-bold { font-weight: 700 !important; }
 .fw-semibold { font-weight: 600 !important; }
 .fw-medium { font-weight: 500 !important; }
 .fw-normal { font-weight: 400 !important; }
@@ -912,7 +912,6 @@ body {
     }
 }
 
-/* ===== PANEL DE ACCIONES MEJORADO - ESTILO OUTLINE ===== */
 /* ===== PANEL DE ACCIONES MINIMALISTA ===== */
 .acciones-panel {
     display: inline-flex;
@@ -1402,3 +1401,15 @@ img {
 .gap-sm { gap: var(--spacing-sm) !important; }
 .gap-md { gap: var(--spacing-md) !important; }
 .gap-lg { gap: var(--spacing-lg) !important; }
+
+
+/* ===== QUITAR NEGRITA DE COLUMNAS ESPECÍFICAS ===== */
+.table th:nth-child(1), /* Documento */
+.table th:nth-child(2) { /* Responsable */
+    font-weight: 400 !important;
+}
+
+.table td:nth-child(0), /* Documento */
+.table td:nth-child(2) { /* Responsable */
+    font-weight: 400 !important;
+}
