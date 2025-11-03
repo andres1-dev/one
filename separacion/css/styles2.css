@@ -845,38 +845,8 @@ body {
     background: var(--text-secondary);
 }
 
-/* ===== SWEETALERT2 PERSONALIZACIÓN ===== */
-.swal2-popup {
-    border-radius: var(--radius-lg) !important;
-    box-shadow: var(--shadow-xl) !important;
-    border: 1px solid var(--border-light) !important;
-    font-family: inherit !important;
-}
-
-.swal2-title {
-    font-size: 1.25rem !important;
-    font-weight: 600 !important;
-    color: var(--text-primary) !important;
-}
-
-.swal2-content {
-    font-size: 0.9375rem !important;
-    color: var(--text-secondary) !important;
-}
-
-.swal2-confirm {
-    background: var(--accent-color) !important;
-    border-radius: var(--radius-md) !important;
-    font-weight: 500 !important;
-    padding: 0.625rem 1.5rem !important;
-}
-
-.swal2-cancel {
-    background: var(--text-secondary) !important;
-    border-radius: var(--radius-md) !important;
-    font-weight: 500 !important;
-    padding: 0.625rem 1.5rem !important;
-}
+/* ===== SWEETALERT2 - SIN MODIFICACIONES ===== */
+/* Mantener estilos por defecto de SweetAlert2 */
 
 /* ===== DATATABLES PERSONALIZACIÓN ===== */
 .dataTables_wrapper .dataTables_length select,
