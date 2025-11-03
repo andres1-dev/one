@@ -1175,6 +1175,76 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
     }
 }
 
+// Reemplaza la función obtenerBotonesAccion en documents-table.js con esta versión mejorada
+
+function obtenerBotonesAccion(data) {
+    const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
+    const tieneClientes = data.tieneClientes;
+    const puedeImprimir = tieneColaborador && tieneClientes;
+    
+    let botonesEstado = '';
+    
+    // Botón de imprimir (siempre presente)
+    const botonImprimir = `
+        <button class="btn ${puedeImprimir ? 'btn-primary' : 'btn-secondary'}" 
+                ${puedeImprimir ? '' : 'disabled'}
+                onclick="imprimirSoloClientesDesdeTabla('${data.rec}')"
+                title="${puedeImprimir ? 'Imprimir clientes' : 'No se puede imprimir'}">
+            <i class="fas fa-print"></i>
+        </button>`;
+    
+    // Botones de estado según el estado actual
+    if (data.estado === 'PAUSADO') {
+        botonesEstado = `
+            <button class="btn btn-success" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'ELABORACION')"
+                    title="Reanudar documento">
+                <i class="fas fa-play"></i>
+            </button>`;
+    } else if (data.estado === 'ELABORACION') {
+        botonesEstado = `
+            <button class="btn btn-warning" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
+                    title="Pausar documento">
+                <i class="fas fa-pause"></i>
+            </button>`;
+    } else if (data.estado === 'PENDIENTE' || data.estado === 'DIRECTO') {
+        botonesEstado = `
+            <button class="btn btn-warning" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
+                    title="Pausar documento">
+                <i class="fas fa-pause"></i>
+            </button>`;
+    }
+    
+    // Botón de finalizar (si no está finalizado)
+    const botonFinalizar = data.estado !== 'FINALIZADO' ? `
+        <button class="btn btn-info" 
+                onclick="cambiarEstadoDocumento('${data.rec}', 'FINALIZADO')"
+                title="Finalizar documento">
+            <i class="fas fa-check"></i>
+        </button>` : '';
+    
+    // Botón de restablecer (siempre presente)
+    const botonRestablecer = `
+        <button class="btn btn-danger" 
+                onclick="restablecerDocumento('${data.rec}')"
+                title="Restablecer documento">
+            <i class="fas fa-undo"></i>
+        </button>`;
+    
+    // Retornar panel unificado
+    return `
+        <div class="acciones-panel">
+            ${botonImprimir}
+            ${botonesEstado}
+            ${botonFinalizar}
+            ${botonRestablecer}
+        </div>
+    `;
+}
+
+/*
 function obtenerBotonesAccion(data) {
     const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
     const tieneClientes = data.tieneClientes;
@@ -1233,6 +1303,7 @@ function obtenerBotonesAccion(data) {
         </div>
     `;
 }
+*/
 
 function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
