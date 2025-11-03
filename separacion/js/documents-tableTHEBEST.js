@@ -907,7 +907,6 @@ async function obtenerDocumentosCombinados() {
     }
 }
 
-// Función OPTIMIZADA para cambiar responsable
 // Función OPTIMIZADA para cambiar responsable - VERSIÓN CORREGIDA
 async function cambiarResponsable(rec, responsable) {
     // Evitar múltiples llamadas simultáneas
