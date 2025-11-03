@@ -1401,15 +1401,3 @@ img {
 .gap-sm { gap: var(--spacing-sm) !important; }
 .gap-md { gap: var(--spacing-md) !important; }
 .gap-lg { gap: var(--spacing-lg) !important; }
-
-
-/* ===== QUITAR NEGRITA DE COLUMNAS ESPECÍFICAS ===== */
-.table th:nth-child(1), /* Documento */
-.table th:nth-child(2) { /* Responsable */
-    font-weight: 400 !important;
-}
-
-.table td:nth-child(0), /* Documento */
-.table td:nth-child(2) { /* Responsable */
-    font-weight: 400 !important;
-}
