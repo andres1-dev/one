@@ -221,7 +221,7 @@ async function actualizarFilaEspecifica(rec) {
             cantidad: cantidadTotal,
             lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
             refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
-            linea: datosCompletos ? (datosCompletos.LINEA || '') : '',
+            prenda: datosCompletos ? (datosCompletos.PRENDA || '') : '',
             tieneClientes: datosCompletos ? 
                 (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                  Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
@@ -883,7 +883,7 @@ async function obtenerDocumentosCombinados() {
                     cantidad: cantidadTotal,
                     lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
                     refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
-                    linea: datosCompletos ? (datosCompletos.LINEA || '') : '',
+                    prenda: datosCompletos ? (datosCompletos.PRENDA || '') : '',
                     tieneClientes: datosCompletos ? 
                         (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                          Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
@@ -1365,7 +1365,7 @@ function inicializarDataTable(documentos) {
                 }
             },
             { 
-                data: 'linea',
+                data: 'prenda',  // Cambiado de 'linea' a 'prenda'
                 render: function(data) {
                     return data ? `<span class="small">${data}</span>` : '-';
                 }
