@@ -291,47 +291,21 @@ body {
     flex-wrap: wrap;
 }
 
-/* EFECTO SUSTITUTO MÁS LIMPIO */
 .btn {
-    position: relative;
-    overflow: hidden;
-}
-
-.btn::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transition: left 0.5s ease;
-}
-
-.btn:hover::after {
-    left: 100%;
-}
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
-}
-
-.btn:hover::before {
-    width: 300px;
-    height: 300px;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    padding: 0.625rem 1rem;
+    border: none;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
 }
 
 .btn-sm {
@@ -919,6 +893,7 @@ body {
 }
 
 /* ===== PANEL DE ACCIONES MEJORADO - ESTILO OUTLINE ===== */
+/* ===== PANEL DE ACCIONES MEJORADO - ESTILO OUTLINE ===== */
 .acciones-panel {
     display: inline-flex;
     background: var(--bg-secondary);
@@ -947,179 +922,84 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    position: relative;
 }
 
 .acciones-panel .btn:last-child {
     border-right: none;
 }
 
-.acciones-panel .btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: currentColor;
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-}
-
 .acciones-panel .btn i {
     font-size: 0.875rem;
-    position: relative;
-    z-index: 1;
 }
 
-/* Botón Primary - Azul */
+/* Botones con colores normales en el panel de acciones */
 .acciones-panel .btn.btn-primary {
-    color: var(--info-color);
-    background: transparent;
+    background: var(--info-color);
+    color: white;
 }
 
-.acciones-panel .btn.btn-primary:hover::before {
-    opacity: 0.08;
+.acciones-panel .btn.btn-primary:hover {
+    background: #2563eb;
 }
 
-/* Botón Success - Verde */
 .acciones-panel .btn.btn-success {
-    color: var(--success-color);
-    background: transparent;
+    background: var(--success-color);
+    color: white;
 }
 
-.acciones-panel .btn.btn-success:hover::before {
-    opacity: 0.08;
+.acciones-panel .btn.btn-success:hover {
+    background: #059669;
 }
 
-/* Botón Warning - Amarillo/Naranja */
 .acciones-panel .btn.btn-warning {
-    color: var(--warning-color);
-    background: transparent;
+    background: var(--warning-color);
+    color: white;
 }
 
-.acciones-panel .btn.btn-warning:hover::before {
-    opacity: 0.08;
+.acciones-panel .btn.btn-warning:hover {
+    background: #d97706;
 }
 
-/* Botón Info - Azul oscuro */
 .acciones-panel .btn.btn-info {
-    color: var(--accent-color);
-    background: transparent;
+    background: var(--accent-color);
+    color: white;
 }
 
-.acciones-panel .btn.btn-info:hover::before {
-    opacity: 0.08;
+.acciones-panel .btn.btn-info:hover {
+    background: var(--accent-light);
 }
 
-/* Botón Danger - Rojo */
 .acciones-panel .btn.btn-danger {
-    color: var(--danger-color);
-    background: transparent;
+    background: var(--danger-color);
+    color: white;
 }
 
-.acciones-panel .btn.btn-danger:hover::before {
-    opacity: 0.08;
+.acciones-panel .btn.btn-danger:hover {
+    background: #dc2626;
 }
 
-/* Botón Secondary - Gris */
 .acciones-panel .btn.btn-secondary {
-    color: var(--text-secondary);
-    background: transparent;
+    background: var(--text-secondary);
+    color: white;
 }
 
-.acciones-panel .btn.btn-secondary:hover::before {
-    opacity: 0.08;
+.acciones-panel .btn.btn-secondary:hover {
+    background: var(--text-primary);
 }
 
 /* Estado deshabilitado */
 .acciones-panel .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    background: transparent;
-    color: var(--text-muted);
 }
 
 .acciones-panel .btn:disabled:hover {
-    background: transparent;
-    color: var(--text-muted);
-}
-
-.acciones-panel .btn:disabled::before {
-    display: none;
+    background: inherit;
 }
 
 /* Estado activo/pressed */
 .acciones-panel .btn:active:not(:disabled) {
     transform: scale(0.95);
-}
-
-.acciones-panel .btn:active:not(:disabled)::before {
-    opacity: 0.15;
-}
-
-/* Versión móvil del panel de acciones */
-@media (max-width: 576px) {
-    .acciones-panel {
-        width: 100%;
-        justify-content: stretch;
-    }
-    
-    .acciones-panel .btn {
-        flex: 1;
-        min-width: auto;
-        padding: 0.625rem 0.5rem;
-    }
-    
-    .acciones-panel .btn i {
-        font-size: 1rem;
-    }
-}
-
-/* Tooltip mejorado para botones de acción */
-@media (min-width: 769px) {
-    .acciones-panel .btn[title] {
-        position: relative;
-    }
-
-    .acciones-panel .btn[title]:hover::after {
-        content: attr(title);
-        position: absolute;
-        bottom: calc(100% + 8px);
-        left: 50%;
-        transform: translateX(-50%);
-        background: var(--text-primary);
-        color: white;
-        padding: 0.375rem 0.625rem;
-        border-radius: var(--radius-sm);
-        font-size: 0.6875rem;
-        white-space: nowrap;
-        z-index: 1000;
-        box-shadow: var(--shadow-md);
-        pointer-events: none;
-        animation: tooltipFadeIn 0.2s ease-out;
-    }
-
-    .acciones-panel .btn[title]:hover::before {
-        content: '';
-        position: absolute;
-        bottom: calc(100% + 3px);
-        left: 50%;
-        transform: translateX(-50%);
-        border: 5px solid transparent;
-        border-top-color: var(--text-primary);
-        z-index: 1000;
-        pointer-events: none;
-        animation: tooltipFadeIn 0.2s ease-out;
-    }
-
-    @keyframes tooltipFadeIn {
-        from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(5px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-    }
 }
 
 /* ===== TOOLTIP STYLE ===== */
