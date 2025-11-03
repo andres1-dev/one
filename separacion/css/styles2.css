@@ -284,7 +284,7 @@ body {
     color: var(--text-muted);
 }
 
-/* ===== BOTONES PROFESIONALES ===== */
+/* ===== BOTONES MINIMALISTAS ===== */
 .btn-group-sm {
     display: flex;
     gap: var(--spacing-sm);
@@ -296,7 +296,7 @@ body {
     font-weight: 500;
     font-size: 0.8125rem;
     padding: 0.625rem 1rem;
-    border: none;
+    border: 1px solid var(--border-color);
     transition: all var(--transition-fast);
     display: inline-flex;
     align-items: center;
@@ -306,6 +306,8 @@ body {
     text-decoration: none;
     white-space: nowrap;
     letter-spacing: 0.01em;
+    background: transparent;
+    color: var(--text-primary);
 }
 
 .btn-sm {
@@ -315,103 +317,116 @@ body {
 
 .btn i {
     font-size: 0.875rem;
+    transition: color var(--transition-fast);
 }
 
-/* Variantes de botones */
+/* Variantes de botones - solo color en iconos y borde */
 .btn-primary {
-    background: var(--accent-color);
-    color: white;
-    box-shadow: var(--shadow-xs);
+    border-color: var(--info-color);
+    color: var(--text-primary);
 }
 
 .btn-primary:hover {
-    background: var(--accent-light);
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    border-color: var(--info-color);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.btn-primary i {
+    color: var(--info-color);
 }
 
 .btn-success {
-    background: var(--success-color);
-    color: white;
-    box-shadow: var(--shadow-xs);
+    border-color: var(--success-color);
+    color: var(--text-primary);
 }
 
 .btn-success:hover {
-    background: #059669;
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    border-color: var(--success-color);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.btn-success i {
+    color: var(--success-color);
 }
 
 .btn-info {
-    background: var(--info-color);
-    color: white;
-    box-shadow: var(--shadow-xs);
+    border-color: var(--accent-color);
+    color: var(--text-primary);
 }
 
 .btn-info:hover {
-    background: #2563eb;
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    border-color: var(--accent-color);
+    background: rgba(15, 52, 96, 0.05);
+}
+
+.btn-info i {
+    color: var(--accent-color);
 }
 
 .btn-warning {
-    background: var(--warning-color);
-    color: white;
-    box-shadow: var(--shadow-xs);
+    border-color: var(--warning-color);
+    color: var(--text-primary);
 }
 
 .btn-warning:hover {
-    background: #d97706;
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    border-color: var(--warning-color);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.btn-warning i {
+    color: var(--warning-color);
 }
 
 .btn-danger {
-    background: var(--danger-color);
-    color: white;
-    box-shadow: var(--shadow-xs);
+    border-color: var(--danger-color);
+    color: var(--text-primary);
 }
 
 .btn-danger:hover {
-    background: #dc2626;
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    border-color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.btn-danger i {
+    color: var(--danger-color);
 }
 
 .btn-secondary {
-    background: var(--text-secondary);
-    color: white;
-    box-shadow: var(--shadow-xs);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-    background: var(--text-primary);
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    border-color: var(--text-secondary);
+    background: rgba(100, 116, 139, 0.05);
+}
+
+.btn-secondary i {
+    color: var(--text-secondary);
 }
 
 .btn-outline-primary {
-    border: 1px solid var(--accent-color);
+    border-color: var(--accent-color);
     color: var(--accent-color);
-    background: transparent;
 }
 
 .btn-outline-primary:hover {
     background: var(--accent-color);
     color: white;
-    box-shadow: var(--shadow-sm);
+}
+
+.btn-outline-primary:hover i {
+    color: white;
 }
 
 .btn-light {
-    background: var(--bg-primary);
+    border-color: var(--border-color);
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
 }
 
 .btn-light:hover {
-    background: white;
     border-color: var(--accent-color);
-    color: var(--accent-color);
+    background: rgba(15, 52, 96, 0.05);
 }
 
 .btn:active {
@@ -419,9 +434,14 @@ body {
 }
 
 .btn:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
-    transform: none !important;
+    border-color: var(--border-color);
+    background: transparent;
+}
+
+.btn:disabled i {
+    color: var(--text-muted);
 }
 
 /* ===== TABLA PROFESIONAL ===== */
@@ -893,21 +913,15 @@ body {
 }
 
 /* ===== PANEL DE ACCIONES MEJORADO - ESTILO OUTLINE ===== */
-/* ===== PANEL DE ACCIONES MEJORADO - ESTILO OUTLINE ===== */
+/* ===== PANEL DE ACCIONES MINIMALISTA ===== */
 .acciones-panel {
     display: inline-flex;
-    background: var(--bg-secondary);
+    background: transparent;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     overflow: hidden;
     box-shadow: var(--shadow-xs);
-    transition: all var(--transition-fast);
     gap: 0;
-}
-
-.acciones-panel:hover {
-    box-shadow: var(--shadow-sm);
-    border-color: var(--text-muted);
 }
 
 .acciones-panel .btn {
@@ -932,74 +946,98 @@ body {
     font-size: 0.875rem;
 }
 
-/* Botones con colores normales en el panel de acciones */
+/* Botones minimalistas en el panel de acciones */
 .acciones-panel .btn.btn-primary {
-    background: var(--info-color);
-    color: white;
+    background: transparent;
+    color: var(--text-primary);
 }
 
 .acciones-panel .btn.btn-primary:hover {
-    background: #2563eb;
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.acciones-panel .btn.btn-primary i {
+    color: var(--info-color);
 }
 
 .acciones-panel .btn.btn-success {
-    background: var(--success-color);
-    color: white;
+    background: transparent;
+    color: var(--text-primary);
 }
 
 .acciones-panel .btn.btn-success:hover {
-    background: #059669;
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.acciones-panel .btn.btn-success i {
+    color: var(--success-color);
 }
 
 .acciones-panel .btn.btn-warning {
-    background: var(--warning-color);
-    color: white;
+    background: transparent;
+    color: var(--text-primary);
 }
 
 .acciones-panel .btn.btn-warning:hover {
-    background: #d97706;
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.acciones-panel .btn.btn-warning i {
+    color: var(--warning-color);
 }
 
 .acciones-panel .btn.btn-info {
-    background: var(--accent-color);
-    color: white;
+    background: transparent;
+    color: var(--text-primary);
 }
 
 .acciones-panel .btn.btn-info:hover {
-    background: var(--accent-light);
+    background: rgba(15, 52, 96, 0.08);
+}
+
+.acciones-panel .btn.btn-info i {
+    color: var(--accent-color);
 }
 
 .acciones-panel .btn.btn-danger {
-    background: var(--danger-color);
-    color: white;
+    background: transparent;
+    color: var(--text-primary);
 }
 
 .acciones-panel .btn.btn-danger:hover {
-    background: #dc2626;
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.acciones-panel .btn.btn-danger i {
+    color: var(--danger-color);
 }
 
 .acciones-panel .btn.btn-secondary {
-    background: var(--text-secondary);
-    color: white;
+    background: transparent;
+    color: var(--text-primary);
 }
 
 .acciones-panel .btn.btn-secondary:hover {
-    background: var(--text-primary);
+    background: rgba(100, 116, 139, 0.08);
+}
+
+.acciones-panel .btn.btn-secondary i {
+    color: var(--text-secondary);
 }
 
 /* Estado deshabilitado */
 .acciones-panel .btn:disabled {
-    opacity: 0.4;
+    opacity: 0.3;
     cursor: not-allowed;
+    background: transparent;
 }
 
 .acciones-panel .btn:disabled:hover {
-    background: inherit;
+    background: transparent;
 }
 
-/* Estado activo/pressed */
-.acciones-panel .btn:active:not(:disabled) {
-    transform: scale(0.95);
+.acciones-panel .btn:disabled i {
+    color: var(--text-muted);
 }
 
 /* ===== TOOLTIP STYLE ===== */
