@@ -968,6 +968,7 @@ async function cambiarResponsable(rec, responsable) {
 }
 
 // Función OPTIMIZADA para cambiar estado del documento
+// Función OPTIMIZADA para cambiar estado del documento - SIN CONFIRMACIÓN PARA PAUSAR/REANUDAR
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
@@ -976,20 +977,20 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
     }
     
     try {
-        // Confirmar acción con icono info
-        const estadosTexto = {
-            'PAUSADO': 'pausar',
-            'ELABORACION': 'reanudar',
-            'FINALIZADO': 'finalizar'
-        };
-        
-        const confirmar = await mostrarConfirmacion(
-            `¿${estadosTexto[nuevoEstado] || 'cambiar'} documento?`,
-            `REC${rec} → ${nuevoEstado}`,
-            'info'
-        );
-        
-        if (!confirmar) return;
+        // SOLO pedir confirmación para FINALIZAR
+        if (nuevoEstado === 'FINALIZADO') {
+            const confirmar = await mostrarConfirmacion(
+                '¿Finalizar documento?',
+                `REC${rec} → ${nuevoEstado}`,
+                'info'
+            );
+            
+            if (!confirmar) return;
+        }
+        // Para PAUSAR y REANUDAR, ejecutar directamente sin confirmación
+        else {
+            console.log(`Ejecutando acción directa: REC${rec} → ${nuevoEstado}`);
+        }
         
         console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
         
@@ -1002,8 +1003,6 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             icon: 'info',
             position: 'center',
             showConfirmButton: false,
-            //timer: 15000,
-            //timerProgressBar: true,
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
