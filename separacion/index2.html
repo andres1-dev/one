@@ -24,6 +24,26 @@
     
     <!-- Estilos Personalizados -->
     <link rel="stylesheet" href="css/styles2.css">
+
+    <style>
+    /* Ocultar elementos específicos */
+    #recInput,
+    button[onclick="buscarPorREC()"],
+    button[onclick="imprimirSoloClientes()"],
+    button[onclick="mostrarOpcionesImpresion()"] {
+        display: none !important;
+    }
+    
+    /* Ajustar el layout de los filtros */
+    .filtros-grid {
+        grid-template-columns: 1fr auto !important;
+    }
+    
+    .filtro-group:last-child .btn-group-sm {
+        gap: 0.25rem;
+    }
+    </style>
+    
 </head>
 <body>
     <!-- Header Minimalista -->
