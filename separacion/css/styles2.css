@@ -973,10 +973,6 @@ body {
     opacity: 0.08;
 }
 
-.acciones-panel .btn.btn-primary:hover {
-    color: #2563eb;
-}
-
 /* Botón Success - Verde */
 .acciones-panel .btn.btn-success {
     color: var(--success-color);
@@ -985,10 +981,6 @@ body {
 
 .acciones-panel .btn.btn-success:hover::before {
     opacity: 0.08;
-}
-
-.acciones-panel .btn.btn-success:hover {
-    color: #059669;
 }
 
 /* Botón Warning - Amarillo/Naranja */
@@ -1001,10 +993,6 @@ body {
     opacity: 0.08;
 }
 
-.acciones-panel .btn.btn-warning:hover {
-    color: #d97706;
-}
-
 /* Botón Info - Azul oscuro */
 .acciones-panel .btn.btn-info {
     color: var(--accent-color);
@@ -1013,10 +1001,6 @@ body {
 
 .acciones-panel .btn.btn-info:hover::before {
     opacity: 0.08;
-}
-
-.acciones-panel .btn.btn-info:hover {
-    color: var(--accent-light);
 }
 
 /* Botón Danger - Rojo */
@@ -1029,10 +1013,6 @@ body {
     opacity: 0.08;
 }
 
-.acciones-panel .btn.btn-danger:hover {
-    color: #dc2626;
-}
-
 /* Botón Secondary - Gris */
 .acciones-panel .btn.btn-secondary {
     color: var(--text-secondary);
@@ -1041,10 +1021,6 @@ body {
 
 .acciones-panel .btn.btn-secondary:hover::before {
     opacity: 0.08;
-}
-
-.acciones-panel .btn.btn-secondary:hover {
-    color: var(--text-primary);
 }
 
 /* Estado deshabilitado */
