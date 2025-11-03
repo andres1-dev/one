@@ -1163,7 +1163,7 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
     } else {
         const tieneResponsable = responsableActual && responsableActual.trim() !== '';
         const texto = tieneResponsable ? responsableActual : 'Sin responsable';
-        const clase = tieneResponsable ? 'text-success fw-bold' : 'text-muted';
+        const clase = tieneResponsable ? 'text-success' : 'text-muted';
         const icono = tieneResponsable ? 'fa-user-check' : 'fa-user';
         
         return `
@@ -1316,7 +1316,7 @@ function inicializarDataTable(documentos) {
             { 
                 data: 'rec',
                 render: function(data) {
-                    return `<strong class="text-primary">REC${data}</strong>`;
+                    return `REC${data}`;
                 }
             },
             { 
