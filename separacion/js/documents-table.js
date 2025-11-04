@@ -174,7 +174,6 @@ async function llamarAPI(params) {
     }
 }
 
-// Función OPTIMIZADA para actualizar solo una fila específica
 // Función MEJORADA para actualizar solo una fila específica
 async function actualizarFilaEspecifica(rec) {
     if (!documentosTable) return;
@@ -225,7 +224,7 @@ async function actualizarFilaEspecifica(rec) {
             tieneClientes: datosCompletos ? 
                 (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                  Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
-            datosCompletos: datosCompletos, // ESTO ES CLAVE PARA LA IMPRESIÓN
+            datosCompletos: datosCompletos,
             datetime_inicio: rowData[5] || '',
             datetime_fin: rowData[6] || '',
             duracion_guardada: rowData[7] || '',
@@ -234,24 +233,28 @@ async function actualizarFilaEspecifica(rec) {
             duracion_pausas: rowData[10] || ''
         };
         
+        // ✅ ACTUALIZAR DATOS GLOBALES TAMBIÉN (para impresión)
+        const indexGlobal = documentosGlobales.findIndex(d => d.rec === rec);
+        if (indexGlobal !== -1) {
+            documentosGlobales[indexGlobal] = documentoActualizado;
+        }
+        
         // Actualizar la fila en DataTable
         const fila = documentosTable.row((idx, data) => data.rec === rec);
         if (fila.any()) {
-            fila.data(documentoActualizado).draw(false); // false = no cambiar de página
+            fila.data(documentoActualizado).draw(false);
             console.log(`Fila REC${rec} actualizada exitosamente`);
             
-            // ACTUALIZAR INTERFAZ: Forzar redibujado del select de responsables
+            // ✅ FORZAR ACTUALIZACIÓN DEL SELECT
             const rowNode = fila.node();
             const selectCell = $(rowNode).find('td:eq(2)'); // Columna de responsable
+            
+            // Regenerar completamente el select
             selectCell.html(generarSelectResponsables(rec, colaborador, documentosGlobales, documentoActualizado));
-        }
-        
-        // Actualizar documentosGlobales
-        const index = documentosGlobales.findIndex(d => d.rec === rec);
-        if (index !== -1) {
-            documentosGlobales[index] = documentoActualizado;
-        } else {
-            documentosGlobales.push(documentoActualizado);
+            
+            // ✅ ACTUALIZAR BOTONES DE ACCIÓN (para impresión)
+            const accionesCell = $(rowNode).find('td:eq(9)'); // Columna de acciones
+            accionesCell.html(obtenerBotonesAccion(documentoActualizado));
         }
         
         // Recalcular consolidados
@@ -911,20 +914,16 @@ async function obtenerDocumentosCombinados() {
     }
 }
 
-// Función OPTIMIZADA para cambiar responsable - VERSIÓN CORREGIDA
+// FUNCIÓN OPTIMIZADA - CAMBIAR RESPONSABLE
 async function cambiarResponsable(rec, responsable) {
-    // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de responsable...');
         return;
     }
     
     try {
-        console.log(`Asignando responsable ${responsable} a REC${rec}`);
-        
         actualizacionEnProgreso = true;
         
-        // Mostrar loading compacto
         const loadingToast = Swal.fire({
             title: 'Asignando...',
             text: responsable,
@@ -932,9 +931,7 @@ async function cambiarResponsable(rec, responsable) {
             position: 'center',
             showConfirmButton: false,
             allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
+            didOpen: () => { Swal.showLoading(); }
         });
 
         const result = await llamarAPI({
@@ -943,20 +940,16 @@ async function cambiarResponsable(rec, responsable) {
             responsable: responsable
         });
         
-        // Cerrar loading
         Swal.close();
         
         if (result.success) {
-            // Mostrar éxito breve
             await mostrarNotificacion('✓ Asignado', responsable, 'success');
             
-            // ACTUALIZACIÓN INMEDIATA: Actualizar datos globales primero
-            await actualizarDatosGlobales();
+            // ✅ ACTUALIZACIÓN COMPLETA: Datos globales + interfaz
+            await actualizarDatosGlobales(); // Para que la impresión tenga el responsable actualizado
+            await actualizarFilaEspecifica(rec); // Para actualizar la interfaz inmediatamente
             
-            // ACTUALIZACIÓN INMEDIATA: Actualizar SOLO la fila específica
-            await cargarTablaDocumentos();
-            
-            console.log(`Responsable ${responsable} asignado a REC${rec} - Tabla actualizada`);
+            console.log(`Responsable ${responsable} asignado a REC${rec} - Interfaz actualizada`);
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
@@ -969,7 +962,6 @@ async function cambiarResponsable(rec, responsable) {
         actualizacionEnProgreso = false;
     }
 }
-
 
 // FUNCIÓN OPTIMIZADA - ELIMINANDO REDUNDANCIAS
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
