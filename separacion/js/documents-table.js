@@ -1189,6 +1189,12 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
         ? obtenerResponsablesDisponibles(todosDocumentos, documentoActual)
         : [];
     
+    console.log(`Generando select para REC${rec}:`, {
+        puedeModificar,
+        responsableActual,
+        responsablesDisponibles
+    });
+    
     let opciones = '';
     
     if (puedeModificar) {
