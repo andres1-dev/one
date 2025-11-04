@@ -264,19 +264,23 @@ async function actualizarFilaEspecifica(rec) {
 }
 
 // Función MEJORADA para actualizar inmediatamente después de un cambio
+// Función MEJORADA para actualización inmediata
 async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null) {
+    // Si es un documento finalizado, forzar recarga completa
+    if (recEspecifico) {
+        const doc = documentosGlobales.find(d => d.rec === recEspecifico);
+        if (doc && doc.estado === 'FINALIZADO') {
+            forzarRecarga = true;
+        }
+    }
+    
     // Evitar múltiples actualizaciones simultáneas
     if (actualizacionEnProgreso && !forzarRecarga) {
         console.log('Actualización ya en progreso, ignorando...');
         return;
     }
     
-    // Si hay un REC específico y no se fuerza recarga, actualizar solo esa fila
-    if (recEspecifico && !forzarRecarga) {
-        await actualizarFilaEspecifica(recEspecifico);
-        return;
-    }
-    
+    // Resto del código existente...
     let estadoTabla = null;
     actualizacionEnProgreso = true;
     
@@ -308,7 +312,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
             // Actualizar DataTable con nuevos datos
             documentosTable.clear();
             documentosTable.rows.add(documentosDisponibles);
-            documentosTable.draw(false); // false = mantener página actual
+            documentosTable.draw(false);
             
             // Reiniciar timers
             iniciarTimers(documentosDisponibles);
@@ -318,14 +322,14 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
         if (estadoTabla) {
             setTimeout(() => {
                 restaurarEstadoTabla(estadoTabla);
-            }, 50); // Reducido de 100ms a 50ms
+            }, 50);
         }
         
         // Ocultar loader
         if (loader && forzarRecarga) {
             setTimeout(() => {
                 loader.style.display = 'none';
-            }, 200); // Reducido de 500ms a 200ms
+            }, 200);
         }
         
         console.log('Tabla actualizada correctamente');
@@ -967,7 +971,7 @@ async function cambiarResponsable(rec, responsable) {
 }
 
 // Función OPTIMIZADA para cambiar estado del documento
-// Función OPTIMIZADA para cambiar estado del documento - SIN CONFIRMACIÓN PARA PAUSAR/REANUDAR
+// Función MEJORADA para cambiar estado del documento con confirmación especial para pausados
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
@@ -976,8 +980,38 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
     }
     
     try {
-        // SOLO pedir confirmación para FINALIZAR
-        if (nuevoEstado === 'FINALIZADO') {
+        // OBTENER ESTADO ACTUAL DEL DOCUMENTO
+        const documentoActual = documentosGlobales.find(doc => doc.rec === rec);
+        const estadoActual = documentoActual ? documentoActual.estado : '';
+        
+        // CONFIRMACIÓN ESPECIAL para finalizar desde PAUSADO
+        if (nuevoEstado === 'FINALIZADO' && estadoActual === 'PAUSADO') {
+            const confirmar = await mostrarConfirmacion(
+                '⚠️ ¿Finalizar documento en pausa?',
+                `REC${rec} está actualmente PAUSADO.\n\nAl finalizar, los tiempos de pausa no se registrarán.\n\n¿Deseas continuar?`,
+                'warning'
+            );
+            
+            if (!confirmar) return;
+            
+            // PRIMERO: Reanudar temporalmente para registrar tiempos
+            console.log(`Reanudando temporalmente REC${rec} antes de finalizar...`);
+            
+            const resultReanudar = await llamarAPI({
+                action: 'reanudar',
+                id: rec
+            });
+            
+            if (!resultReanudar.success) {
+                await mostrarNotificacion('Error', 'No se pudo reanudar el documento para finalizar', 'error');
+                return;
+            }
+            
+            // Pequeña pausa para asegurar el registro
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        // Confirmación normal para otros casos de finalización
+        else if (nuevoEstado === 'FINALIZADO') {
             const confirmar = await mostrarConfirmacion(
                 '¿Finalizar documento?',
                 `REC${rec} → ${nuevoEstado}`,
@@ -991,7 +1025,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             console.log(`Ejecutando acción directa: REC${rec} → ${nuevoEstado}`);
         }
         
-        console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
+        console.log(`Cambiando estado del documento REC${rec} de ${estadoActual} a: ${nuevoEstado}`);
         
         actualizacionEnProgreso = true;
         
@@ -1051,8 +1085,11 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             
             await mostrarNotificacion('✓ Actualizado', `${nuevoEstado}`, 'success');
             
-            // Actualizar SOLO la fila específica
-            await actualizarFilaEspecifica(rec);
+            // ACTUALIZACIÓN INMEDIATA Y COMPLETA para asegurar que los documentos finalizados desaparezcan
+            await actualizarDatosGlobales();
+            await actualizarInmediatamente(true); // Recarga completa
+            
+            console.log(`Estado cambiado exitosamente - Tabla actualizada completamente`);
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al cambiar estado', 'error');
