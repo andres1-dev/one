@@ -970,17 +970,15 @@ async function cambiarResponsable(rec, responsable) {
     }
 }
 
-// Función OPTIMIZADA para cambiar estado del documento
-// Función MEJORADA para cambiar estado del documento con confirmación especial para pausados
+
+// FUNCIÓN OPTIMIZADA - ELIMINANDO REDUNDANCIAS
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
-    // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de estado...');
         return;
     }
     
     try {
-        // OBTENER ESTADO ACTUAL DEL DOCUMENTO
         const documentoActual = documentosGlobales.find(doc => doc.rec === rec);
         const estadoActual = documentoActual ? documentoActual.estado : '';
         
@@ -994,9 +992,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             
             if (!confirmar) return;
             
-            // PRIMERO: Reanudar temporalmente para registrar tiempos
-            console.log(`Reanudando temporalmente REC${rec} antes de finalizar...`);
-            
+            // Reanudar temporalmente para registrar tiempos
             const resultReanudar = await llamarAPI({
                 action: 'reanudar',
                 id: rec
@@ -1007,7 +1003,6 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 return;
             }
             
-            // Pequeña pausa para asegurar el registro
             await new Promise(resolve => setTimeout(resolve, 500));
         }
         // Confirmación normal para otros casos de finalización
@@ -1020,16 +1015,9 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             
             if (!confirmar) return;
         }
-        // Para PAUSAR y REANUDAR, ejecutar directamente sin confirmación
-        else {
-            console.log(`Ejecutando acción directa: REC${rec} → ${nuevoEstado}`);
-        }
-        
-        console.log(`Cambiando estado del documento REC${rec} de ${estadoActual} a: ${nuevoEstado}`);
         
         actualizacionEnProgreso = true;
         
-        // Mostrar loading compacto
         const loadingToast = Swal.fire({
             title: 'Cambiando estado...',
             text: `REC${rec} → ${nuevoEstado}`,
@@ -1037,35 +1025,22 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             position: 'center',
             showConfirmButton: false,
             allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
+            didOpen: () => { Swal.showLoading(); }
         });
 
         let action;
         switch(nuevoEstado) {
-            case 'PAUSADO':
-                action = 'pausar';
-                break;
-            case 'ELABORACION':
-                action = 'reanudar';
-                break;
-            case 'FINALIZADO':
-                action = 'finalizar';
-                break;
-            default:
+            case 'PAUSADO': action = 'pausar'; break;
+            case 'ELABORACION': action = 'reanudar'; break;
+            case 'FINALIZADO': action = 'finalizar'; break;
+            default: 
                 Swal.close();
                 await mostrarNotificacion('Error', 'Estado no válido', 'error');
                 actualizacionEnProgreso = false;
                 return;
         }
         
-        const result = await llamarAPI({
-            action: action,
-            id: rec
-        });
-        
-        // Cerrar loading
+        const result = await llamarAPI({ action: action, id: rec });
         Swal.close();
         
         if (result.success) {
@@ -1085,11 +1060,8 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             
             await mostrarNotificacion('✓ Actualizado', `${nuevoEstado}`, 'success');
             
-            // ACTUALIZACIÓN INMEDIATA Y COMPLETA para asegurar que los documentos finalizados desaparezcan
-            await actualizarDatosGlobales();
-            await actualizarInmediatamente(true); // Recarga completa
-            
-            console.log(`Estado cambiado exitosamente - Tabla actualizada completamente`);
+            // ✅ ACTUALIZACIÓN OPTIMIZADA - SOLO UNA LLAMADA
+            await actualizarFilaEspecifica(rec);
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al cambiar estado', 'error');
@@ -1098,6 +1070,52 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
         console.error('Error cambiando estado:', error);
         Swal.close();
         await mostrarNotificacion('Error', 'Error al cambiar estado: ' + error.message, 'error');
+    } finally {
+        actualizacionEnProgreso = false;
+    }
+}
+
+// FUNCIÓN OPTIMIZADA - CAMBIAR RESPONSABLE
+async function cambiarResponsable(rec, responsable) {
+    if (actualizacionEnProgreso) {
+        console.log('Actualización en progreso, ignorando cambio de responsable...');
+        return;
+    }
+    
+    try {
+        actualizacionEnProgreso = true;
+        
+        const loadingToast = Swal.fire({
+            title: 'Asignando...',
+            text: responsable,
+            icon: 'info',
+            position: 'center',
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const result = await llamarAPI({
+            action: 'asignarResponsable',
+            id: rec,
+            responsable: responsable
+        });
+        
+        Swal.close();
+        
+        if (result.success) {
+            await mostrarNotificacion('✓ Asignado', responsable, 'success');
+            
+            // ✅ ACTUALIZACIÓN OPTIMIZADA - SOLO LA FILA ESPECÍFICA
+            await actualizarFilaEspecifica(rec);
+            
+        } else {
+            await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
+        }
+    } catch (error) {
+        console.error('Error cambiando responsable:', error);
+        Swal.close();
+        await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
     } finally {
         actualizacionEnProgreso = false;
     }
