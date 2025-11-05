@@ -24,10 +24,7 @@ function inicializarSistemaMetricas() {
             console.log('Flatpickr métricas - Fechas seleccionadas:', selectedDates);
             if (selectedDates.length === 2) {
                 console.log('Rango completo seleccionado para métricas:', selectedDates);
-                // Actualizar automáticamente las métricas cuando se selecciona un rango
-                setTimeout(() => {
-                    actualizarMetricasRendimiento();
-                }, 500);
+                actualizarMetricasRendimiento();
             } else if (selectedDates.length === 0) {
                 console.log('Filtro de fechas limpiado');
                 limpiarFiltrosMetricas();
@@ -36,20 +33,6 @@ function inicializarSistemaMetricas() {
     });
     
     console.log('Flatpickr métricas inicializado:', flatpickrMetricas);
-    
-    // Configurar el evento change del selector de responsables
-    const selectResponsable = document.getElementById('selectResponsableMetricas');
-    if (selectResponsable) {
-        selectResponsable.addEventListener('change', function() {
-            console.log('Responsable cambiado:', this.value);
-            // Si hay fechas seleccionadas, actualizar métricas automáticamente
-            if (flatpickrMetricas && flatpickrMetricas.selectedDates.length === 2) {
-                setTimeout(() => {
-                    actualizarMetricasRendimiento();
-                }, 300);
-            }
-        });
-    }
     
     // Cargar lista de responsables después de un delay para asegurar que los datos globales estén cargados
     setTimeout(() => {
@@ -253,25 +236,6 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
                 continue;
             }
             
-            // FILTRAR POR FECHA usando el flatpickr
-            if (fechaDoc) {
-                const fechaDocObj = parsearFechaParaFiltro(fechaDoc);
-                if (fechaDocObj) {
-                    // Normalizar fechas para comparación (sin horas)
-                    const inicioNormalizado = new Date(fechaInicio);
-                    inicioNormalizado.setHours(0, 0, 0, 0);
-                    
-                    const finNormalizado = new Date(fechaFin);
-                    finNormalizado.setHours(23, 59, 59, 999);
-                    
-                    fechaDocObj.setHours(12, 0, 0, 0); // Hora media para comparación
-                    
-                    if (fechaDocObj < inicioNormalizado || fechaDocObj > finNormalizado) {
-                        continue; // Saltar documentos fuera del rango de fechas
-                    }
-                }
-            }
-            
             // Obtener datos completos del documento
             const datosCompletos = doc.datosCompletos || doc;
             if (!datosCompletos) continue;
@@ -320,7 +284,7 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             metricasPorResponsable[colaborador].totalTiempoSegundos += duracion.segundos;
         }
         
-        console.log('Documentos finalizados procesados después de filtro de fecha:', documentosFinalizados.length);
+        console.log('Documentos finalizados procesados:', documentosFinalizados.length);
         console.log('Responsables con métricas:', Object.keys(metricasPorResponsable));
         
         // Calcular métricas finales por responsable
@@ -381,33 +345,6 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
     } catch (error) {
         console.error('Error calculando métricas:', error);
         throw error;
-    }
-}
-
-// Función auxiliar para parsear fechas para el filtro
-function parsearFechaParaFiltro(fechaStr) {
-    if (!fechaStr) return null;
-    
-    try {
-        // Probar diferentes formatos de fecha
-        if (fechaStr.includes('/')) {
-            // Formato "dd/mm/yyyy" o "dd/mm/yyyy hh:mm:ss"
-            const fechaPartes = fechaStr.split(' ')[0].split('/');
-            if (fechaPartes.length === 3) {
-                const dia = parseInt(fechaPartes[0], 10);
-                const mes = parseInt(fechaPartes[1], 10) - 1; // Meses en JS son 0-11
-                const año = parseInt(fechaPartes[2], 10);
-                return new Date(año, mes, dia);
-            }
-        } else if (fechaStr.includes('-')) {
-            // Formato "yyyy-mm-dd"
-            return new Date(fechaStr);
-        }
-        
-        return null;
-    } catch (e) {
-        console.error('Error parseando fecha para filtro:', e, 'Fecha:', fechaStr);
-        return null;
     }
 }
 
@@ -620,7 +557,7 @@ function actualizarTopSemanal(metricas) {
     container.innerHTML = html;
 }
 
-// Actualizar gráfico spider - VERSIÓN CORREGIDA (solo 3 métricas)
+// Actualizar gráfico spider
 function actualizarGraficoSpider(metricas, responsableFiltro = '') {
     const ctx = document.getElementById('spiderChart');
     if (!ctx) return;
@@ -654,11 +591,10 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
                     },
                     pointLabels: {
                         font: {
-                            size: 12,
-                            family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-                            weight: 'bold'
+                            size: 11,
+                            family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
                         },
-                        color: 'var(--text-primary)'
+                        color: 'var(--text-secondary)'
                     }
                 }
             },
@@ -667,8 +603,7 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
                     position: 'top',
                     labels: {
                         font: {
-                            size: 11,
-                            weight: 'bold'
+                            size: 11
                         },
                         color: 'var(--text-primary)'
                     }
@@ -683,27 +618,23 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
             },
             elements: {
                 line: {
-                    borderWidth: 3
-                },
-                point: {
-                    radius: 4,
-                    hoverRadius: 6
+                    borderWidth: 2
                 }
             }
         }
     });
 }
 
-// Generar datos para gráfico spider individual - VERSIÓN CORREGIDA (solo 3 métricas)
+// Generar datos para gráfico spider individual
 function generarDatosSpiderIndividual(metricas, responsable) {
     const metricaResponsable = metricas.metricasPorResponsable.find(m => m.responsable === responsable);
     
     if (!metricaResponsable) {
         return {
-            labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
+            labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Productividad', 'Calidad'],
             datasets: [{
                 label: 'Sin datos',
-                data: [0, 0, 0],
+                data: [0, 0, 0, 0, 0],
                 backgroundColor: 'rgba(200, 200, 200, 0.2)',
                 borderColor: 'rgba(200, 200, 200, 1)',
                 pointBackgroundColor: 'rgba(200, 200, 200, 1)'
@@ -712,44 +643,44 @@ function generarDatosSpiderIndividual(metricas, responsable) {
     }
     
     const datos = [
-        Math.min(metricaResponsable.porcentajeEficiencia, 100), // Eficiencia (% de la meta 4.0)
-        Math.min((metricaResponsable.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad (% de la meta 7,920)
-        Math.min((metricaResponsable.documentosPorDia / META_EFECTIVIDAD) * 100, 100) // Efectividad (% de la meta 25)
+        Math.min(metricaResponsable.porcentajeEficiencia, 100), // Eficiencia
+        Math.min((metricaResponsable.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
+        Math.min((metricaResponsable.documentosPorDia / META_EFECTIVIDAD) * 100, 100), // Efectividad
+        Math.min((metricaResponsable.totalUnidades / metricaResponsable.documentos) / 10, 100), // Productividad (simplificada)
+        85 // Calidad (valor fijo por ahora)
     ];
     
-    console.log('Datos spider individual para', responsable, ':', datos);
-    
     return {
-        labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
+        labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Productividad', 'Calidad'],
         datasets: [{
             label: responsable,
             data: datos,
-            backgroundColor: 'rgba(59, 130, 246, 0.3)',
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
             borderColor: 'rgba(59, 130, 246, 1)',
             pointBackgroundColor: 'rgba(59, 130, 246, 1)',
             pointBorderColor: '#fff',
             pointHoverBackgroundColor: '#fff',
             pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
         }, {
-            label: 'Meta (100%)',
-            data: [100, 100, 100],
+            label: 'Meta',
+            data: [100, 100, 100, 100, 100],
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderColor: 'rgba(16, 185, 129, 0.6)',
+            borderColor: 'rgba(16, 185, 129, 0.5)',
             borderDash: [5, 5],
-            pointBackgroundColor: 'rgba(16, 185, 129, 0.6)',
-            pointBorderColor: 'rgba(16, 185, 129, 0.6)'
+            pointBackgroundColor: 'rgba(16, 185, 129, 0.5)',
+            pointBorderColor: 'rgba(16, 185, 129, 0.5)'
         }]
     };
 }
 
-// Generar datos para gráfico spider general - VERSIÓN CORREGIDA (solo 3 métricas)
+// Generar datos para gráfico spider general (promedio del equipo)
 function generarDatosSpiderGeneral(metricas) {
     if (metricas.metricasPorResponsable.length === 0) {
         return {
-            labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
+            labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Productividad', 'Calidad'],
             datasets: [{
                 label: 'Sin datos',
-                data: [0, 0, 0],
+                data: [0, 0, 0, 0, 0],
                 backgroundColor: 'rgba(200, 200, 200, 0.2)',
                 borderColor: 'rgba(200, 200, 200, 1)',
                 pointBackgroundColor: 'rgba(200, 200, 200, 1)'
@@ -758,34 +689,35 @@ function generarDatosSpiderGeneral(metricas) {
     }
     
     const total = metricas.totalGeneral;
+    const promedioDocumentosPorDia = total.efectividadPromedio;
     
     const datos = [
-        Math.min((total.eficienciaPromedio / META_EFICIENCIA) * 100, 100), // Eficiencia (% de la meta 4.0)
-        Math.min((total.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad (% de la meta 7,920)
-        Math.min((total.efectividadPromedio / META_EFECTIVIDAD) * 100, 100) // Efectividad (% de la meta 25)
+        Math.min((total.eficienciaPromedio / META_EFICIENCIA) * 100, 100), // Eficiencia
+        Math.min((total.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
+        Math.min((promedioDocumentosPorDia / META_EFECTIVIDAD) * 100, 100), // Efectividad
+        Math.min((total.totalUnidades / total.documentos) / 10, 100), // Productividad (simplificada)
+        85 // Calidad (valor fijo por ahora)
     ];
     
-    console.log('Datos spider general:', datos);
-    
     return {
-        labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
+        labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Productividad', 'Calidad'],
         datasets: [{
             label: 'Promedio Equipo',
             data: datos,
-            backgroundColor: 'rgba(245, 158, 11, 0.3)',
+            backgroundColor: 'rgba(245, 158, 11, 0.2)',
             borderColor: 'rgba(245, 158, 11, 1)',
             pointBackgroundColor: 'rgba(245, 158, 11, 1)',
             pointBorderColor: '#fff',
             pointHoverBackgroundColor: '#fff',
             pointHoverBorderColor: 'rgba(245, 158, 11, 1)'
         }, {
-            label: 'Meta (100%)',
-            data: [100, 100, 100],
+            label: 'Meta',
+            data: [100, 100, 100, 100, 100],
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderColor: 'rgba(16, 185, 129, 0.6)',
+            borderColor: 'rgba(16, 185, 129, 0.5)',
             borderDash: [5, 5],
-            pointBackgroundColor: 'rgba(16, 185, 129, 0.6)',
-            pointBorderColor: 'rgba(16, 185, 129, 0.6)'
+            pointBackgroundColor: 'rgba(16, 185, 129, 0.5)',
+            pointBorderColor: 'rgba(16, 185, 129, 0.5)'
         }]
     };
 }
