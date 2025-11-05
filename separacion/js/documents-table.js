@@ -903,10 +903,13 @@ function toggleFinalizados() {
 }
 */
 
-// Función MEJORADA para cargar la tabla de documentos (YA TIENE DESTRUCCIÓN)
+// Función MEJORADA para cargar la tabla de documentos - CON VACIADO INICIAL
 async function cargarTablaDocumentos() {
     try {
         console.log('Iniciando carga de tabla de documentos...');
+        
+        // VACIAR TABLA AL INICIAR (para actualizaciones manuales)
+        vaciarTablaCompletamente();
         
         const loader = document.getElementById('loader');
         if (loader) {
@@ -915,11 +918,10 @@ async function cargarTablaDocumentos() {
 
         await cargarResponsables();
         
-        // DESTRUIR TABLA EXISTENTE SI HAY UNA (esto ya estaba)
+        // Destruir tabla existente si hay una (ya lo hace vaciarTablaCompletamente, pero por si acaso)
         if (documentosTable) {
             documentosTable.destroy();
             documentosTable = null;
-            console.log('Tabla anterior destruida');
         }
 
         const documentosDisponibles = await obtenerDocumentosCombinados();
@@ -930,10 +932,10 @@ async function cargarTablaDocumentos() {
         const consolidados = calcularConsolidados(documentosDisponibles);
         actualizarTarjetasResumen(consolidados);
         
-        // INICIALIZAR NUEVA TABLA (reconstrucción completa)
+        // INICIALIZAR NUEVA TABLA solo si hay datos
         if (documentosDisponibles.length > 0) {
             inicializarDataTable(documentosDisponibles);
-            console.log('Nueva tabla inicializada');
+            console.log('Nueva tabla inicializada con datos');
         } else {
             // Mostrar mensaje de no hay datos
             $('#documentosTable').html(`
@@ -994,6 +996,7 @@ async function cargarTablaDocumentos() {
             <tbody>
                 <tr>
                     <td colspan="10" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
                         Error al cargar los documentos: ${error.message}
                     </td>
                 </tr>
