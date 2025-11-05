@@ -1527,6 +1527,9 @@ function obtenerBotonesAccion(data) {
     
     let botonesEstado = '';
     
+    // LÓGICA PARA BOTÓN DE PAUSA: Deshabilitar solo si el estado es DIRECTO
+    const puedePausar = data.estado !== 'DIRECTO'; // ← AQUÍ ESTÁ EL CAMBIO PRINCIPAL
+    
     // Botón de imprimir (siempre presente)
     const botonImprimir = `
         <button class="btn ${puedeImprimir ? 'btn-primary' : 'btn-secondary'}" 
@@ -1554,8 +1557,9 @@ function obtenerBotonesAccion(data) {
     } else if (data.estado === 'PENDIENTE' || data.estado === 'DIRECTO') {
         botonesEstado = `
             <button class="btn btn-warning" 
-                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
-                    title="Pausar documento">
+                    ${!puedePausar ? 'disabled' : ''}
+                    onclick="${puedePausar ? `cambiarEstadoDocumento('${data.rec}', 'PAUSADO')` : ''}"
+                    title="${puedePausar ? 'Pausar documento' : 'No se puede pausar en estado DIRECTO'}">
                 <i class="fas fa-pause"></i>
             </button>`;
     }
