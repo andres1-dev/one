@@ -1736,7 +1736,7 @@ function inicializarDataTable(documentos) {
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        pageLength: 10,
+        pageLength: 5,
         order: [[2, 'asc']],
         responsive: true,
         autoWidth: false,
