@@ -264,17 +264,24 @@ async function actualizarFilaEspecifica(rec) {
 }
 
 // Función MEJORADA para actualizar inmediatamente después de un cambio
-async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null) {
+async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null, accion = null) {
     // Evitar múltiples actualizaciones simultáneas
     if (actualizacionEnProgreso && !forzarRecarga) {
         console.log('Actualización ya en progreso, ignorando...');
         return;
     }
     
-    // Si hay un REC específico y no se fuerza recarga, actualizar solo esa fila
-    if (recEspecifico && !forzarRecarga) {
+    // OPTIMIZACIÓN: Para pausar/reanudar/finalizar, solo actualizar fila específica
+    if (recEspecifico && !forzarRecarga && ['pausar', 'reanudar', 'finalizar'].includes(accion)) {
+        console.log(`Actualización optimizada para ${accion} - solo fila REC${recEspecifico}`);
         await actualizarFilaEspecifica(recEspecifico);
         return;
+    }
+    
+    // Para asignar responsable, SI cargar datos globales
+    if (recEspecifico && accion === 'asignarResponsable') {
+        console.log('Asignación de responsable - recargando datos globales');
+        forzarRecarga = true;
     }
     
     let estadoTabla = null;
@@ -290,7 +297,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
             loader.style.display = 'block';
         }
 
-        console.log('Actualizando tabla...', { forzarRecarga, recEspecifico });
+        console.log('Actualizando tabla...', { forzarRecarga, recEspecifico, accion });
 
         // Si se fuerza recarga o no hay tabla, cargar completamente
         if (forzarRecarga || !documentosTable) {
@@ -318,14 +325,14 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
         if (estadoTabla) {
             setTimeout(() => {
                 restaurarEstadoTabla(estadoTabla);
-            }, 50); // Reducido de 100ms a 50ms
+            }, 50);
         }
         
         // Ocultar loader
         if (loader && forzarRecarga) {
             setTimeout(() => {
                 loader.style.display = 'none';
-            }, 200); // Reducido de 500ms a 200ms
+            }, 200);
         }
         
         console.log('Tabla actualizada correctamente');
@@ -966,8 +973,7 @@ async function cambiarResponsable(rec, responsable) {
     }
 }
 
-// Función OPTIMIZADA para cambiar estado del documento
-// Función OPTIMIZADA para cambiar estado del documento - SIN CONFIRMACIÓN PARA PAUSAR/REANUDAR
+// Función MEJORADA para cambiar estado del documento con confirmación para pausado
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
@@ -976,8 +982,22 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
     }
     
     try {
-        // SOLO pedir confirmación para FINALIZAR
-        if (nuevoEstado === 'FINALIZADO') {
+        // Obtener estado actual para lógica específica
+        const documentoActual = documentosGlobales.find(doc => doc.rec === rec);
+        const estadoActual = documentoActual ? documentoActual.estado : '';
+        
+        // CONFIRMACIÓN ESPECIAL para finalizar desde pausado
+        if (nuevoEstado === 'FINALIZADO' && estadoActual === 'PAUSADO') {
+            const confirmar = await mostrarConfirmacion(
+                '¿Finalizar documento desde estado PAUSADO?',
+                `REC${rec} se encuentra actualmente PAUSADO. ¿Está seguro de que el documento está completamente terminado y listo para finalizar?`,
+                'warning'
+            );
+            
+            if (!confirmar) return;
+        }
+        // Confirmación normal para otros finalizados
+        else if (nuevoEstado === 'FINALIZADO') {
             const confirmar = await mostrarConfirmacion(
                 '¿Finalizar documento?',
                 `REC${rec} → ${nuevoEstado}`,
@@ -991,7 +1011,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             console.log(`Ejecutando acción directa: REC${rec} → ${nuevoEstado}`);
         }
         
-        console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
+        console.log(`Cambiando estado del documento REC${rec} de ${estadoActual} a: ${nuevoEstado}`);
         
         actualizacionEnProgreso = true;
         
@@ -1009,6 +1029,8 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
         });
 
         let action;
+        let params = { action: '', id: rec };
+        
         switch(nuevoEstado) {
             case 'PAUSADO':
                 action = 'pausar';
@@ -1018,6 +1040,10 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 break;
             case 'FINALIZADO':
                 action = 'finalizar';
+                // Si viene de pausado, asegurar que se registren tiempos correctamente
+                if (estadoActual === 'PAUSADO') {
+                    params.forzarFinalizacion = 'true';
+                }
                 break;
             default:
                 Swal.close();
@@ -1026,10 +1052,8 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 return;
         }
         
-        const result = await llamarAPI({
-            action: action,
-            id: rec
-        });
+        params.action = action;
+        const result = await llamarAPI(params);
         
         // Cerrar loading
         Swal.close();
@@ -1051,8 +1075,15 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             
             await mostrarNotificacion('✓ Actualizado', `${nuevoEstado}`, 'success');
             
-            // Actualizar SOLO la fila específica
+            // ACTUALIZACIÓN OPTIMIZADA: Solo actualizar fila específica para pausar/reanudar/finalizar
             await actualizarFilaEspecifica(rec);
+            
+            // Si se finalizó, forzar recarga para que desaparezca del filtro principal
+            if (nuevoEstado === 'FINALIZADO' && !mostrarFinalizados) {
+                setTimeout(() => {
+                    actualizarInmediatamente(true); // Recarga completa para aplicar filtros
+                }, 500);
+            }
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al cambiar estado', 'error');
