@@ -5,9 +5,9 @@ let flatpickrMetricas = null;
 
 // Constantes del sistema
 const META_EFICIENCIA = 4.0;
-const META_CAPACIDAD = 7920;
-const META_EFECTIVIDAD = 25;
-const JORNADA_SEGUNDOS = 31680;
+const META_CAPACIDAD = 7920; // unidades por persona-día
+const META_EFECTIVIDAD = 25; // documentos por persona
+const JORNADA_SEGUNDOS = 31680; // 8:48:00 en segundos
 
 // Inicializar el sistema de métricas
 function inicializarSistemaMetricas() {
@@ -22,38 +22,194 @@ function inicializarSistemaMetricas() {
         onChange: function(selectedDates, dateStr, instance) {
             console.log('Flatpickr métricas - Fechas seleccionadas:', selectedDates);
             if (selectedDates.length === 2) {
+                console.log('Rango completo seleccionado para métricas:', selectedDates);
                 actualizarMetricasRendimiento();
             } else if (selectedDates.length === 0) {
+                console.log('Filtro de fechas limpiado');
                 limpiarFiltrosMetricas();
             }
         }
     });
     
+    console.log('Flatpickr métricas inicializado:', flatpickrMetricas);
+    
+    // Cargar lista de responsables después de un delay para asegurar que los datos globales estén cargados
+    setTimeout(() => {
+        // No cargar responsables aquí, se cargarán cuando se aplique el filtro de fechas
+    }, 2000);
+    
     console.log('Sistema de métricas inicializado');
+}
+
+// Cargar responsables basados en el rango de fechas seleccionado
+async function cargarResponsablesParaMetricas(fechaInicio, fechaFin) {
+    try {
+        const select = document.getElementById('selectResponsableMetricas');
+        if (!select) {
+            console.error('No se encontró el selector de responsables');
+            return [];
+        }
+        
+        // Limpiar opciones excepto la primera
+        while (select.children.length > 1) {
+            select.removeChild(select.lastChild);
+        }
+        
+        // Obtener responsables únicos de documentos finalizados en el rango de fechas
+        const responsablesUnicos = await obtenerResponsablesFinalizadosEnRango(fechaInicio, fechaFin);
+        
+        console.log('Responsables encontrados en el rango:', responsablesUnicos);
+        
+        responsablesUnicos.forEach(responsable => {
+            if (responsable && responsable.trim() !== '') {
+                const option = document.createElement('option');
+                option.value = responsable;
+                option.textContent = responsable;
+                select.appendChild(option);
+            }
+        });
+        
+        console.log('Responsables cargados para métricas:', responsablesUnicos.length);
+        return responsablesUnicos;
+        
+    } catch (error) {
+        console.error('Error cargando responsables para métricas:', error);
+        return [];
+    }
+}
+
+// Obtener responsables únicos de documentos finalizados en un rango de fechas
+async function obtenerResponsablesFinalizadosEnRango(fechaInicio, fechaFin) {
+    try {
+        console.log('Obteniendo responsables de documentos finalizados en rango...');
+        
+        if (!window.datosGlobales || window.datosGlobales.length === 0) {
+            console.warn('datosGlobales no está disponible');
+            return [];
+        }
+        
+        console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
+        
+        const responsables = new Set();
+        
+        // Buscar en datosGlobales los documentos finalizados en el rango de fechas
+        window.datosGlobales.forEach(doc => {
+            const estado = doc.ESTADO || doc.estado || '';
+            const colaborador = doc.COLABORADOR || doc.colaborador || '';
+            const fechaDoc = doc.FECHA || doc.fecha || '';
+            
+            if (estado.toString().toUpperCase() === 'FINALIZADO' && 
+                colaborador && 
+                colaborador.trim() !== '' &&
+                estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin)) {
+                
+                responsables.add(colaborador.trim());
+            }
+        });
+        
+        const responsablesArray = Array.from(responsables).sort();
+        console.log('Responsables finalizados en rango encontrados:', responsablesArray);
+        return responsablesArray;
+        
+    } catch (error) {
+        console.error('Error obteniendo responsables finalizados en rango:', error);
+        return [];
+    }
+}
+
+// Verificar si una fecha está en el rango seleccionado
+function estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin) {
+    try {
+        if (!fechaDoc) return false;
+        
+        // Convertir fecha del documento a objeto Date
+        const fechaDocumento = parsearFechaParaFiltro(fechaDoc);
+        if (!fechaDocumento) return false;
+        
+        // Ajustar fechas de inicio y fin para comparación
+        const inicio = new Date(fechaInicio);
+        inicio.setHours(0, 0, 0, 0);
+        
+        const fin = new Date(fechaFin);
+        fin.setHours(23, 59, 59, 999);
+        
+        return fechaDocumento >= inicio && fechaDocumento <= fin;
+        
+    } catch (error) {
+        console.error('Error verificando rango de fechas:', error);
+        return false;
+    }
+}
+
+// Función para parsear fechas para el filtro
+function parsearFechaParaFiltro(fechaStr) {
+    if (!fechaStr) return null;
+    
+    try {
+        // Probar diferentes formatos de fecha
+        let fecha;
+        
+        // Formato "dd/mm/yyyy"
+        if (fechaStr.includes('/')) {
+            const partes = fechaStr.split('/');
+            if (partes.length === 3) {
+                const dia = parseInt(partes[0], 10);
+                const mes = parseInt(partes[1], 10) - 1;
+                const año = parseInt(partes[2], 10);
+                fecha = new Date(año, mes, dia);
+            }
+        }
+        // Formato "yyyy-mm-dd"
+        else if (fechaStr.includes('-')) {
+            fecha = new Date(fechaStr);
+        }
+        // Formato timestamp o otros
+        else {
+            fecha = new Date(fechaStr);
+        }
+        
+        // Verificar que la fecha sea válida
+        if (isNaN(fecha.getTime())) {
+            console.warn('Fecha no válida:', fechaStr);
+            return null;
+        }
+        
+        return fecha;
+    } catch (e) {
+        console.error('Error parseando fecha para filtro:', e, 'String:', fechaStr);
+        return null;
+    }
 }
 
 // Función principal para actualizar métricas
 async function actualizarMetricasRendimiento() {
     try {
-        console.log('=== INICIANDO ACTUALIZACIÓN DE MÉTRICAS ===');
+        console.log('Actualizando métricas de rendimiento...');
         
         // Mostrar loading
         mostrarLoadingMetricas();
         
         // Obtener parámetros de filtro
         const fechas = flatpickrMetricas.selectedDates;
-        const responsableSeleccionado = document.getElementById('selectResponsableMetricas').value;
         
-        console.log('Filtros:', { fechas, responsable: responsableSeleccionado });
+        console.log('Filtros aplicados - Fechas:', fechas);
         
         if (!fechas || fechas.length !== 2) {
-            await mostrarNotificacion('Información', 'Seleccione un rango de fechas', 'info');
+            await mostrarNotificacion('Información', 'Seleccione un rango de fechas para calcular las métricas', 'info');
             ocultarLoadingMetricas();
             return;
         }
         
+        // Cargar responsables basados en el rango de fechas
+        const responsables = await cargarResponsablesParaMetricas(fechas[0], fechas[1]);
+        
+        const responsableSeleccionado = document.getElementById('selectResponsableMetricas').value;
+        
+        console.log('Responsable seleccionado:', responsableSeleccionado);
+        
         // Calcular métricas
         const metricas = await calcularMetricasRendimiento(fechas[0], fechas[1], responsableSeleccionado);
+        metricasGlobales = metricas;
         
         console.log('Métricas calculadas:', metricas);
         
@@ -63,77 +219,88 @@ async function actualizarMetricasRendimiento() {
         actualizarTopSemanal(metricas);
         actualizarGraficoSpider(metricas, responsableSeleccionado);
         
-        console.log('=== MÉTRICAS ACTUALIZADAS CORRECTAMENTE ===');
+        console.log('Métricas actualizadas correctamente');
         
     } catch (error) {
         console.error('Error actualizando métricas:', error);
-        await mostrarNotificacion('Error', 'Error al calcular métricas: ' + error.message, 'error');
+        await mostrarNotificacion('Error', 'Error al calcular las métricas: ' + error.message, 'error');
     } finally {
         ocultarLoadingMetricas();
     }
 }
 
-// Calcular métricas de rendimiento - VERSIÓN SIMPLIFICADA Y FUNCIONAL
+// Calcular métricas de rendimiento - VERSIÓN CORREGIDA
 async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFiltro = '') {
     try {
-        console.log('Calculando métricas para:', fechaInicio, 'a', fechaFin);
+        console.log('Calculando métricas para rango:', fechaInicio, 'a', fechaFin, 'Responsable:', responsableFiltro);
         
-        // Usar documentosGlobales que ya tiene la información combinada
-        if (!window.documentosGlobales || window.documentosGlobales.length === 0) {
-            throw new Error('No hay documentos disponibles. Cargue la tabla primero.');
+        // Asegurarse de que los datos globales estén disponibles
+        if (!window.datosGlobales || window.datosGlobales.length === 0) {
+            console.warn('datosGlobales vacío, intentando cargar...');
+            if (typeof cargarDatos === 'function') {
+                await cargarDatos();
+            }
         }
         
-        console.log('Total documentos disponibles:', window.documentosGlobales.length);
+        if (!window.datosGlobales || window.datosGlobales.length === 0) {
+            throw new Error('No hay datos disponibles para calcular métricas');
+        }
         
-        const fechaInicioObj = new Date(fechaInicio);
-        const fechaFinObj = new Date(fechaFin);
-        fechaFinObj.setHours(23, 59, 59, 999); // Incluir todo el día final
+        console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
         
-        // Procesar documentos finalizados en el rango
+        // Procesar documentos finalizados en el rango de fechas
         const documentosFinalizados = [];
         const metricasPorResponsable = {};
         
-        for (const doc of window.documentosGlobales) {
-            // Solo documentos finalizados
-            if (doc.estado !== 'FINALIZADO') continue;
+        for (const doc of window.datosGlobales) {
+            const estado = String(doc.ESTADO || doc.estado || '').toUpperCase();
+            const colaborador = String(doc.COLABORADOR || doc.colaborador || '').trim();
+            const fechaDoc = doc.FECHA || doc.fecha || '';
+            const rec = doc.REC || doc.rec || '';
+            
+            // Filtrar solo documentos finalizados en el rango de fechas
+            if (estado !== 'FINALIZADO' || 
+                !colaborador || 
+                colaborador === '' ||
+                !estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin)) {
+                continue;
+            }
             
             // Filtrar por responsable si se especifica
-            if (responsableFiltro && doc.colaborador !== responsableFiltro) continue;
+            if (responsableFiltro && colaborador !== responsableFiltro) {
+                continue;
+            }
             
-            // Verificar fecha
-            if (!doc.fecha_objeto) continue;
-            
-            const fechaDoc = doc.fecha_objeto;
-            if (fechaDoc < fechaInicioObj || fechaDoc > fechaFinObj) continue;
-            
-            const cantidad = doc.cantidad || 0;
+            const cantidad = parseInt(doc.CANTIDAD) || 0;
             if (cantidad <= 0) continue;
             
-            // Obtener duración en segundos
-            const duracionSegundos = tiempoASegundos(doc.duracion_guardada);
-            if (duracionSegundos <= 0) continue;
+            // Buscar información de duración en la hoja DATA
+            const duracion = await obtenerDuracionDocumento(rec);
+            if (!duracion || duracion.segundos <= 0) continue;
             
-            // Calcular métricas
-            const eficiencia = cantidad / duracionSegundos;
-            const capacidad = eficiencia * JORNADA_SEGUNDOS;
+            // Calcular eficiencia (unidades por segundo)
+            const eficiencia = cantidad / duracion.segundos;
+            
+            // Calcular capacidad proyectada (unidades por jornada)
+            const capacidad = (cantidad / duracion.segundos) * JORNADA_SEGUNDOS;
             
             const documentoMetrica = {
-                rec: doc.rec,
-                responsable: doc.colaborador,
+                rec: rec,
+                responsable: colaborador,
                 cantidad: cantidad,
-                duracionSegundos: duracionSegundos,
-                duracionFormateada: doc.duracion_guardada,
+                duracionSegundos: duracion.segundos,
+                duracionFormateada: duracion.formateada,
                 eficiencia: eficiencia,
                 capacidad: capacidad,
-                fecha: doc.fecha
+                fecha: fechaDoc
             };
             
             documentosFinalizados.push(documentoMetrica);
             
             // Agrupar por responsable
-            if (!metricasPorResponsable[doc.colaborador]) {
-                metricasPorResponsable[doc.colaborador] = {
-                    responsable: doc.colaborador,
+            if (!metricasPorResponsable[colaborador]) {
+                metricasPorResponsable[colaborador] = {
+                    responsable: colaborador,
                     documentos: 0,
                     totalUnidades: 0,
                     totalTiempoSegundos: 0,
@@ -143,15 +310,15 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
                 };
             }
             
-            metricasPorResponsable[doc.colaborador].documentos++;
-            metricasPorResponsable[doc.colaborador].totalUnidades += cantidad;
-            metricasPorResponsable[doc.colaborador].totalTiempoSegundos += duracionSegundos;
+            metricasPorResponsable[colaborador].documentos++;
+            metricasPorResponsable[colaborador].totalUnidades += cantidad;
+            metricasPorResponsable[colaborador].totalTiempoSegundos += duracion.segundos;
         }
         
-        console.log('Documentos finalizados encontrados:', documentosFinalizados.length);
-        console.log('Responsables con datos:', Object.keys(metricasPorResponsable));
+        console.log('Documentos finalizados procesados:', documentosFinalizados.length);
+        console.log('Responsables con métricas:', Object.keys(metricasPorResponsable));
         
-        // Calcular métricas finales
+        // Calcular métricas finales por responsable
         const metricasFinales = [];
         let totalGeneral = {
             documentos: 0,
@@ -168,22 +335,23 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
                 metrica.totalUnidades / metrica.totalTiempoSegundos : 0;
             metrica.capacidadPromedio = metrica.eficienciaPromedio * JORNADA_SEGUNDOS;
             
-            // Calcular efectividad
+            // Calcular efectividad (documentos por jornada)
             const diasTrabajados = calcularDiasTrabajados(documentosFinalizados.filter(d => d.responsable === responsable));
             metrica.documentosPorDia = diasTrabajados > 0 ? metrica.documentos / diasTrabajados : metrica.documentos;
             
-            // Porcentaje de eficiencia
-            metrica.porcentajeEficiencia = (metrica.eficienciaPromedio / META_EFICIENCIA) * 100;
+            // Calcular porcentaje de eficiencia respecto a la meta
+            metrica.porcentajeEficiencia = metrica.eficienciaPromedio > 0 ? 
+                (metrica.eficienciaPromedio / META_EFICIENCIA) * 100 : 0;
             
             metricasFinales.push(metrica);
             
-            // Totales generales
+            // Acumular para total general
             totalGeneral.documentos += metrica.documentos;
             totalGeneral.totalUnidades += metrica.totalUnidades;
             totalGeneral.totalTiempoSegundos += metrica.totalTiempoSegundos;
         }
         
-        // Promedios generales
+        // Calcular promedios generales
         if (totalGeneral.totalTiempoSegundos > 0) {
             totalGeneral.eficienciaPromedio = totalGeneral.totalUnidades / totalGeneral.totalTiempoSegundos;
             totalGeneral.capacidadPromedio = totalGeneral.eficienciaPromedio * JORNADA_SEGUNDOS;
@@ -193,8 +361,11 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
                 totalGeneral.documentos / totalDiasTrabajados : totalGeneral.documentos;
         }
         
-        // Actualizar lista de responsables
-        actualizarSelectResponsables(metricasFinales);
+        console.log('Métricas calculadas:', {
+            totalDocumentos: documentosFinalizados.length,
+            totalResponsables: metricasFinales.length,
+            totalGeneral: totalGeneral
+        });
         
         return {
             metricasPorResponsable: metricasFinales,
@@ -203,30 +374,47 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
         };
         
     } catch (error) {
-        console.error('Error en cálculo de métricas:', error);
+        console.error('Error calculando métricas:', error);
         throw error;
     }
 }
 
-// Actualizar select de responsables con los que tienen datos
-function actualizarSelectResponsables(metricas) {
-    const select = document.getElementById('selectResponsableMetricas');
-    if (!select) return;
-    
-    // Limpiar opciones excepto la primera
-    while (select.children.length > 1) {
-        select.removeChild(select.lastChild);
+// Obtener duración de un documento desde la hoja DATA
+async function obtenerDuracionDocumento(rec) {
+    try {
+        const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const values = data.values || [];
+        
+        // Buscar el documento específico
+        const fila = values.find(row => String(row[0] || '').trim() === String(rec));
+        
+        if (fila) {
+            const duracion = fila[7] || '00:00:00'; // Columna H (índice 7) - duración guardada
+            const segundos = tiempoASegundos(duracion);
+            
+            return {
+                formateada: duracion,
+                segundos: segundos
+            };
+        }
+        
+        return {
+            formateada: '00:00:00',
+            segundos: 0
+        };
+        
+    } catch (error) {
+        console.error('Error obteniendo duración para REC' + rec + ':', error);
+        return {
+            formateada: '00:00:00',
+            segundos: 0
+        };
     }
-    
-    // Agregar responsables que tienen datos
-    metricas.forEach(metrica => {
-        const option = document.createElement('option');
-        option.value = metrica.responsable;
-        option.textContent = metrica.responsable;
-        select.appendChild(option);
-    });
-    
-    console.log('Select actualizado con', metricas.length, 'responsables');
 }
 
 // Función auxiliar para convertir tiempo a segundos
@@ -239,6 +427,7 @@ function tiempoASegundos(tiempo) {
         const segundos = parseInt(partes[2]) || 0;
         return (horas * 3600) + (minutos * 60) + segundos;
     } catch (e) {
+        console.error("Error convirtiendo tiempo a segundos:", e, "Tiempo:", tiempo);
         return 0;
     }
 }
@@ -248,26 +437,34 @@ function calcularDiasTrabajados(documentos) {
     const diasUnicos = new Set();
     documentos.forEach(doc => {
         if (doc.fecha) {
-            const fecha = doc.fecha.split(' ')[0];
+            const fecha = doc.fecha.split(' ')[0]; // Solo la fecha sin hora
             diasUnicos.add(fecha);
         }
     });
-    return Math.max(diasUnicos.size, 1);
+    return Math.max(diasUnicos.size, 1); // Mínimo 1 día para evitar división por cero
 }
 
 // Actualizar resumen de métricas
 function actualizarResumenMetricas(metricas) {
     const total = metricas.totalGeneral;
     
-    // Actualizar valores
+    console.log('Actualizando resumen con:', total);
+    
+    // Eficiencia promedio
     document.getElementById('eficienciaPromedio').textContent = total.eficienciaPromedio.toFixed(4);
+    
+    // Capacidad promedio
     document.getElementById('capacidadPromedio').textContent = Math.round(total.capacidadPromedio).toLocaleString();
+    
+    // Efectividad promedio
     document.getElementById('efectividadPromedio').textContent = Math.round(total.efectividadPromedio);
     
-    const capacidadInstalada = (total.eficienciaPromedio / META_EFICIENCIA) * 100;
+    // Capacidad instalada (porcentaje de eficiencia)
+    const capacidadInstalada = total.eficienciaPromedio > 0 ? 
+        (total.eficienciaPromedio / META_EFICIENCIA) * 100 : 0;
     document.getElementById('capacidadInstalada').textContent = capacidadInstalada.toFixed(1) + '%';
     
-    // Aplicar estilos de color
+    // Aplicar clases de color según el rendimiento
     aplicarEstilosRendimiento('eficienciaPromedio', total.eficienciaPromedio, META_EFICIENCIA);
     aplicarEstilosRendimiento('capacidadPromedio', total.capacidadPromedio, META_CAPACIDAD);
     aplicarEstilosRendimiento('efectividadPromedio', total.efectividadPromedio, META_EFECTIVIDAD);
@@ -279,7 +476,7 @@ function aplicarEstilosRendimiento(elementId, valorActual, valorMeta) {
     const elemento = document.getElementById(elementId);
     if (!elemento) return;
     
-    const porcentaje = (valorActual / valorMeta) * 100;
+    const porcentaje = valorMeta > 0 ? (valorActual / valorMeta) * 100 : 0;
     
     elemento.classList.remove('eficiencia-baja', 'eficiencia-media', 'eficiencia-alta');
     
@@ -303,7 +500,7 @@ function actualizarTablaMetricas(metricas) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="text-center text-muted py-4">
-                    No se encontraron documentos finalizados en el rango seleccionado
+                    No hay datos para mostrar con los filtros seleccionados
                 </td>
             </tr>
         `;
@@ -313,9 +510,16 @@ function actualizarTablaMetricas(metricas) {
     metricas.metricasPorResponsable.forEach(metrica => {
         const fila = document.createElement('tr');
         
+        // Formatear tiempo total
         const tiempoTotalFormateado = segundosATiempo(metrica.totalTiempoSegundos);
-        const claseEficiencia = metrica.porcentajeEficiencia >= 90 ? 'eficiencia-alta' : 
-                               metrica.porcentajeEficiencia >= 70 ? 'eficiencia-media' : 'eficiencia-baja';
+        
+        // Determinar clase de eficiencia
+        let claseEficiencia = 'eficiencia-baja';
+        if (metrica.porcentajeEficiencia >= 90) {
+            claseEficiencia = 'eficiencia-alta';
+        } else if (metrica.porcentajeEficiencia >= 70) {
+            claseEficiencia = 'eficiencia-media';
+        }
         
         fila.innerHTML = `
             <td class="fw-semibold">${metrica.responsable}</td>
@@ -347,6 +551,7 @@ function actualizarTopSemanal(metricas) {
         return;
     }
     
+    // Ordenar por eficiencia (descendente)
     const topEficiencia = [...metricas.metricasPorResponsable]
         .sort((a, b) => b.eficienciaPromedio - a.eficienciaPromedio)
         .slice(0, 5);
@@ -354,14 +559,17 @@ function actualizarTopSemanal(metricas) {
     let html = '';
     topEficiencia.forEach((metrica, index) => {
         const posicion = index + 1;
+        const esTop1 = posicion === 1;
         
         html += `
-            <div class="top-item ${posicion === 1 ? 'bg-light rounded p-2' : ''}">
-                <div class="top-posicion ${posicion === 1 ? 'bg-warning' : ''}">
+            <div class="top-item ${esTop1 ? 'bg-light rounded p-2' : ''}">
+                <div class="top-posicion ${esTop1 ? 'bg-warning' : ''}">
                     ${posicion}
                 </div>
                 <div class="top-info">
-                    <div class="top-nombre">${metrica.responsable}</div>
+                    <div class="top-nombre" title="${metrica.responsable}">
+                        ${metrica.responsable}
+                    </div>
                     <div class="top-metricas">
                         <div class="top-metrica">
                             <i class="fas fa-bolt ${metrica.eficienciaPromedio >= META_EFICIENCIA ? 'text-success' : 'text-warning'}"></i>
@@ -380,11 +588,12 @@ function actualizarTopSemanal(metricas) {
     container.innerHTML = html;
 }
 
-// Actualizar gráfico spider
+// Actualizar gráfico spider - SOLO LAS 3 MÉTRICAS REALES
 function actualizarGraficoSpider(metricas, responsableFiltro = '') {
     const ctx = document.getElementById('spiderChart');
     if (!ctx) return;
     
+    // Destruir gráfico anterior si existe
     if (spiderChart) {
         spiderChart.destroy();
     }
@@ -401,12 +610,21 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
             maintainAspectRatio: false,
             scales: {
                 r: {
-                    angleLines: { display: true, color: 'rgba(0, 0, 0, 0.1)' },
+                    angleLines: {
+                        display: true,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
                     suggestedMin: 0,
                     suggestedMax: 100,
-                    ticks: { display: false, stepSize: 20 },
+                    ticks: {
+                        display: false,
+                        stepSize: 20
+                    },
                     pointLabels: {
-                        font: { size: 11, family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" },
+                        font: {
+                            size: 11,
+                            family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                        },
                         color: 'var(--text-secondary)'
                     }
                 }
@@ -415,7 +633,9 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
                 legend: {
                     position: 'top',
                     labels: {
-                        font: { size: 11 },
+                        font: {
+                            size: 11
+                        },
                         color: 'var(--text-primary)'
                     }
                 },
@@ -428,17 +648,19 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
                 }
             },
             elements: {
-                line: { borderWidth: 2 }
+                line: {
+                    borderWidth: 2
+                }
             }
         }
     });
 }
 
-// Generar datos para gráfico spider individual
+// Generar datos para gráfico spider individual - SOLO 3 MÉTRICAS
 function generarDatosSpiderIndividual(metricas, responsable) {
-    const metrica = metricas.metricasPorResponsable.find(m => m.responsable === responsable);
+    const metricaResponsable = metricas.metricasPorResponsable.find(m => m.responsable === responsable);
     
-    if (!metrica) {
+    if (!metricaResponsable) {
         return {
             labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
             datasets: [{
@@ -452,9 +674,9 @@ function generarDatosSpiderIndividual(metricas, responsable) {
     }
     
     const datos = [
-        Math.min(metrica.porcentajeEficiencia, 100),
-        Math.min((metrica.capacidadPromedio / META_CAPACIDAD) * 100, 100),
-        Math.min((metrica.documentosPorDia / META_EFECTIVIDAD) * 100, 100),
+        Math.min(metricaResponsable.porcentajeEficiencia, 100), // Eficiencia
+        Math.min((metricaResponsable.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
+        Math.min((metricaResponsable.documentosPorDia / META_EFECTIVIDAD) * 100, 100) // Efectividad
     ];
     
     return {
@@ -465,19 +687,22 @@ function generarDatosSpiderIndividual(metricas, responsable) {
             backgroundColor: 'rgba(59, 130, 246, 0.2)',
             borderColor: 'rgba(59, 130, 246, 1)',
             pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-            pointBorderColor: '#fff'
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
         }, {
             label: 'Meta',
             data: [100, 100, 100],
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
             borderColor: 'rgba(16, 185, 129, 0.5)',
             borderDash: [5, 5],
-            pointBackgroundColor: 'rgba(16, 185, 129, 0.5)'
+            pointBackgroundColor: 'rgba(16, 185, 129, 0.5)',
+            pointBorderColor: 'rgba(16, 185, 129, 0.5)'
         }]
     };
 }
 
-// Generar datos para gráfico spider general
+// Generar datos para gráfico spider general (promedio del equipo) - SOLO 3 MÉTRICAS
 function generarDatosSpiderGeneral(metricas) {
     if (metricas.metricasPorResponsable.length === 0) {
         return {
@@ -493,11 +718,12 @@ function generarDatosSpiderGeneral(metricas) {
     }
     
     const total = metricas.totalGeneral;
+    const promedioDocumentosPorDia = total.efectividadPromedio;
     
     const datos = [
-        Math.min((total.eficienciaPromedio / META_EFICIENCIA) * 100, 100),
-        Math.min((total.capacidadPromedio / META_CAPACIDAD) * 100, 100),
-        Math.min((total.efectividadPromedio / META_EFECTIVIDAD) * 100, 100),
+        Math.min((total.eficienciaPromedio / META_EFICIENCIA) * 100, 100), // Eficiencia
+        Math.min((total.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
+        Math.min((promedioDocumentosPorDia / META_EFECTIVIDAD) * 100, 100) // Efectividad
     ];
     
     return {
@@ -508,14 +734,17 @@ function generarDatosSpiderGeneral(metricas) {
             backgroundColor: 'rgba(245, 158, 11, 0.2)',
             borderColor: 'rgba(245, 158, 11, 1)',
             pointBackgroundColor: 'rgba(245, 158, 11, 1)',
-            pointBorderColor: '#fff'
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(245, 158, 11, 1)'
         }, {
             label: 'Meta',
             data: [100, 100, 100],
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
             borderColor: 'rgba(16, 185, 129, 0.5)',
             borderDash: [5, 5],
-            pointBackgroundColor: 'rgba(16, 185, 129, 0.5)'
+            pointBackgroundColor: 'rgba(16, 185, 129, 0.5)',
+            pointBorderColor: 'rgba(16, 185, 129, 0.5)'
         }]
     };
 }
@@ -526,11 +755,13 @@ function limpiarFiltrosMetricas() {
         flatpickrMetricas.clear();
     }
     
-    const select = document.getElementById('selectResponsableMetricas');
-    if (select) {
-        while (select.children.length > 1) {
-            select.removeChild(select.lastChild);
+    const selectResponsable = document.getElementById('selectResponsableMetricas');
+    if (selectResponsable) {
+        // Limpiar opciones excepto la primera
+        while (selectResponsable.children.length > 1) {
+            selectResponsable.removeChild(selectResponsable.lastChild);
         }
+        selectResponsable.value = '';
     }
     
     // Limpiar interfaz
@@ -560,6 +791,7 @@ function limpiarFiltrosMetricas() {
         `;
     }
     
+    // Limpiar gráfico
     if (spiderChart) {
         spiderChart.destroy();
         spiderChart = null;
@@ -571,6 +803,7 @@ function mostrarLoadingMetricas() {
     const cardBody = document.querySelector('#resumenMetricas').parentElement;
     if (!cardBody) return;
     
+    // Crear overlay de loading si no existe
     let loadingOverlay = document.getElementById('loadingMetricas');
     if (!loadingOverlay) {
         loadingOverlay = document.createElement('div');
@@ -616,6 +849,7 @@ function segundosATiempo(segundos) {
     const horas = Math.floor(segundos / 3600);
     const minutos = Math.floor((segundos % 3600) / 60);
     const segs = Math.floor(segundos % 60);
+    
     return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
 }
 
@@ -623,15 +857,17 @@ function segundosATiempo(segundos) {
 window.actualizarMetricasRendimiento = actualizarMetricasRendimiento;
 window.limpiarFiltrosMetricas = limpiarFiltrosMetricas;
 
-// Inicializar cuando esté listo
+// Inicializar cuando el DOM esté listo y los datos estén cargados
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Inicializando sistema de métricas...');
+    console.log('DOM cargado, inicializando sistema de métricas...');
     
-    // Esperar a que la tabla principal esté cargada
-    const checkTableLoaded = setInterval(() => {
-        if (window.documentosGlobales && window.documentosGlobales.length > 0) {
-            clearInterval(checkTableLoaded);
-            console.log('Tabla cargada, inicializando métricas...');
+    // Esperar a que los datos globales estén cargados
+    const checkDataLoaded = setInterval(() => {
+        if (typeof datosGlobales !== 'undefined') {
+            clearInterval(checkDataLoaded);
+            console.log('Datos globales disponibles, inicializando métricas...');
+            
+            // Inicializar después de un breve delay para asegurar que todo esté listo
             setTimeout(() => {
                 inicializarSistemaMetricas();
             }, 1000);
@@ -641,8 +877,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Timeout de seguridad
     setTimeout(() => {
         if (typeof inicializarSistemaMetricas === 'function') {
-            console.log('Inicializando métricas por timeout...');
+            console.log('Inicializando métricas por timeout de seguridad...');
             inicializarSistemaMetricas();
         }
-    }, 3000);
+    }, 5000);
 });
