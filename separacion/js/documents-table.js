@@ -1143,6 +1143,7 @@ async function cambiarResponsable(rec, responsable) {
 }
 
 // Función para VACIAR tabla completamente (solo headers)
+// Función para VACIAR tabla completamente (solo headers, sin afectar contadores)
 function vaciarTablaCompletamente() {
     console.log('Vaciando tabla completamente...');
     
@@ -1152,7 +1153,7 @@ function vaciarTablaCompletamente() {
         documentosTable = null;
     }
     
-    // Limpiar contenido y mostrar solo headers con spinner
+    // Limpiar contenido y mostrar solo headers
     $('#documentosTable').html(`
         <thead class="table-light">
             <tr>
@@ -1174,20 +1175,12 @@ function vaciarTablaCompletamente() {
                     <div class="spinner-border spinner-border-sm me-2" role="status">
                         <span class="visually-hidden">Cargando...</span>
                     </div>
-                    Actualizando asignación de responsable...
+                    Actualizando...
                 </td>
             </tr>
         </tbody>
     `);
     
-    // También limpiar los consolidados/resumen temporalmente
-    const consolidadosVacios = {
-        pendientes: { count: 0, unidades: 0 },
-        proceso: { count: 0, unidades: 0 },
-        directos: { count: 0, unidades: 0 },
-        total: { count: 0, unidades: 0 }
-    };
-    actualizarTarjetasResumen(consolidadosVacios);
 }
 
 // Función OPTIMIZADA para cambiar estado del documento - LÓGICA CORREGIDA
