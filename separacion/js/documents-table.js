@@ -1736,6 +1736,10 @@ function inicializarDataTable(documentos) {
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
+        lengthMenu: [
+        [5, 10, 25, 50, 100, -1],
+        [5, 10, 25, 50, 100, 'Todos']
+        ],
         pageLength: 5,
         order: [[2, 'asc']],
         responsive: true,
