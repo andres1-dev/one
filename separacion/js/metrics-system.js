@@ -21,17 +21,23 @@ function inicializarSistemaMetricas() {
         dateFormat: "d/m/Y",
         allowInput: true,
         onChange: function(selectedDates, dateStr, instance) {
+            console.log('Flatpickr métricas - Fechas seleccionadas:', selectedDates);
             if (selectedDates.length === 2) {
-                console.log('Rango seleccionado para métricas:', selectedDates);
+                console.log('Rango completo seleccionado para métricas:', selectedDates);
                 actualizarMetricasRendimiento();
             } else if (selectedDates.length === 0) {
+                console.log('Filtro de fechas limpiado');
                 limpiarFiltrosMetricas();
             }
         }
     });
     
-    // Cargar lista de responsables
-    cargarResponsablesParaMetricas();
+    console.log('Flatpickr métricas inicializado:', flatpickrMetricas);
+    
+    // Cargar lista de responsables después de un delay para asegurar que los datos globales estén cargados
+    setTimeout(() => {
+        cargarResponsablesParaMetricas();
+    }, 2000);
     
     console.log('Sistema de métricas inicializado');
 }
@@ -40,7 +46,10 @@ function inicializarSistemaMetricas() {
 async function cargarResponsablesParaMetricas() {
     try {
         const select = document.getElementById('selectResponsableMetricas');
-        if (!select) return;
+        if (!select) {
+            console.error('No se encontró el selector de responsables');
+            return;
+        }
         
         // Limpiar opciones excepto la primera
         while (select.children.length > 1) {
@@ -49,6 +58,8 @@ async function cargarResponsablesParaMetricas() {
         
         // Obtener responsables únicos de documentos finalizados
         const responsablesUnicos = await obtenerResponsablesFinalizados();
+        
+        console.log('Responsables encontrados:', responsablesUnicos);
         
         responsablesUnicos.forEach(responsable => {
             if (responsable && responsable.trim() !== '') {
@@ -68,28 +79,55 @@ async function cargarResponsablesParaMetricas() {
 // Obtener responsables únicos de documentos finalizados
 async function obtenerResponsablesFinalizados() {
     try {
-        const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        console.log('Obteniendo responsables de documentos finalizados...');
         
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        const values = data.values || [];
+        // Usar los datos globales ya cargados en lugar de hacer una nueva petición
+        if (!window.datosGlobales || window.datosGlobales.length === 0) {
+            console.warn('datosGlobales no está disponible, intentando cargar datos...');
+            if (typeof cargarDatos === 'function') {
+                await cargarDatos();
+            } else {
+                console.error('Función cargarDatos no disponible');
+                return [];
+            }
+        }
+        
+        console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
         
         const responsables = new Set();
         
-        values.forEach(row => {
-            const estado = String(row[3] || '').trim().toUpperCase();
-            const colaborador = String(row[4] || '').trim();
+        // Buscar en datosGlobales los documentos finalizados
+        window.datosGlobales.forEach(doc => {
+            const estado = doc.ESTADO || doc.estado || '';
+            const colaborador = doc.COLABORADOR || doc.colaborador || '';
             
-            if (estado === 'FINALIZADO' && colaborador && colaborador.trim() !== '') {
-                responsables.add(colaborador);
+            if (estado.toString().toUpperCase() === 'FINALIZADO' && colaborador && colaborador.trim() !== '') {
+                responsables.add(colaborador.trim());
             }
         });
         
-        return Array.from(responsables).sort();
+        const responsablesArray = Array.from(responsables).sort();
+        console.log('Responsables finalizados encontrados:', responsablesArray);
+        return responsablesArray;
+        
     } catch (error) {
         console.error('Error obteniendo responsables finalizados:', error);
+        
+        // Fallback: intentar obtener de la tabla de documentos si está disponible
+        try {
+            if (window.documentosGlobales && window.documentosGlobales.length > 0) {
+                const responsables = new Set();
+                window.documentosGlobales.forEach(doc => {
+                    if (doc.estado === 'FINALIZADO' && doc.colaborador && doc.colaborador.trim() !== '') {
+                        responsables.add(doc.colaborador.trim());
+                    }
+                });
+                return Array.from(responsables).sort();
+            }
+        } catch (fallbackError) {
+            console.error('Error en fallback:', fallbackError);
+        }
+        
         return [];
     }
 }
@@ -106,6 +144,11 @@ async function actualizarMetricasRendimiento() {
         const fechas = flatpickrMetricas.selectedDates;
         const responsableSeleccionado = document.getElementById('selectResponsableMetricas').value;
         
+        console.log('Filtros aplicados:', {
+            fechas: fechas,
+            responsable: responsableSeleccionado
+        });
+        
         if (!fechas || fechas.length !== 2) {
             await mostrarNotificacion('Información', 'Seleccione un rango de fechas para calcular las métricas', 'info');
             ocultarLoadingMetricas();
@@ -115,6 +158,8 @@ async function actualizarMetricasRendimiento() {
         // Calcular métricas
         const metricas = await calcularMetricasRendimiento(fechas[0], fechas[1], responsableSeleccionado);
         metricasGlobales = metricas;
+        
+        console.log('Métricas calculadas:', metricas);
         
         // Actualizar interfaz
         actualizarResumenMetricas(metricas);
@@ -132,33 +177,57 @@ async function actualizarMetricasRendimiento() {
     }
 }
 
-// Calcular métricas de rendimiento
+// Calcular métricas de rendimiento - VERSIÓN CORREGIDA
 async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFiltro = '') {
     try {
         console.log('Calculando métricas para rango:', fechaInicio, 'a', fechaFin, 'Responsable:', responsableFiltro);
         
-        const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        // Asegurarse de que los datos globales estén disponibles
+        if (!window.datosGlobales || window.datosGlobales.length === 0) {
+            console.warn('datosGlobales vacío, intentando cargar...');
+            if (typeof cargarDatos === 'function') {
+                await cargarDatos();
+            }
+        }
         
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        const values = data.values || [];
+        if (!window.datosGlobales || window.datosGlobales.length === 0) {
+            throw new Error('No hay datos disponibles para calcular métricas');
+        }
+        
+        console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
+        
+        // También usar documentosGlobales si está disponible para obtener información de estado actual
+        let documentosConEstado = [];
+        
+        if (window.documentosGlobales && window.documentosGlobales.length > 0) {
+            console.log('Usando documentosGlobales para estados actuales');
+            documentosConEstado = window.documentosGlobales;
+        } else {
+            console.log('Usando datosGlobales como fuente principal');
+            // Convertir datosGlobales al formato necesario
+            documentosConEstado = window.datosGlobales.map(doc => ({
+                rec: doc.REC || doc.rec || '',
+                estado: doc.ESTADO || doc.estado || '',
+                colaborador: doc.COLABORADOR || doc.colaborador || '',
+                fecha: doc.FECHA || doc.fecha || '',
+                cantidad: parseInt(doc.CANTIDAD) || 0,
+                datosCompletos: doc
+            }));
+        }
+        
+        console.log('Documentos con estado:', documentosConEstado.length);
         
         // Procesar documentos finalizados en el rango de fechas
         const documentosFinalizados = [];
         const metricasPorResponsable = {};
         
-        for (const row of values) {
-            const documento = String(row[0] || '').trim();
-            const fechaHora = row[1] || '';
-            const estado = String(row[3] || '').trim().toUpperCase();
-            const colaborador = String(row[4] || '').trim();
-            const datetime_fin = row[6] || '';
-            const duracion_guardada = row[7] || '';
+        for (const doc of documentosConEstado) {
+            const estado = String(doc.estado || '').toUpperCase();
+            const colaborador = String(doc.colaborador || '').trim();
+            const fechaDoc = doc.fecha || '';
             
             // Filtrar solo documentos finalizados
-            if (estado !== 'FINALIZADO' || !colaborador || colaborador.trim() === '') {
+            if (estado !== 'FINALIZADO' || !colaborador || colaborador === '') {
                 continue;
             }
             
@@ -168,31 +237,31 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             }
             
             // Obtener datos completos del documento
-            const datosCompletos = datosGlobales.find(d => d.REC === documento);
+            const datosCompletos = doc.datosCompletos || doc;
             if (!datosCompletos) continue;
             
             const cantidad = parseInt(datosCompletos.CANTIDAD) || 0;
             if (cantidad <= 0) continue;
             
-            // Calcular duración en segundos
-            const duracionSegundos = tiempoASegundos(duracion_guardada);
-            if (duracionSegundos <= 0) continue;
+            // Buscar información de duración en la hoja DATA
+            const duracion = await obtenerDuracionDocumento(doc.rec);
+            if (!duracion || duracion.segundos <= 0) continue;
             
             // Calcular eficiencia (unidades por segundo)
-            const eficiencia = cantidad / duracionSegundos;
+            const eficiencia = cantidad / duracion.segundos;
             
             // Calcular capacidad proyectada (unidades por jornada)
-            const capacidad = (cantidad / duracionSegundos) * JORNADA_SEGUNDOS;
+            const capacidad = (cantidad / duracion.segundos) * JORNADA_SEGUNDOS;
             
             const documentoMetrica = {
-                rec: documento,
+                rec: doc.rec,
                 responsable: colaborador,
                 cantidad: cantidad,
-                duracionSegundos: duracionSegundos,
-                duracionFormateada: duracion_guardada,
+                duracionSegundos: duracion.segundos,
+                duracionFormateada: duracion.formateada,
                 eficiencia: eficiencia,
                 capacidad: capacidad,
-                fecha: fechaHora
+                fecha: fechaDoc
             };
             
             documentosFinalizados.push(documentoMetrica);
@@ -212,8 +281,11 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             
             metricasPorResponsable[colaborador].documentos++;
             metricasPorResponsable[colaborador].totalUnidades += cantidad;
-            metricasPorResponsable[colaborador].totalTiempoSegundos += duracionSegundos;
+            metricasPorResponsable[colaborador].totalTiempoSegundos += duracion.segundos;
         }
+        
+        console.log('Documentos finalizados procesados:', documentosFinalizados.length);
+        console.log('Responsables con métricas:', Object.keys(metricasPorResponsable));
         
         // Calcular métricas finales por responsable
         const metricasFinales = [];
@@ -228,7 +300,8 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
         
         for (const [responsable, metrica] of Object.entries(metricasPorResponsable)) {
             // Calcular promedios
-            metrica.eficienciaPromedio = metrica.totalUnidades / metrica.totalTiempoSegundos;
+            metrica.eficienciaPromedio = metrica.totalTiempoSegundos > 0 ? 
+                metrica.totalUnidades / metrica.totalTiempoSegundos : 0;
             metrica.capacidadPromedio = metrica.eficienciaPromedio * JORNADA_SEGUNDOS;
             
             // Calcular efectividad (documentos por jornada)
@@ -236,7 +309,8 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             metrica.documentosPorDia = diasTrabajados > 0 ? metrica.documentos / diasTrabajados : metrica.documentos;
             
             // Calcular porcentaje de eficiencia respecto a la meta
-            metrica.porcentajeEficiencia = (metrica.eficienciaPromedio / META_EFICIENCIA) * 100;
+            metrica.porcentajeEficiencia = metrica.eficienciaPromedio > 0 ? 
+                (metrica.eficienciaPromedio / META_EFICIENCIA) * 100 : 0;
             
             metricasFinales.push(metrica);
             
@@ -252,13 +326,13 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             totalGeneral.capacidadPromedio = totalGeneral.eficienciaPromedio * JORNADA_SEGUNDOS;
             
             const totalDiasTrabajados = calcularDiasTrabajados(documentosFinalizados);
-            totalGeneral.efectividadPromedio = totalDiasTrabajados > 0 ? totalGeneral.documentos / totalDiasTrabajados : totalGeneral.documentos;
+            totalGeneral.efectividadPromedio = totalDiasTrabajados > 0 ? 
+                totalGeneral.documentos / totalDiasTrabajados : totalGeneral.documentos;
         }
         
         console.log('Métricas calculadas:', {
             totalDocumentos: documentosFinalizados.length,
             totalResponsables: metricasFinales.length,
-            metricasFinales: metricasFinales,
             totalGeneral: totalGeneral
         });
         
@@ -274,6 +348,44 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
     }
 }
 
+// Obtener duración de un documento desde la hoja DATA
+async function obtenerDuracionDocumento(rec) {
+    try {
+        const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const values = data.values || [];
+        
+        // Buscar el documento específico
+        const fila = values.find(row => String(row[0] || '').trim() === String(rec));
+        
+        if (fila) {
+            const duracion = fila[7] || '00:00:00'; // Columna H (índice 7) - duración guardada
+            const segundos = tiempoASegundos(duracion);
+            
+            return {
+                formateada: duracion,
+                segundos: segundos
+            };
+        }
+        
+        return {
+            formateada: '00:00:00',
+            segundos: 0
+        };
+        
+    } catch (error) {
+        console.error('Error obteniendo duración para REC' + rec + ':', error);
+        return {
+            formateada: '00:00:00',
+            segundos: 0
+        };
+    }
+}
+
 // Función auxiliar para convertir tiempo a segundos
 function tiempoASegundos(tiempo) {
     if (!tiempo) return 0;
@@ -284,7 +396,7 @@ function tiempoASegundos(tiempo) {
         const segundos = parseInt(partes[2]) || 0;
         return (horas * 3600) + (minutos * 60) + segundos;
     } catch (e) {
-        console.error("Error convirtiendo tiempo a segundos:", e);
+        console.error("Error convirtiendo tiempo a segundos:", e, "Tiempo:", tiempo);
         return 0;
     }
 }
@@ -305,6 +417,8 @@ function calcularDiasTrabajados(documentos) {
 function actualizarResumenMetricas(metricas) {
     const total = metricas.totalGeneral;
     
+    console.log('Actualizando resumen con:', total);
+    
     // Eficiencia promedio
     document.getElementById('eficienciaPromedio').textContent = total.eficienciaPromedio.toFixed(4);
     
@@ -315,7 +429,8 @@ function actualizarResumenMetricas(metricas) {
     document.getElementById('efectividadPromedio').textContent = Math.round(total.efectividadPromedio);
     
     // Capacidad instalada (porcentaje de eficiencia)
-    const capacidadInstalada = (total.eficienciaPromedio / META_EFICIENCIA) * 100;
+    const capacidadInstalada = total.eficienciaPromedio > 0 ? 
+        (total.eficienciaPromedio / META_EFICIENCIA) * 100 : 0;
     document.getElementById('capacidadInstalada').textContent = capacidadInstalada.toFixed(1) + '%';
     
     // Aplicar clases de color según el rendimiento
@@ -330,7 +445,7 @@ function aplicarEstilosRendimiento(elementId, valorActual, valorMeta) {
     const elemento = document.getElementById(elementId);
     if (!elemento) return;
     
-    const porcentaje = (valorActual / valorMeta) * 100;
+    const porcentaje = valorMeta > 0 ? (valorActual / valorMeta) * 100 : 0;
     
     elemento.classList.remove('eficiencia-baja', 'eficiencia-media', 'eficiencia-alta');
     
@@ -528,10 +643,10 @@ function generarDatosSpiderIndividual(metricas, responsable) {
     }
     
     const datos = [
-        (metricaResponsable.porcentajeEficiencia), // Eficiencia
-        (metricaResponsable.capacidadPromedio / META_CAPACIDAD) * 100, // Capacidad
-        (metricaResponsable.documentosPorDia / META_EFECTIVIDAD) * 100, // Efectividad
-        Math.min((metricaResponsable.totalUnidades / metricaResponsable.documentos) / 100, 100), // Productividad (aproximada)
+        Math.min(metricaResponsable.porcentajeEficiencia, 100), // Eficiencia
+        Math.min((metricaResponsable.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
+        Math.min((metricaResponsable.documentosPorDia / META_EFECTIVIDAD) * 100, 100), // Efectividad
+        Math.min((metricaResponsable.totalUnidades / metricaResponsable.documentos) / 10, 100), // Productividad (simplificada)
         85 // Calidad (valor fijo por ahora)
     ];
     
@@ -577,10 +692,10 @@ function generarDatosSpiderGeneral(metricas) {
     const promedioDocumentosPorDia = total.efectividadPromedio;
     
     const datos = [
-        (total.eficienciaPromedio / META_EFICIENCIA) * 100, // Eficiencia
-        (total.capacidadPromedio / META_CAPACIDAD) * 100, // Capacidad
-        (promedioDocumentosPorDia / META_EFECTIVIDAD) * 100, // Efectividad
-        Math.min((total.totalUnidades / total.documentos) / 100, 100), // Productividad (aproximada)
+        Math.min((total.eficienciaPromedio / META_EFICIENCIA) * 100, 100), // Eficiencia
+        Math.min((total.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
+        Math.min((promedioDocumentosPorDia / META_EFECTIVIDAD) * 100, 100), // Efectividad
+        Math.min((total.totalUnidades / total.documentos) / 10, 100), // Productividad (simplificada)
         85 // Calidad (valor fijo por ahora)
     ];
     
@@ -609,8 +724,14 @@ function generarDatosSpiderGeneral(metricas) {
 
 // Limpiar filtros de métricas
 function limpiarFiltrosMetricas() {
-    flatpickrMetricas.clear();
-    document.getElementById('selectResponsableMetricas').value = '';
+    if (flatpickrMetricas) {
+        flatpickrMetricas.clear();
+    }
+    
+    const selectResponsable = document.getElementById('selectResponsableMetricas');
+    if (selectResponsable) {
+        selectResponsable.value = '';
+    }
     
     // Limpiar interfaz
     document.getElementById('eficienciaPromedio').textContent = '0.00';
@@ -618,20 +739,26 @@ function limpiarFiltrosMetricas() {
     document.getElementById('efectividadPromedio').textContent = '0';
     document.getElementById('capacidadInstalada').textContent = '0%';
     
-    document.querySelector('#tablaMetricas tbody').innerHTML = `
-        <tr>
-            <td colspan="8" class="text-center text-muted py-4">
-                Seleccione un rango de fechas para ver las métricas
-            </td>
-        </tr>
-    `;
+    const tbody = document.querySelector('#tablaMetricas tbody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">
+                    Seleccione un rango de fechas para ver las métricas
+                </td>
+            </tr>
+        `;
+    }
     
-    document.getElementById('topSemanalLista').innerHTML = `
-        <div class="text-center text-muted py-4">
-            <i class="fas fa-chart-bar fa-2x mb-2"></i>
-            <p>Seleccione un rango de fechas</p>
-        </div>
-    `;
+    const topSemanal = document.getElementById('topSemanalLista');
+    if (topSemanal) {
+        topSemanal.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                <p>Seleccione un rango de fechas</p>
+            </div>
+        `;
+    }
     
     // Limpiar gráfico
     if (spiderChart) {
@@ -642,7 +769,7 @@ function limpiarFiltrosMetricas() {
 
 // Mostrar loading en métricas
 function mostrarLoadingMetricas() {
-    const cardBody = document.querySelector('.card-body');
+    const cardBody = document.querySelector('#resumenMetricas').parentElement;
     if (!cardBody) return;
     
     // Crear overlay de loading si no existe
@@ -650,15 +777,28 @@ function mostrarLoadingMetricas() {
     if (!loadingOverlay) {
         loadingOverlay = document.createElement('div');
         loadingOverlay.id = 'loadingMetricas';
-        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-radius: var(--radius-lg);
+        `;
         loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
+            <div class="text-center">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Cargando métricas...</span>
                 </div>
                 <p class="mt-2">Calculando métricas...</p>
             </div>
         `;
+        cardBody.style.position = 'relative';
         cardBody.appendChild(loadingOverlay);
     }
     
@@ -682,10 +822,32 @@ function segundosATiempo(segundos) {
     return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
 }
 
-// Inicializar cuando el DOM esté listo
+// Hacer funciones disponibles globalmente
+window.actualizarMetricasRendimiento = actualizarMetricasRendimiento;
+window.limpiarFiltrosMetricas = limpiarFiltrosMetricas;
+
+// Inicializar cuando el DOM esté listo y los datos estén cargados
 document.addEventListener('DOMContentLoaded', function() {
-    // Esperar un poco para asegurar que todo esté cargado
+    console.log('DOM cargado, inicializando sistema de métricas...');
+    
+    // Esperar a que los datos globales estén cargados
+    const checkDataLoaded = setInterval(() => {
+        if (typeof datosGlobales !== 'undefined') {
+            clearInterval(checkDataLoaded);
+            console.log('Datos globales disponibles, inicializando métricas...');
+            
+            // Inicializar después de un breve delay para asegurar que todo esté listo
+            setTimeout(() => {
+                inicializarSistemaMetricas();
+            }, 1000);
+        }
+    }, 500);
+    
+    // Timeout de seguridad
     setTimeout(() => {
-        inicializarSistemaMetricas();
-    }, 1000);
+        if (typeof inicializarSistemaMetricas === 'function') {
+            console.log('Inicializando métricas por timeout de seguridad...');
+            inicializarSistemaMetricas();
+        }
+    }, 5000);
 });
