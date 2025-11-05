@@ -174,6 +174,7 @@ async function llamarAPI(params) {
     }
 }
 
+// Función OPTIMIZADA para actualizar solo una fila específica
 // Función MEJORADA para actualizar solo una fila específica
 async function actualizarFilaEspecifica(rec) {
     if (!documentosTable) return;
@@ -206,16 +207,7 @@ async function actualizarFilaEspecifica(rec) {
         const fechaSolo = formatearFechaSolo(fechaHora);
         const fechaObjeto = parsearFecha(fechaSolo);
         
-        // ✅ ACTUALIZAR DATOS GLOBALES PRIMERO - ESTO ES CLAVE
-        const indexGlobal = datosGlobales.findIndex(d => d.REC === documento);
-        if (indexGlobal !== -1) {
-            // Actualizar el colaborador en datosGlobales para la impresión
-            datosGlobales[indexGlobal].COLABORADOR = colaborador;
-            console.log(`✅ Actualizado datosGlobales REC${rec} - Colaborador: ${colaborador}`);
-        } else {
-            console.warn(`❌ No se encontró REC${rec} en datosGlobales`);
-        }
-        
+        // BUSCAR EN DATOS GLOBALES ACTUALIZADOS
         const datosCompletos = datosGlobales.find(d => d.REC === documento);
         const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
         
@@ -233,7 +225,7 @@ async function actualizarFilaEspecifica(rec) {
             tieneClientes: datosCompletos ? 
                 (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
                  Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
-            datosCompletos: datosCompletos, // ✅ Esto ahora tiene el colaborador actualizado
+            datosCompletos: datosCompletos, // ESTO ES CLAVE PARA LA IMPRESIÓN
             datetime_inicio: rowData[5] || '',
             datetime_fin: rowData[6] || '',
             duracion_guardada: rowData[7] || '',
@@ -242,28 +234,24 @@ async function actualizarFilaEspecifica(rec) {
             duracion_pausas: rowData[10] || ''
         };
         
-        // ✅ ACTUALIZAR documentosGlobales también
-        const indexDocGlobal = documentosGlobales.findIndex(d => d.rec === rec);
-        if (indexDocGlobal !== -1) {
-            documentosGlobales[indexDocGlobal] = documentoActualizado;
-        }
-        
         // Actualizar la fila en DataTable
         const fila = documentosTable.row((idx, data) => data.rec === rec);
         if (fila.any()) {
-            fila.data(documentoActualizado).draw(false);
+            fila.data(documentoActualizado).draw(false); // false = no cambiar de página
             console.log(`Fila REC${rec} actualizada exitosamente`);
             
-            // ✅ FORZAR ACTUALIZACIÓN COMPLETA DE LA INTERFAZ
+            // ACTUALIZAR INTERFAZ: Forzar redibujado del select de responsables
             const rowNode = fila.node();
             const selectCell = $(rowNode).find('td:eq(2)'); // Columna de responsable
-            const accionesCell = $(rowNode).find('td:eq(9)'); // Columna de acciones
-            
-            // Regenerar completamente el select y los botones
             selectCell.html(generarSelectResponsables(rec, colaborador, documentosGlobales, documentoActualizado));
-            accionesCell.html(obtenerBotonesAccion(documentoActualizado));
-            
-            console.log(`✅ Interfaz actualizada - Select: ${colaborador ? 'BLOQUEADO' : 'EDITABLE'}`);
+        }
+        
+        // Actualizar documentosGlobales
+        const index = documentosGlobales.findIndex(d => d.rec === rec);
+        if (index !== -1) {
+            documentosGlobales[index] = documentoActualizado;
+        } else {
+            documentosGlobales.push(documentoActualizado);
         }
         
         // Recalcular consolidados
@@ -276,23 +264,19 @@ async function actualizarFilaEspecifica(rec) {
 }
 
 // Función MEJORADA para actualizar inmediatamente después de un cambio
-// Función MEJORADA para actualización inmediata
 async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null) {
-    // Si es un documento finalizado, forzar recarga completa
-    if (recEspecifico) {
-        const doc = documentosGlobales.find(d => d.rec === recEspecifico);
-        if (doc && doc.estado === 'FINALIZADO') {
-            forzarRecarga = true;
-        }
-    }
-    
     // Evitar múltiples actualizaciones simultáneas
     if (actualizacionEnProgreso && !forzarRecarga) {
         console.log('Actualización ya en progreso, ignorando...');
         return;
     }
     
-    // Resto del código existente...
+    // Si hay un REC específico y no se fuerza recarga, actualizar solo esa fila
+    if (recEspecifico && !forzarRecarga) {
+        await actualizarFilaEspecifica(recEspecifico);
+        return;
+    }
+    
     let estadoTabla = null;
     actualizacionEnProgreso = true;
     
@@ -324,7 +308,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
             // Actualizar DataTable con nuevos datos
             documentosTable.clear();
             documentosTable.rows.add(documentosDisponibles);
-            documentosTable.draw(false);
+            documentosTable.draw(false); // false = mantener página actual
             
             // Reiniciar timers
             iniciarTimers(documentosDisponibles);
@@ -334,14 +318,14 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
         if (estadoTabla) {
             setTimeout(() => {
                 restaurarEstadoTabla(estadoTabla);
-            }, 50);
+            }, 50); // Reducido de 100ms a 50ms
         }
         
         // Ocultar loader
         if (loader && forzarRecarga) {
             setTimeout(() => {
                 loader.style.display = 'none';
-            }, 200);
+            }, 200); // Reducido de 500ms a 200ms
         }
         
         console.log('Tabla actualizada correctamente');
@@ -923,17 +907,20 @@ async function obtenerDocumentosCombinados() {
     }
 }
 
-// FUNCIÓN OPTIMIZADA - CAMBIAR RESPONSABLE
-// FUNCIÓN OPTIMIZADA - CAMBIAR RESPONSABLE
+// Función OPTIMIZADA para cambiar responsable - VERSIÓN CORREGIDA
 async function cambiarResponsable(rec, responsable) {
+    // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de responsable...');
         return;
     }
     
     try {
+        console.log(`Asignando responsable ${responsable} a REC${rec}`);
+        
         actualizacionEnProgreso = true;
         
+        // Mostrar loading compacto
         const loadingToast = Swal.fire({
             title: 'Asignando...',
             text: responsable,
@@ -941,35 +928,31 @@ async function cambiarResponsable(rec, responsable) {
             position: 'center',
             showConfirmButton: false,
             allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
 
-        console.log(`📞 Asignando responsable ${responsable} a REC${rec}`);
-        
         const result = await llamarAPI({
             action: 'asignarResponsable',
             id: rec,
             responsable: responsable
         });
         
+        // Cerrar loading
         Swal.close();
         
         if (result.success) {
+            // Mostrar éxito breve
             await mostrarNotificacion('✓ Asignado', responsable, 'success');
             
-            // ✅ ACTUALIZACIÓN INMEDIATA Y COMPLETA
-            console.log(`🔄 Actualizando interfaz para REC${rec}`);
-            await actualizarFilaEspecifica(rec);
+            // ACTUALIZACIÓN INMEDIATA: Actualizar datos globales primero
+            await actualizarDatosGlobales();
             
-            // ✅ VERIFICAR QUE TODO ESTÉ CORRECTO
-            setTimeout(() => {
-                const docActual = documentosGlobales.find(d => d.rec === rec);
-                console.log(`✅ Verificación final REC${rec}:`, {
-                    colaborador: docActual?.colaborador,
-                    tieneClientes: docActual?.tieneClientes,
-                    puedeImprimir: docActual?.colaborador && docActual?.tieneClientes
-                });
-            }, 500);
+            // ACTUALIZACIÓN INMEDIATA: Actualizar SOLO la fila específica
+            await cargarTablaDocumentos();
+            
+            console.log(`Responsable ${responsable} asignado a REC${rec} - Tabla actualizada`);
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
@@ -983,42 +966,18 @@ async function cambiarResponsable(rec, responsable) {
     }
 }
 
-// FUNCIÓN OPTIMIZADA - ELIMINANDO REDUNDANCIAS
+// Función OPTIMIZADA para cambiar estado del documento
+// Función OPTIMIZADA para cambiar estado del documento - SIN CONFIRMACIÓN PARA PAUSAR/REANUDAR
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
+    // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de estado...');
         return;
     }
     
     try {
-        const documentoActual = documentosGlobales.find(doc => doc.rec === rec);
-        const estadoActual = documentoActual ? documentoActual.estado : '';
-        
-        // CONFIRMACIÓN ESPECIAL para finalizar desde PAUSADO
-        if (nuevoEstado === 'FINALIZADO' && estadoActual === 'PAUSADO') {
-            const confirmar = await mostrarConfirmacion(
-                '⚠️ ¿Finalizar documento en pausa?',
-                `REC${rec} está actualmente PAUSADO.\n\nAl finalizar, los tiempos de pausa no se registrarán.\n\n¿Deseas continuar?`,
-                'warning'
-            );
-            
-            if (!confirmar) return;
-            
-            // Reanudar temporalmente para registrar tiempos
-            const resultReanudar = await llamarAPI({
-                action: 'reanudar',
-                id: rec
-            });
-            
-            if (!resultReanudar.success) {
-                await mostrarNotificacion('Error', 'No se pudo reanudar el documento para finalizar', 'error');
-                return;
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        // Confirmación normal para otros casos de finalización
-        else if (nuevoEstado === 'FINALIZADO') {
+        // SOLO pedir confirmación para FINALIZAR
+        if (nuevoEstado === 'FINALIZADO') {
             const confirmar = await mostrarConfirmacion(
                 '¿Finalizar documento?',
                 `REC${rec} → ${nuevoEstado}`,
@@ -1027,9 +986,16 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             
             if (!confirmar) return;
         }
+        // Para PAUSAR y REANUDAR, ejecutar directamente sin confirmación
+        else {
+            console.log(`Ejecutando acción directa: REC${rec} → ${nuevoEstado}`);
+        }
+        
+        console.log(`Cambiando estado del documento REC${rec} a: ${nuevoEstado}`);
         
         actualizacionEnProgreso = true;
         
+        // Mostrar loading compacto
         const loadingToast = Swal.fire({
             title: 'Cambiando estado...',
             text: `REC${rec} → ${nuevoEstado}`,
@@ -1037,22 +1003,35 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             position: 'center',
             showConfirmButton: false,
             allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
 
         let action;
         switch(nuevoEstado) {
-            case 'PAUSADO': action = 'pausar'; break;
-            case 'ELABORACION': action = 'reanudar'; break;
-            case 'FINALIZADO': action = 'finalizar'; break;
-            default: 
+            case 'PAUSADO':
+                action = 'pausar';
+                break;
+            case 'ELABORACION':
+                action = 'reanudar';
+                break;
+            case 'FINALIZADO':
+                action = 'finalizar';
+                break;
+            default:
                 Swal.close();
                 await mostrarNotificacion('Error', 'Estado no válido', 'error');
                 actualizacionEnProgreso = false;
                 return;
         }
         
-        const result = await llamarAPI({ action: action, id: rec });
+        const result = await llamarAPI({
+            action: action,
+            id: rec
+        });
+        
+        // Cerrar loading
         Swal.close();
         
         if (result.success) {
@@ -1072,7 +1051,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             
             await mostrarNotificacion('✓ Actualizado', `${nuevoEstado}`, 'success');
             
-            // ✅ ACTUALIZACIÓN OPTIMIZADA - SOLO UNA LLAMADA
+            // Actualizar SOLO la fila específica
             await actualizarFilaEspecifica(rec);
             
         } else {
@@ -1082,52 +1061,6 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
         console.error('Error cambiando estado:', error);
         Swal.close();
         await mostrarNotificacion('Error', 'Error al cambiar estado: ' + error.message, 'error');
-    } finally {
-        actualizacionEnProgreso = false;
-    }
-}
-
-// FUNCIÓN OPTIMIZADA - CAMBIAR RESPONSABLE
-async function cambiarResponsable(rec, responsable) {
-    if (actualizacionEnProgreso) {
-        console.log('Actualización en progreso, ignorando cambio de responsable...');
-        return;
-    }
-    
-    try {
-        actualizacionEnProgreso = true;
-        
-        const loadingToast = Swal.fire({
-            title: 'Asignando...',
-            text: responsable,
-            icon: 'info',
-            position: 'center',
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
-        });
-
-        const result = await llamarAPI({
-            action: 'asignarResponsable',
-            id: rec,
-            responsable: responsable
-        });
-        
-        Swal.close();
-        
-        if (result.success) {
-            await mostrarNotificacion('✓ Asignado', responsable, 'success');
-            
-            // ✅ ACTUALIZACIÓN OPTIMIZADA - SOLO LA FILA ESPECÍFICA
-            await actualizarFilaEspecifica(rec);
-            
-        } else {
-            await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
-        }
-    } catch (error) {
-        console.error('Error cambiando responsable:', error);
-        Swal.close();
-        await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
     } finally {
         actualizacionEnProgreso = false;
     }
@@ -1209,16 +1142,9 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
         ? obtenerResponsablesDisponibles(todosDocumentos, documentoActual)
         : [];
     
-    console.log(`🎯 Generando select para REC${rec}:`, {
-        puedeModificar,
-        responsableActual,
-        responsablesDisponibles: responsablesDisponibles.length,
-        documento: documentoActual
-    });
-    
     let opciones = '';
     
-    if (puedeModificar && responsablesDisponibles.length > 0) {
+    if (puedeModificar) {
         opciones = `
             <option value="">Sin responsable</option>
             ${responsablesDisponibles.map(resp => 
@@ -1236,7 +1162,7 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
     } else {
         const tieneResponsable = responsableActual && responsableActual.trim() !== '';
         const texto = tieneResponsable ? responsableActual : 'Sin responsable';
-        const clase = tieneResponsable ? 'text-success fw-bold' : 'text-muted';
+        const clase = tieneResponsable ? 'text-success' : 'text-muted';
         const icono = tieneResponsable ? 'fa-user-check' : 'fa-user';
         
         return `
@@ -1254,13 +1180,6 @@ function obtenerBotonesAccion(data) {
     const tieneClientes = data.tieneClientes;
     const puedeImprimir = tieneColaborador && tieneClientes;
     
-    console.log(`🎯 Botones para REC${data.rec}:`, {
-        tieneColaborador,
-        tieneClientes, 
-        puedeImprimir,
-        colaborador: data.colaborador
-    });
-    
     let botonesEstado = '';
     
     // Botón de imprimir (siempre presente)
@@ -1268,7 +1187,7 @@ function obtenerBotonesAccion(data) {
         <button class="btn ${puedeImprimir ? 'btn-primary' : 'btn-secondary'}" 
                 ${puedeImprimir ? '' : 'disabled'}
                 onclick="imprimirSoloClientesDesdeTabla('${data.rec}')"
-                title="${puedeImprimir ? 'Imprimir clientes' : 'No se puede imprimir - ' + (!tieneColaborador ? 'Falta responsable' : 'No tiene clientes')}">
+                title="${puedeImprimir ? 'Imprimir clientes' : 'No se puede imprimir'}">
             <i class="fas fa-print"></i>
         </button>`;
     
@@ -1533,28 +1452,15 @@ function inicializarDataTable(documentos) {
 // Función MEJORADA para imprimir clientes
 async function imprimirSoloClientesDesdeTabla(rec) {
     try {
-        console.log(`🖨️ Intentando imprimir REC${rec}`);
+        console.log(`Imprimiendo clientes para REC${rec}`);
         
-        // Buscar en documentosGlobales ACTUALIZADOS
-        const documentoEnTabla = documentosGlobales.find(doc => doc.rec === rec);
-        if (!documentoEnTabla) {
-            await mostrarNotificacion('Error', `No se encontró REC${rec} en la tabla`, 'error');
-            return;
-        }
-
-        // Buscar en datosGlobales ACTUALIZADOS
+        // Buscar el documento en datosGlobales ACTUALIZADOS
         const documento = datosGlobales.find(doc => doc.REC === rec);
+        
         if (!documento) {
-            await mostrarNotificacion('Error', `No se encontró REC${rec} en datos globales`, 'error');
+            await mostrarNotificacion('Error', `No se encontró el documento REC${rec} en datos globales`, 'error');
             return;
         }
-
-        console.log(`📋 Datos para impresión REC${rec}:`, {
-            colaboradorTabla: documentoEnTabla.colaborador,
-            colaboradorGlobal: documento.COLABORADOR,
-            tieneClientes: documentoEnTabla.tieneClientes,
-            clientes: documento.DISTRIBUCION?.Clientes ? Object.keys(documento.DISTRIBUCION.Clientes).length : 0
-        });
 
         // Verificar que tenga clientes
         if (!documento.DISTRIBUCION || !documento.DISTRIBUCION.Clientes || 
@@ -1564,25 +1470,23 @@ async function imprimirSoloClientesDesdeTabla(rec) {
         }
 
         // Verificar que tenga responsable asignado
-        if (!documentoEnTabla.colaborador || documentoEnTabla.colaborador.trim() === '') {
+        const documentoEnTabla = documentosGlobales.find(doc => doc.rec === rec);
+        if (!documentoEnTabla || !documentoEnTabla.colaborador || documentoEnTabla.colaborador.trim() === '') {
             await mostrarNotificacion('Error', `No hay responsable asignado para REC${rec}`, 'error');
             return;
         }
 
-        // ✅ Asegurar que el documento global tenga el colaborador actualizado
-        if (!documento.COLABORADOR || documento.COLABORADOR.trim() === '') {
-            documento.COLABORADOR = documentoEnTabla.colaborador;
-            console.log(`✅ Sincronizado colaborador en datosGlobales: ${documento.COLABORADOR}`);
-        }
-
         // Preparar datos para impresión
         const datosImpresion = {
-            ...documento,
-            REC: rec,
-            COLABORADOR: documento.COLABORADOR || documentoEnTabla.colaborador
+            rec: rec,
+            fecha: documento.FECHA || '',
+            lote: documento.LOTE || '',
+            refProv: documento.REFPROV || '',
+            linea: documento.LINEA || '',
+            cantidad: documento.CANTIDAD || 0,
+            clientes: documento.DISTRIBUCION.Clientes,
+            responsable: documentoEnTabla.colaborador // Incluir responsable
         };
-
-        console.log(`✅ Imprimiendo REC${rec} con responsable: ${datosImpresion.COLABORADOR}`);
 
         // Llamar a la función de impresión
         if (typeof imprimirSoloClientes === 'function') {
