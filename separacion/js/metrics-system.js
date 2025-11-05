@@ -7,6 +7,7 @@ let flatpickrMetricas = null;
 const META_EFICIENCIA = 4.0;
 const META_CAPACIDAD = 7920; // unidades por persona-día
 const META_EFECTIVIDAD = 25; // documentos por persona
+const JORNADA_MINUTOS = 528; // 8:48:00 en minutos
 const JORNADA_SEGUNDOS = 31680; // 8:48:00 en segundos
 
 // Inicializar el sistema de métricas
@@ -23,10 +24,10 @@ function inicializarSistemaMetricas() {
             console.log('Flatpickr métricas - Fechas seleccionadas:', selectedDates);
             if (selectedDates.length === 2) {
                 console.log('Rango completo seleccionado para métricas:', selectedDates);
-                // Actualizar responsables basado en el rango de fechas
-                cargarResponsablesParaMetricas();
-                // Luego actualizar métricas
-                actualizarMetricasRendimiento();
+                // Actualizar automáticamente las métricas cuando se selecciona un rango
+                setTimeout(() => {
+                    actualizarMetricasRendimiento();
+                }, 500);
             } else if (selectedDates.length === 0) {
                 console.log('Filtro de fechas limpiado');
                 limpiarFiltrosMetricas();
@@ -36,11 +37,29 @@ function inicializarSistemaMetricas() {
     
     console.log('Flatpickr métricas inicializado:', flatpickrMetricas);
     
-    // Inicializar con responsables vacíos, se cargarán cuando se seleccione un rango
+    // Configurar el evento change del selector de responsables
+    const selectResponsable = document.getElementById('selectResponsableMetricas');
+    if (selectResponsable) {
+        selectResponsable.addEventListener('change', function() {
+            console.log('Responsable cambiado:', this.value);
+            // Si hay fechas seleccionadas, actualizar métricas automáticamente
+            if (flatpickrMetricas && flatpickrMetricas.selectedDates.length === 2) {
+                setTimeout(() => {
+                    actualizarMetricasRendimiento();
+                }, 300);
+            }
+        });
+    }
+    
+    // Cargar lista de responsables después de un delay para asegurar que los datos globales estén cargados
+    setTimeout(() => {
+        cargarResponsablesParaMetricas();
+    }, 2000);
+    
     console.log('Sistema de métricas inicializado');
 }
 
-// Cargar responsables basado en el rango de fechas del flatpickr
+// Cargar responsables en el selector
 async function cargarResponsablesParaMetricas() {
     try {
         const select = document.getElementById('selectResponsableMetricas');
@@ -54,10 +73,10 @@ async function cargarResponsablesParaMetricas() {
             select.removeChild(select.lastChild);
         }
         
-        // Obtener responsables únicos basados en el rango de fechas
-        const responsablesUnicos = await obtenerResponsablesPorRangoFechas();
+        // Obtener responsables únicos de documentos finalizados
+        const responsablesUnicos = await obtenerResponsablesFinalizados();
         
-        console.log('Responsables encontrados en el rango:', responsablesUnicos);
+        console.log('Responsables encontrados:', responsablesUnicos);
         
         responsablesUnicos.forEach(responsable => {
             if (responsable && responsable.trim() !== '') {
@@ -74,79 +93,59 @@ async function cargarResponsablesParaMetricas() {
     }
 }
 
-// Obtener responsables únicos basados en el rango de fechas del flatpickr
-async function obtenerResponsablesPorRangoFechas() {
+// Obtener responsables únicos de documentos finalizados
+async function obtenerResponsablesFinalizados() {
     try {
-        console.log('Obteniendo responsables por rango de fechas...');
+        console.log('Obteniendo responsables de documentos finalizados...');
         
-        const fechas = flatpickrMetricas.selectedDates;
-        if (!fechas || fechas.length !== 2) {
-            console.log('No hay rango de fechas seleccionado');
-            return [];
-        }
-        
-        // Usar los datos globales ya cargados
+        // Usar los datos globales ya cargados en lugar de hacer una nueva petición
         if (!window.datosGlobales || window.datosGlobales.length === 0) {
-            console.warn('datosGlobales no está disponible');
-            return [];
+            console.warn('datosGlobales no está disponible, intentando cargar datos...');
+            if (typeof cargarDatos === 'function') {
+                await cargarDatos();
+            } else {
+                console.error('Función cargarDatos no disponible');
+                return [];
+            }
         }
         
         console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
         
         const responsables = new Set();
-        const fechaInicio = fechas[0];
-        const fechaFin = fechas[1];
         
-        console.log('Filtrando por rango:', fechaInicio, 'a', fechaFin);
-        
-        // Buscar en datosGlobales los documentos finalizados en el rango de fechas
+        // Buscar en datosGlobales los documentos finalizados
         window.datosGlobales.forEach(doc => {
             const estado = doc.ESTADO || doc.estado || '';
             const colaborador = doc.COLABORADOR || doc.colaborador || '';
-            const fechaDoc = doc.FECHA || doc.fecha || '';
             
-            // Verificar si está en el rango de fechas
-            if (fechaDoc && estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin)) {
-                if (estado.toString().toUpperCase() === 'FINALIZADO' && colaborador && colaborador.trim() !== '') {
-                    responsables.add(colaborador.trim());
-                }
+            if (estado.toString().toUpperCase() === 'FINALIZADO' && colaborador && colaborador.trim() !== '') {
+                responsables.add(colaborador.trim());
             }
         });
         
         const responsablesArray = Array.from(responsables).sort();
-        console.log('Responsables encontrados en el rango:', responsablesArray);
+        console.log('Responsables finalizados encontrados:', responsablesArray);
         return responsablesArray;
         
     } catch (error) {
-        console.error('Error obteniendo responsables por rango:', error);
+        console.error('Error obteniendo responsables finalizados:', error);
+        
+        // Fallback: intentar obtener de la tabla de documentos si está disponible
+        try {
+            if (window.documentosGlobales && window.documentosGlobales.length > 0) {
+                const responsables = new Set();
+                window.documentosGlobales.forEach(doc => {
+                    if (doc.estado === 'FINALIZADO' && doc.colaborador && doc.colaborador.trim() !== '') {
+                        responsables.add(doc.colaborador.trim());
+                    }
+                });
+                return Array.from(responsables).sort();
+            }
+        } catch (fallbackError) {
+            console.error('Error en fallback:', fallbackError);
+        }
+        
         return [];
-    }
-}
-
-// Función auxiliar para verificar si una fecha está en el rango
-function estaEnRangoFechas(fechaStr, fechaInicio, fechaFin) {
-    try {
-        // Convertir fecha string a objeto Date
-        const partes = fechaStr.split('/');
-        if (partes.length !== 3) return false;
-        
-        const dia = parseInt(partes[0], 10);
-        const mes = parseInt(partes[1], 10) - 1; // Meses en JS van de 0-11
-        const año = parseInt(partes[2], 10);
-        
-        const fechaDoc = new Date(año, mes, dia);
-        const inicio = new Date(fechaInicio);
-        const fin = new Date(fechaFin);
-        
-        // Establecer horas a 0 para comparar solo fechas
-        inicio.setHours(0, 0, 0, 0);
-        fin.setHours(23, 59, 59, 999);
-        fechaDoc.setHours(0, 0, 0, 0);
-        
-        return fechaDoc >= inicio && fechaDoc <= fin;
-    } catch (error) {
-        console.error('Error verificando rango de fechas:', error);
-        return false;
     }
 }
 
@@ -195,35 +194,57 @@ async function actualizarMetricasRendimiento() {
     }
 }
 
-// Calcular métricas de rendimiento - VERSIÓN SIMPLIFICADA
+// Calcular métricas de rendimiento - VERSIÓN CORREGIDA
 async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFiltro = '') {
     try {
         console.log('Calculando métricas para rango:', fechaInicio, 'a', fechaFin, 'Responsable:', responsableFiltro);
         
         // Asegurarse de que los datos globales estén disponibles
         if (!window.datosGlobales || window.datosGlobales.length === 0) {
+            console.warn('datosGlobales vacío, intentando cargar...');
+            if (typeof cargarDatos === 'function') {
+                await cargarDatos();
+            }
+        }
+        
+        if (!window.datosGlobales || window.datosGlobales.length === 0) {
             throw new Error('No hay datos disponibles para calcular métricas');
         }
         
         console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
         
+        // También usar documentosGlobales si está disponible para obtener información de estado actual
+        let documentosConEstado = [];
+        
+        if (window.documentosGlobales && window.documentosGlobales.length > 0) {
+            console.log('Usando documentosGlobales para estados actuales');
+            documentosConEstado = window.documentosGlobales;
+        } else {
+            console.log('Usando datosGlobales como fuente principal');
+            // Convertir datosGlobales al formato necesario
+            documentosConEstado = window.datosGlobales.map(doc => ({
+                rec: doc.REC || doc.rec || '',
+                estado: doc.ESTADO || doc.estado || '',
+                colaborador: doc.COLABORADOR || doc.colaborador || '',
+                fecha: doc.FECHA || doc.fecha || '',
+                cantidad: parseInt(doc.CANTIDAD) || 0,
+                datosCompletos: doc
+            }));
+        }
+        
+        console.log('Documentos con estado:', documentosConEstado.length);
+        
         // Procesar documentos finalizados en el rango de fechas
         const documentosFinalizados = [];
         const metricasPorResponsable = {};
         
-        for (const doc of window.datosGlobales) {
-            const estado = String(doc.ESTADO || doc.estado || '').toUpperCase();
-            const colaborador = String(doc.COLABORADOR || doc.colaborador || '').trim();
-            const fechaDoc = doc.FECHA || doc.fecha || '';
-            const rec = doc.REC || doc.rec || '';
+        for (const doc of documentosConEstado) {
+            const estado = String(doc.estado || '').toUpperCase();
+            const colaborador = String(doc.colaborador || '').trim();
+            const fechaDoc = doc.fecha || '';
             
             // Filtrar solo documentos finalizados
             if (estado !== 'FINALIZADO' || !colaborador || colaborador === '') {
-                continue;
-            }
-            
-            // Filtrar por fecha
-            if (!estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin)) {
                 continue;
             }
             
@@ -232,11 +253,34 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
                 continue;
             }
             
-            const cantidad = parseInt(doc.CANTIDAD) || 0;
+            // FILTRAR POR FECHA usando el flatpickr
+            if (fechaDoc) {
+                const fechaDocObj = parsearFechaParaFiltro(fechaDoc);
+                if (fechaDocObj) {
+                    // Normalizar fechas para comparación (sin horas)
+                    const inicioNormalizado = new Date(fechaInicio);
+                    inicioNormalizado.setHours(0, 0, 0, 0);
+                    
+                    const finNormalizado = new Date(fechaFin);
+                    finNormalizado.setHours(23, 59, 59, 999);
+                    
+                    fechaDocObj.setHours(12, 0, 0, 0); // Hora media para comparación
+                    
+                    if (fechaDocObj < inicioNormalizado || fechaDocObj > finNormalizado) {
+                        continue; // Saltar documentos fuera del rango de fechas
+                    }
+                }
+            }
+            
+            // Obtener datos completos del documento
+            const datosCompletos = doc.datosCompletos || doc;
+            if (!datosCompletos) continue;
+            
+            const cantidad = parseInt(datosCompletos.CANTIDAD) || 0;
             if (cantidad <= 0) continue;
             
-            // Buscar información de duración
-            const duracion = await obtenerDuracionDocumento(rec);
+            // Buscar información de duración en la hoja DATA
+            const duracion = await obtenerDuracionDocumento(doc.rec);
             if (!duracion || duracion.segundos <= 0) continue;
             
             // Calcular eficiencia (unidades por segundo)
@@ -246,7 +290,7 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             const capacidad = (cantidad / duracion.segundos) * JORNADA_SEGUNDOS;
             
             const documentoMetrica = {
-                rec: rec,
+                rec: doc.rec,
                 responsable: colaborador,
                 cantidad: cantidad,
                 duracionSegundos: duracion.segundos,
@@ -276,7 +320,7 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             metricasPorResponsable[colaborador].totalTiempoSegundos += duracion.segundos;
         }
         
-        console.log('Documentos finalizados procesados:', documentosFinalizados.length);
+        console.log('Documentos finalizados procesados después de filtro de fecha:', documentosFinalizados.length);
         console.log('Responsables con métricas:', Object.keys(metricasPorResponsable));
         
         // Calcular métricas finales por responsable
@@ -337,6 +381,33 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
     } catch (error) {
         console.error('Error calculando métricas:', error);
         throw error;
+    }
+}
+
+// Función auxiliar para parsear fechas para el filtro
+function parsearFechaParaFiltro(fechaStr) {
+    if (!fechaStr) return null;
+    
+    try {
+        // Probar diferentes formatos de fecha
+        if (fechaStr.includes('/')) {
+            // Formato "dd/mm/yyyy" o "dd/mm/yyyy hh:mm:ss"
+            const fechaPartes = fechaStr.split(' ')[0].split('/');
+            if (fechaPartes.length === 3) {
+                const dia = parseInt(fechaPartes[0], 10);
+                const mes = parseInt(fechaPartes[1], 10) - 1; // Meses en JS son 0-11
+                const año = parseInt(fechaPartes[2], 10);
+                return new Date(año, mes, dia);
+            }
+        } else if (fechaStr.includes('-')) {
+            // Formato "yyyy-mm-dd"
+            return new Date(fechaStr);
+        }
+        
+        return null;
+    } catch (e) {
+        console.error('Error parseando fecha para filtro:', e, 'Fecha:', fechaStr);
+        return null;
     }
 }
 
@@ -549,7 +620,7 @@ function actualizarTopSemanal(metricas) {
     container.innerHTML = html;
 }
 
-// Actualizar gráfico spider - SOLO LAS 3 MÉTRICAS SOLICITADAS
+// Actualizar gráfico spider - VERSIÓN CORREGIDA (solo 3 métricas)
 function actualizarGraficoSpider(metricas, responsableFiltro = '') {
     const ctx = document.getElementById('spiderChart');
     if (!ctx) return;
@@ -587,7 +658,7 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
                             family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
                             weight: 'bold'
                         },
-                        color: 'var(--text-secondary)'
+                        color: 'var(--text-primary)'
                     }
                 }
             },
@@ -596,7 +667,8 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
                     position: 'top',
                     labels: {
                         font: {
-                            size: 11
+                            size: 11,
+                            weight: 'bold'
                         },
                         color: 'var(--text-primary)'
                     }
@@ -611,14 +683,18 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
             },
             elements: {
                 line: {
-                    borderWidth: 2
+                    borderWidth: 3
+                },
+                point: {
+                    radius: 4,
+                    hoverRadius: 6
                 }
             }
         }
     });
 }
 
-// Generar datos para gráfico spider individual - SOLO 3 MÉTRICAS
+// Generar datos para gráfico spider individual - VERSIÓN CORREGIDA (solo 3 métricas)
 function generarDatosSpiderIndividual(metricas, responsable) {
     const metricaResponsable = metricas.metricasPorResponsable.find(m => m.responsable === responsable);
     
@@ -636,35 +712,37 @@ function generarDatosSpiderIndividual(metricas, responsable) {
     }
     
     const datos = [
-        Math.min(metricaResponsable.porcentajeEficiencia, 100), // Eficiencia
-        Math.min((metricaResponsable.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
-        Math.min((metricaResponsable.documentosPorDia / META_EFECTIVIDAD) * 100, 100) // Efectividad
+        Math.min(metricaResponsable.porcentajeEficiencia, 100), // Eficiencia (% de la meta 4.0)
+        Math.min((metricaResponsable.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad (% de la meta 7,920)
+        Math.min((metricaResponsable.documentosPorDia / META_EFECTIVIDAD) * 100, 100) // Efectividad (% de la meta 25)
     ];
+    
+    console.log('Datos spider individual para', responsable, ':', datos);
     
     return {
         labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
         datasets: [{
             label: responsable,
             data: datos,
-            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            backgroundColor: 'rgba(59, 130, 246, 0.3)',
             borderColor: 'rgba(59, 130, 246, 1)',
             pointBackgroundColor: 'rgba(59, 130, 246, 1)',
             pointBorderColor: '#fff',
             pointHoverBackgroundColor: '#fff',
             pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
         }, {
-            label: 'Meta',
+            label: 'Meta (100%)',
             data: [100, 100, 100],
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderColor: 'rgba(16, 185, 129, 0.5)',
+            borderColor: 'rgba(16, 185, 129, 0.6)',
             borderDash: [5, 5],
-            pointBackgroundColor: 'rgba(16, 185, 129, 0.5)',
-            pointBorderColor: 'rgba(16, 185, 129, 0.5)'
+            pointBackgroundColor: 'rgba(16, 185, 129, 0.6)',
+            pointBorderColor: 'rgba(16, 185, 129, 0.6)'
         }]
     };
 }
 
-// Generar datos para gráfico spider general - SOLO 3 MÉTRICAS
+// Generar datos para gráfico spider general - VERSIÓN CORREGIDA (solo 3 métricas)
 function generarDatosSpiderGeneral(metricas) {
     if (metricas.metricasPorResponsable.length === 0) {
         return {
@@ -680,33 +758,34 @@ function generarDatosSpiderGeneral(metricas) {
     }
     
     const total = metricas.totalGeneral;
-    const promedioDocumentosPorDia = total.efectividadPromedio;
     
     const datos = [
-        Math.min((total.eficienciaPromedio / META_EFICIENCIA) * 100, 100), // Eficiencia
-        Math.min((total.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
-        Math.min((promedioDocumentosPorDia / META_EFECTIVIDAD) * 100, 100) // Efectividad
+        Math.min((total.eficienciaPromedio / META_EFICIENCIA) * 100, 100), // Eficiencia (% de la meta 4.0)
+        Math.min((total.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad (% de la meta 7,920)
+        Math.min((total.efectividadPromedio / META_EFECTIVIDAD) * 100, 100) // Efectividad (% de la meta 25)
     ];
+    
+    console.log('Datos spider general:', datos);
     
     return {
         labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
         datasets: [{
             label: 'Promedio Equipo',
             data: datos,
-            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+            backgroundColor: 'rgba(245, 158, 11, 0.3)',
             borderColor: 'rgba(245, 158, 11, 1)',
             pointBackgroundColor: 'rgba(245, 158, 11, 1)',
             pointBorderColor: '#fff',
             pointHoverBackgroundColor: '#fff',
             pointHoverBorderColor: 'rgba(245, 158, 11, 1)'
         }, {
-            label: 'Meta',
+            label: 'Meta (100%)',
             data: [100, 100, 100],
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderColor: 'rgba(16, 185, 129, 0.5)',
+            borderColor: 'rgba(16, 185, 129, 0.6)',
             borderDash: [5, 5],
-            pointBackgroundColor: 'rgba(16, 185, 129, 0.5)',
-            pointBorderColor: 'rgba(16, 185, 129, 0.5)'
+            pointBackgroundColor: 'rgba(16, 185, 129, 0.6)',
+            pointBorderColor: 'rgba(16, 185, 129, 0.6)'
         }]
     };
 }
@@ -719,10 +798,7 @@ function limpiarFiltrosMetricas() {
     
     const selectResponsable = document.getElementById('selectResponsableMetricas');
     if (selectResponsable) {
-        // Limpiar opciones excepto la primera
-        while (selectResponsable.children.length > 1) {
-            selectResponsable.removeChild(selectResponsable.lastChild);
-        }
+        selectResponsable.value = '';
     }
     
     // Limpiar interfaz
@@ -764,6 +840,7 @@ function mostrarLoadingMetricas() {
     const cardBody = document.querySelector('#resumenMetricas').parentElement;
     if (!cardBody) return;
     
+    // Crear overlay de loading si no existe
     let loadingOverlay = document.getElementById('loadingMetricas');
     if (!loadingOverlay) {
         loadingOverlay = document.createElement('div');
@@ -833,4 +910,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1000);
         }
     }, 500);
+    
+    // Timeout de seguridad
+    setTimeout(() => {
+        if (typeof inicializarSistemaMetricas === 'function') {
+            console.log('Inicializando métricas por timeout de seguridad...');
+            inicializarSistemaMetricas();
+        }
+    }, 5000);
 });
