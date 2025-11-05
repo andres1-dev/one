@@ -42,48 +42,143 @@
     .filtro-group:last-child .btn-group-sm {
         gap: 0.25rem;
     }
+
+    /* ===== HEADER COMPACTO CON FLATPICKR ===== */
+    .header .d-flex.align-items-center.gap-3 {
+        gap: 0.75rem !important;
+        flex-wrap: wrap;
+    }
+
+    .flatpickr-compact {
+        position: relative;
+        min-width: 120px;
+        max-width: 140px;
+    }
+
+    .flatpickr-input-compact {
+        width: 100%;
+        font-size: 0.75rem !important;
+        padding: 0.375rem 0.625rem !important;
+        text-align: center;
+        cursor: pointer;
+        background: var(--bg-secondary) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: var(--radius-md) !important;
+        transition: all var(--transition-fast) !important;
+    }
+
+    .flatpickr-input-compact:focus {
+        border-color: var(--accent-color) !important;
+        box-shadow: 0 0 0 2px rgba(15, 52, 96, 0.1) !important;
+    }
+
+    .flatpickr-input-compact:hover {
+        border-color: var(--text-secondary) !important;
+    }
+
+    .flatpickr-input-compact::placeholder {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+    }
+
+    /* Responsive para header compacto */
+    @media (max-width: 768px) {
+        .header .d-flex.align-items-center.gap-3 {
+            gap: 0.5rem !important;
+        }
+        
+        .flatpickr-compact {
+            min-width: 100px;
+            max-width: 110px;
+        }
+        
+        .flatpickr-input-compact {
+            font-size: 0.6875rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .header .d-flex.justify-content-between {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+        }
+        
+        .header .d-flex.align-items-center.gap-3 {
+            justify-content: center;
+            order: -1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header h1 {
+            text-align: center;
+            justify-content: center;
+        }
+    }
+
+    /* Ajustes para pantallas muy pequeñas */
+    @media (max-width: 380px) {
+        .header .d-flex.align-items-center.gap-3 {
+            gap: 0.25rem !important;
+        }
+        
+        .flatpickr-compact {
+            min-width: 90px;
+            max-width: 95px;
+        }
+        
+        .flatpickr-input-compact {
+            font-size: 0.625rem !important;
+            padding: 0.25rem 0.375rem !important;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
     </style>
     
 </head>
 <body>
-
-  <!-- Header Minimalista -->
-<header class="header">
-    <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center">
-            <h1>
-                <i class="fas fa-file-invoice"></i>
-                <span>Separación</span>
-            </h1>
-            <div class="d-flex align-items-center gap-3">
-                <!-- Flatpickr compacto -->
-                <div class="flatpickr-compact">
-                    <input type="text" 
-                           class="form-control form-control-sm flatpickr-input-compact" 
-                           id="filtroFechaHeader" 
-                           placeholder="Fechas"
-                           autocomplete="off"
-                           title="Seleccionar rango de fechas">
+    <!-- Header Minimalista -->
+    <header class="header">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>
+                    <i class="fas fa-file-invoice"></i>
+                    <span>Separación</span>
+                </h1>
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Flatpickr compacto -->
+                    <div class="flatpickr-compact">
+                        <input type="text" 
+                               class="form-control form-control-sm flatpickr-input-compact" 
+                               id="filtroFechaHeader" 
+                               placeholder="Fechas"
+                               autocomplete="off"
+                               title="Seleccionar rango de fechas">
+                    </div>
+                    
+                    <!-- Botón Actualizar -->
+                    <button type="button" 
+                            class="btn btn-outline-primary btn-sm" 
+                            onclick="cargarTablaDocumentos()"
+                            title="Actualizar tabla">
+                        <i class="fas fa-sync-alt"></i>
+                        <span class="hide-xs">Actualizar</span>
+                    </button>
+                    
+                    <!-- Botón Mostrar Finalizados -->
+                    <button id="btnToggleFinalizados" class="btn btn-light btn-sm" onclick="toggleFinalizados()">
+                        <i class="fas fa-eye"></i>
+                        <span class="hide-xs">Mostrar Finalizados</span>
+                    </button>
                 </div>
-                
-                <!-- Botón Actualizar -->
-                <button type="button" 
-                        class="btn btn-outline-primary btn-sm" 
-                        onclick="cargarTablaDocumentos()"
-                        title="Actualizar tabla">
-                    <i class="fas fa-sync-alt"></i>
-                    <span class="hide-xs">Actualizar</span>
-                </button>
-                
-                <!-- Botón Mostrar Finalizados -->
-                <button id="btnToggleFinalizados" class="btn btn-light btn-sm" onclick="toggleFinalizados()">
-                    <i class="fas fa-eye"></i>
-                    <span class="hide-xs">Mostrar Finalizados</span>
-                </button>
             </div>
         </div>
-    </div>
-</header>
+    </header>
 
     <!-- Contenido Principal -->
     <div class="container-fluid">
@@ -201,13 +296,7 @@
                     <i class="fas fa-list"></i>
                     Documentos Disponibles
                 </h5>
-                <button type="button" 
-                        class="btn btn-outline-primary btn-sm" 
-                        onclick="cargarTablaDocumentos()"
-                        title="Actualizar tabla">
-                    <i class="fas fa-sync-alt"></i>
-                    <span class="hide-xs">Actualizar</span>
-                </button>
+                <!-- Botón eliminado de aquí (ahora está en el header) -->
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -273,11 +362,13 @@
     <script>
     // Variables globales para flatpickr
     let flatpickrInstance = null;
+    let flatpickrHeaderInstance = null;
 
     // Inicializar Flatpickr después de que se cargue la página
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Inicializando Flatpickr...');
         
+        // Flatpickr principal (en panel de filtros)
         flatpickrInstance = flatpickr("#filtroFecha", {
             mode: "range",
             locale: "es",
@@ -285,6 +376,11 @@
             allowInput: true,
             onChange: function(selectedDates, dateStr, instance) {
                 console.log('Flatpickr onChange:', selectedDates.length, 'fechas seleccionadas');
+                
+                // Actualizar flatpickr del header
+                if (selectedDates.length === 2 && flatpickrHeaderInstance) {
+                    flatpickrHeaderInstance.setDate(selectedDates, true);
+                }
                 
                 // Aplicar filtro solo cuando se seleccionan 2 fechas (rango completo)
                 if (selectedDates.length === 2) {
@@ -302,6 +398,49 @@
                 // Si se cierra sin fechas seleccionadas, limpiar filtro
                 if (selectedDates.length === 0) {
                     console.log('Sin fechas, limpiando filtro...');
+                    if (flatpickrHeaderInstance) {
+                        flatpickrHeaderInstance.clear();
+                    }
+                    if (window.limpiarFiltros) {
+                        window.limpiarFiltros();
+                    }
+                }
+            }
+        });
+        
+        // Flatpickr compacto (en header)
+        flatpickrHeaderInstance = flatpickr("#filtroFechaHeader", {
+            mode: "range",
+            locale: "es",
+            dateFormat: "d/m/Y",
+            allowInput: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                console.log('Flatpickr Header onChange:', selectedDates.length, 'fechas seleccionadas');
+                
+                // Actualizar flatpickr principal
+                if (selectedDates.length === 2 && flatpickrInstance) {
+                    flatpickrInstance.setDate(selectedDates, true);
+                }
+                
+                // Aplicar filtro solo cuando se seleccionan 2 fechas (rango completo)
+                if (selectedDates.length === 2) {
+                    console.log('Rango completo seleccionado desde header:', selectedDates);
+                    
+                    // Llamar a la función de filtrado
+                    if (window.aplicarFiltroFecha) {
+                        window.aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
+                    }
+                }
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                console.log('Flatpickr Header onClose:', selectedDates.length, 'fechas');
+                
+                // Si se cierra sin fechas seleccionadas, limpiar filtro
+                if (selectedDates.length === 0) {
+                    console.log('Sin fechas en header, limpiando filtro...');
+                    if (flatpickrInstance) {
+                        flatpickrInstance.clear();
+                    }
                     if (window.limpiarFiltros) {
                         window.limpiarFiltros();
                     }
@@ -310,9 +449,11 @@
         });
         
         console.log('Flatpickr inicializado:', flatpickrInstance);
+        console.log('Flatpickr Header inicializado:', flatpickrHeaderInstance);
         
         // Hacer disponible globalmente
         window.flatpickrInstance = flatpickrInstance;
+        window.flatpickrHeaderInstance = flatpickrHeaderInstance;
 
         // Añadir animaciones de entrada
         const elements = document.querySelectorAll('.fade-in');
