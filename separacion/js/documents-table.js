@@ -1233,7 +1233,7 @@ function vaciarTablaCompletamente() {
                     <div class="spinner-border spinner-border-sm me-2" role="status">
                         <span class="visually-hidden">Cargando...</span>
                     </div>
-                    Actualizando...
+
                 </td>
             </tr>
         </tbody>
