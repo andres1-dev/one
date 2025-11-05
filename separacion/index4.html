@@ -49,13 +49,13 @@
         flex-wrap: wrap;
     }
 
-    .flatpickr-compact {
+    .flatpickr-header-container {
         position: relative;
-        min-width: 120px;
-        max-width: 140px;
+        min-width: 140px;
+        max-width: 160px;
     }
 
-    .flatpickr-input-compact {
+    .flatpickr-header-input {
         width: 100%;
         font-size: 0.75rem !important;
         padding: 0.375rem 0.625rem !important;
@@ -65,18 +65,20 @@
         border: 1px solid var(--border-color) !important;
         border-radius: var(--radius-md) !important;
         transition: all var(--transition-fast) !important;
+        color: var(--text-primary) !important;
     }
 
-    .flatpickr-input-compact:focus {
+    .flatpickr-header-input:focus {
         border-color: var(--accent-color) !important;
         box-shadow: 0 0 0 2px rgba(15, 52, 96, 0.1) !important;
+        outline: none;
     }
 
-    .flatpickr-input-compact:hover {
+    .flatpickr-header-input:hover {
         border-color: var(--text-secondary) !important;
     }
 
-    .flatpickr-input-compact::placeholder {
+    .flatpickr-header-input::placeholder {
         color: var(--text-muted);
         font-size: 0.75rem;
     }
@@ -87,12 +89,12 @@
             gap: 0.5rem !important;
         }
         
-        .flatpickr-compact {
-            min-width: 100px;
-            max-width: 110px;
+        .flatpickr-header-container {
+            min-width: 120px;
+            max-width: 130px;
         }
         
-        .flatpickr-input-compact {
+        .flatpickr-header-input {
             font-size: 0.6875rem !important;
             padding: 0.25rem 0.5rem !important;
         }
@@ -123,12 +125,12 @@
             gap: 0.25rem !important;
         }
         
-        .flatpickr-compact {
-            min-width: 90px;
-            max-width: 95px;
+        .flatpickr-header-container {
+            min-width: 100px;
+            max-width: 110px;
         }
         
-        .flatpickr-input-compact {
+        .flatpickr-header-input {
             font-size: 0.625rem !important;
             padding: 0.25rem 0.375rem !important;
         }
@@ -137,6 +139,16 @@
             padding: 0.25rem 0.5rem;
             font-size: 0.75rem;
         }
+    }
+
+    /* Ocultar el flatpickr original del panel de filtros */
+    #filtroFecha {
+        display: none !important;
+    }
+
+    /* Mostrar el label del filtro de fecha pero sin el input */
+    .filtro-group label[for="filtroFecha"] {
+        display: none;
     }
     </style>
     
@@ -151,12 +163,12 @@
                     <span>Separación</span>
                 </h1>
                 <div class="d-flex align-items-center gap-3">
-                    <!-- Flatpickr compacto -->
-                    <div class="flatpickr-compact">
+                    <!-- Flatpickr compacto en header -->
+                    <div class="flatpickr-header-container">
                         <input type="text" 
-                               class="form-control form-control-sm flatpickr-input-compact" 
+                               class="form-control form-control-sm flatpickr-header-input" 
                                id="filtroFechaHeader" 
-                               placeholder="Fechas"
+                               placeholder="Rango de fechas"
                                autocomplete="off"
                                title="Seleccionar rango de fechas">
                     </div>
@@ -238,11 +250,12 @@
             </div>
         </div>
 
-        <!-- Panel de Filtros Mejorado -->
+        <!-- Panel de Filtros Mejorado (sin flatpickr visible) -->
         <div class="filtros-panel fade-in">
             <div class="filtros-grid">
                 <div class="filtro-group">
-                    <label for="filtroFecha">
+                    <!-- Label oculto pero input también oculto -->
+                    <label for="filtroFecha" style="display: none;">
                         <i class="fas fa-calendar-alt text-muted me-1"></i>
                         Rango de Fechas
                     </label>
@@ -250,14 +263,11 @@
                            class="form-control form-control-sm" 
                            id="filtroFecha" 
                            placeholder="Seleccionar rango"
-                           autocomplete="off">
+                           autocomplete="off"
+                           style="display: none;">
                 </div>
                 
                 <div class="filtro-group">
-                    <!-- <label for="recInput">
-                        <i class="fas fa-search text-muted me-1"></i>
-                        Buscar Documento (REC)
-                    </label> -->
                     <input type="text" 
                            class="form-control form-control-sm" 
                            id="recInput" 
@@ -280,10 +290,6 @@
                             <i class="fas fa-print"></i>
                             <span class="hide-xs">Opciones</span>
                         </button>
-                        <!-- <button type="button" class="btn btn-outline-primary btn-sm" onclick="limpiarFiltros()">
-                            <i class="fas fa-times"></i>
-                            <span class="hide-xs">Limpiar</span>
-                        </button> -->
                     </div>
                 </div>
             </div>
@@ -362,65 +368,19 @@
     <script>
     // Variables globales para flatpickr
     let flatpickrInstance = null;
-    let flatpickrHeaderInstance = null;
 
     // Inicializar Flatpickr después de que se cargue la página
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Inicializando Flatpickr...');
+        console.log('Inicializando Flatpickr en header...');
         
-        // Flatpickr principal (en panel de filtros)
-        flatpickrInstance = flatpickr("#filtroFecha", {
-            mode: "range",
-            locale: "es",
-            dateFormat: "d/m/Y",
-            allowInput: true,
-            onChange: function(selectedDates, dateStr, instance) {
-                console.log('Flatpickr onChange:', selectedDates.length, 'fechas seleccionadas');
-                
-                // Actualizar flatpickr del header
-                if (selectedDates.length === 2 && flatpickrHeaderInstance) {
-                    flatpickrHeaderInstance.setDate(selectedDates, true);
-                }
-                
-                // Aplicar filtro solo cuando se seleccionan 2 fechas (rango completo)
-                if (selectedDates.length === 2) {
-                    console.log('Rango completo seleccionado:', selectedDates);
-                    
-                    // Llamar a la función de filtrado
-                    if (window.aplicarFiltroFecha) {
-                        window.aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
-                    }
-                }
-            },
-            onClose: function(selectedDates, dateStr, instance) {
-                console.log('Flatpickr onClose:', selectedDates.length, 'fechas');
-                
-                // Si se cierra sin fechas seleccionadas, limpiar filtro
-                if (selectedDates.length === 0) {
-                    console.log('Sin fechas, limpiando filtro...');
-                    if (flatpickrHeaderInstance) {
-                        flatpickrHeaderInstance.clear();
-                    }
-                    if (window.limpiarFiltros) {
-                        window.limpiarFiltros();
-                    }
-                }
-            }
-        });
-        
-        // Flatpickr compacto (en header)
-        flatpickrHeaderInstance = flatpickr("#filtroFechaHeader", {
+        // Inicializar SOLO el flatpickr del header (el original está oculto)
+        flatpickrInstance = flatpickr("#filtroFechaHeader", {
             mode: "range",
             locale: "es",
             dateFormat: "d/m/Y",
             allowInput: true,
             onChange: function(selectedDates, dateStr, instance) {
                 console.log('Flatpickr Header onChange:', selectedDates.length, 'fechas seleccionadas');
-                
-                // Actualizar flatpickr principal
-                if (selectedDates.length === 2 && flatpickrInstance) {
-                    flatpickrInstance.setDate(selectedDates, true);
-                }
                 
                 // Aplicar filtro solo cuando se seleccionan 2 fechas (rango completo)
                 if (selectedDates.length === 2) {
@@ -438,9 +398,6 @@
                 // Si se cierra sin fechas seleccionadas, limpiar filtro
                 if (selectedDates.length === 0) {
                     console.log('Sin fechas en header, limpiando filtro...');
-                    if (flatpickrInstance) {
-                        flatpickrInstance.clear();
-                    }
                     if (window.limpiarFiltros) {
                         window.limpiarFiltros();
                     }
@@ -448,12 +405,10 @@
             }
         });
         
-        console.log('Flatpickr inicializado:', flatpickrInstance);
-        console.log('Flatpickr Header inicializado:', flatpickrHeaderInstance);
+        console.log('Flatpickr Header inicializado:', flatpickrInstance);
         
         // Hacer disponible globalmente
         window.flatpickrInstance = flatpickrInstance;
-        window.flatpickrHeaderInstance = flatpickrHeaderInstance;
 
         // Añadir animaciones de entrada
         const elements = document.querySelectorAll('.fade-in');
@@ -480,10 +435,21 @@
         mostrarOpcionesImpresion();
     }
 
+    // Función para limpiar el filtro de fecha
+    function limpiarFiltroFecha() {
+        if (flatpickrInstance) {
+            flatpickrInstance.clear();
+        }
+        if (window.limpiarFiltros) {
+            window.limpiarFiltros();
+        }
+    }
+
     // Hacer funciones disponibles globalmente
     window.buscarDocumentoEnTabla = buscarDocumentoEnTabla;
     window.imprimirSoloClientesDesdeTabla = imprimirSoloClientesDesdeTabla;
     window.mostrarOpcionesDesdeTabla = mostrarOpcionesDesdeTabla;
+    window.limpiarFiltroFecha = limpiarFiltroFecha;
 
     // Optimización: Prevenir zoom en inputs en iOS
     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
