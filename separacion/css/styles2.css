@@ -1401,3 +1401,209 @@ img {
 .gap-sm { gap: var(--spacing-sm) !important; }
 .gap-md { gap: var(--spacing-md) !important; }
 .gap-lg { gap: var(--spacing-lg) !important; }
+
+
+
+
+
+
+/* ===== ESTILOS PARA MÉTRICAS DE RENDIMIENTO ===== */
+.metric-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    transition: all var(--transition-base);
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+}
+
+.metric-card.eficiencia::before { background: var(--info-color); }
+.metric-card.capacidad::before { background: var(--success-color); }
+.metric-card.efectividad::before { background: var(--warning-color); }
+.metric-card.capacidad-instalada::before { background: var(--accent-color); }
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.metric-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.metric-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.metric-card.eficiencia .metric-icon { 
+    background: rgba(59, 130, 246, 0.1); 
+    color: var(--info-color); 
+}
+.metric-card.capacidad .metric-icon { 
+    background: rgba(16, 185, 129, 0.1); 
+    color: var(--success-color); 
+}
+.metric-card.efectividad .metric-icon { 
+    background: rgba(245, 158, 11, 0.1); 
+    color: var(--warning-color); 
+}
+.metric-card.capacidad-instalada .metric-icon { 
+    background: rgba(15, 52, 96, 0.1); 
+    color: var(--accent-color); 
+}
+
+.metric-info {
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-target {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.chart-container {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    height: 100%;
+}
+
+/* Tabla de métricas */
+#tablaMetricas th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+#tablaMetricas td {
+    font-size: 0.8125rem;
+    vertical-align: middle;
+}
+
+.eficiencia-baja { color: var(--danger-color); font-weight: 600; }
+.eficiencia-media { color: var(--warning-color); font-weight: 600; }
+.eficiencia-alta { color: var(--success-color); font-weight: 600; }
+
+/* Lista del top semanal */
+.top-item {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.top-item:last-child {
+    border-bottom: none;
+}
+
+.top-posicion {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    background: var(--accent-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: var(--spacing-sm);
+    flex-shrink: 0;
+}
+
+.top-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.top-nombre {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.top-metricas {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.75rem;
+}
+
+.top-metrica {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted);
+}
+
+.top-metrica i {
+    font-size: 0.625rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .metric-content {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .chart-container {
+        padding: var(--spacing-md);
+    }
+}
