@@ -484,6 +484,152 @@
             </div>
         </div>
 
+        <!-- Sección de Medición de Rendimiento -->
+<div class="card fade-in mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line"></i>
+            Métricas de Rendimiento
+        </h5>
+        <div class="header-controls">
+            <!-- Flatpickr para rangos de fechas -->
+            <div class="control-item flatpickr-control">
+                <input type="text" 
+                       class="form-control form-control-sm flatpickr-header-input" 
+                       id="filtroFechaMetricas" 
+                       placeholder="Rango para métricas"
+                       autocomplete="off"
+                       title="Seleccionar rango de fechas para métricas">
+            </div>
+            
+            <!-- Selector de responsable -->
+            <select class="form-select form-select-sm" id="selectResponsableMetricas" style="min-width: 180px;">
+                <option value="">Todos los responsables</option>
+            </select>
+            
+            <!-- Botón Actualizar Métricas -->
+            <button type="button" 
+                    class="control-item control-btn" 
+                    onclick="actualizarMetricasRendimiento()"
+                    title="Actualizar métricas">
+                <i class="fas fa-sync-alt"></i>
+                <span class="hide-xs">Actualizar</span>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Tarjetas de Resumen de Métricas -->
+        <div class="row mb-4" id="resumenMetricas">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="metric-card eficiencia">
+                    <div class="metric-content">
+                        <div class="metric-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-value" id="eficienciaPromedio">0.00</div>
+                            <div class="metric-label">Eficiencia</div>
+                            <div class="metric-target">Meta: 4.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="metric-card capacidad">
+                    <div class="metric-content">
+                        <div class="metric-icon">
+                            <i class="fas fa-industry"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-value" id="capacidadPromedio">0</div>
+                            <div class="metric-label">Capacidad</div>
+                            <div class="metric-target">Meta: 7,920</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="metric-card efectividad">
+                    <div class="metric-content">
+                        <div class="metric-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-value" id="efectividadPromedio">0</div>
+                            <div class="metric-label">Efectividad</div>
+                            <div class="metric-target">Meta: 25</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="metric-card capacidad-instalada">
+                    <div class="metric-content">
+                        <div class="metric-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-value" id="capacidadInstalada">0%</div>
+                            <div class="metric-label">Cap. Instalada</div>
+                            <div class="metric-target">Utilización</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico Spider y Top Semanal -->
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="chart-container">
+                    <canvas id="spiderChart" height="300"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-trophy"></i>
+                            Top Semanal
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="topSemanalLista">
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                                <p>Seleccione un rango de fechas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla Detallada de Métricas -->
+        <div class="mt-4">
+            <div class="table-responsive">
+                <table id="tablaMetricas" class="table table-hover table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Responsable</th>
+                            <th>Documentos</th>
+                            <th>Total Unidades</th>
+                            <th>Total Tiempo</th>
+                            <th>Eficiencia</th>
+                            <th>Capacidad</th>
+                            <th>Efectividad</th>
+                            <th>% Eficiencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Los datos se cargarán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
         <!-- Tabla de Documentos Mejorada -->
         <div class="card fade-in">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -552,6 +698,7 @@
     <script src="js/search.js"></script>
     <script src="js/print-templates.js"></script>
     <script src="js/documents-table.js"></script>
+    <script src="js/metrics-system.js"></script>
 
     <script>
     // Variables globales para flatpickr
