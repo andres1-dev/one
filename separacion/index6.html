@@ -395,25 +395,6 @@
         </div>
     </div>
 
-        <div class="filtros-panel fade-in">
-            <div class="filtros-grid">
-                <div class="filtro-group">
-                    <label class="hide-xs">&nbsp;</label>
-                    <div class="btn-group-sm">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="buscarPorREC()">
-                            <i class="fas fa-search"></i>
-                            <span class="hide-xs">Buscar</span>
-                        </button>
-                        <button type="button" class="btn btn-info btn-sm" onclick="imprimirSoloClientes()">
-                            <i class="fas fa-users"></i>
-                            <span class="hide-xs">Clientes</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
     <!-- Contenido Principal -->
     <div class="container-fluid">
         
@@ -472,6 +453,38 @@
             </div>
         </div>
 
+<!-- Panel de Filtros Mejorado (oculto completamente) -->
+<div class="filtros-panel fade-in" style="display: none;">
+    <div class="filtros-grid">
+        <div class="filtro-group">
+            <input type="text" 
+                   class="form-control form-control-sm" 
+                   id="recInput" 
+                   placeholder="Ej: 12345 o 12345,12346,12347"
+                   autocomplete="off">
+        </div>
+        
+        <div class="filtro-group">
+            <label class="hide-xs">&nbsp;</label>
+            <div class="btn-group-sm">
+                <button type="button" class="btn btn-primary btn-sm" onclick="buscarPorREC()">
+                    <i class="fas fa-search"></i>
+                    <span class="hide-xs">Buscar</span>
+                </button>
+                <button type="button" class="btn btn-info btn-sm" onclick="imprimirSoloClientes()">
+                    <i class="fas fa-users"></i>
+                    <span class="hide-xs">Clientes</span>
+                </button>
+                <button type="button" class="btn btn-success btn-sm" onclick="mostrarOpcionesImpresion()">
+                    <i class="fas fa-print"></i>
+                    <span class="hide-xs">Opciones</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+        
         <!-- Tabla de Documentos Mejorada -->
         <div class="card fade-in">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
