@@ -973,7 +973,7 @@ async function cambiarResponsable(rec, responsable) {
     }
 }
 
-// Función MEJORADA para cambiar estado del documento con confirmación para pausado
+// Función OPTIMIZADA para cambiar estado del documento - LÓGICA CORREGIDA
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
@@ -986,17 +986,85 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
         const documentoActual = documentosGlobales.find(doc => doc.rec === rec);
         const estadoActual = documentoActual ? documentoActual.estado : '';
         
-        // CONFIRMACIÓN ESPECIAL para finalizar desde pausado
+        // LÓGICA ESPECIAL: Finalizar desde pausado
         if (nuevoEstado === 'FINALIZADO' && estadoActual === 'PAUSADO') {
             const confirmar = await mostrarConfirmacion(
                 '¿Finalizar documento desde estado PAUSADO?',
-                `REC${rec} se encuentra actualmente PAUSADO. ¿Está seguro de que el documento está completamente terminado y listo para finalizar?`,
+                `REC${rec} se encuentra actualmente PAUSADO. Para garantizar el registro correcto de tiempos, el sistema reanudará y finalizará automáticamente. ¿Continuar?`,
                 'warning'
             );
             
             if (!confirmar) return;
+            
+            console.log(`Iniciando proceso: PAUSADO → ELABORACION → FINALIZADO para REC${rec}`);
+            
+            // PASO 1: Reanudar primero (para guardar tiempos de pausa)
+            actualizacionEnProgreso = true;
+            
+            const loadingToast = Swal.fire({
+                title: 'Procesando...',
+                html: `REC${rec}<br>Reanudando → Finalizando`,
+                icon: 'info',
+                position: 'center',
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Primero reanudar
+            const resultReanudar = await llamarAPI({
+                action: 'reanudar',
+                id: rec
+            });
+            
+            if (!resultReanudar.success) {
+                Swal.close();
+                await mostrarNotificacion('Error', 'Error al reanudar: ' + (resultReanudar.message || 'Error desconocido'), 'error');
+                actualizacionEnProgreso = false;
+                return;
+            }
+            
+            // Breve pausa para asegurar procesamiento
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // PASO 2: Luego finalizar
+            const resultFinalizar = await llamarAPI({
+                action: 'finalizar',
+                id: rec
+            });
+            
+            Swal.close();
+            
+            if (resultFinalizar.success) {
+                // Limpiar timer
+                if (timers[rec]) {
+                    clearInterval(timers[rec]);
+                    delete timers[rec];
+                }
+                
+                await mostrarNotificacion('✓ Finalizado', `REC${rec} completado`, 'success');
+                
+                // ACTUALIZACIÓN SUPER EFICIENTE: Solo la fila específica
+                await actualizarFilaEspecifica(rec);
+                
+                // Si hay búsqueda activa, limpiarla para que desaparezca de la vista
+                if (documentosTable && documentosTable.search()) {
+                    setTimeout(() => {
+                        documentosTable.search('').draw();
+                    }, 300);
+                }
+                
+            } else {
+                await mostrarNotificacion('Error', 'Error al finalizar: ' + (resultFinalizar.message || 'Error desconocido'), 'error');
+            }
+            
+            actualizacionEnProgreso = false;
+            return;
         }
-        // Confirmación normal para otros finalizados
+        
+        // CONFIRMACIÓN normal para otros finalizados
         else if (nuevoEstado === 'FINALIZADO') {
             const confirmar = await mostrarConfirmacion(
                 '¿Finalizar documento?',
@@ -1029,8 +1097,6 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
         });
 
         let action;
-        let params = { action: '', id: rec };
-        
         switch(nuevoEstado) {
             case 'PAUSADO':
                 action = 'pausar';
@@ -1040,10 +1106,6 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 break;
             case 'FINALIZADO':
                 action = 'finalizar';
-                // Si viene de pausado, asegurar que se registren tiempos correctamente
-                if (estadoActual === 'PAUSADO') {
-                    params.forzarFinalizacion = 'true';
-                }
                 break;
             default:
                 Swal.close();
@@ -1052,8 +1114,10 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 return;
         }
         
-        params.action = action;
-        const result = await llamarAPI(params);
+        const result = await llamarAPI({
+            action: action,
+            id: rec
+        });
         
         // Cerrar loading
         Swal.close();
@@ -1075,14 +1139,14 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             
             await mostrarNotificacion('✓ Actualizado', `${nuevoEstado}`, 'success');
             
-            // ACTUALIZACIÓN OPTIMIZADA: Solo actualizar fila específica para pausar/reanudar/finalizar
+            // ACTUALIZACIÓN SUPER EFICIENTE: Solo la fila específica
             await actualizarFilaEspecifica(rec);
             
-            // Si se finalizó, forzar recarga para que desaparezca del filtro principal
-            if (nuevoEstado === 'FINALIZADO' && !mostrarFinalizados) {
+            // Si se finalizó y hay búsqueda activa, limpiarla
+            if (nuevoEstado === 'FINALIZADO' && documentosTable && documentosTable.search()) {
                 setTimeout(() => {
-                    actualizarInmediatamente(true); // Recarga completa para aplicar filtros
-                }, 500);
+                    documentosTable.search('').draw();
+                }, 300);
             }
             
         } else {
