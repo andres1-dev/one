@@ -23,6 +23,9 @@ function inicializarSistemaMetricas() {
             console.log('Flatpickr métricas - Fechas seleccionadas:', selectedDates);
             if (selectedDates.length === 2) {
                 console.log('Rango completo seleccionado para métricas:', selectedDates);
+                // Actualizar responsables basado en el rango de fechas
+                cargarResponsablesParaMetricas();
+                // Luego actualizar métricas
                 actualizarMetricasRendimiento();
             } else if (selectedDates.length === 0) {
                 console.log('Filtro de fechas limpiado');
@@ -33,21 +36,17 @@ function inicializarSistemaMetricas() {
     
     console.log('Flatpickr métricas inicializado:', flatpickrMetricas);
     
-    // Cargar lista de responsables después de un delay para asegurar que los datos globales estén cargados
-    setTimeout(() => {
-        // No cargar responsables aquí, se cargarán cuando se aplique el filtro de fechas
-    }, 2000);
-    
+    // Inicializar con responsables vacíos, se cargarán cuando se seleccione un rango
     console.log('Sistema de métricas inicializado');
 }
 
-// Cargar responsables basados en el rango de fechas seleccionado
-async function cargarResponsablesParaMetricas(fechaInicio, fechaFin) {
+// Cargar responsables basado en el rango de fechas del flatpickr
+async function cargarResponsablesParaMetricas() {
     try {
         const select = document.getElementById('selectResponsableMetricas');
         if (!select) {
             console.error('No se encontró el selector de responsables');
-            return [];
+            return;
         }
         
         // Limpiar opciones excepto la primera
@@ -55,8 +54,8 @@ async function cargarResponsablesParaMetricas(fechaInicio, fechaFin) {
             select.removeChild(select.lastChild);
         }
         
-        // Obtener responsables únicos de documentos finalizados en el rango de fechas
-        const responsablesUnicos = await obtenerResponsablesFinalizadosEnRango(fechaInicio, fechaFin);
+        // Obtener responsables únicos basados en el rango de fechas
+        const responsablesUnicos = await obtenerResponsablesPorRangoFechas();
         
         console.log('Responsables encontrados en el rango:', responsablesUnicos);
         
@@ -70,19 +69,23 @@ async function cargarResponsablesParaMetricas(fechaInicio, fechaFin) {
         });
         
         console.log('Responsables cargados para métricas:', responsablesUnicos.length);
-        return responsablesUnicos;
-        
     } catch (error) {
         console.error('Error cargando responsables para métricas:', error);
-        return [];
     }
 }
 
-// Obtener responsables únicos de documentos finalizados en un rango de fechas
-async function obtenerResponsablesFinalizadosEnRango(fechaInicio, fechaFin) {
+// Obtener responsables únicos basados en el rango de fechas del flatpickr
+async function obtenerResponsablesPorRangoFechas() {
     try {
-        console.log('Obteniendo responsables de documentos finalizados en rango...');
+        console.log('Obteniendo responsables por rango de fechas...');
         
+        const fechas = flatpickrMetricas.selectedDates;
+        if (!fechas || fechas.length !== 2) {
+            console.log('No hay rango de fechas seleccionado');
+            return [];
+        }
+        
+        // Usar los datos globales ya cargados
         if (!window.datosGlobales || window.datosGlobales.length === 0) {
             console.warn('datosGlobales no está disponible');
             return [];
@@ -91,6 +94,10 @@ async function obtenerResponsablesFinalizadosEnRango(fechaInicio, fechaFin) {
         console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
         
         const responsables = new Set();
+        const fechaInicio = fechas[0];
+        const fechaFin = fechas[1];
+        
+        console.log('Filtrando por rango:', fechaInicio, 'a', fechaFin);
         
         // Buscar en datosGlobales los documentos finalizados en el rango de fechas
         window.datosGlobales.forEach(doc => {
@@ -98,86 +105,48 @@ async function obtenerResponsablesFinalizadosEnRango(fechaInicio, fechaFin) {
             const colaborador = doc.COLABORADOR || doc.colaborador || '';
             const fechaDoc = doc.FECHA || doc.fecha || '';
             
-            if (estado.toString().toUpperCase() === 'FINALIZADO' && 
-                colaborador && 
-                colaborador.trim() !== '' &&
-                estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin)) {
-                
-                responsables.add(colaborador.trim());
+            // Verificar si está en el rango de fechas
+            if (fechaDoc && estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin)) {
+                if (estado.toString().toUpperCase() === 'FINALIZADO' && colaborador && colaborador.trim() !== '') {
+                    responsables.add(colaborador.trim());
+                }
             }
         });
         
         const responsablesArray = Array.from(responsables).sort();
-        console.log('Responsables finalizados en rango encontrados:', responsablesArray);
+        console.log('Responsables encontrados en el rango:', responsablesArray);
         return responsablesArray;
         
     } catch (error) {
-        console.error('Error obteniendo responsables finalizados en rango:', error);
+        console.error('Error obteniendo responsables por rango:', error);
         return [];
     }
 }
 
-// Verificar si una fecha está en el rango seleccionado
-function estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin) {
+// Función auxiliar para verificar si una fecha está en el rango
+function estaEnRangoFechas(fechaStr, fechaInicio, fechaFin) {
     try {
-        if (!fechaDoc) return false;
+        // Convertir fecha string a objeto Date
+        const partes = fechaStr.split('/');
+        if (partes.length !== 3) return false;
         
-        // Convertir fecha del documento a objeto Date
-        const fechaDocumento = parsearFechaParaFiltro(fechaDoc);
-        if (!fechaDocumento) return false;
+        const dia = parseInt(partes[0], 10);
+        const mes = parseInt(partes[1], 10) - 1; // Meses en JS van de 0-11
+        const año = parseInt(partes[2], 10);
         
-        // Ajustar fechas de inicio y fin para comparación
+        const fechaDoc = new Date(año, mes, dia);
         const inicio = new Date(fechaInicio);
-        inicio.setHours(0, 0, 0, 0);
-        
         const fin = new Date(fechaFin);
+        
+        // Establecer horas a 0 para comparar solo fechas
+        inicio.setHours(0, 0, 0, 0);
         fin.setHours(23, 59, 59, 999);
+        fechaDoc.setHours(0, 0, 0, 0);
         
-        return fechaDocumento >= inicio && fechaDocumento <= fin;
-        
+        return fechaDoc >= inicio && fechaDoc <= fin;
     } catch (error) {
         console.error('Error verificando rango de fechas:', error);
         return false;
-    }
-}
-
-// Función para parsear fechas para el filtro
-function parsearFechaParaFiltro(fechaStr) {
-    if (!fechaStr) return null;
-    
-    try {
-        // Probar diferentes formatos de fecha
-        let fecha;
-        
-        // Formato "dd/mm/yyyy"
-        if (fechaStr.includes('/')) {
-            const partes = fechaStr.split('/');
-            if (partes.length === 3) {
-                const dia = parseInt(partes[0], 10);
-                const mes = parseInt(partes[1], 10) - 1;
-                const año = parseInt(partes[2], 10);
-                fecha = new Date(año, mes, dia);
-            }
-        }
-        // Formato "yyyy-mm-dd"
-        else if (fechaStr.includes('-')) {
-            fecha = new Date(fechaStr);
-        }
-        // Formato timestamp o otros
-        else {
-            fecha = new Date(fechaStr);
-        }
-        
-        // Verificar que la fecha sea válida
-        if (isNaN(fecha.getTime())) {
-            console.warn('Fecha no válida:', fechaStr);
-            return null;
-        }
-        
-        return fecha;
-    } catch (e) {
-        console.error('Error parseando fecha para filtro:', e, 'String:', fechaStr);
-        return null;
     }
 }
 
@@ -191,21 +160,18 @@ async function actualizarMetricasRendimiento() {
         
         // Obtener parámetros de filtro
         const fechas = flatpickrMetricas.selectedDates;
+        const responsableSeleccionado = document.getElementById('selectResponsableMetricas').value;
         
-        console.log('Filtros aplicados - Fechas:', fechas);
+        console.log('Filtros aplicados:', {
+            fechas: fechas,
+            responsable: responsableSeleccionado
+        });
         
         if (!fechas || fechas.length !== 2) {
             await mostrarNotificacion('Información', 'Seleccione un rango de fechas para calcular las métricas', 'info');
             ocultarLoadingMetricas();
             return;
         }
-        
-        // Cargar responsables basados en el rango de fechas
-        const responsables = await cargarResponsablesParaMetricas(fechas[0], fechas[1]);
-        
-        const responsableSeleccionado = document.getElementById('selectResponsableMetricas').value;
-        
-        console.log('Responsable seleccionado:', responsableSeleccionado);
         
         // Calcular métricas
         const metricas = await calcularMetricasRendimiento(fechas[0], fechas[1], responsableSeleccionado);
@@ -229,19 +195,12 @@ async function actualizarMetricasRendimiento() {
     }
 }
 
-// Calcular métricas de rendimiento - VERSIÓN CORREGIDA
+// Calcular métricas de rendimiento - VERSIÓN SIMPLIFICADA
 async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFiltro = '') {
     try {
         console.log('Calculando métricas para rango:', fechaInicio, 'a', fechaFin, 'Responsable:', responsableFiltro);
         
         // Asegurarse de que los datos globales estén disponibles
-        if (!window.datosGlobales || window.datosGlobales.length === 0) {
-            console.warn('datosGlobales vacío, intentando cargar...');
-            if (typeof cargarDatos === 'function') {
-                await cargarDatos();
-            }
-        }
-        
         if (!window.datosGlobales || window.datosGlobales.length === 0) {
             throw new Error('No hay datos disponibles para calcular métricas');
         }
@@ -258,11 +217,13 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             const fechaDoc = doc.FECHA || doc.fecha || '';
             const rec = doc.REC || doc.rec || '';
             
-            // Filtrar solo documentos finalizados en el rango de fechas
-            if (estado !== 'FINALIZADO' || 
-                !colaborador || 
-                colaborador === '' ||
-                !estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin)) {
+            // Filtrar solo documentos finalizados
+            if (estado !== 'FINALIZADO' || !colaborador || colaborador === '') {
+                continue;
+            }
+            
+            // Filtrar por fecha
+            if (!estaEnRangoFechas(fechaDoc, fechaInicio, fechaFin)) {
                 continue;
             }
             
@@ -274,7 +235,7 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             const cantidad = parseInt(doc.CANTIDAD) || 0;
             if (cantidad <= 0) continue;
             
-            // Buscar información de duración en la hoja DATA
+            // Buscar información de duración
             const duracion = await obtenerDuracionDocumento(rec);
             if (!duracion || duracion.segundos <= 0) continue;
             
@@ -588,7 +549,7 @@ function actualizarTopSemanal(metricas) {
     container.innerHTML = html;
 }
 
-// Actualizar gráfico spider - SOLO LAS 3 MÉTRICAS REALES
+// Actualizar gráfico spider - SOLO LAS 3 MÉTRICAS SOLICITADAS
 function actualizarGraficoSpider(metricas, responsableFiltro = '') {
     const ctx = document.getElementById('spiderChart');
     if (!ctx) return;
@@ -622,8 +583,9 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
                     },
                     pointLabels: {
                         font: {
-                            size: 11,
-                            family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            size: 12,
+                            family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                            weight: 'bold'
                         },
                         color: 'var(--text-secondary)'
                     }
@@ -702,7 +664,7 @@ function generarDatosSpiderIndividual(metricas, responsable) {
     };
 }
 
-// Generar datos para gráfico spider general (promedio del equipo) - SOLO 3 MÉTRICAS
+// Generar datos para gráfico spider general - SOLO 3 MÉTRICAS
 function generarDatosSpiderGeneral(metricas) {
     if (metricas.metricasPorResponsable.length === 0) {
         return {
@@ -761,7 +723,6 @@ function limpiarFiltrosMetricas() {
         while (selectResponsable.children.length > 1) {
             selectResponsable.removeChild(selectResponsable.lastChild);
         }
-        selectResponsable.value = '';
     }
     
     // Limpiar interfaz
@@ -803,7 +764,6 @@ function mostrarLoadingMetricas() {
     const cardBody = document.querySelector('#resumenMetricas').parentElement;
     if (!cardBody) return;
     
-    // Crear overlay de loading si no existe
     let loadingOverlay = document.getElementById('loadingMetricas');
     if (!loadingOverlay) {
         loadingOverlay = document.createElement('div');
@@ -873,12 +833,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1000);
         }
     }, 500);
-    
-    // Timeout de seguridad
-    setTimeout(() => {
-        if (typeof inicializarSistemaMetricas === 'function') {
-            console.log('Inicializando métricas por timeout de seguridad...');
-            inicializarSistemaMetricas();
-        }
-    }, 5000);
 });
