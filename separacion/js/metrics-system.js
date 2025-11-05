@@ -7,7 +7,6 @@ let flatpickrMetricas = null;
 const META_EFICIENCIA = 4.0;
 const META_CAPACIDAD = 7920; // unidades por persona-día
 const META_EFECTIVIDAD = 25; // documentos por persona
-const JORNADA_MINUTOS = 528; // 8:48:00 en minutos
 const JORNADA_SEGUNDOS = 31680; // 8:48:00 en segundos
 
 // Inicializar el sistema de métricas
@@ -24,6 +23,8 @@ function inicializarSistemaMetricas() {
             console.log('Flatpickr métricas - Fechas seleccionadas:', selectedDates);
             if (selectedDates.length === 2) {
                 console.log('Rango completo seleccionado para métricas:', selectedDates);
+                // Actualizar responsables basado en el rango de fechas
+                cargarResponsablesParaMetricas(selectedDates[0], selectedDates[1]);
                 actualizarMetricasRendimiento();
             } else if (selectedDates.length === 0) {
                 console.log('Filtro de fechas limpiado');
@@ -33,17 +34,11 @@ function inicializarSistemaMetricas() {
     });
     
     console.log('Flatpickr métricas inicializado:', flatpickrMetricas);
-    
-    // Cargar lista de responsables después de un delay para asegurar que los datos globales estén cargados
-    setTimeout(() => {
-        cargarResponsablesParaMetricas();
-    }, 2000);
-    
     console.log('Sistema de métricas inicializado');
 }
 
-// Cargar responsables en el selector
-async function cargarResponsablesParaMetricas() {
+// Cargar responsables basado en el rango de fechas
+async function cargarResponsablesParaMetricas(fechaInicio, fechaFin) {
     try {
         const select = document.getElementById('selectResponsableMetricas');
         if (!select) {
@@ -56,10 +51,10 @@ async function cargarResponsablesParaMetricas() {
             select.removeChild(select.lastChild);
         }
         
-        // Obtener responsables únicos de documentos finalizados
-        const responsablesUnicos = await obtenerResponsablesFinalizados();
+        // Obtener responsables únicos que trabajaron en el rango de fechas
+        const responsablesUnicos = await obtenerResponsablesPorRangoFechas(fechaInicio, fechaFin);
         
-        console.log('Responsables encontrados:', responsablesUnicos);
+        console.log('Responsables encontrados en el rango:', responsablesUnicos);
         
         responsablesUnicos.forEach(responsable => {
             if (responsable && responsable.trim() !== '') {
@@ -76,58 +71,51 @@ async function cargarResponsablesParaMetricas() {
     }
 }
 
-// Obtener responsables únicos de documentos finalizados
-async function obtenerResponsablesFinalizados() {
+// Obtener responsables únicos que trabajaron en un rango de fechas
+async function obtenerResponsablesPorRangoFechas(fechaInicio, fechaFin) {
     try {
-        console.log('Obteniendo responsables de documentos finalizados...');
+        console.log('Obteniendo responsables para rango:', fechaInicio, 'a', fechaFin);
         
-        // Usar los datos globales ya cargados en lugar de hacer una nueva petición
+        // Asegurarse de que los datos globales estén disponibles
         if (!window.datosGlobales || window.datosGlobales.length === 0) {
-            console.warn('datosGlobales no está disponible, intentando cargar datos...');
-            if (typeof cargarDatos === 'function') {
-                await cargarDatos();
-            } else {
-                console.error('Función cargarDatos no disponible');
-                return [];
-            }
+            console.warn('datosGlobales no disponible');
+            return [];
         }
         
-        console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
-        
         const responsables = new Set();
+        const fechaInicioObj = new Date(fechaInicio);
+        const fechaFinObj = new Date(fechaFin);
         
-        // Buscar en datosGlobales los documentos finalizados
+        // Buscar en datosGlobales los documentos finalizados en el rango
         window.datosGlobales.forEach(doc => {
             const estado = doc.ESTADO || doc.estado || '';
             const colaborador = doc.COLABORADOR || doc.colaborador || '';
+            const fechaDoc = doc.FECHA || doc.fecha || '';
             
-            if (estado.toString().toUpperCase() === 'FINALIZADO' && colaborador && colaborador.trim() !== '') {
-                responsables.add(colaborador.trim());
+            if (estado.toString().toUpperCase() === 'FINALIZADO' && 
+                colaborador && colaborador.trim() !== '' &&
+                fechaDoc) {
+                
+                // Verificar si la fecha del documento está en el rango
+                try {
+                    const [day, month, year] = fechaDoc.split('/');
+                    const fechaDocObj = new Date(year, month - 1, day);
+                    
+                    if (fechaDocObj >= fechaInicioObj && fechaDocObj <= fechaFinObj) {
+                        responsables.add(colaborador.trim());
+                    }
+                } catch (e) {
+                    console.warn('Error parseando fecha:', fechaDoc, e);
+                }
             }
         });
         
         const responsablesArray = Array.from(responsables).sort();
-        console.log('Responsables finalizados encontrados:', responsablesArray);
+        console.log('Responsables en rango encontrados:', responsablesArray);
         return responsablesArray;
         
     } catch (error) {
-        console.error('Error obteniendo responsables finalizados:', error);
-        
-        // Fallback: intentar obtener de la tabla de documentos si está disponible
-        try {
-            if (window.documentosGlobales && window.documentosGlobales.length > 0) {
-                const responsables = new Set();
-                window.documentosGlobales.forEach(doc => {
-                    if (doc.estado === 'FINALIZADO' && doc.colaborador && doc.colaborador.trim() !== '') {
-                        responsables.add(doc.colaborador.trim());
-                    }
-                });
-                return Array.from(responsables).sort();
-            }
-        } catch (fallbackError) {
-            console.error('Error en fallback:', fallbackError);
-        }
-        
+        console.error('Error obteniendo responsables por rango:', error);
         return [];
     }
 }
@@ -177,57 +165,33 @@ async function actualizarMetricasRendimiento() {
     }
 }
 
-// Calcular métricas de rendimiento - VERSIÓN CORREGIDA
+// Calcular métricas de rendimiento - VERSIÓN MEJORADA
 async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFiltro = '') {
     try {
         console.log('Calculando métricas para rango:', fechaInicio, 'a', fechaFin, 'Responsable:', responsableFiltro);
         
         // Asegurarse de que los datos globales estén disponibles
         if (!window.datosGlobales || window.datosGlobales.length === 0) {
-            console.warn('datosGlobales vacío, intentando cargar...');
-            if (typeof cargarDatos === 'function') {
-                await cargarDatos();
-            }
-        }
-        
-        if (!window.datosGlobales || window.datosGlobales.length === 0) {
             throw new Error('No hay datos disponibles para calcular métricas');
         }
         
         console.log('Total de documentos en datosGlobales:', window.datosGlobales.length);
         
-        // También usar documentosGlobales si está disponible para obtener información de estado actual
-        let documentosConEstado = [];
-        
-        if (window.documentosGlobales && window.documentosGlobales.length > 0) {
-            console.log('Usando documentosGlobales para estados actuales');
-            documentosConEstado = window.documentosGlobales;
-        } else {
-            console.log('Usando datosGlobales como fuente principal');
-            // Convertir datosGlobales al formato necesario
-            documentosConEstado = window.datosGlobales.map(doc => ({
-                rec: doc.REC || doc.rec || '',
-                estado: doc.ESTADO || doc.estado || '',
-                colaborador: doc.COLABORADOR || doc.colaborador || '',
-                fecha: doc.FECHA || doc.fecha || '',
-                cantidad: parseInt(doc.CANTIDAD) || 0,
-                datosCompletos: doc
-            }));
-        }
-        
-        console.log('Documentos con estado:', documentosConEstado.length);
+        const fechaInicioObj = new Date(fechaInicio);
+        const fechaFinObj = new Date(fechaFin);
         
         // Procesar documentos finalizados en el rango de fechas
         const documentosFinalizados = [];
         const metricasPorResponsable = {};
         
-        for (const doc of documentosConEstado) {
-            const estado = String(doc.estado || '').toUpperCase();
-            const colaborador = String(doc.colaborador || '').trim();
-            const fechaDoc = doc.fecha || '';
+        for (const doc of window.datosGlobales) {
+            const estado = String(doc.ESTADO || doc.estado || '').toUpperCase();
+            const colaborador = String(doc.COLABORADOR || doc.colaborador || '').trim();
+            const fechaDoc = doc.FECHA || doc.fecha || '';
+            const rec = doc.REC || doc.rec || '';
             
             // Filtrar solo documentos finalizados
-            if (estado !== 'FINALIZADO' || !colaborador || colaborador === '') {
+            if (estado !== 'FINALIZADO' || !colaborador || colaborador === '' || !fechaDoc) {
                 continue;
             }
             
@@ -236,15 +200,24 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
                 continue;
             }
             
-            // Obtener datos completos del documento
-            const datosCompletos = doc.datosCompletos || doc;
-            if (!datosCompletos) continue;
+            // Filtrar por rango de fechas
+            try {
+                const [day, month, year] = fechaDoc.split('/');
+                const fechaDocObj = new Date(year, month - 1, day);
+                
+                if (fechaDocObj < fechaInicioObj || fechaDocObj > fechaFinObj) {
+                    continue;
+                }
+            } catch (e) {
+                console.warn('Error parseando fecha del documento:', fechaDoc, e);
+                continue;
+            }
             
-            const cantidad = parseInt(datosCompletos.CANTIDAD) || 0;
+            const cantidad = parseInt(doc.CANTIDAD) || 0;
             if (cantidad <= 0) continue;
             
-            // Buscar información de duración en la hoja DATA
-            const duracion = await obtenerDuracionDocumento(doc.rec);
+            // Buscar información de duración
+            const duracion = await obtenerDuracionDocumento(rec);
             if (!duracion || duracion.segundos <= 0) continue;
             
             // Calcular eficiencia (unidades por segundo)
@@ -254,7 +227,7 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             const capacidad = (cantidad / duracion.segundos) * JORNADA_SEGUNDOS;
             
             const documentoMetrica = {
-                rec: doc.rec,
+                rec: rec,
                 responsable: colaborador,
                 cantidad: cantidad,
                 duracionSegundos: duracion.segundos,
@@ -284,7 +257,7 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
             metricasPorResponsable[colaborador].totalTiempoSegundos += duracion.segundos;
         }
         
-        console.log('Documentos finalizados procesados:', documentosFinalizados.length);
+        console.log('Documentos finalizados en el rango:', documentosFinalizados.length);
         console.log('Responsables con métricas:', Object.keys(metricasPorResponsable));
         
         // Calcular métricas finales por responsable
@@ -330,7 +303,7 @@ async function calcularMetricasRendimiento(fechaInicio, fechaFin, responsableFil
                 totalGeneral.documentos / totalDiasTrabajados : totalGeneral.documentos;
         }
         
-        console.log('Métricas calculadas:', {
+        console.log('Métricas finales calculadas:', {
             totalDocumentos: documentosFinalizados.length,
             totalResponsables: metricasFinales.length,
             totalGeneral: totalGeneral
@@ -557,7 +530,7 @@ function actualizarTopSemanal(metricas) {
     container.innerHTML = html;
 }
 
-// Actualizar gráfico spider
+// Actualizar gráfico spider - SOLO LAS 3 MÉTRICAS REALES
 function actualizarGraficoSpider(metricas, responsableFiltro = '') {
     const ctx = document.getElementById('spiderChart');
     if (!ctx) return;
@@ -625,16 +598,16 @@ function actualizarGraficoSpider(metricas, responsableFiltro = '') {
     });
 }
 
-// Generar datos para gráfico spider individual
+// Generar datos para gráfico spider individual - SOLO 3 MÉTRICAS
 function generarDatosSpiderIndividual(metricas, responsable) {
     const metricaResponsable = metricas.metricasPorResponsable.find(m => m.responsable === responsable);
     
     if (!metricaResponsable) {
         return {
-            labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Productividad', 'Calidad'],
+            labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
             datasets: [{
                 label: 'Sin datos',
-                data: [0, 0, 0, 0, 0],
+                data: [0, 0, 0],
                 backgroundColor: 'rgba(200, 200, 200, 0.2)',
                 borderColor: 'rgba(200, 200, 200, 1)',
                 pointBackgroundColor: 'rgba(200, 200, 200, 1)'
@@ -646,12 +619,10 @@ function generarDatosSpiderIndividual(metricas, responsable) {
         Math.min(metricaResponsable.porcentajeEficiencia, 100), // Eficiencia
         Math.min((metricaResponsable.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
         Math.min((metricaResponsable.documentosPorDia / META_EFECTIVIDAD) * 100, 100), // Efectividad
-        Math.min((metricaResponsable.totalUnidades / metricaResponsable.documentos) / 10, 100), // Productividad (simplificada)
-        85 // Calidad (valor fijo por ahora)
     ];
     
     return {
-        labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Productividad', 'Calidad'],
+        labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
         datasets: [{
             label: responsable,
             data: datos,
@@ -663,7 +634,7 @@ function generarDatosSpiderIndividual(metricas, responsable) {
             pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
         }, {
             label: 'Meta',
-            data: [100, 100, 100, 100, 100],
+            data: [100, 100, 100],
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
             borderColor: 'rgba(16, 185, 129, 0.5)',
             borderDash: [5, 5],
@@ -673,14 +644,14 @@ function generarDatosSpiderIndividual(metricas, responsable) {
     };
 }
 
-// Generar datos para gráfico spider general (promedio del equipo)
+// Generar datos para gráfico spider general - SOLO 3 MÉTRICAS
 function generarDatosSpiderGeneral(metricas) {
     if (metricas.metricasPorResponsable.length === 0) {
         return {
-            labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Productividad', 'Calidad'],
+            labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
             datasets: [{
                 label: 'Sin datos',
-                data: [0, 0, 0, 0, 0],
+                data: [0, 0, 0],
                 backgroundColor: 'rgba(200, 200, 200, 0.2)',
                 borderColor: 'rgba(200, 200, 200, 1)',
                 pointBackgroundColor: 'rgba(200, 200, 200, 1)'
@@ -695,12 +666,10 @@ function generarDatosSpiderGeneral(metricas) {
         Math.min((total.eficienciaPromedio / META_EFICIENCIA) * 100, 100), // Eficiencia
         Math.min((total.capacidadPromedio / META_CAPACIDAD) * 100, 100), // Capacidad
         Math.min((promedioDocumentosPorDia / META_EFECTIVIDAD) * 100, 100), // Efectividad
-        Math.min((total.totalUnidades / total.documentos) / 10, 100), // Productividad (simplificada)
-        85 // Calidad (valor fijo por ahora)
     ];
     
     return {
-        labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Productividad', 'Calidad'],
+        labels: ['Eficiencia', 'Capacidad', 'Efectividad'],
         datasets: [{
             label: 'Promedio Equipo',
             data: datos,
@@ -712,7 +681,7 @@ function generarDatosSpiderGeneral(metricas) {
             pointHoverBorderColor: 'rgba(245, 158, 11, 1)'
         }, {
             label: 'Meta',
-            data: [100, 100, 100, 100, 100],
+            data: [100, 100, 100],
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
             borderColor: 'rgba(16, 185, 129, 0.5)',
             borderDash: [5, 5],
@@ -730,7 +699,10 @@ function limpiarFiltrosMetricas() {
     
     const selectResponsable = document.getElementById('selectResponsableMetricas');
     if (selectResponsable) {
-        selectResponsable.value = '';
+        // Limpiar opciones excepto "Todos los responsables"
+        while (selectResponsable.children.length > 1) {
+            selectResponsable.removeChild(selectResponsable.lastChild);
+        }
     }
     
     // Limpiar interfaz
@@ -772,7 +744,6 @@ function mostrarLoadingMetricas() {
     const cardBody = document.querySelector('#resumenMetricas').parentElement;
     if (!cardBody) return;
     
-    // Crear overlay de loading si no existe
     let loadingOverlay = document.getElementById('loadingMetricas');
     if (!loadingOverlay) {
         loadingOverlay = document.createElement('div');
@@ -842,12 +813,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1000);
         }
     }, 500);
-    
-    // Timeout de seguridad
-    setTimeout(() => {
-        if (typeof inicializarSistemaMetricas === 'function') {
-            console.log('Inicializando métricas por timeout de seguridad...');
-            inicializarSistemaMetricas();
-        }
-    }, 5000);
 });
