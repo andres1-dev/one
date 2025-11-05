@@ -263,8 +263,75 @@ async function actualizarFilaEspecifica(rec) {
     }
 }
 
-// Función MEJORADA para actualizar inmediatamente después de un cambio
+// Función ACTUALIZADA para actualizar inmediatamente - CON VACIADO DE TABLA
 async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null, accion = null) {
+    // Evitar múltiples actualizaciones simultáneas
+    if (actualizacionEnProgreso && !forzarRecarga) {
+        console.log('Actualización ya en progreso, ignorando...');
+        return;
+    }
+    
+    // VACIAR TABLA TEMPORALMENTE para actualizaciones manuales
+    if (forzarRecarga && !recEspecifico) {
+        vaciarTablaCompletamente();
+    }
+    
+    let estadoTabla = null;
+    actualizacionEnProgreso = true;
+    
+    try {
+        // Guardar estado actual antes de cualquier cambio (solo si no vaciamos tabla)
+        if (!forzarRecarga) {
+            estadoTabla = guardarEstadoTabla();
+        }
+
+        console.log('Actualizando tabla...', { forzarRecarga, recEspecifico, accion });
+
+        // Si se fuerza recarga o no hay tabla, cargar completamente
+        if (forzarRecarga || !documentosTable) {
+            console.log('Recargando tabla completa...');
+            await cargarTablaDocumentos();
+        } else {
+            console.log('Actualizando datos existentes...');
+            // Solo actualizar los datos de la tabla existente
+            const documentosDisponibles = await obtenerDocumentosCombinados();
+            documentosGlobales = documentosDisponibles;
+            
+            const consolidados = calcularConsolidados(documentosDisponibles);
+            actualizarTarjetasResumen(consolidados);
+            
+            // Actualizar DataTable con nuevos datos
+            documentosTable.clear();
+            documentosTable.rows.add(documentosDisponibles);
+            documentosTable.draw(false); // false = mantener página actual
+            
+            // Reiniciar timers
+            iniciarTimers(documentosDisponibles);
+        }
+        
+        // Restaurar estado después de cargar (solo si no fue recarga forzada)
+        if (estadoTabla && documentosTable) {
+            setTimeout(() => {
+                restaurarEstadoTabla(estadoTabla);
+            }, 50);
+        }
+        
+        console.log('Tabla actualizada correctamente');
+        
+    } catch (error) {
+        console.error('Error en actualización inmediata:', error);
+        // Restaurar estado incluso en error
+        if (estadoTabla && documentosTable) {
+            restaurarEstadoTabla(estadoTabla);
+        }
+        throw error;
+    } finally {
+        actualizacionEnProgreso = false;
+    }
+}
+
+// Función MEJORADA para actualizar inmediatamente después de un cambio
+/*async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null, accion = null) {
     // Evitar múltiples actualizaciones simultáneas
     if (actualizacionEnProgreso && !forzarRecarga) {
         console.log('Actualización ya en progreso, ignorando...');
@@ -351,7 +418,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
     } finally {
         actualizacionEnProgreso = false;
     }
-}
+}*/
 
 // Función para actualizar datos globales después de cambios
 async function actualizarDatosGlobales() {
