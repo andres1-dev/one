@@ -1076,7 +1076,7 @@ async function obtenerDocumentosCombinados() {
 }
 */
 
-// Función ACTUALIZADA para cambiar responsable - CON DESTRUCCIÓN COMPLETA DE TABLA
+// Función CORREGIDA para cambiar responsable - TABLA VACÍA DURANTE PROCESO
 async function cambiarResponsable(rec, responsable) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
@@ -1088,6 +1088,9 @@ async function cambiarResponsable(rec, responsable) {
         console.log(`Asignando responsable ${responsable} a REC${rec}`);
         
         actualizacionEnProgreso = true;
+        
+        // PASO 1: VACIAR LA TABLA COMPLETAMENTE (solo mostrar headers)
+        vaciarTablaCompletamente();
         
         // Mostrar loading compacto
         const loadingToast = Swal.fire({
@@ -1115,26 +1118,77 @@ async function cambiarResponsable(rec, responsable) {
             // Mostrar éxito breve
             await mostrarNotificacion('✓ Asignado', responsable, 'success');
             
-            // PARA ASIGNAR RESPONSABLE: Recargar datos globales para lógica de disponibles
+            // PASO 2: RECARGAR DATOS GLOBALES
             await actualizarDatosGlobales();
             
-            // DESTRUIR Y RECONSTRUIR TABLA COMPLETAMENTE
-            await cargarTablaDocumentos(); // Esta función ya destruye y recrea la tabla
+            // PASO 3: RECONSTRUIR TABLA COMPLETAMENTE
+            await cargarTablaDocumentos();
             
             console.log(`Responsable ${responsable} asignado a REC${rec} - Tabla reconstruida completamente`);
             
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
+            // Si hay error, también reconstruir la tabla con los datos anteriores
+            await cargarTablaDocumentos();
         }
     } catch (error) {
         console.error('Error cambiando responsable:', error);
         Swal.close();
         await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
+        // En caso de error, reconstruir la tabla
+        await cargarTablaDocumentos();
     } finally {
         actualizacionEnProgreso = false;
     }
 }
 
+// Función para VACIAR tabla completamente (solo headers)
+function vaciarTablaCompletamente() {
+    console.log('Vaciando tabla completamente...');
+    
+    // Destruir DataTable si existe
+    if (documentosTable) {
+        documentosTable.destroy();
+        documentosTable = null;
+    }
+    
+    // Limpiar contenido y mostrar solo headers con spinner
+    $('#documentosTable').html(`
+        <thead class="table-light">
+            <tr>
+                <th>Documento</th>
+                <th>Estado</th>
+                <th>Responsable</th>
+                <th>Fecha</th>
+                <th>Duración</th>
+                <th>Cantidad</th>
+                <th>Línea</th>
+                <th>Lote</th>
+                <th>RefProv</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="10" class="text-center text-muted py-4">
+                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    Actualizando asignación de responsable...
+                </td>
+            </tr>
+        </tbody>
+    `);
+    
+    // También limpiar los consolidados/resumen temporalmente
+    const consolidadosVacios = {
+        pendientes: { count: 0, unidades: 0 },
+        proceso: { count: 0, unidades: 0 },
+        directos: { count: 0, unidades: 0 },
+        total: { count: 0, unidades: 0 }
+    };
+    actualizarTarjetasResumen(consolidadosVacios);
+}
 
 // Función OPTIMIZADA para cambiar estado del documento - LÓGICA CORREGIDA
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
