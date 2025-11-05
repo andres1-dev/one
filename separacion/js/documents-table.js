@@ -737,7 +737,7 @@ function toggleFinalizados() {
 }
 
 // Función MEJORADA para cargar la tabla de documentos
-async function cargarTablaDocumentos() {
+/*async function cargarTablaDocumentos() {
     try {
         console.log('Iniciando carga de tabla de documentos...');
         
@@ -765,6 +765,108 @@ async function cargarTablaDocumentos() {
         // Inicializar DataTable solo si hay datos
         if (documentosDisponibles.length > 0) {
             inicializarDataTable(documentosDisponibles);
+        } else {
+            // Mostrar mensaje de no hay datos
+            $('#documentosTable').html(`
+                <thead class="table-light">
+                    <tr>
+                        <th>Documento</th>
+                        <th>Estado</th>
+                        <th>Responsable</th>
+                        <th>Fecha</th>
+                        <th>Duración</th>
+                        <th>Cantidad</th>
+                        <th>Línea</th>
+                        <th>Lote</th>
+                        <th>RefProv</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            No se encontraron documentos
+                        </td>
+                    </tr>
+                </tbody>
+            `);
+        }
+        
+        if (loader) {
+            loader.style.display = 'none';
+        }
+        
+        console.log('Tabla de documentos cargada correctamente');
+        
+    } catch (error) {
+        console.error('Error al cargar tabla de documentos:', error);
+        
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'none';
+        }
+        
+        // Mostrar error en la tabla
+        $('#documentosTable').html(`
+            <thead class="table-light">
+                <tr>
+                    <th>Documento</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Fecha</th>
+                    <th>Duración</th>
+                    <th>Cantidad</th>
+                    <th>Línea</th>
+                    <th>Lote</th>
+                    <th>RefProv</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="10" class="text-center text-danger py-4">
+                        Error al cargar los documentos: ${error.message}
+                    </td>
+                </tr>
+            </tbody>
+        `);
+        
+        mostrarNotificacion('Error', 'Error al cargar los documentos: ' + error.message, 'error');
+    }
+}
+*/
+
+// Función MEJORADA para cargar la tabla de documentos (YA TIENE DESTRUCCIÓN)
+async function cargarTablaDocumentos() {
+    try {
+        console.log('Iniciando carga de tabla de documentos...');
+        
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'block';
+        }
+
+        await cargarResponsables();
+        
+        // DESTRUIR TABLA EXISTENTE SI HAY UNA (esto ya estaba)
+        if (documentosTable) {
+            documentosTable.destroy();
+            documentosTable = null;
+            console.log('Tabla anterior destruida');
+        }
+
+        const documentosDisponibles = await obtenerDocumentosCombinados();
+        documentosGlobales = documentosDisponibles;
+        
+        console.log('Documentos disponibles:', documentosDisponibles.length);
+        
+        const consolidados = calcularConsolidados(documentosDisponibles);
+        actualizarTarjetasResumen(consolidados);
+        
+        // INICIALIZAR NUEVA TABLA (reconstrucción completa)
+        if (documentosDisponibles.length > 0) {
+            inicializarDataTable(documentosDisponibles);
+            console.log('Nueva tabla inicializada');
         } else {
             // Mostrar mensaje de no hay datos
             $('#documentosTable').html(`
@@ -915,7 +1017,7 @@ async function obtenerDocumentosCombinados() {
 }
 
 // Función OPTIMIZADA para cambiar responsable - VERSIÓN CORREGIDA
-async function cambiarResponsable(rec, responsable) {
+/*async function cambiarResponsable(rec, responsable) {
     // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de responsable...');
@@ -972,6 +1074,67 @@ async function cambiarResponsable(rec, responsable) {
         actualizacionEnProgreso = false;
     }
 }
+*/
+
+// Función ACTUALIZADA para cambiar responsable - CON DESTRUCCIÓN COMPLETA DE TABLA
+async function cambiarResponsable(rec, responsable) {
+    // Evitar múltiples llamadas simultáneas
+    if (actualizacionEnProgreso) {
+        console.log('Actualización en progreso, ignorando cambio de responsable...');
+        return;
+    }
+    
+    try {
+        console.log(`Asignando responsable ${responsable} a REC${rec}`);
+        
+        actualizacionEnProgreso = true;
+        
+        // Mostrar loading compacto
+        const loadingToast = Swal.fire({
+            title: 'Asignando...',
+            text: responsable,
+            icon: 'info',
+            position: 'center',
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const result = await llamarAPI({
+            action: 'asignarResponsable',
+            id: rec,
+            responsable: responsable
+        });
+        
+        // Cerrar loading
+        Swal.close();
+        
+        if (result.success) {
+            // Mostrar éxito breve
+            await mostrarNotificacion('✓ Asignado', responsable, 'success');
+            
+            // PARA ASIGNAR RESPONSABLE: Recargar datos globales para lógica de disponibles
+            await actualizarDatosGlobales();
+            
+            // DESTRUIR Y RECONSTRUIR TABLA COMPLETAMENTE
+            await cargarTablaDocumentos(); // Esta función ya destruye y recrea la tabla
+            
+            console.log(`Responsable ${responsable} asignado a REC${rec} - Tabla reconstruida completamente`);
+            
+        } else {
+            await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
+        }
+    } catch (error) {
+        console.error('Error cambiando responsable:', error);
+        Swal.close();
+        await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
+    } finally {
+        actualizacionEnProgreso = false;
+    }
+}
+
 
 // Función OPTIMIZADA para cambiar estado del documento - LÓGICA CORREGIDA
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
