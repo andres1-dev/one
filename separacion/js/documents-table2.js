@@ -1493,6 +1493,7 @@ function aplicarFiltroPorEstado(tipoFiltro) {
     
     console.log('Estados del filtro:', estadosFiltro);
     
+    // Aplicar filtro
     $.fn.dataTable.ext.search.push(
         function(settings, data, dataIndex) {
             const rowData = documentosTable.row(dataIndex).data();
@@ -1501,6 +1502,22 @@ function aplicarFiltroPorEstado(tipoFiltro) {
             return estadosFiltro.includes(rowData.estado);
         }
     );
+    
+    // OBTENER NÚMERO DE DOCUMENTOS QUE COINCIDEN CON EL FILTRO
+    const documentosFiltrados = documentosGlobales.filter(doc => 
+        estadosFiltro.includes(doc.estado)
+    );
+    
+    console.log(`Documentos que coinciden con el filtro: ${documentosFiltrados.length}`);
+    
+    // SOLO PARA EL FILTRO "EN PROCESO": SI HAY MÁS DE 5 DOCUMENTOS, MOSTRAR TODOS
+    if (tipoFiltro === 'proceso' && documentosFiltrados.length > 5) {
+        documentosTable.page.len(-1); // -1 muestra todos los registros
+        console.log('Mostrando todos los documentos del filtro EN PROCESO');
+    } else {
+        // Para otros filtros o si son 5 o menos, usar la configuración por defecto
+        documentosTable.page.len(5);
+    }
     
     documentosTable.draw();
     
@@ -1511,7 +1528,11 @@ function aplicarFiltroPorEstado(tipoFiltro) {
     // Actualizar icono del botón de finalizados para mostrar estado activo
     actualizarIconoFiltroActivo();
     
-    mostrarNotificacion('Filtro aplicado', `Mostrando: ${obtenerNombreFiltro(tipoFiltro)}`, 'info');
+    mostrarNotificacion(
+        'Filtro aplicado', 
+        `Mostrando: ${obtenerNombreFiltro(tipoFiltro)} (${documentosFiltrados.length} documentos)`,
+        'info'
+    );
 }
 
 function limpiarFiltroTarjetas() {
@@ -1525,10 +1546,13 @@ function limpiarFiltroTarjetas() {
     
     if (!documentosTable) return;
     
+    // Remover filtros de estado
     $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(filter => {
         return filter.toString().includes('fecha_objeto') || filter.toString().includes('rangoFechasSeleccionado');
     });
     
+    // RESTAURAR PAGINACIÓN POR DEFECTO (5 registros)
+    documentosTable.page.len(5);
     documentosTable.draw();
     
     const consolidados = calcularConsolidados(documentosGlobales);
