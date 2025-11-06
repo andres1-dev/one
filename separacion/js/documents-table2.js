@@ -261,7 +261,7 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
 
         if (forzarRecarga || !documentosTable) {
             console.log('Recargando tabla completa...');
-            await cargarTablaDocumentos();
+            await cargarTablaDocumentos(); // Esta función ya inicializa las tarjetas
         } else {
             console.log('Actualizando datos existentes...');
             const documentosDisponibles = await obtenerDocumentosCombinados();
@@ -275,6 +275,11 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
             documentosTable.draw(false);
             
             iniciarTimers(documentosDisponibles);
+            
+            // REINICIALIZAR TARJETAS DESPUÉS DE ACTUALIZAR DATOS
+            setTimeout(() => {
+                inicializarTarjetasInteractivas();
+            }, 100);
         }
         
         if (estadoTabla && documentosTable) {
@@ -682,6 +687,7 @@ async function cargarTablaDocumentos() {
         if (documentosDisponibles.length > 0) {
             inicializarDataTable(documentosDisponibles);
             
+            // INICIALIZAR TARJETAS DESPUÉS DE CREAR LA TABLA
             setTimeout(() => {
                 inicializarTarjetasInteractivas();
             }, 100);
@@ -888,38 +894,42 @@ async function cambiarResponsable(rec, responsable) {
 function vaciarTablaCompletamente() {
     console.log('Vaciando tabla completamente...');
     
+    // Destruir DataTable si existe
     if (documentosTable) {
         documentosTable.destroy();
         documentosTable = null;
     }
     
-    $('#documentosTable').html(`
-        <thead class="table-light">
-            <tr>
-                <th>Documento</th>
-                <th>Estado</th>
-                <th>Responsable</th>
-                <th>Fecha</th>
-                <th>Duración</th>
-                <th>Cantidad</th>
-                <th>Línea</th>
-                <th>Lote</th>
-                <th>RefProv</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td colspan="10" class="text-center text-muted py-4">
-                    <div class="spinner-border spinner-border-sm me-2" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-
-                </td>
-            </tr>
-        </tbody>
-    `);
-    
+    // Limpiar contenido y mostrar solo headers - PERO NO AFECTAR TARJETAS
+    const tableContainer = document.getElementById('documentosTable');
+    if (tableContainer) {
+        tableContainer.innerHTML = `
+            <thead class="table-light">
+                <tr>
+                    <th>Documento</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Fecha</th>
+                    <th>Duración</th>
+                    <th>Cantidad</th>
+                    <th>Línea</th>
+                    <th>Lote</th>
+                    <th>RefProv</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        Actualizando...
+                    </td>
+                </tr>
+            </tbody>
+        `;
+    }
 }
 
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
@@ -1575,6 +1585,12 @@ function obtenerNombreFiltro(tipoFiltro) {
 function inicializarTarjetasInteractivas() {
     console.log('Inicializando tarjetas interactivas...');
     
+    // Remover event listeners anteriores para evitar duplicados
+    document.querySelectorAll('.resumen-card').forEach(card => {
+        card.replaceWith(card.cloneNode(true));
+    });
+    
+    // Agregar nuevos event listeners
     document.querySelectorAll('.resumen-card').forEach(card => {
         card.addEventListener('click', function() {
             const tipo = Array.from(this.classList).find(cls => 
