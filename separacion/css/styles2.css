@@ -1404,9 +1404,6 @@ img {
 
 
 
-
-
-
 /* ===== ESTILOS PARA MÉTRICAS DE RENDIMIENTO ===== */
 .metric-card {
     background: var(--bg-secondary);
@@ -1460,7 +1457,7 @@ img {
     color: var(--info-color); 
 }
 .metric-card.capacidad .metric-icon { 
-    background: rgba(16, 185, 129, 0.1); 
+    background: rgba(34, 197, 94, 0.1); 
     color: var(--success-color); 
 }
 .metric-card.efectividad .metric-icon { 
@@ -1468,7 +1465,7 @@ img {
     color: var(--warning-color); 
 }
 .metric-card.capacidad-instalada .metric-icon { 
-    background: rgba(15, 52, 96, 0.1); 
+    background: rgba(139, 92, 246, 0.1); 
     color: var(--accent-color); 
 }
 
@@ -1477,61 +1474,36 @@ img {
 }
 
 .metric-value {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
     line-height: 1;
     margin-bottom: var(--spacing-xs);
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
 }
 
 .metric-label {
     font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--text-muted);
+    font-weight: 500;
     margin-bottom: var(--spacing-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 .metric-target {
     font-size: 0.75rem;
-    color: var(--text-muted);
-    font-weight: 500;
+    color: var(--text-light);
 }
 
-.chart-container {
-    background: var(--bg-secondary);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-light);
-    height: 100%;
-}
-
-/* Tabla de métricas */
-#tablaMetricas th {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-#tablaMetricas td {
-    font-size: 0.8125rem;
-    vertical-align: middle;
-}
-
-.eficiencia-baja { color: var(--danger-color); font-weight: 600; }
-.eficiencia-media { color: var(--warning-color); font-weight: 600; }
-.eficiencia-alta { color: var(--success-color); font-weight: 600; }
-
-/* Lista del top semanal */
+/* Top semanal */
 .top-item {
     display: flex;
     align-items: center;
-    padding: var(--spacing-sm) 0;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
     border-bottom: 1px solid var(--border-light);
+    transition: background-color var(--transition-base);
+}
+
+.top-item:hover {
+    background-color: var(--bg-hover);
 }
 
 .top-item:last-child {
@@ -1539,71 +1511,62 @@ img {
 }
 
 .top-posicion {
-    width: 24px;
-    height: 24px;
-    border-radius: var(--radius-full);
-    background: var(--accent-color);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--info-color);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
     font-weight: 600;
-    margin-right: var(--spacing-sm);
-    flex-shrink: 0;
+    font-size: 0.875rem;
 }
+
+.top-item:nth-child(1) .top-posicion { background: #f59e0b; }
+.top-item:nth-child(2) .top-posicion { background: #6b7280; }
+.top-item:nth-child(3) .top-posicion { background: #92400e; }
 
 .top-info {
     flex: 1;
-    min-width: 0;
 }
 
 .top-nombre {
     font-weight: 600;
-    color: var(--text-primary);
-    font-size: 0.875rem;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin-bottom: var(--spacing-xs);
 }
 
 .top-metricas {
     display: flex;
-    gap: var(--spacing-md);
-    font-size: 0.75rem;
+    gap: var(--spacing-lg);
+    font-size: 0.875rem;
 }
 
 .top-metrica {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--spacing-xs);
     color: var(--text-muted);
 }
 
-.top-metrica i {
-    font-size: 0.625rem;
-}
+/* Estados de métricas */
+.metric-estado-excelente { color: var(--success-color); }
+.metric-estado-bueno { color: var(--info-color); }
+.metric-estado-regular { color: var(--warning-color); }
+.metric-estado-bajo { color: var(--danger-color); }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .metric-content {
-        flex-direction: column;
-        text-align: center;
-        gap: var(--spacing-sm);
-    }
-    
-    .metric-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 1.25rem;
+    .metric-card {
+        padding: var(--spacing-md);
     }
     
     .metric-value {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
     }
     
-    .chart-container {
-        padding: var(--spacing-md);
+    .top-metricas {
+        flex-direction: column;
+        gap: var(--spacing-xs);
     }
 }
