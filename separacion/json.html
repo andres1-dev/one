@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descargador JSON y Excel Optimizado</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --text-color: #333;
+            --light-gray: #f5f5f5;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-container {
+            margin: 20px 0;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: var(--border-radius);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        button:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        #downloadJSON {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        #downloadExcel {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        #status {
+            margin: 20px 0;
+            font-size: 18px;
+            min-height: 27px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            gap: 15px;
+        }
+        
+        .stat-item {
+            background-color: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            min-width: 150px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .error {
+            color: var(--danger-color);
+            background-color: #ffeaea;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+    <!-- Incluir biblioteca XLSX para generar Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="card">
+        <h1>Procesador de Documentos</h1>
+        
+        <div class="loading-container">
+            <div id="loading" class="loading hidden"></div>
+        </div>
+        
+        <p id="status">Preparando para cargar datos...</p>
+        
+        <div class="progress-bar hidden" id="progressContainer">
+            <div class="progress" id="progress"></div>
+        </div>
+        
+        <div id="errorMessage" class="error hidden"></div>
+        
+        <div class="button-group">
+            <button id="downloadJSON" onclick="descargarJSON()" disabled>
+                <span>💾</span> Descargar JSON
+            </button>
+            <button id="downloadExcel" onclick="descargarExcel()" disabled>
+                <span>📊</span> Descargar Excel
+            </button>
+        </div>
+        
+        <div id="statsContainer" class="stats hidden">
+            <div class="stat-item">
+                <div class="stat-value" id="totalDocs">0</div>
+                <div>Documentos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="avgTime">0</div>
+                <div>Tiempo Promedio</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="avgEfficiency">0</div>
+                <div>Eficiencia Promedio</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configuración
+        const CONFIG = {
+            SPREADSHEET_IDS: {
+                main: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+                rec: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc", 
+                clientes: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE"
+            },
+            API_KEY: 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM',
+            BATCH_SIZE: 1000 // Procesar en lotes para mejor rendimiento
+        };
+
+        // Estado de la aplicación
+        const appState = {
+            documentosJSON: null,
+            isLoading: false,
+            progress: 0
+        };
+
+        // Elementos del DOM
+        const elements = {
+            loading: document.getElementById('loading'),
+            status: document.getElementById('status'),
+            downloadJSON: document.getElementById('downloadJSON'),
+            downloadExcel: document.getElementById('downloadExcel'),
+            progressContainer: document.getElementById('progressContainer'),
+            progress: document.getElementById('progress'),
+            errorMessage: document.getElementById('errorMessage'),
+            statsContainer: document.getElementById('statsContainer'),
+            totalDocs: document.getElementById('totalDocs'),
+            avgTime: document.getElementById('avgTime'),
+            avgEfficiency: document.getElementById('avgEfficiency')
+        };
+
+        // Función optimizada para convertir tiempo HH:MM:SS a segundos
+        function tiempoASegundos(tiempo) {
+            if (!tiempo || tiempo === '00:00:00') return 0;
+            try {
+                const partes = tiempo.split(':');
+                const horas = parseInt(partes[0]) || 0;
+                const minutos = parseInt(partes[1]) || 0;
+                const segundos = parseInt(partes[2]) || 0;
+                return (horas * 3600) + (minutos * 60) + segundos;
+            } catch (e) {
+                console.warn(`Error al convertir tiempo: ${tiempo}`, e);
+                return 0;
+            }
+        }
+
+        // Función para convertir pausas (que pueden venir en diferentes formatos) a segundos
+        function pausasASegundos(pausas) {
+            if (!pausas || pausas === '0' || pausas === '00:00:00') return 0;
+            
+            // Si ya es un número (segundos)
+            if (!isNaN(pausas) && pausas !== '') {
+                return parseInt(pausas) || 0;
+            }
+            
+            // Si viene en formato HH:MM:SS
+            if (pausas.includes(':')) {
+                return tiempoASegundos(pausas);
+            }
+            
+            return 0;
+        }
+
+        // Función para actualizar la barra de progreso
+        function actualizarProgreso(porcentaje) {
+            appState.progress = porcentaje;
+            elements.progress.style.width = `${porcentaje}%`;
+        }
+
+        // Función para mostrar errores
+        function mostrarError(mensaje) {
+            elements.errorMessage.textContent = mensaje;
+            elements.errorMessage.classList.remove('hidden');
+        }
+
+        // Función para ocultar errores
+        function ocultarError() {
+            elements.errorMessage.classList.add('hidden');
+        }
+
+        // Función para actualizar estadísticas
+        function actualizarEstadisticas(documentos) {
+            if (!documentos || documentos.length === 0) return;
+            
+            const totalDocs = documentos.length;
+            const tiempoPromedio = documentos.reduce((sum, doc) => sum + doc.tiempo, 0) / totalDocs;
+            const eficienciaPromedio = documentos.reduce((sum, doc) => sum + doc.eficiencia, 0) / totalDocs;
+            
+            elements.totalDocs.textContent = totalDocs.toLocaleString();
+            elements.avgTime.textContent = tiempoPromedio.toFixed(2);
+            elements.avgEfficiency.textContent = eficienciaPromedio.toFixed(2);
+            elements.statsContainer.classList.remove('hidden');
+        }
+
+        // Función para procesar datos en lotes (mejor rendimiento)
+        function procesarEnLotes(datos, procesarItem, tamañoLote = CONFIG.BATCH_SIZE) {
+            return new Promise((resolve) => {
+                const resultados = [];
+                let indice = 0;
+                
+                function procesarLote() {
+                    const fin = Math.min(indice + tamañoLote, datos.length);
+                    
+                    for (let i = indice; i < fin; i++) {
+                        const resultado = procesarItem(datos[i]);
+                        if (resultado) resultados.push(resultado);
+                    }
+                    
+                    indice = fin;
+                    actualizarProgreso((indice / datos.length) * 100);
+                    
+                    if (indice < datos.length) {
+                        // Usar setTimeout para no bloquear la UI
+                        setTimeout(procesarLote, 0);
+                    } else {
+                        resolve(resultados);
+                    }
+                }
+                
+                procesarLote();
+            });
+        }
+
+        async function obtenerDocumentosJSON() {
+            try {
+                console.time('TiempoTotal');
+                ocultarError();
+                elements.progressContainer.classList.remove('hidden');
+                
+                // Obtener TODOS los datos en paralelo
+                const [data2Values, recValues, dataValues] = await Promise.all([
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_IDS.main}/values/DATA2!S2:S?key=${CONFIG.API_KEY}`)
+                        .then(r => r.json())
+                        .then(d => d.values || []),
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_IDS.rec}/values/DataBase!A2:AG?key=${CONFIG.API_KEY}`)
+                        .then(r => r.json())
+                        .then(d => d.values || []),
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_IDS.clientes}/values/DATA!A2:K?key=${CONFIG.API_KEY}`)
+                        .then(r => r.json())
+                        .then(d => d.values || [])
+                ]);
+
+                console.time('Procesamiento');
+                
+                // 1. Procesar DATA - Solo documentos finalizados
+                elements.status.textContent = 'Procesando documentos finalizados...';
+                const documentosFinalizados = new Set();
+                const documentosDataMap = {};
+
+                await procesarEnLotes(dataValues, (row) => {
+                    if (!row?.[0]) return null;
+                    
+                    const documento = String(row[0]).trim();
+                    const estado = String(row[3] || '').toUpperCase();
+                    const colaborador = String(row[4] || '');
+                    
+                    if (estado === 'FINALIZADO' && 
+                        !colaborador.toUpperCase().includes('SIN SEPARACIÓN') &&
+                        !colaborador.toUpperCase().includes('SIN SEPARACION')) {
+                        
+                        documentosFinalizados.add(documento);
+                        
+                        // Convertir duración y pausas a segundos inmediatamente
+                        const duracionOriginal = row[7] || '00:00:00';
+                        const pausasOriginal = row[10] || '0';
+                        
+                        documentosDataMap[documento] = {
+                            responsable: colaborador,
+                            fecha: (row[6] || '').split(' ')[0] || '-',
+                            duracion_segundos: tiempoASegundos(duracionOriginal),
+                            duracion_original: duracionOriginal,
+                            pausas_segundos: pausasASegundos(pausasOriginal),
+                            pausas_original: pausasOriginal
+                        };
+                    }
+                    return null; // No necesitamos retornar nada para este procesamiento
+                });
+
+                // 2. Procesar DATA2 - Información de productos
+                elements.status.textContent = 'Procesando información de productos...';
+                const documentosData2Map = {};
+                await procesarEnLotes(data2Values, (row) => {
+                    try {
+                        if (row?.[0]) {
+                            const jsonData = JSON.parse(row[0]);
+                            const documento = String(jsonData.A || '').trim();
+                            if (documentosFinalizados.has(documento)) {
+                                documentosData2Map[documento] = {
+                                    cantidad: Number(jsonData.CANTIDAD) || 0,
+                                    prenda: jsonData.PRENDA || '',
+                                    lote: jsonData.LOTE || '',
+                                    refProv: jsonData.REFPROV || ''
+                                };
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Error al procesar fila DATA2:', e);
+                    }
+                    return null;
+                });
+
+                // 3. Procesar REC - Información adicional
+                elements.status.textContent = 'Procesando información adicional...';
+                const documentosRecMap = {};
+                await procesarEnLotes(recValues, (row) => {
+                    if (row?.[0]) {
+                        const documento = String(row[0]).trim().replace(/^REC/i, '');
+                        if (documentosFinalizados.has(documento)) {
+                            documentosRecMap[documento] = {
+                                cantidad: Number(row[18]) || 0,
+                                prenda: row[29] || '',
+                                lote: Number(row[8]) || 0,
+                                refProv: String(row[6] || '')
+                            };
+                        }
+                    }
+                    return null;
+                });
+
+                // 4. Combinar y calcular métricas (usando segundos)
+                elements.status.textContent = 'Combinando datos y calculando métricas...';
+                const documentosArray = Array.from(documentosFinalizados);
+                const resultado = await procesarEnLotes(documentosArray, (documento) => {
+                    const data = documentosDataMap[documento] || {};
+                    const data2 = documentosData2Map[documento] || {};
+                    const rec = documentosRecMap[documento] || {};
+                    
+                    const cantidad = data2.cantidad || rec.cantidad || 0;
+                    const duracionSegundos = data.duracion_segundos || 0;
+                    
+                    let tiempo = 0;
+                    let eficiencia = 0;
+                    
+                    if (cantidad > 0 && duracionSegundos > 0) {
+                        tiempo = duracionSegundos / cantidad;
+                        eficiencia = 4 / tiempo;
+                    }
+
+                    return {
+                        documento: `REC${documento}`,
+                        responsable: data.responsable,
+                        fecha: data.fecha,
+                        duracion_segundos: duracionSegundos,
+                        pausas_segundos: data.pausas_segundos,
+                        cantidad: cantidad,
+                        prenda: data2.prenda || rec.prenda,
+                        lote: data2.lote || rec.lote,
+                        refProv: data2.refProv || rec.refProv,
+                        tiempo: Number(tiempo.toFixed(6)),
+                        eficiencia: Number(eficiencia.toFixed(6))
+                    };
+                });
+
+                // Filtrar documentos con cantidad > 0
+                const resultadoFiltrado = resultado.filter(doc => doc.cantidad > 0);
+
+                console.timeEnd('Procesamiento');
+                console.timeEnd('TiempoTotal');
+                
+                console.log(`✅ ${resultadoFiltrado.length} documentos procesados en JSON`);
+                console.log('Muestra (primeros 3):', resultadoFiltrado.slice(0, 3));
+                
+                // Validar con tu ejemplo
+                const ejemplo = resultadoFiltrado.find(doc => doc.documento === 'REC3235');
+                if (ejemplo) {
+                    console.log('🔍 Validación ejemplo REC3235:');
+                    console.log('Duración original: 0:26:26 = 1586 segundos →', ejemplo.duracion_segundos);
+                    console.log('Tiempo calculado: 1586 / 410 = 3.868293 →', ejemplo.tiempo);
+                    console.log('Eficiencia calculada: 4 / 3.868293 = 1.034048 →', ejemplo.eficiencia);
+                }
+                
+                // Guardar en variable global para descarga
+                appState.documentosJSON = resultadoFiltrado;
+                
+                return resultadoFiltrado;
+
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError(`Error al cargar datos: ${error.message}`);
+                throw error;
+            }
+        }
+
+        function descargarJSON() {
+            if (!appState.documentosJSON) {
+                mostrarError('Primero obtén los datos');
+                return;
+            }
+            
+            try {
+                const blob = new Blob([JSON.stringify(appState.documentosJSON, null, 2)], { 
+                    type: 'application/json' 
+                });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                
+                link.href = url;
+                link.download = `documentos_finalizados_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                // Limpiar URL después de la descarga
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+                
+                console.log(`📥 JSON descargado con ${appState.documentosJSON.length} documentos`);
+            } catch (error) {
+                console.error('Error al descargar JSON:', error);
+                mostrarError('Error al descargar el archivo JSON');
+            }
+        }
+
+        function descargarExcel() {
+            if (!appState.documentosJSON) {
+                mostrarError('Primero obtén los datos');
+                return;
+            }
+            
+            try {
+                // Crear hoja de cálculo desde el JSON
+                const ws = XLSX.utils.json_to_sheet(appState.documentosJSON);
+                
+                // Crear libro de trabajo
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Documentos');
+                
+                // Generar archivo Excel
+                XLSX.writeFile(wb, `documentos_finalizados_${new Date().toISOString().split('T')[0]}.xlsx`);
+                
+                console.log(`📊 Excel descargado con ${appState.documentosJSON.length} documentos`);
+            } catch (error) {
+                console.error('Error al descargar Excel:', error);
+                mostrarError('Error al descargar el archivo Excel');
+            }
+        }
+
+        // Función para iniciar la carga de datos
+        async function iniciarCargaDatos() {
+            if (appState.isLoading) return;
+            
+            try {
+                appState.isLoading = true;
+                elements.status.textContent = 'Cargando datos...';
+                elements.loading.classList.remove('hidden');
+                elements.downloadJSON.disabled = true;
+                elements.downloadExcel.disabled = true;
+                elements.progressContainer.classList.remove('hidden');
+                elements.statsContainer.classList.add('hidden');
+                actualizarProgreso(0);
+                ocultarError();
+                
+                const data = await obtenerDocumentosJSON();
+                
+                elements.loading.classList.add('hidden');
+                elements.progressContainer.classList.add('hidden');
+                elements.status.textContent = `Datos cargados (${data.length} documentos). Listo para descargar.`;
+                elements.downloadJSON.disabled = false;
+                elements.downloadExcel.disabled = false;
+                actualizarEstadisticas(data);
+                
+                console.log('🎯 Datos listos para descargar:', data);
+            } catch (error) {
+                elements.loading.classList.add('hidden');
+                elements.progressContainer.classList.add('hidden');
+                elements.status.textContent = 'Error al cargar datos. Revisa la consola.';
+                console.error('Error en carga:', error);
+            } finally {
+                appState.isLoading = false;
+            }
+        }
+
+        // Cargar datos automáticamente al cargar la página
+        window.addEventListener('load', iniciarCargaDatos);
+        
+        // Manejar errores no capturados
+        window.addEventListener('error', (e) => {
+            console.error('Error no capturado:', e.error);
+            mostrarError('Ha ocurrido un error inesperado. Por favor, recarga la página.');
+        });
+    </script>
+</body>
+</html>
