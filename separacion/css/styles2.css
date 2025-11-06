@@ -1580,61 +1580,187 @@ img {
 
 
 
-/* ALTERNATIVA: Diseño tipo solapa */
-.filtro-badge {
+/* Estilos para el indicador de filtro activo - Diseño de expansión lateral */
+.resumen-card {
+    cursor: pointer;
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.resumen-card::before {
+    content: '';
     position: absolute;
-    top: 12px;
-    right: -8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(135deg, currentColor 0%, rgba(255,255,255,0.1) 100%);
-    color: white;
-    border-radius: 6px 12px 12px 6px;
-    padding: 6px 12px 6px 10px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    animation: slideInSolapa 0.3s ease-out;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 100%;
+    background: currentColor;
+    opacity: 0.1;
+    transition: width 0.3s ease;
+    z-index: 1;
+}
+
+.resumen-card:hover::before {
+    width: 100%;
+}
+
+.resumen-card.filtro-activo {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: transparent;
+}
+
+/* Expansión lateral del color cuando el filtro está activo */
+.resumen-card.filtro-activo::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: currentColor;
+    animation: expandColor 0.5s ease-out;
     z-index: 2;
 }
 
-.filtro-badge::before {
-    content: '';
+/* Badge profesional que sale del costado */
+.resumen-card.filtro-activo::before {
+    content: 'FILTRO ACTIVO';
     position: absolute;
-    top: -4px;
-    right: 0;
-    width: 8px;
-    height: 8px;
-    background: inherit;
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
-}
-
-.filtro-badge i {
-    font-size: 10px;
+    top: 50%;
+    right: -85px;
+    transform: translateY(-50%) rotate(90deg);
+    background: currentColor;
     color: white;
-    filter: brightness(0.9);
+    padding: 8px 16px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 3;
+    animation: slideInBadge 0.6s ease-out 0.3s both;
+    white-space: nowrap;
 }
 
-.filtro-badge span {
-    color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+/* Efecto de brillo sutil en el borde */
+.resumen-card.filtro-activo {
+    position: relative;
 }
 
-@keyframes slideInSolapa {
+.resumen-card.filtro-activo .resumen-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* Animaciones */
+@keyframes expandColor {
     0% {
+        width: 0;
         opacity: 0;
-        transform: translateX(20px) rotate(-5deg);
+    }
+    50% {
+        opacity: 1;
     }
     100% {
+        width: 6px;
         opacity: 1;
-        transform: translateX(0) rotate(0);
     }
 }
 
-/* Para el diseño de solapa, ajusta el overflow */
-.resumen-card {
-    overflow: visible;
+@keyframes slideInBadge {
+    0% {
+        right: -100px;
+        opacity: 0;
+    }
+    100% {
+        right: -85px;
+        opacity: 1;
+    }
+}
+
+/* Efecto de pulso sutil para la barra lateral */
+@keyframes pulseBar {
+    0% {
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.8;
+    }
+}
+
+.resumen-card.filtro-activo::after {
+    animation: expandColor 0.5s ease-out, pulseBar 2s infinite 0.5s;
+}
+
+/* Colores específicos para cada tarjeta con filtro activo */
+.resumen-card.pendientes.filtro-activo {
+    color: #f59e0b !important;
+}
+
+.resumen-card.proceso.filtro-activo {
+    color: #06b6d4 !important;
+}
+
+.resumen-card.directos.filtro-activo {
+    color: #10b981 !important;
+}
+
+.resumen-card.total.filtro-activo {
+    color: #3b82f6 !important;
+}
+
+/* Mejora el hover para tarjetas con filtro activo */
+.resumen-card.filtro-activo:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+}
+
+.resumen-card.filtro-activo:hover::after {
+    width: 8px;
+    transition: width 0.3s ease;
+}
+
+/* Asegurar que el contenido se vea bien */
+.resumen-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+}
+
+/* Efecto de profundidad adicional */
+.resumen-card.filtro-activo {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255,255,255,0.95) 100%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .resumen-card.filtro-activo::before {
+        font-size: 0.65rem;
+        padding: 6px 12px;
+        right: -75px;
+    }
+    
+    .resumen-card.filtro-activo::after {
+        width: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .resumen-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .resumen-card.filtro-activo::before {
+        display: none; /* Ocultar badge en móviles muy pequeños */
+    }
 }
