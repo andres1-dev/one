@@ -1570,3 +1570,24 @@ img {
         gap: var(--spacing-xs);
     }
 }
+
+
+
+
+/* Estilos para el botón de filtro activo */
+#btnToggleFinalizados.active {
+    background: rgba(15, 52, 96, 0.1) !important;
+    border-color: var(--accent-color) !important;
+    color: var(--accent-color) !important;
+}
+
+#btnToggleFinalizados.active i {
+    color: var(--accent-color) !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
