@@ -641,7 +641,6 @@ function obtenerEstadosParaMostrar() {
         : ESTADOS_VISIBLES;
 }
 
-// Modificar la función toggleFinalizados para que también actualice el icono
 function toggleFinalizados() {
     mostrarFinalizados = !mostrarFinalizados;
     const btn = document.getElementById('btnToggleFinalizados');
@@ -653,9 +652,6 @@ function toggleFinalizados() {
         }
     }
     actualizarInmediatamente(true);
-    
-    // Actualizar icono si hay filtro activo
-    actualizarIconoFiltroActivo();
 }
 
 async function cargarTablaDocumentos() {
@@ -1525,7 +1521,7 @@ function aplicarFiltroPorEstado(tipoFiltro) {
     const consolidadosFiltrados = calcularConsolidados(datosFiltrados);
     actualizarTarjetasResumen(consolidadosFiltrados, true);
     
-    // Actualizar icono del botón de finalizados para mostrar estado activo
+    // Actualizar icono del filtro activo EN LAS TARJETAS
     actualizarIconoFiltroActivo();
     
     mostrarNotificacion(
@@ -1558,41 +1554,35 @@ function limpiarFiltroTarjetas() {
     const consolidados = calcularConsolidados(documentosGlobales);
     actualizarTarjetasResumen(consolidados);
     
-    // Restaurar icono del botón de finalizados
+    // Limpiar icono del filtro activo EN LAS TARJETAS
     actualizarIconoFiltroActivo();
     
     mostrarNotificacion('Filtro limpiado', 'Mostrando todos los documentos', 'info');
 }
 
-// Función para actualizar el icono del botón de finalizados cuando hay filtro activo
+// Función para actualizar el icono de filtro activo en las tarjetas
 function actualizarIconoFiltroActivo() {
-    const btnToggleFinalizados = document.getElementById('btnToggleFinalizados');
-    if (!btnToggleFinalizados) return;
+    // Remover iconos de todas las tarjetas primero
+    document.querySelectorAll('.resumen-card').forEach(card => {
+        const existingIcon = card.querySelector('.filtro-activo-icon');
+        if (existingIcon) {
+            existingIcon.remove();
+        }
+        card.classList.remove('filtro-activo');
+    });
     
-    const icon = btnToggleFinalizados.querySelector('i');
-    const span = btnToggleFinalizados.querySelector('span');
-    
+    // Si hay filtro activo, agregar icono a la tarjeta correspondiente
     if (filtroTarjetaActivo) {
-        // Cambiar a icono de ojo con slash cuando hay filtro activo
-        icon.className = 'fas fa-eye-slash';
-        if (span) {
-            span.textContent = ' Filtro Activo';
+        const tarjetaActiva = document.querySelector(`.resumen-card.${filtroTarjetaActivo}`);
+        if (tarjetaActiva) {
+            tarjetaActiva.classList.add('filtro-activo');
+            
+            // Crear y agregar icono de ojo
+            const icono = document.createElement('div');
+            icono.className = 'filtro-activo-icon';
+            icono.innerHTML = '<i class="fas fa-eye"></i>';
+            tarjetaActiva.querySelector('.resumen-content').appendChild(icono);
         }
-        btnToggleFinalizados.classList.add('active');
-    } else {
-        // Restaurar icono original según estado de finalizados
-        if (mostrarFinalizados) {
-            icon.className = 'fas fa-eye-slash';
-            if (span) {
-                span.textContent = ' Ocultar Finalizados';
-            }
-        } else {
-            icon.className = 'fas fa-eye';
-            if (span) {
-                span.textContent = ' Mostrar Finalizados';
-            }
-        }
-        btnToggleFinalizados.classList.remove('active');
     }
 }
 
