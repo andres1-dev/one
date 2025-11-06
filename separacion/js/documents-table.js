@@ -1892,6 +1892,64 @@ $(document).ready(function() {
     }, 100);
 });
 
+// ===== FUNCIONES PARA FILTRADO DE FECHAS EN DATATABLE =====
+
+// Función para aplicar filtro de fecha en DataTable
+function aplicarFiltroFechaDataTable(fechaInicio, fechaFin) {
+    console.log('Aplicando filtro de fecha en DataTable:', fechaInicio, fechaFin);
+    
+    if (!documentosTable) {
+        console.warn('DataTable no inicializada');
+        return;
+    }
+    
+    // Configurar el filtro de fecha
+    rangoFechasSeleccionado = [fechaInicio, fechaFin];
+    filtrosActivos.fecha = [fechaInicio, fechaFin];
+    
+    console.log('Rango normalizado:', rangoFechasSeleccionado);
+    
+    // Redibujar la tabla con el filtro
+    documentosTable.draw();
+    
+    // Recalcular consolidados con datos filtrados
+    const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
+    console.log('Documentos después del filtro:', datosFiltrados.length);
+    
+    const consolidados = calcularConsolidados(datosFiltrados);
+    actualizarTarjetasResumen(consolidados);
+    
+    // Mostrar notificación
+    Swal.fire({
+        icon: 'success',
+        title: 'Filtro aplicado',
+        text: `Fechas: ${fechaInicio.toLocaleDateString()} - ${fechaFin.toLocaleDateString()}`,
+        timer: 1500,
+        showConfirmButton: false
+    });
+}
+
+// Función para limpiar filtro de fecha en DataTable
+function limpiarFiltroFechaDataTable() {
+    console.log('Limpiando filtro de fecha en DataTable');
+    
+    rangoFechasSeleccionado = null;
+    filtrosActivos.fecha = null;
+    
+    if (documentosTable) {
+        documentosTable.draw();
+        
+        const consolidados = calcularConsolidados(documentosGlobales);
+        actualizarTarjetasResumen(consolidados);
+    }
+}
+
+// Hacer disponibles globalmente
+window.aplicarFiltroFechaDataTable = aplicarFiltroFechaDataTable;
+window.limpiarFiltroFechaDataTable = limpiarFiltroFechaDataTable;
+window.aplicarFiltroFecha = aplicarFiltroFechaDataTable; // Alias para compatibilidad
+window.limpiarFiltros = limpiarFiltroFechaDataTable; // Alias para compatibilidad
+
 // Exportar funciones para uso global
 window.cambiarResponsable = cambiarResponsable;
 window.cambiarEstadoDocumento = cambiarEstadoDocumento;
