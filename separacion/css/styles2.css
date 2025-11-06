@@ -1404,172 +1404,6 @@ img {
 
 
 
-/* ===== ESTILOS PARA MÉTRICAS DE RENDIMIENTO ===== */
-.metric-card {
-    background: var(--bg-secondary);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-light);
-    transition: all var(--transition-base);
-    height: 100%;
-    position: relative;
-    overflow: hidden;
-}
-
-.metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-}
-
-.metric-card.eficiencia::before { background: var(--info-color); }
-.metric-card.capacidad::before { background: var(--success-color); }
-.metric-card.efectividad::before { background: var(--warning-color); }
-.metric-card.capacidad-instalada::before { background: var(--accent-color); }
-
-.metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.metric-content {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.metric-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: var(--radius-lg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-}
-
-.metric-card.eficiencia .metric-icon { 
-    background: rgba(59, 130, 246, 0.1); 
-    color: var(--info-color); 
-}
-.metric-card.capacidad .metric-icon { 
-    background: rgba(34, 197, 94, 0.1); 
-    color: var(--success-color); 
-}
-.metric-card.efectividad .metric-icon { 
-    background: rgba(245, 158, 11, 0.1); 
-    color: var(--warning-color); 
-}
-.metric-card.capacidad-instalada .metric-icon { 
-    background: rgba(139, 92, 246, 0.1); 
-    color: var(--accent-color); 
-}
-
-.metric-info {
-    flex: 1;
-}
-
-.metric-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    line-height: 1;
-    margin-bottom: var(--spacing-xs);
-}
-
-.metric-label {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    font-weight: 500;
-    margin-bottom: var(--spacing-xs);
-}
-
-.metric-target {
-    font-size: 0.75rem;
-    color: var(--text-light);
-}
-
-/* Top semanal */
-.top-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    border-bottom: 1px solid var(--border-light);
-    transition: background-color var(--transition-base);
-}
-
-.top-item:hover {
-    background-color: var(--bg-hover);
-}
-
-.top-item:last-child {
-    border-bottom: none;
-}
-
-.top-posicion {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: var(--info-color);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.875rem;
-}
-
-.top-item:nth-child(1) .top-posicion { background: #f59e0b; }
-.top-item:nth-child(2) .top-posicion { background: #6b7280; }
-.top-item:nth-child(3) .top-posicion { background: #92400e; }
-
-.top-info {
-    flex: 1;
-}
-
-.top-nombre {
-    font-weight: 600;
-    margin-bottom: var(--spacing-xs);
-}
-
-.top-metricas {
-    display: flex;
-    gap: var(--spacing-lg);
-    font-size: 0.875rem;
-}
-
-.top-metrica {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    color: var(--text-muted);
-}
-
-/* Estados de métricas */
-.metric-estado-excelente { color: var(--success-color); }
-.metric-estado-bueno { color: var(--info-color); }
-.metric-estado-regular { color: var(--warning-color); }
-.metric-estado-bajo { color: var(--danger-color); }
-
-/* Responsive */
-@media (max-width: 768px) {
-    .metric-card {
-        padding: var(--spacing-md);
-    }
-    
-    .metric-value {
-        font-size: 1.25rem;
-    }
-    
-    .top-metricas {
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-}
 
 
 
@@ -1628,7 +1462,7 @@ img {
 }
 
 /* Badge profesional que sale del costado */
-.resumen-card.filtro-activo::before {
+/*.resumen-card.filtro-activo::before {
     content: 'FILTRO ACTIVO';
     position: absolute;
     top: 50%;
@@ -1646,7 +1480,7 @@ img {
     z-index: 3;
     //animation: slideInBadge 0.6s ease-out 0.3s both;
     white-space: nowrap;
-}
+} */
 
 /* Efecto de brillo sutil en el borde */
 .resumen-card.filtro-activo {
