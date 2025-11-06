@@ -1574,20 +1574,53 @@ img {
 
 
 
-/* Estilos para el botón de filtro activo */
-#btnToggleFinalizados.active {
-    background: rgba(15, 52, 96, 0.1) !important;
-    border-color: var(--accent-color) !important;
-    color: var(--accent-color) !important;
+
+/* Estilos para el icono de filtro activo en las tarjetas */
+.resumen-card.filtro-activo {
+    position: relative;
+    border: 2px solid currentColor !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-#btnToggleFinalizados.active i {
-    color: var(--accent-color) !important;
+.filtro-activo-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     animation: pulse 2s infinite;
 }
 
+.filtro-activo-icon i {
+    font-size: 12px;
+    color: inherit;
+}
+
+/* Colores específicos para cada tarjeta con filtro activo */
+.resumen-card.pendientes.filtro-activo .filtro-activo-icon {
+    color: var(--warning-color, #ffc107);
+}
+
+.resumen-card.proceso.filtro-activo .filtro-activo-icon {
+    color: var(--info-color, #0dcaf0);
+}
+
+.resumen-card.directos.filtro-activo .filtro-activo-icon {
+    color: var(--success-color, #198754);
+}
+
+.resumen-card.total.filtro-activo .filtro-activo-icon {
+    color: var(--primary-color, #0d6efd);
+}
+
 @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
