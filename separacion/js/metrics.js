@@ -1,4 +1,4 @@
-// ===== SISTEMA DE MÉTRICAS DE RENDIMIENTO =====
+// ===== SISTEMA DE MÉTRICAS DE RENDIMIENTO - VERSIÓN CORREGIDA =====
 // Archivo: metrics.js
 
 // Constantes de medición
@@ -21,51 +21,80 @@ let responsableSeleccionado = null;
 
 // ===== INICIALIZACIÓN =====
 function inicializarSistemaMetricas() {
-    console.log('Inicializando sistema de métricas...');
+    console.log('🔧 Inicializando sistema de métricas...');
     
-    // Inicializar flatpickr independiente
-    const inputFechas = document.getElementById('filtroFechasMetricas');
-    if (inputFechas) {
-        flatpickrMetricas = flatpickr(inputFechas, {
-            mode: "range",
-            locale: "es",
-            dateFormat: "d/m/Y",
-            allowInput: true,
-            defaultDate: [
-                obtenerInicioSemana(),
-                obtenerFinSemana()
-            ],
-            onChange: function(selectedDates) {
-                if (selectedDates.length === 2) {
-                    rangoFechasMetricas = selectedDates;
-                    actualizarMetricas();
-                }
-            }
+    // Verificar que Chart.js esté disponible
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js no está cargado');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Chart.js no está disponible. Por favor recarga la página.',
+            timer: 3000
         });
-        
-        // Establecer rango inicial
-        rangoFechasMetricas = [obtenerInicioSemana(), obtenerFinSemana()];
+        return;
     }
     
-    // Cargar responsables en el selector
-    cargarResponsablesMetricas();
+    console.log('✅ Chart.js disponible');
+    
+    // Inicializar flatpickr de métricas (INDEPENDIENTE)
+    const inputFechas = document.getElementById('filtroFechasMetricas');
+    if (inputFechas) {
+        try {
+            // Destruir instancia anterior si existe
+            if (flatpickrMetricas) {
+                flatpickrMetricas.destroy();
+            }
+            
+            const fechaInicio = obtenerInicioSemana();
+            const fechaFin = obtenerFinSemana();
+            
+            flatpickrMetricas = flatpickr(inputFechas, {
+                mode: "range",
+                locale: "es",
+                dateFormat: "d/m/Y",
+                allowInput: false,
+                defaultDate: [fechaInicio, fechaFin],
+                onChange: function(selectedDates) {
+                    console.log('📅 Fechas métricas cambiadas:', selectedDates);
+                    if (selectedDates.length === 2) {
+                        rangoFechasMetricas = selectedDates;
+                        actualizarMetricas();
+                    }
+                }
+            });
+            
+            rangoFechasMetricas = [fechaInicio, fechaFin];
+            console.log('✅ Flatpickr métricas inicializado correctamente');
+        } catch (error) {
+            console.error('❌ Error inicializando flatpickr métricas:', error);
+        }
+    } else {
+        console.error('❌ No se encontró el input #filtroFechasMetricas');
+    }
     
     // Cargar métricas iniciales
-    actualizarMetricas();
+    setTimeout(() => {
+        console.log('🔄 Cargando métricas iniciales...');
+        actualizarMetricas();
+    }, 500);
 }
 
 // ===== FUNCIONES DE FECHA =====
 function obtenerInicioSemana() {
     const hoy = new Date();
     const dia = hoy.getDay();
-    const diff = hoy.getDate() - dia + (dia === 0 ? -6 : 1); // Lunes
-    return new Date(hoy.setDate(diff));
+    const diff = hoy.getDate() - dia + (dia === 0 ? -6 : 1);
+    const inicio = new Date(hoy.setDate(diff));
+    inicio.setHours(0, 0, 0, 0);
+    return inicio;
 }
 
 function obtenerFinSemana() {
     const inicio = obtenerInicioSemana();
     const fin = new Date(inicio);
-    fin.setDate(inicio.getDate() + 6); // Domingo
+    fin.setDate(inicio.getDate() + 6);
+    fin.setHours(23, 59, 59, 999);
     return fin;
 }
 
@@ -82,8 +111,11 @@ function parsearFechaMetricas(fechaStr) {
         
         if (isNaN(dia) || isNaN(mes) || isNaN(año)) return null;
         
-        return new Date(año, mes - 1, dia);
+        const fecha = new Date(año, mes - 1, dia);
+        fecha.setHours(0, 0, 0, 0);
+        return fecha;
     } catch (e) {
+        console.error('Error parseando fecha:', e, fechaStr);
         return null;
     }
 }
@@ -94,6 +126,8 @@ async function obtenerDocumentosFinalizados() {
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
     
     try {
+        console.log('📊 Obteniendo documentos finalizados...');
+        
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
         const response = await fetch(url);
         
@@ -101,6 +135,20 @@ async function obtenerDocumentosFinalizados() {
         
         const data = await response.json();
         const values = data.values || [];
+        
+        console.log(`📄 Documentos totales en DATA: ${values.length}`);
+        
+        // Crear mapa de datosGlobales para búsqueda rápida
+        const datosMap = new Map();
+        if (window.datosGlobales && Array.isArray(window.datosGlobales)) {
+            window.datosGlobales.forEach(item => {
+                if (item.REC) {
+                    datosMap.set(String(item.REC), item);
+                }
+            });
+        }
+        
+        console.log(`🗂️ Datos globales mapeados: ${datosMap.size}`);
         
         // Filtrar solo finalizados
         const finalizados = values
@@ -114,7 +162,8 @@ async function obtenerDocumentosFinalizados() {
                 const fechaSolo = fechaStr.includes(' ') ? fechaStr.split(' ')[0] : fechaStr;
                 
                 // Buscar datos completos
-                const datosCompletos = datosGlobales.find(d => d.REC === rec);
+                const datosCompletos = datosMap.get(rec);
+                const cantidad = datosCompletos ? (parseInt(datosCompletos.CANTIDAD) || 0) : 0;
                 
                 return {
                     rec: rec,
@@ -123,23 +172,30 @@ async function obtenerDocumentosFinalizados() {
                     colaborador: String(row[4] || '').trim(),
                     duracion_guardada: row[7] || '00:00:00',
                     duracion_pausas: row[10] || '00:00:00',
-                    cantidad: datosCompletos ? (datosCompletos.CANTIDAD || 0) : 0,
+                    cantidad: cantidad,
                     datosCompletos: datosCompletos
                 };
             })
-            .filter(doc => doc.fecha_objeto !== null && doc.cantidad > 0);
+            .filter(doc => {
+                const valido = doc.fecha_objeto !== null && doc.cantidad > 0 && doc.colaborador !== '';
+                if (!valido) {
+                    console.log(`⚠️ Documento filtrado REC${doc.rec}: fecha=${doc.fecha_objeto !== null}, cantidad=${doc.cantidad}, colaborador=${doc.colaborador !== ''}`);
+                }
+                return valido;
+            });
         
-        console.log('Documentos finalizados obtenidos:', finalizados.length);
+        console.log(`✅ Documentos finalizados válidos: ${finalizados.length}`);
         return finalizados;
         
     } catch (error) {
-        console.error('Error obteniendo documentos finalizados:', error);
+        console.error('❌ Error obteniendo documentos finalizados:', error);
         return [];
     }
 }
 
 function filtrarPorRangoFechas(documentos) {
     if (!rangoFechasMetricas || rangoFechasMetricas.length !== 2) {
+        console.log('⚠️ No hay rango de fechas definido, mostrando todos');
         return documentos;
     }
     
@@ -149,9 +205,14 @@ function filtrarPorRangoFechas(documentos) {
     const fechaFin = new Date(rangoFechasMetricas[1]);
     fechaFin.setHours(23, 59, 59, 999);
     
-    return documentos.filter(doc => {
+    console.log(`📅 Filtrando desde ${fechaInicio.toLocaleDateString()} hasta ${fechaFin.toLocaleDateString()}`);
+    
+    const filtrados = documentos.filter(doc => {
         return doc.fecha_objeto >= fechaInicio && doc.fecha_objeto <= fechaFin;
     });
+    
+    console.log(`📊 Documentos en rango: ${filtrados.length} de ${documentos.length}`);
+    return filtrados;
 }
 
 // ===== CÁLCULOS DE MÉTRICAS =====
@@ -171,9 +232,8 @@ function tiempoASegundos(tiempoStr) {
 function calcularEficiencia(duracionSegundos, cantidad) {
     if (cantidad === 0) return 0;
     const segundosPorUnidad = duracionSegundos / cantidad;
-    // Porcentaje: (target / real) * 100
     const porcentaje = (METRICAS_CONFIG.EFICIENCIA_TARGET / segundosPorUnidad) * 100;
-    return Math.min(Math.max(porcentaje, 0), 150); // Limitar entre 0-150%
+    return Math.min(Math.max(porcentaje, 0), 150);
 }
 
 function calcularCapacidad(unidadesTotales, diasTrabajados, numeroPersonas) {
@@ -191,13 +251,16 @@ function calcularEfectividad(documentosFinalizados, diasTrabajados) {
 }
 
 function calcularTiempoMuerto(duracionTotalSegundos, diasTrabajados) {
+    if (diasTrabajados === 0) return 100;
     const jornadaTotalEsperada = METRICAS_CONFIG.JORNADA_SEGUNDOS * diasTrabajados;
     const tiempoMuerto = Math.max(0, duracionTotalSegundos - jornadaTotalEsperada);
-    const porcentaje = 100 - ((tiempoMuerto / METRICAS_CONFIG.TIEMPO_MUERTO_MAX) * 100 / diasTrabajados);
+    const tiempoMuertoPorDia = tiempoMuerto / diasTrabajados;
+    const porcentaje = 100 - ((tiempoMuertoPorDia / METRICAS_CONFIG.TIEMPO_MUERTO_MAX) * 100);
     return Math.min(Math.max(porcentaje, 0), 100);
 }
 
 function calcularPausas(pausasTotalSegundos, diasTrabajados) {
+    if (diasTrabajados === 0) return 100;
     const pausaPromedio = pausasTotalSegundos / diasTrabajados;
     const porcentaje = 100 - ((pausaPromedio / METRICAS_CONFIG.PAUSAS_MAX) * 100);
     return Math.min(Math.max(porcentaje, 0), 100);
@@ -211,7 +274,6 @@ function calcularMetricasResponsable(documentos) {
     const totalPausas = documentos.reduce((sum, doc) => 
         sum + tiempoASegundos(doc.duracion_pausas), 0);
     
-    // Calcular días trabajados (días únicos en el rango)
     const diasUnicos = new Set(documentos.map(doc => doc.fecha)).size;
     
     return {
@@ -230,17 +292,28 @@ function calcularMetricasResponsable(documentos) {
 
 // ===== ACTUALIZACIÓN DE MÉTRICAS =====
 async function actualizarMetricas() {
-    console.log('Actualizando métricas...');
+    console.log('🔄 Actualizando métricas...');
     
     try {
-        // Mostrar loading
         mostrarLoadingMetricas(true);
         
-        // Obtener documentos finalizados
         const documentos = await obtenerDocumentosFinalizados();
+        
+        if (documentos.length === 0) {
+            console.log('⚠️ No hay documentos finalizados');
+            mostrarMensajeVacio();
+            mostrarLoadingMetricas(false);
+            return;
+        }
+        
         const documentosFiltrados = filtrarPorRangoFechas(documentos);
         
-        console.log('Documentos filtrados:', documentosFiltrados.length);
+        if (documentosFiltrados.length === 0) {
+            console.log('⚠️ No hay documentos en el rango de fechas');
+            mostrarMensajeVacio();
+            mostrarLoadingMetricas(false);
+            return;
+        }
         
         // Agrupar por responsable
         const porResponsable = {};
@@ -252,10 +325,13 @@ async function actualizarMetricas() {
             porResponsable[resp].push(doc);
         });
         
+        console.log(`👥 Responsables encontrados: ${Object.keys(porResponsable).length}`);
+        
         // Calcular métricas por responsable
         const metricasPorResponsable = {};
         Object.keys(porResponsable).forEach(resp => {
             metricasPorResponsable[resp] = calcularMetricasResponsable(porResponsable[resp]);
+            console.log(`📊 ${resp}:`, metricasPorResponsable[resp]);
         });
         
         // Actualizar interfaz
@@ -264,11 +340,11 @@ async function actualizarMetricas() {
         actualizarTopSemanal(metricasPorResponsable);
         actualizarCapacidadInstalada(documentosFiltrados, porResponsable);
         
-        // Ocultar loading
         mostrarLoadingMetricas(false);
+        console.log('✅ Métricas actualizadas correctamente');
         
     } catch (error) {
-        console.error('Error actualizando métricas:', error);
+        console.error('❌ Error actualizando métricas:', error);
         mostrarLoadingMetricas(false);
         Swal.fire({
             icon: 'error',
@@ -286,9 +362,40 @@ function mostrarLoadingMetricas(mostrar) {
     }
 }
 
+function mostrarMensajeVacio() {
+    // Limpiar tarjetas
+    const tarjetas = ['metrica-eficiencia', 'metrica-capacidad', 'metrica-efectividad', 'metrica-capacidad-instalada'];
+    tarjetas.forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem) elem.textContent = '0%';
+    });
+    
+    // Mensaje en gráfico
+    const canvas = document.getElementById('chartRadar');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (chartRadar) chartRadar.destroy();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#999';
+        ctx.textAlign = 'center';
+        ctx.fillText('No hay datos en el rango seleccionado', canvas.width / 2, canvas.height / 2);
+    }
+    
+    // Limpiar top
+    const topLista = document.getElementById('top-semanal-lista');
+    if (topLista) {
+        topLista.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-chart-bar" style="font-size: 2rem; opacity: 0.3;"></i>
+                <p class="small mt-2">No hay datos disponibles</p>
+            </div>
+        `;
+    }
+}
+
 // ===== ACTUALIZACIÓN DE INTERFAZ =====
 function actualizarTarjetasMetricas(metricas) {
-    // Calcular promedios generales
     const responsables = Object.keys(metricas);
     if (responsables.length === 0) return;
     
@@ -313,49 +420,19 @@ function actualizarTarjetasMetricas(metricas) {
         promedios[key] = (promedios[key] / responsables.length).toFixed(1);
     });
     
-    // Actualizar tarjetas
     const tarjetas = {
-        'metrica-eficiencia': { 
-            valor: promedios.eficiencia, 
-            target: 100,
-            label: 'Eficiencia',
-            desc: `Target: ${METRICAS_CONFIG.EFICIENCIA_TARGET}seg/unidad`
-        },
-        'metrica-capacidad': { 
-            valor: promedios.capacidad, 
-            target: 100,
-            label: 'Capacidad',
-            desc: `Target: ${METRICAS_CONFIG.CAPACIDAD_DIA_PERSONA} unidades/día`
-        },
-        'metrica-efectividad': { 
-            valor: promedios.efectividad, 
-            target: 100,
-            label: 'Efectividad',
-            desc: `Target: ${METRICAS_CONFIG.DOCUMENTOS_TARGET} docs/día`
-        },
-        'metrica-capacidad-instalada': {
-            valor: calcularCapacidadInstaladaTotal(metricas),
-            target: 100,
-            label: 'Cap. Instalada',
-            desc: 'Capacidad real del equipo'
-        }
+        'metrica-eficiencia': { valor: promedios.eficiencia },
+        'metrica-capacidad': { valor: promedios.capacidad },
+        'metrica-efectividad': { valor: promedios.efectividad },
+        'metrica-capacidad-instalada': { valor: calcularCapacidadInstaladaTotal(metricas) }
     };
     
     Object.keys(tarjetas).forEach(id => {
         const elem = document.getElementById(id);
         if (elem) {
             const info = tarjetas[id];
-            const valueElem = elem.querySelector('.metric-value');
-            const targetElem = elem.querySelector('.metric-target');
-            
-            if (valueElem) {
-                valueElem.textContent = `${info.valor}%`;
-                valueElem.className = 'metric-value ' + obtenerClaseEficiencia(info.valor);
-            }
-            
-            if (targetElem) {
-                targetElem.textContent = info.desc;
-            }
+            elem.textContent = `${info.valor}%`;
+            elem.className = 'metric-value ' + obtenerClaseEficiencia(parseFloat(info.valor));
         }
     });
 }
@@ -389,10 +466,8 @@ function actualizarGraficoRadar(metricas) {
     const responsables = Object.keys(metricas);
     if (responsables.length === 0) return;
     
-    // Si hay un responsable seleccionado, usar ese
     let respActual = responsableSeleccionado;
     
-    // Si no hay seleccionado o no existe, usar el primero
     if (!respActual || !metricas[respActual]) {
         respActual = responsables[0];
         responsableSeleccionado = respActual;
@@ -401,65 +476,71 @@ function actualizarGraficoRadar(metricas) {
     const datos = metricas[respActual];
     
     const ctx = document.getElementById('chartRadar');
-    if (!ctx) return;
+    if (!ctx) {
+        console.error('❌ No se encontró canvas #chartRadar');
+        return;
+    }
     
-    // Destruir gráfico anterior
     if (chartRadar) {
         chartRadar.destroy();
     }
     
-    // Crear nuevo gráfico
-    chartRadar = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Tiempo Muerto', 'Pausas'],
-            datasets: [{
-                label: respActual,
-                data: [
-                    datos.eficiencia,
-                    datos.capacidad,
-                    datos.efectividad,
-                    datos.tiempoMuerto,
-                    datos.pausas
-                ],
-                backgroundColor: 'rgba(15, 52, 96, 0.2)',
-                borderColor: 'rgba(15, 52, 96, 1)',
-                borderWidth: 2,
-                pointBackgroundColor: 'rgba(15, 52, 96, 1)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgba(15, 52, 96, 1)'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            scales: {
-                r: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        stepSize: 20
-                    }
-                }
+    try {
+        chartRadar = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'Tiempo Muerto', 'Pausas'],
+                datasets: [{
+                    label: respActual,
+                    data: [
+                        datos.eficiencia,
+                        datos.capacidad,
+                        datos.efectividad,
+                        datos.tiempoMuerto,
+                        datos.pausas
+                    ],
+                    backgroundColor: 'rgba(15, 52, 96, 0.2)',
+                    borderColor: 'rgba(15, 52, 96, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(15, 52, 96, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(15, 52, 96, 1)'
+                }]
             },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top'
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20
+                        }
+                    }
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.parsed.r.toFixed(1) + '%';
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed.r.toFixed(1) + '%';
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+        
+        console.log('✅ Gráfico radar creado');
+    } catch (error) {
+        console.error('❌ Error creando gráfico radar:', error);
+    }
     
-    // Actualizar selector de responsable
     actualizarSelectorResponsable(responsables, respActual);
 }
 
@@ -471,7 +552,6 @@ function actualizarSelectorResponsable(responsables, seleccionado) {
         `<option value="${resp}" ${resp === seleccionado ? 'selected' : ''}>${resp}</option>`
     ).join('');
     
-    // Evento de cambio
     select.onchange = function() {
         responsableSeleccionado = this.value;
         actualizarMetricas();
@@ -483,7 +563,6 @@ function actualizarTopSemanal(metricas) {
     const responsables = Object.keys(metricas);
     if (responsables.length === 0) return;
     
-    // Calcular score general para cada responsable
     const ranking = responsables.map(resp => {
         const m = metricas[resp];
         const score = (m.eficiencia + m.capacidad + m.efectividad + m.tiempoMuerto + m.pausas) / 5;
@@ -494,7 +573,6 @@ function actualizarTopSemanal(metricas) {
         };
     }).sort((a, b) => b.score - a.score);
     
-    // Mostrar top 5
     const container = document.getElementById('top-semanal-lista');
     if (!container) return;
     
@@ -536,7 +614,6 @@ function actualizarCapacidadInstalada(documentos, porResponsable) {
     const capacidadTeoricaDia = METRICAS_CONFIG.CAPACIDAD_DIA_PERSONA * responsables.length;
     const porcentajeCapacidad = ((capacidadRealDia / capacidadTeoricaDia) * 100).toFixed(1);
     
-    // Actualizar elementos
     const elemCapacidad = document.getElementById('capacidad-real-valor');
     const elemTeorica = document.getElementById('capacidad-teorica-valor');
     const elemPorcentaje = document.getElementById('capacidad-porcentaje-valor');
@@ -549,29 +626,23 @@ function actualizarCapacidadInstalada(documentos, porResponsable) {
     }
 }
 
-// ===== CARGAR RESPONSABLES =====
-async function cargarResponsablesMetricas() {
-    // Usar la lista de responsables ya cargada
-    if (window.listaResponsables && window.listaResponsables.length > 0) {
-        return;
-    }
-    
-    // Si no está cargada, esperar
-    const interval = setInterval(() => {
-        if (window.listaResponsables && window.listaResponsables.length > 0) {
-            clearInterval(interval);
-        }
-    }, 100);
-}
-
 // ===== INICIALIZACIÓN AL CARGAR =====
 document.addEventListener('DOMContentLoaded', function() {
-    // Esperar a que datosGlobales esté disponible
+    console.log('🚀 DOM cargado, esperando datos globales...');
+    
+    let intentos = 0;
+    const maxIntentos = 50;
+    
     const checkData = setInterval(() => {
+        intentos++;
+        
         if (typeof datosGlobales !== 'undefined' && datosGlobales.length > 0) {
             clearInterval(checkData);
-            console.log('Datos globales disponibles, inicializando métricas...');
+            console.log(`✅ Datos globales disponibles (${datosGlobales.length} registros)`);
             setTimeout(inicializarSistemaMetricas, 1000);
+        } else if (intentos >= maxIntentos) {
+            clearInterval(checkData);
+            console.error('❌ Timeout esperando datos globales');
         }
     }, 200);
 });
@@ -579,3 +650,5 @@ document.addEventListener('DOMContentLoaded', function() {
 // Exportar funciones
 window.inicializarSistemaMetricas = inicializarSistemaMetricas;
 window.actualizarMetricas = actualizarMetricas;
+
+console.log('📦 metrics.js cargado correctamente');
