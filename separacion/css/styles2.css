@@ -1579,133 +1579,62 @@ img {
 
 
 
-/* Estilos para el badge de filtro activo en las tarjetas */
-.resumen-card.filtro-activo {
-    position: relative;
-    border-left: 4px solid currentColor;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    transform: translateY(-2px);
-}
 
+/* ALTERNATIVA: Diseño tipo solapa */
 .filtro-badge {
-    display: inline-flex;
+    position: absolute;
+    top: 12px;
+    right: -8px;
+    display: flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
-    border-radius: 12px;
-    padding: 4px 10px 4px 8px;
+    background: linear-gradient(135deg, currentColor 0%, rgba(255,255,255,0.1) 100%);
+    color: white;
+    border-radius: 6px 12px 12px 6px;
+    padding: 6px 12px 6px 10px;
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    border: 1px solid rgba(255,255,255,0.3);
-    margin-left: 8px;
-    animation: slideInBadge 0.3s ease-out;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    animation: slideInSolapa 0.3s ease-out;
+    z-index: 2;
+}
+
+.filtro-badge::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    background: inherit;
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
 
 .filtro-badge i {
     font-size: 10px;
-    color: inherit;
+    color: white;
+    filter: brightness(0.9);
 }
 
 .filtro-badge span {
-    color: inherit;
-    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
-/* Colores específicos para cada badge según la tarjeta */
-.resumen-card.pendientes.filtro-activo .filtro-badge {
-    color: #d97706;
-    background: linear-gradient(135deg, rgba(253, 230, 138, 0.95) 0%, rgba(254, 243, 199, 0.85) 100%);
-}
-
-.resumen-card.proceso.filtro-activo .filtro-badge {
-    color: #0891b2;
-    background: linear-gradient(135deg, rgba(165, 243, 252, 0.95) 0%, rgba(207, 250, 254, 0.85) 100%);
-}
-
-.resumen-card.directos.filtro-activo .filtro-badge {
-    color: #059669;
-    background: linear-gradient(135deg, rgba(167, 243, 208, 0.95) 0%, rgba(209, 250, 229, 0.85) 100%);
-}
-
-.resumen-card.total.filtro-activo .filtro-badge {
-    color: #1d4ed8;
-    background: linear-gradient(135deg, rgba(191, 219, 254, 0.95) 0%, rgba(219, 234, 254, 0.85) 100%);
-}
-
-/* Animaciones */
-@keyframes slideInBadge {
+@keyframes slideInSolapa {
     0% {
         opacity: 0;
-        transform: translateX(10px) scale(0.8);
+        transform: translateX(20px) rotate(-5deg);
     }
     100% {
         opacity: 1;
-        transform: translateX(0) scale(1);
+        transform: translateX(0) rotate(0);
     }
 }
 
-@keyframes pulseProfessional {
-    0% {
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    50% {
-        box-shadow: 0 2px 12px currentColor;
-    }
-    100% {
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-}
-
-/* Efecto hover mejorado para tarjetas con filtro activo */
-.resumen-card.filtro-activo:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-    transform: translateY(-3px);
-}
-
-.resumen-card.filtro-activo .filtro-badge {
-    animation: pulseProfessional 2s infinite;
-}
-
-/* Ajustes para el texto de las tarjetas */
-.resumen-text {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.resumen-text h3 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 0.25rem;
-}
-
-/* Mejora el diseño responsive */
-@media (max-width: 768px) {
-    .filtro-badge {
-        font-size: 0.65rem;
-        padding: 3px 8px 3px 6px;
-        margin-left: 6px;
-    }
-    
-    .filtro-badge i {
-        font-size: 9px;
-    }
-    
-    .resumen-text {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-    }
-    
-    .filtro-badge {
-        align-self: flex-start;
-        margin-left: 0;
-        margin-top: 4px;
-    }
+/* Para el diseño de solapa, ajusta el overflow */
+.resumen-card {
+    overflow: visible;
 }
