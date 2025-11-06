@@ -829,28 +829,48 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="metrics.js"></script>
 
-    <script>
-    // Variables globales para flatpickr
-    let flatpickrInstance = null;
-    let flatpickrMobileInstance = null;
-    let selectedDatesGlobal = [];
+    <!-- ===== CORRECCIONES PARA EL INDEX.HTML ===== -->
 
-    // Variables para el estado de actualización
-    let isUpdating = false;
-    let lastUpdateTime = null;
+<!-- 1. EN EL <HEAD>, AGREGAR CHART.JS DESPUÉS DE SWEETALERT2: -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-    // Inicializar Flatpickr después de que se cargue la página
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Inicializando Flatpickr en header...');
+<!-- 3. EN LA SECCIÓN DE SCRIPTS AL FINAL, REEMPLAZAR EL CÓDIGO DE FLATPICKR POR ESTE: -->
+<script>
+// Variables globales para flatpickr
+let flatpickrInstance = null;
+let flatpickrMobileInstance = null;
+let selectedDatesGlobal = [];
+
+// Variables para el estado de actualización
+let isUpdating = false;
+let lastUpdateTime = null;
+
+// Inicializar Flatpickr después de que se cargue la página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Inicializando Flatpickr principal en header...');
+    
+    // Esperar un poco para asegurar que todo esté cargado
+    setTimeout(() => {
+        const inputHeader = document.getElementById('filtroFechaHeader');
+        
+        if (!inputHeader) {
+            console.error('❌ No se encontró #filtroFechaHeader');
+            return;
+        }
+        
+        // Destruir instancia anterior si existe
+        if (flatpickrInstance) {
+            flatpickrInstance.destroy();
+        }
         
         // Inicializar flatpickr del header (PC)
-        flatpickrInstance = flatpickr("#filtroFechaHeader", {
+        flatpickrInstance = flatpickr(inputHeader, {
             mode: "range",
             locale: "es",
             dateFormat: "d/m/Y",
-            allowInput: true,
+            allowInput: false,
             onChange: function(selectedDates, dateStr, instance) {
-                console.log('Flatpickr PC onChange:', selectedDates);
+                console.log('📅 Flatpickr principal onChange:', selectedDates);
                 selectedDatesGlobal = selectedDates;
                 
                 // Aplicar filtro automáticamente cuando se selecciona rango completo
@@ -859,7 +879,7 @@
                 }
             },
             onClose: function(selectedDates, dateStr, instance) {
-                console.log('Flatpickr PC onClose:', selectedDates);
+                console.log('📅 Flatpickr principal onClose:', selectedDates);
                 
                 // Limpiar si no hay fechas seleccionadas
                 if (selectedDates.length === 0) {
@@ -868,215 +888,187 @@
             }
         });
         
-        console.log('Flatpickr PC inicializado:', flatpickrInstance);
+        console.log('✅ Flatpickr principal inicializado:', flatpickrInstance);
         
         // Hacer disponible globalmente
         window.flatpickrInstance = flatpickrInstance;
+    }, 500);
 
-        // Inicializar estado de actualización
-        updateStatusIndicator('ready', 'Listo');
-        updateLastUpdateTime();
+    // Inicializar estado de actualización
+    updateStatusIndicator('ready', 'Listo');
+    updateLastUpdateTime();
 
-        // Añadir animaciones de entrada
-        const elements = document.querySelectorAll('.fade-in');
-        elements.forEach((el, index) => {
-            setTimeout(() => {
-                el.style.opacity = '1';
-            }, index * 100);
-        });
-    });
-
-    // ===== FUNCIONES PARA EL INDICADOR DE ESTADO =====
-    
-    // Función para actualizar el indicador de estado
-    function updateStatusIndicator(status, message) {
-        const statusIcon = document.getElementById('statusIcon');
-        const statusText = document.getElementById('statusText');
-        
-        // Remover clases anteriores
-        statusIcon.classList.remove('rotating', 'success', 'warning', 'error');
-        statusText.classList.remove('updating');
-        
-        switch(status) {
-            case 'updating':
-                statusIcon.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                statusIcon.classList.add('rotating');
-                statusText.textContent = message || 'Actualizando...';
-                statusText.classList.add('updating');
-                isUpdating = true;
-                break;
-                
-            case 'success':
-                statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-                statusIcon.classList.add('success');
-                statusText.textContent = message || 'Listo';
-                isUpdating = false;
-                break;
-                
-            case 'warning':
-                statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-                statusIcon.classList.add('warning');
-                statusText.textContent = message || 'Advertencia';
-                isUpdating = false;
-                break;
-                
-            case 'error':
-                statusIcon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
-                statusIcon.classList.add('error');
-                statusText.textContent = message || 'Error';
-                isUpdating = false;
-                break;
-                
-            case 'ready':
-            default:
-                statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-                statusIcon.classList.add('success');
-                statusText.textContent = message || 'Listo';
-                isUpdating = false;
-                break;
-        }
-    }
-    
-    // Función para actualizar la hora de última actualización
-    function updateLastUpdateTime() {
-        const now = new Date();
-        lastUpdateTime = now;
-        
-        const timeString = now.toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-        
-        const dateString = now.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-        
-        document.getElementById('lastUpdate').textContent = 
-            `Última actualización: ${dateString} ${timeString}`;
-    }
-    
-    // Función para iniciar actualización
-    function startUpdate() {
-        if (isUpdating) return;
-        
-        updateStatusIndicator('updating', 'Actualizando...');
-        
-        // Deshabilitar botón de actualizar temporalmente
-        const btnActualizar = document.getElementById('btnActualizar');
-        if (btnActualizar) {
-            btnActualizar.disabled = true;
-            btnActualizar.style.opacity = '0.6';
-            btnActualizar.style.cursor = 'not-allowed';
-        }
-    }
-    
-    // Función para finalizar actualización
-    function finishUpdate(success = true, message = null) {
-        if (success) {
-            updateStatusIndicator('success', message || 'Listo');
-            updateLastUpdateTime();
-        } else {
-            updateStatusIndicator('error', message || 'Error en actualización');
-        }
-        
-        // Rehabilitar botón de actualizar
-        const btnActualizar = document.getElementById('btnActualizar');
-        if (btnActualizar) {
-            setTimeout(() => {
-                btnActualizar.disabled = false;
-                btnActualizar.style.opacity = '1';
-                btnActualizar.style.cursor = 'pointer';
-            }, 1000);
-        }
-    }
-
-    // Función para abrir modal de controles
-    function abrirModalControles() {
-        const modal = new bootstrap.Modal(document.getElementById('controlsModal'));
-        modal.show();
-    }
-
-    // Función para abrir flatpickr en modal móvil
-    function abrirFlatpickrModal() {
-        // Cerrar modal de controles primero
-        const controlsModal = bootstrap.Modal.getInstance(document.getElementById('controlsModal'));
-        if (controlsModal) {
-            controlsModal.hide();
-        }
-        
-        // Abrir modal de flatpickr después de un breve delay
+    // Añadir animaciones de entrada
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((el, index) => {
         setTimeout(() => {
-            const modal = new bootstrap.Modal(document.getElementById('flatpickrModal'));
-            modal.show();
-            
-            // Inicializar flatpickr móvil
-            setTimeout(() => {
-                if (flatpickrMobileInstance) {
-                    flatpickrMobileInstance.destroy();
-                }
-                
-                flatpickrMobileInstance = flatpickr("#filtroFechaMobile", {
-                    mode: "range",
-                    locale: "es", 
-                    dateFormat: "d/m/Y",
-                    allowInput: true,
-                    onChange: function(selectedDates, dateStr, instance) {
-                        console.log('Flatpickr Mobile onChange:', selectedDates);
-                        selectedDatesGlobal = selectedDates;
-                    }
-                });
-                
-                // Sincronizar con fechas actuales si existen
-                if (selectedDatesGlobal.length > 0) {
-                    flatpickrMobileInstance.setDate(selectedDatesGlobal, true);
-                }
-            }, 300);
-        }, 200);
-    }
+            el.style.opacity = '1';
+        }, index * 100);
+    });
+});
 
-    // Función para aplicar filtro desde móvil
-    function aplicarFiltroFechaMovil() {
-        console.log('Aplicando filtro desde móvil:', selectedDatesGlobal);
-        
-        if (selectedDatesGlobal.length === 2) {
-            // Aplicar filtro
-            aplicarFiltroFecha(selectedDatesGlobal[0], selectedDatesGlobal[1]);
+// ===== FUNCIONES PARA EL INDICADOR DE ESTADO =====
+
+// Función para actualizar el indicador de estado
+function updateStatusIndicator(status, message) {
+    const statusIcon = document.getElementById('statusIcon');
+    const statusText = document.getElementById('statusText');
+    
+    if (!statusIcon || !statusText) return;
+    
+    // Remover clases anteriores
+    statusIcon.classList.remove('rotating', 'success', 'warning', 'error');
+    statusText.classList.remove('updating');
+    
+    switch(status) {
+        case 'updating':
+            statusIcon.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            statusIcon.classList.add('rotating');
+            statusText.textContent = message || 'Actualizando...';
+            statusText.classList.add('updating');
+            isUpdating = true;
+            break;
             
-            // Cerrar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('flatpickrModal'));
-            if (modal) {
-                modal.hide();
+        case 'success':
+            statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+            statusIcon.classList.add('success');
+            statusText.textContent = message || 'Listo';
+            isUpdating = false;
+            break;
+            
+        case 'warning':
+            statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+            statusIcon.classList.add('warning');
+            statusText.textContent = message || 'Advertencia';
+            isUpdating = false;
+            break;
+            
+        case 'error':
+            statusIcon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+            statusIcon.classList.add('error');
+            statusText.textContent = message || 'Error';
+            isUpdating = false;
+            break;
+            
+        case 'ready':
+        default:
+            statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+            statusIcon.classList.add('success');
+            statusText.textContent = message || 'Listo';
+            isUpdating = false;
+            break;
+    }
+}
+
+// Función para actualizar la hora de última actualización
+function updateLastUpdateTime() {
+    const now = new Date();
+    lastUpdateTime = now;
+    
+    const timeString = now.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    const dateString = now.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+    
+    const lastUpdateElem = document.getElementById('lastUpdate');
+    if (lastUpdateElem) {
+        lastUpdateElem.textContent = `Última actualización: ${dateString} ${timeString}`;
+    }
+}
+
+// Función para iniciar actualización
+function startUpdate() {
+    if (isUpdating) return;
+    
+    updateStatusIndicator('updating', 'Actualizando...');
+    
+    // Deshabilitar botón de actualizar temporalmente
+    const btnActualizar = document.getElementById('btnActualizar');
+    if (btnActualizar) {
+        btnActualizar.disabled = true;
+        btnActualizar.style.opacity = '0.6';
+        btnActualizar.style.cursor = 'not-allowed';
+    }
+}
+
+// Función para finalizar actualización
+function finishUpdate(success = true, message = null) {
+    if (success) {
+        updateStatusIndicator('success', message || 'Listo');
+        updateLastUpdateTime();
+    } else {
+        updateStatusIndicator('error', message || 'Error en actualización');
+    }
+    
+    // Rehabilitar botón de actualizar
+    const btnActualizar = document.getElementById('btnActualizar');
+    if (btnActualizar) {
+        setTimeout(() => {
+            btnActualizar.disabled = false;
+            btnActualizar.style.opacity = '1';
+            btnActualizar.style.cursor = 'pointer';
+        }, 1000);
+    }
+}
+
+// Función para abrir modal de controles
+function abrirModalControles() {
+    const modal = new bootstrap.Modal(document.getElementById('controlsModal'));
+    modal.show();
+}
+
+// Función para abrir flatpickr en modal móvil
+function abrirFlatpickrModal() {
+    // Cerrar modal de controles primero
+    const controlsModal = bootstrap.Modal.getInstance(document.getElementById('controlsModal'));
+    if (controlsModal) {
+        controlsModal.hide();
+    }
+    
+    // Abrir modal de flatpickr después de un breve delay
+    setTimeout(() => {
+        const modal = new bootstrap.Modal(document.getElementById('flatpickrModal'));
+        modal.show();
+        
+        // Inicializar flatpickr móvil
+        setTimeout(() => {
+            if (flatpickrMobileInstance) {
+                flatpickrMobileInstance.destroy();
             }
             
-            // Mostrar confirmación
-            Swal.fire({
-                icon: 'success',
-                title: 'Filtro aplicado',
-                text: `Fechas: ${selectedDatesGlobal[0].toLocaleDateString()} - ${selectedDatesGlobal[1].toLocaleDateString()}`,
-                timer: 1500,
-                showConfirmButton: false
+            flatpickrMobileInstance = flatpickr("#filtroFechaMobile", {
+                mode: "range",
+                locale: "es", 
+                dateFormat: "d/m/Y",
+                allowInput: false,
+                onChange: function(selectedDates, dateStr, instance) {
+                    console.log('📅 Flatpickr Mobile onChange:', selectedDates);
+                    selectedDatesGlobal = selectedDates;
+                }
             });
-        } else {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Selecciona un rango',
-                text: 'Por favor selecciona un rango de fechas completo',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
-    }
+            
+            // Sincronizar con fechas actuales si existen
+            if (selectedDatesGlobal.length > 0) {
+                flatpickrMobileInstance.setDate(selectedDatesGlobal, true);
+            }
+        }, 300);
+    }, 200);
+}
 
-    // Función para limpiar filtro desde móvil
-    function limpiarFiltroFechaMovil() {
-        if (flatpickrMobileInstance) {
-            flatpickrMobileInstance.clear();
-        }
-        selectedDatesGlobal = [];
-        limpiarFiltroFecha();
+// Función para aplicar filtro desde móvil
+function aplicarFiltroFechaMovil() {
+    console.log('Aplicando filtro desde móvil:', selectedDatesGlobal);
+    
+    if (selectedDatesGlobal.length === 2) {
+        // Aplicar filtro
+        aplicarFiltroFecha(selectedDatesGlobal[0], selectedDatesGlobal[1]);
         
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('flatpickrModal'));
@@ -1084,161 +1076,200 @@
             modal.hide();
         }
         
+        // Mostrar confirmación
         Swal.fire({
-            icon: 'info',
-            title: 'Filtro limpiado',
+            icon: 'success',
+            title: 'Filtro aplicado',
+            text: `Fechas: ${selectedDatesGlobal[0].toLocaleDateString()} - ${selectedDatesGlobal[1].toLocaleDateString()}`,
             timer: 1500,
             showConfirmButton: false
         });
-    }
-
-    // Función para aplicar filtro de fecha (común para PC y móvil)
-    function aplicarFiltroFecha(fechaInicio, fechaFin) {
-        console.log('Aplicando filtro de fecha:', fechaInicio, fechaFin);
-        
-        if (window.aplicarFiltroFecha) {
-            window.aplicarFiltroFecha(fechaInicio, fechaFin);
-        } else {
-            console.warn('Función aplicarFiltroFecha no disponible');
-            // Fallback: recargar tabla o mostrar mensaje
-            cargarTablaDocumentos();
-        }
-    }
-
-    // Función para limpiar filtro de fecha
-    function limpiarFiltroFecha() {
-        console.log('Limpiando filtro de fecha');
-        selectedDatesGlobal = [];
-        
-        if (flatpickrInstance) {
-            flatpickrInstance.clear();
-        }
-        
-        if (window.limpiarFiltros) {
-            window.limpiarFiltros();
-        } else {
-            console.warn('Función limpiarFiltros no disponible');
-            cargarTablaDocumentos();
-        }
-    }
-
-    // Funciones para el modal de controles
-    function ejecutarActualizar() {
-        cargarTablaDocumentos();
-        cerrarModalControles();
-        
+    } else {
         Swal.fire({
-            icon: 'success',
-            title: 'Actualizando...',
-            timer: 1000,
+            icon: 'warning',
+            title: 'Selecciona un rango',
+            text: 'Por favor selecciona un rango de fechas completo',
+            timer: 2000,
             showConfirmButton: false
         });
     }
+}
 
-    function ejecutarToggleFinalizados() {
-        toggleFinalizados();
-        cerrarModalControles();
-        actualizarTextoFinalizados();
+// Función para limpiar filtro desde móvil
+function limpiarFiltroFechaMovil() {
+    if (flatpickrMobileInstance) {
+        flatpickrMobileInstance.clear();
     }
-
-    function cerrarModalControles() {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('controlsModal'));
-        if (modal) {
-            modal.hide();
-        }
+    selectedDatesGlobal = [];
+    limpiarFiltroFecha();
+    
+    // Cerrar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('flatpickrModal'));
+    if (modal) {
+        modal.hide();
     }
+    
+    Swal.fire({
+        icon: 'info',
+        title: 'Filtro limpiado',
+        timer: 1500,
+        showConfirmButton: false
+    });
+}
 
-    // Actualizar texto del botón de finalizados
-    function actualizarTextoFinalizados() {
-        const btn = document.getElementById('btnToggleFinalizados');
-        const modalText = document.getElementById('modalToggleText');
-        if (btn && modalText) {
-            const isShowing = btn.classList.contains('active');
-            const text = isShowing ? 'Ocultar Finalizados' : 'Mostrar Finalizados';
-            modalText.textContent = text;
-        }
+// Función para aplicar filtro de fecha (común para PC y móvil)
+function aplicarFiltroFecha(fechaInicio, fechaFin) {
+    console.log('📅 Aplicando filtro de fecha:', fechaInicio, fechaFin);
+    
+    if (window.aplicarFiltroFecha) {
+        window.aplicarFiltroFecha(fechaInicio, fechaFin);
+    } else {
+        console.warn('⚠️ Función aplicarFiltroFecha no disponible');
     }
+}
 
-    // Sobrescribir toggleFinalizados para actualizar el texto
-    const originalToggleFinalizados = window.toggleFinalizados;
-    window.toggleFinalizados = function() {
-        if (originalToggleFinalizados) {
-            originalToggleFinalizados();
-        }
-        setTimeout(actualizarTextoFinalizados, 100);
-    };
+// Función para limpiar filtro de fecha
+function limpiarFiltroFecha() {
+    console.log('🧹 Limpiando filtro de fecha');
+    selectedDatesGlobal = [];
+    
+    if (flatpickrInstance) {
+        flatpickrInstance.clear();
+    }
+    
+    if (window.limpiarFiltros) {
+        window.limpiarFiltros();
+    } else {
+        console.warn('⚠️ Función limpiarFiltros no disponible');
+    }
+}
 
-    // Sobrescribir cargarTablaDocumentos para incluir indicadores de estado
-    const originalCargarTablaDocumentos = window.cargarTablaDocumentos;
-    window.cargarTablaDocumentos = function() {
-        startUpdate();
-        
-        if (originalCargarTablaDocumentos) {
-            // Si existe la función original, ejecutarla y manejar el resultado
-            try {
-                const result = originalCargarTablaDocumentos();
-                
-                // Si devuelve una promesa, manejar el estado
-                if (result && typeof result.then === 'function') {
-                    result
-                        .then(() => finishUpdate(true))
-                        .catch(error => {
-                            console.error('Error al cargar tabla:', error);
-                            finishUpdate(false, 'Error al cargar');
-                        });
-                } else {
-                    // Si no es promesa, asumir éxito después de un tiempo
-                    setTimeout(() => finishUpdate(true), 1000);
-                }
-            } catch (error) {
-                console.error('Error al ejecutar cargarTablaDocumentos:', error);
-                finishUpdate(false, 'Error al cargar');
+// Funciones para el modal de controles
+function ejecutarActualizar() {
+    cargarTablaDocumentos();
+    cerrarModalControles();
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Actualizando...',
+        timer: 1000,
+        showConfirmButton: false
+    });
+}
+
+function ejecutarToggleFinalizados() {
+    toggleFinalizados();
+    cerrarModalControles();
+    actualizarTextoFinalizados();
+}
+
+function cerrarModalControles() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('controlsModal'));
+    if (modal) {
+        modal.hide();
+    }
+}
+
+// Actualizar texto del botón de finalizados
+function actualizarTextoFinalizados() {
+    const btn = document.getElementById('btnToggleFinalizados');
+    const modalText = document.getElementById('modalToggleText');
+    if (btn && modalText) {
+        const isShowing = btn.classList.contains('active');
+        const text = isShowing ? 'Ocultar Finalizados' : 'Mostrar Finalizados';
+        modalText.textContent = text;
+    }
+}
+
+// Sobrescribir toggleFinalizados para actualizar el texto
+const originalToggleFinalizados = window.toggleFinalizados;
+window.toggleFinalizados = function() {
+    if (originalToggleFinalizados) {
+        originalToggleFinalizados();
+    }
+    setTimeout(actualizarTextoFinalizados, 100);
+};
+
+// Sobrescribir cargarTablaDocumentos para incluir indicadores de estado
+const originalCargarTablaDocumentos = window.cargarTablaDocumentos;
+window.cargarTablaDocumentos = function() {
+    startUpdate();
+    
+    if (originalCargarTablaDocumentos) {
+        try {
+            const result = originalCargarTablaDocumentos();
+            
+            if (result && typeof result.then === 'function') {
+                result
+                    .then(() => finishUpdate(true))
+                    .catch(error => {
+                        console.error('❌ Error al cargar tabla:', error);
+                        finishUpdate(false, 'Error al cargar');
+                    });
+            } else {
+                setTimeout(() => finishUpdate(true), 1000);
             }
-        } else {
-            // Si no existe la función, simular carga
-            console.warn('Función cargarTablaDocumentos no disponible');
-            setTimeout(() => finishUpdate(true), 1500);
+        } catch (error) {
+            console.error('❌ Error al ejecutar cargarTablaDocumentos:', error);
+            finishUpdate(false, 'Error al cargar');
         }
-    };
+    } else {
+        console.warn('⚠️ Función cargarTablaDocumentos no disponible');
+        setTimeout(() => finishUpdate(true), 1500);
+    }
+};
 
-    // Funciones globales simplificadas
-    function buscarDocumentoEnTabla(rec) {
-        document.getElementById('recInput').value = rec;
+// Funciones globales simplificadas
+function buscarDocumentoEnTabla(rec) {
+    const input = document.getElementById('recInput');
+    if (input) {
+        input.value = rec;
         buscarPorREC();
     }
+}
 
-    function imprimirSoloClientesDesdeTabla(rec) {
-        document.getElementById('recInput').value = rec;
+function imprimirSoloClientesDesdeTabla(rec) {
+    const input = document.getElementById('recInput');
+    if (input) {
+        input.value = rec;
         imprimirSoloClientes();
     }
+}
 
-    function mostrarOpcionesDesdeTabla(rec) {
-        document.getElementById('recInput').value = rec;
+function mostrarOpcionesDesdeTabla(rec) {
+    const input = document.getElementById('recInput');
+    if (input) {
+        input.value = rec;
         mostrarOpcionesImpresion();
     }
+}
 
-    // Hacer funciones disponibles globalmente
-    window.buscarDocumentoEnTabla = buscarDocumentoEnTabla;
-    window.imprimirSoloClientesDesdeTabla = imprimirSoloClientesDesdeTabla;
-    window.mostrarOpcionesDesdeTabla = mostrarOpcionesDesdeTabla;
-    window.limpiarFiltroFecha = limpiarFiltroFecha;
-    window.aplicarFiltroFecha = aplicarFiltroFecha;
-    window.abrirFlatpickrModal = abrirFlatpickrModal;
-    window.cerrarModalControles = cerrarModalControles;
-    window.updateStatusIndicator = updateStatusIndicator;
-    window.startUpdate = startUpdate;
-    window.finishUpdate = finishUpdate;
+// Hacer funciones disponibles globalmente
+window.buscarDocumentoEnTabla = buscarDocumentoEnTabla;
+window.imprimirSoloClientesDesdeTabla = imprimirSoloClientesDesdeTabla;
+window.mostrarOpcionesDesdeTabla = mostrarOpcionesDesdeTabla;
+window.limpiarFiltroFecha = limpiarFiltroFecha;
+window.aplicarFiltroFecha = aplicarFiltroFecha;
+window.abrirFlatpickrModal = abrirFlatpickrModal;
+window.cerrarModalControles = cerrarModalControles;
+window.updateStatusIndicator = updateStatusIndicator;
+window.startUpdate = startUpdate;
+window.finishUpdate = finishUpdate;
 
-    // Inicializar texto de finalizados
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(actualizarTextoFinalizados, 500);
-    });
+// Inicializar texto de finalizados
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(actualizarTextoFinalizados, 500);
+});
 
-    // Optimización: Prevenir zoom en inputs en iOS
-    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        const meta = document.querySelector('meta[name="viewport"]');
+// Optimización: Prevenir zoom en inputs en iOS
+if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (meta) {
         meta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
     }
-    </script>
+}
+
+console.log('✅ Scripts de index.html cargados correctamente');
+</script>
 </body>
 </html>
