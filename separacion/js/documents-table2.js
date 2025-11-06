@@ -1560,28 +1560,31 @@ function limpiarFiltroTarjetas() {
     mostrarNotificacion('Filtro limpiado', 'Mostrando todos los documentos', 'info');
 }
 
-// Función para actualizar el icono de filtro activo en las tarjetas
+// Función para actualizar el indicador de filtro activo en las tarjetas
 function actualizarIconoFiltroActivo() {
-    // Remover iconos de todas las tarjetas primero
+    // Remover indicadores de todas las tarjetas primero
     document.querySelectorAll('.resumen-card').forEach(card => {
-        const existingIcon = card.querySelector('.filtro-activo-icon');
-        if (existingIcon) {
-            existingIcon.remove();
+        const existingBadge = card.querySelector('.filtro-badge');
+        if (existingBadge) {
+            existingBadge.remove();
         }
         card.classList.remove('filtro-activo');
     });
     
-    // Si hay filtro activo, agregar icono a la tarjeta correspondiente
+    // Si hay filtro activo, agregar badge a la tarjeta correspondiente
     if (filtroTarjetaActivo) {
         const tarjetaActiva = document.querySelector(`.resumen-card.${filtroTarjetaActivo}`);
         if (tarjetaActiva) {
             tarjetaActiva.classList.add('filtro-activo');
             
-            // Crear y agregar icono de ojo
-            const icono = document.createElement('div');
-            icono.className = 'filtro-activo-icon';
-            icono.innerHTML = '<i class="fas fa-eye"></i>';
-            tarjetaActiva.querySelector('.resumen-content').appendChild(icono);
+            // Crear y agregar badge profesional
+            const badge = document.createElement('div');
+            badge.className = 'filtro-badge';
+            badge.innerHTML = `
+                <i class="fas fa-filter"></i>
+                <span>Filtro activo</span>
+            `;
+            tarjetaActiva.querySelector('.resumen-text').appendChild(badge);
         }
     }
 }
