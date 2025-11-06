@@ -1564,27 +1564,14 @@ function limpiarFiltroTarjetas() {
 function actualizarIconoFiltroActivo() {
     // Remover indicadores de todas las tarjetas primero
     document.querySelectorAll('.resumen-card').forEach(card => {
-        const existingBadge = card.querySelector('.filtro-badge');
-        if (existingBadge) {
-            existingBadge.remove();
-        }
         card.classList.remove('filtro-activo');
     });
     
-    // Si hay filtro activo, agregar badge a la tarjeta correspondiente
+    // Si hay filtro activo, activar la tarjeta correspondiente
     if (filtroTarjetaActivo) {
         const tarjetaActiva = document.querySelector(`.resumen-card.${filtroTarjetaActivo}`);
         if (tarjetaActiva) {
             tarjetaActiva.classList.add('filtro-activo');
-            
-            // Crear y agregar badge profesional
-            const badge = document.createElement('div');
-            badge.className = 'filtro-badge';
-            badge.innerHTML = `
-                <i class="fas fa-filter"></i>
-                <span>Filtro activo</span>
-            `;
-            tarjetaActiva.querySelector('.resumen-text').appendChild(badge);
         }
     }
 }
