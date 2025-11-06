@@ -1,11 +1,13 @@
-// performance-metrics.js
+// performance-metrics.js - VERSIÓN CORREGIDA
 // Sistema de medición de rendimiento para documentos finalizados
 
 let metricsData = {
     selectedDates: null,
     selectedResponsable: null,
     metrics: {},
-    topWeekly: []
+    topWeekly: [],
+    allResponsables: [],
+    selectedUsersForChart: []
 };
 
 // Configuración de métricas
@@ -49,6 +51,11 @@ function agregarBotonEstadisticas() {
     if (!headerControls) {
         console.warn('No se encontró header-controls, reintentando en 1 segundo...');
         setTimeout(agregarBotonEstadisticas, 1000);
+        return;
+    }
+
+    // Verificar si el botón ya existe
+    if (document.getElementById('btnEstadisticas')) {
         return;
     }
 
@@ -103,6 +110,21 @@ function inicializarModalEstadisticas() {
                                 </div>
                             </div>
                             
+                            <!-- Selector de Usuarios para Gráfica -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-users me-2"></i>
+                                        Seleccionar Usuarios para Comparación
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="usersSelector" class="row">
+                                        <!-- Los checkboxes de usuarios se cargarán aquí -->
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <!-- Métricas Principales -->
                             <div class="row mb-4" id="metricsCards">
                                 <!-- Las métricas se cargarán aquí -->
@@ -111,7 +133,7 @@ function inicializarModalEstadisticas() {
                             <!-- Gráfica Spider -->
                             <div class="card mb-4">
                                 <div class="card-header">
-                                    <h6 class="mb-0">Análisis de Rendimiento</h6>
+                                    <h6 class="mb-0">Comparación de Rendimiento</h6>
                                 </div>
                                 <div class="card-body">
                                     <canvas id="spiderChart" height="300"></canvas>
@@ -162,12 +184,25 @@ function inicializarModalEstadisticas() {
 
     // Inicializar flatpickr para métricas
     setTimeout(() => {
-        flatpickr("#metricsDateRange", {
+        const flatpickrInstance = flatpickr("#metricsDateRange", {
             mode: "range",
             locale: "es",
             dateFormat: "d/m/Y",
-            allowInput: true
+            allowInput: true,
+            onChange: function(selectedDates, dateStr) {
+                console.log('Fechas seleccionadas en métricas:', selectedDates);
+                if (selectedDates.length === 2) {
+                    metricsData.selectedDates = selectedDates;
+                    cargarMetricasIniciales();
+                } else if (selectedDates.length === 0) {
+                    metricsData.selectedDates = null;
+                    cargarMetricasIniciales();
+                }
+            }
         });
+        
+        // Hacer disponible globalmente
+        window.metricsFlatpickr = flatpickrInstance;
     }, 500);
 }
 
@@ -190,6 +225,7 @@ async function cargarResponsablesParaMetricas() {
     try {
         // Obtener responsables únicos de documentos finalizados
         const responsables = await obtenerResponsablesFinalizados();
+        metricsData.allResponsables = responsables;
         
         // Limpiar opciones existentes (excepto la primera)
         while (select.options.length > 1) {
@@ -206,34 +242,99 @@ async function cargarResponsablesParaMetricas() {
             }
         });
         
+        // Cargar selector de usuarios para gráfica
+        cargarSelectorUsuariosGrafica(responsables);
+        
     } catch (error) {
         console.error('Error cargando responsables para métricas:', error);
     }
 }
 
+// Cargar selector de usuarios para gráfica spider
+function cargarSelectorUsuariosGrafica(responsables) {
+    const container = document.getElementById('usersSelector');
+    if (!container) return;
+
+    const html = responsables.map((responsable, index) => `
+        <div class="col-md-4 col-sm-6 mb-2">
+            <div class="form-check">
+                <input class="form-check-input user-checkbox" 
+                       type="checkbox" 
+                       value="${responsable}" 
+                       id="user-${index}"
+                       ${index < 3 ? 'checked' : ''} 
+                       onchange="actualizarGraficaSpider()">
+                <label class="form-check-label" for="user-${index}">
+                    ${responsable}
+                </label>
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = html;
+    
+    // Actualizar lista de usuarios seleccionados
+    actualizarUsuariosSeleccionados();
+}
+
+// Actualizar lista de usuarios seleccionados para la gráfica
+function actualizarUsuariosSeleccionados() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    metricsData.selectedUsersForChart = Array.from(checkboxes).map(cb => cb.value);
+}
+
 // Obtener responsables de documentos finalizados
 async function obtenerResponsablesFinalizados() {
     return new Promise((resolve) => {
-        // Usar los datos globales existentes
-        if (typeof datosGlobales !== 'undefined' && Array.isArray(datosGlobales)) {
+        try {
+            // Obtener TODOS los documentos finalizados independientemente del filtro de la tabla
+            const documentosFinalizados = obtenerTodosDocumentosFinalizados();
+            
             const responsables = [...new Set(
-                datosGlobales
-                    .filter(doc => doc.estado === 'FINALIZADO' && doc.colaborador)
+                documentosFinalizados
+                    .filter(doc => doc.colaborador && doc.colaborador.trim() !== '')
                     .map(doc => doc.colaborador)
-                    .filter(resp => resp && resp.trim() !== '')
-            )];
+            )].sort();
+            
+            console.log(`Encontrados ${responsables.length} responsables en documentos finalizados`);
             resolve(responsables);
-        } else {
-            // Fallback: usar responsables de la tabla si están disponibles
-            const responsablesFromTable = [...new Set(
-                documentosGlobales
-                    .filter(doc => doc.estado === 'FINALIZADO' && doc.colaborador)
-                    .map(doc => doc.colaborador)
-                    .filter(resp => resp && resp.trim() !== '')
-            )];
-            resolve(responsablesFromTable);
+        } catch (error) {
+            console.error('Error obteniendo responsables:', error);
+            resolve([]);
         }
     });
+}
+
+// Obtener TODOS los documentos finalizados (independiente del filtro de la tabla)
+function obtenerTodosDocumentosFinalizados() {
+    try {
+        // Primero intentar con datosGlobales (datos completos del sistema)
+        if (typeof datosGlobales !== 'undefined' && Array.isArray(datosGlobales)) {
+            console.log('Usando datosGlobales para métricas');
+            return datosGlobales.filter(doc => 
+                doc.estado === 'FINALIZADO' && 
+                doc.duracion_guardada && 
+                doc.cantidad > 0
+            );
+        }
+        
+        // Si no hay datosGlobales, usar documentosGlobales de la tabla
+        if (typeof documentosGlobales !== 'undefined' && Array.isArray(documentosGlobales)) {
+            console.log('Usando documentosGlobales para métricas');
+            return documentosGlobales.filter(doc => 
+                doc.estado === 'FINALIZADO' && 
+                doc.duracion_guardada && 
+                doc.cantidad > 0
+            );
+        }
+        
+        console.warn('No se encontraron datos para métricas');
+        return [];
+        
+    } catch (error) {
+        console.error('Error obteniendo documentos finalizados:', error);
+        return [];
+    }
 }
 
 // Cargar métricas iniciales
@@ -241,8 +342,10 @@ async function cargarMetricasIniciales() {
     try {
         mostrarLoadingMetricas();
         
-        // Obtener documentos finalizados
-        const documentosFinalizados = await obtenerDocumentosFinalizados();
+        // Obtener documentos finalizados con filtros aplicados
+        const documentosFinalizados = await obtenerDocumentosFinalizadosFiltrados();
+        
+        console.log(`Procesando ${documentosFinalizados.length} documentos para métricas`);
         
         // Calcular métricas
         await calcularTodasLasMetricas(documentosFinalizados);
@@ -256,19 +359,53 @@ async function cargarMetricasIniciales() {
     }
 }
 
-// Obtener documentos finalizados
-async function obtenerDocumentosFinalizados() {
+// Obtener documentos finalizados con filtros aplicados
+async function obtenerDocumentosFinalizadosFiltrados() {
     return new Promise((resolve) => {
-        // Usar documentos globales de la tabla
-        const finalizados = documentosGlobales.filter(doc => 
-            doc.estado === 'FINALIZADO' && 
-            doc.duracion_guardada && 
-            doc.cantidad > 0
-        );
+        const todosDocumentos = obtenerTodosDocumentosFinalizados();
         
-        console.log(`Encontrados ${finalizados.length} documentos finalizados para métricas`);
-        resolve(finalizados);
+        // Aplicar filtro de responsable si está seleccionado
+        let documentosFiltrados = todosDocumentos;
+        const responsableFiltro = document.getElementById('metricsResponsable')?.value;
+        
+        if (responsableFiltro) {
+            documentosFiltrados = documentosFiltrados.filter(doc => doc.colaborador === responsableFiltro);
+            console.log(`Filtrado por responsable: ${responsableFiltro}, documentos: ${documentosFiltrados.length}`);
+        }
+        
+        // Aplicar filtro de fechas si está seleccionado
+        if (metricsData.selectedDates && metricsData.selectedDates.length === 2) {
+            const [fechaInicio, fechaFin] = metricsData.selectedDates;
+            documentosFiltrados = documentosFiltrados.filter(doc => {
+                if (!doc.fecha) return false;
+                const fechaDoc = parsearFechaParaFiltro(doc.fecha);
+                return fechaDoc >= fechaInicio && fechaDoc <= fechaFin;
+            });
+            console.log(`Filtrado por fechas: ${fechaInicio.toLocaleDateString()} - ${fechaFin.toLocaleDateString()}, documentos: ${documentosFiltrados.length}`);
+        }
+        
+        resolve(documentosFiltrados);
     });
+}
+
+// Función para parsear fechas en formato dd/mm/yyyy
+function parsearFechaParaFiltro(fechaStr) {
+    if (!fechaStr) return null;
+    
+    try {
+        const partes = fechaStr.split('/');
+        if (partes.length === 3) {
+            const dia = parseInt(partes[0], 10);
+            const mes = parseInt(partes[1], 10) - 1; // Meses en JS son 0-11
+            const año = parseInt(partes[2], 10);
+            
+            return new Date(año, mes, dia);
+        }
+        return null;
+    } catch (error) {
+        console.error('Error parseando fecha:', error);
+        return null;
+    }
 }
 
 // Calcular todas las métricas
@@ -300,6 +437,9 @@ async function calcularTodasLasMetricas(documentos) {
     
     // 7. Resumen del Equipo
     const resumenEquipo = calcularResumenEquipo(documentos);
+    
+    // 8. Datos para gráfica spider por usuario
+    const datosGraficaUsuarios = calcularDatosGraficaUsuarios(documentos);
 
     metricsData.metrics = {
         eficiencia,
@@ -309,9 +449,81 @@ async function calcularTodasLasMetricas(documentos) {
         pausas,
         topSemanal,
         resumenEquipo,
+        datosGraficaUsuarios,
         totalDocumentos: documentosFiltrados.length
     };
 }
+
+// Calcular datos para gráfica spider por usuario
+function calcularDatosGraficaUsuarios(documentos) {
+    const datosPorUsuario = {};
+    
+    // Agrupar documentos por responsable
+    documentos.forEach(doc => {
+        if (!doc.colaborador) return;
+        
+        if (!datosPorUsuario[doc.colaborador]) {
+            datosPorUsuario[doc.colaborador] = {
+                documentos: [],
+                totalUnidades: 0,
+                totalSegundos: 0,
+                totalSegundosPausas: 0
+            };
+        }
+        
+        datosPorUsuario[doc.colaborador].documentos.push(doc);
+        datosPorUsuario[doc.colaborador].totalUnidades += doc.cantidad;
+        datosPorUsuario[doc.colaborador].totalSegundos += convertirDuracionASegundos(doc.duracion_guardada);
+        
+        if (doc.duracion_pausas) {
+            datosPorUsuario[doc.colaborador].totalSegundosPausas += convertirDuracionASegundos(doc.duracion_pausas);
+        }
+    });
+    
+    // Calcular métricas para cada usuario
+    const resultados = {};
+    
+    Object.keys(datosPorUsuario).forEach(responsable => {
+        const data = datosPorUsuario[responsable];
+        const diasTrabajados = calcularDiasTrabajados(data.documentos);
+        
+        // Eficiencia
+        const eficiencia = data.totalUnidades > 0 ? data.totalSegundos / data.totalUnidades : 0;
+        const porcentajeEficiencia = METRICS_CONFIG.eficiencia.target > 0 
+            ? Math.min(100, (METRICS_CONFIG.eficiencia.target / eficiencia) * 100) 
+            : 0;
+        
+        // Capacidad
+        const capacidad = data.totalUnidades / Math.max(1, diasTrabajados);
+        const porcentajeCapacidad = (capacidad / METRICS_CONFIG.capacidad.target) * 100;
+        
+        // Efectividad
+        const efectividad = data.documentos.length / Math.max(1, diasTrabajados);
+        const porcentajeEfectividad = (efectividad / METRICS_CONFIG.efectividad.target) * 100;
+        
+        // Tiempos Muertos
+        const JORNADA_SEGUNDOS = 31680;
+        const tiempoMuertoPorDia = Math.max(0, (JORNADA_SEGUNDOS * diasTrabajados) - data.totalSegundos) / Math.max(1, diasTrabajados);
+        const porcentajeTiemposMuertos = Math.min(100, (tiempoMuertoPorDia / METRICS_CONFIG.tiemposMuertos.target) * 100);
+        
+        // Pausas
+        const pausasPorDia = data.totalSegundosPausas / Math.max(1, diasTrabajados);
+        const porcentajePausas = Math.min(100, (pausasPorDia / METRICS_CONFIG.pausas.target) * 100);
+        
+        resultados[responsable] = {
+            eficiencia: Math.round(porcentajeEficiencia),
+            capacidad: Math.round(porcentajeCapacidad),
+            efectividad: Math.round(porcentajeEfectividad),
+            tiemposMuertos: Math.round(100 - porcentajeTiemposMuertos), // Invertir para que mayor sea mejor
+            pausas: Math.round(100 - porcentajePausas) // Invertir para que mayor sea mejor
+        };
+    });
+    
+    return resultados;
+}
+
+// Resto de las funciones de cálculo se mantienen igual...
+// [Aquí van todas las funciones de cálculo que ya estaban: calcularEficiencia, calcularCapacidad, etc.]
 
 // Cálculo de Eficiencia (tiempo por unidad en segundos)
 function calcularEficiencia(documentos) {
@@ -644,37 +856,71 @@ function actualizarGraficaSpider() {
     const canvas = document.getElementById('spiderChart');
     if (!canvas) return;
 
+    // Actualizar usuarios seleccionados
+    actualizarUsuariosSeleccionados();
+    
     const ctx = canvas.getContext('2d');
     const metricas = metricsData.metrics;
+
+    if (!metricas.datosGraficaUsuarios || Object.keys(metricas.datosGraficaUsuarios).length === 0) {
+        // Mostrar mensaje de no hay datos
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#6c757d';
+        ctx.textAlign = 'center';
+        ctx.fillText('No hay datos para mostrar', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    // Filtrar usuarios seleccionados
+    const usuariosParaGrafica = metricsData.selectedUsersForChart.filter(
+        usuario => metricas.datosGraficaUsuarios[usuario]
+    );
+
+    if (usuariosParaGrafica.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#6c757d';
+        ctx.textAlign = 'center';
+        ctx.fillText('Selecciona usuarios para comparar', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    // Colores para diferentes usuarios
+    const colores = [
+        'rgba(54, 162, 235, 0.6)',
+        'rgba(255, 99, 132, 0.6)',
+        'rgba(75, 192, 192, 0.6)',
+        'rgba(255, 159, 64, 0.6)',
+        'rgba(153, 102, 255, 0.6)',
+        'rgba(201, 203, 207, 0.6)'
+    ];
+
+    // Preparar datasets
+    const datasets = usuariosParaGrafica.map((usuario, index) => {
+        const datosUsuario = metricas.datosGraficaUsuarios[usuario];
+        return {
+            label: usuario,
+            data: [
+                datosUsuario.eficiencia,
+                datosUsuario.capacidad,
+                datosUsuario.efectividad,
+                datosUsuario.tiemposMuertos,
+                datosUsuario.pausas
+            ],
+            backgroundColor: colores[index % colores.length],
+            borderColor: colores[index % colores.length].replace('0.6', '1'),
+            pointBackgroundColor: colores[index % colores.length].replace('0.6', '1'),
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: colores[index % colores.length].replace('0.6', '1')
+        };
+    });
 
     // Datos para la gráfica spider
     const data = {
         labels: ['Eficiencia', 'Capacidad', 'Efectividad', 'T. Muertos', 'Pausas'],
-        datasets: [{
-            label: 'Rendimiento Actual',
-            data: [
-                metricas.eficiencia.porcentaje,
-                metricas.capacidad.porcentaje,
-                metricas.efectividad.porcentaje,
-                100 - metricas.tiemposMuertos.porcentaje, // Invertir para que mayor sea mejor
-                100 - metricas.pausas.porcentaje // Invertir para que mayor sea mejor
-            ],
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
-        }, {
-            label: 'Meta Objetivo',
-            data: [100, 100, 100, 100, 100],
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            borderColor: 'rgba(255, 99, 132, 1)',
-            pointBackgroundColor: 'rgba(255, 99, 132, 1)',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: 'rgba(255, 99, 132, 1)'
-        }]
+        datasets: datasets
     };
 
     // Configuración de la gráfica
@@ -689,7 +935,22 @@ function actualizarGraficaSpider() {
                         display: true
                     },
                     suggestedMin: 0,
-                    suggestedMax: 100
+                    suggestedMax: 100,
+                    ticks: {
+                        stepSize: 20
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw}%`;
+                        }
+                    }
                 }
             }
         }
@@ -835,16 +1096,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectResponsable = document.getElementById('metricsResponsable');
         if (selectResponsable) {
             selectResponsable.addEventListener('change', function() {
-                cargarMetricasIniciales();
-            });
-        }
-
-        // Event listener para cambio de fechas
-        const inputFechas = document.getElementById('metricsDateRange');
-        if (inputFechas) {
-            inputFechas.addEventListener('change', function() {
-                // Aquí se implementaría el filtrado por fechas
-                console.log('Fechas seleccionadas:', this.value);
+                console.log('Responsable cambiado:', this.value);
                 cargarMetricasIniciales();
             });
         }
@@ -861,3 +1113,5 @@ if (document.readyState === 'loading') {
 // Hacer funciones disponibles globalmente
 window.mostrarModalEstadisticas = mostrarModalEstadisticas;
 window.generarReporteCompleto = generarReporteCompleto;
+window.actualizarGraficaSpider = actualizarGraficaSpider;
+window.actualizarUsuariosSeleccionados = actualizarUsuariosSeleccionados;
