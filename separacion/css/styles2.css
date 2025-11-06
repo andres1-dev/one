@@ -1575,52 +1575,137 @@ img {
 
 
 
-/* Estilos para el icono de filtro activo en las tarjetas */
+
+
+
+
+/* Estilos para el badge de filtro activo en las tarjetas */
 .resumen-card.filtro-activo {
     position: relative;
-    border: 2px solid currentColor !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border-left: 4px solid currentColor;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
 }
 
-.filtro-activo-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    display: flex;
+.filtro-badge {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    animation: pulse 2s infinite;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+    border-radius: 12px;
+    padding: 4px 10px 4px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    margin-left: 8px;
+    animation: slideInBadge 0.3s ease-out;
 }
 
-.filtro-activo-icon i {
-    font-size: 12px;
+.filtro-badge i {
+    font-size: 10px;
     color: inherit;
 }
 
-/* Colores específicos para cada tarjeta con filtro activo */
-.resumen-card.pendientes.filtro-activo .filtro-activo-icon {
-    color: var(--warning-color, #ffc107);
+.filtro-badge span {
+    color: inherit;
+    font-weight: 700;
 }
 
-.resumen-card.proceso.filtro-activo .filtro-activo-icon {
-    color: var(--info-color, #0dcaf0);
+/* Colores específicos para cada badge según la tarjeta */
+.resumen-card.pendientes.filtro-activo .filtro-badge {
+    color: #d97706;
+    background: linear-gradient(135deg, rgba(253, 230, 138, 0.95) 0%, rgba(254, 243, 199, 0.85) 100%);
 }
 
-.resumen-card.directos.filtro-activo .filtro-activo-icon {
-    color: var(--success-color, #198754);
+.resumen-card.proceso.filtro-activo .filtro-badge {
+    color: #0891b2;
+    background: linear-gradient(135deg, rgba(165, 243, 252, 0.95) 0%, rgba(207, 250, 254, 0.85) 100%);
 }
 
-.resumen-card.total.filtro-activo .filtro-activo-icon {
-    color: var(--primary-color, #0d6efd);
+.resumen-card.directos.filtro-activo .filtro-badge {
+    color: #059669;
+    background: linear-gradient(135deg, rgba(167, 243, 208, 0.95) 0%, rgba(209, 250, 229, 0.85) 100%);
 }
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+.resumen-card.total.filtro-activo .filtro-badge {
+    color: #1d4ed8;
+    background: linear-gradient(135deg, rgba(191, 219, 254, 0.95) 0%, rgba(219, 234, 254, 0.85) 100%);
+}
+
+/* Animaciones */
+@keyframes slideInBadge {
+    0% {
+        opacity: 0;
+        transform: translateX(10px) scale(0.8);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes pulseProfessional {
+    0% {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    50% {
+        box-shadow: 0 2px 12px currentColor;
+    }
+    100% {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+}
+
+/* Efecto hover mejorado para tarjetas con filtro activo */
+.resumen-card.filtro-activo:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    transform: translateY(-3px);
+}
+
+.resumen-card.filtro-activo .filtro-badge {
+    animation: pulseProfessional 2s infinite;
+}
+
+/* Ajustes para el texto de las tarjetas */
+.resumen-text {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.resumen-text h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.25rem;
+}
+
+/* Mejora el diseño responsive */
+@media (max-width: 768px) {
+    .filtro-badge {
+        font-size: 0.65rem;
+        padding: 3px 8px 3px 6px;
+        margin-left: 6px;
+    }
+    
+    .filtro-badge i {
+        font-size: 9px;
+    }
+    
+    .resumen-text {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .filtro-badge {
+        align-self: flex-start;
+        margin-left: 0;
+        margin-top: 4px;
+    }
 }
