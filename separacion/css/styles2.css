@@ -1461,26 +1461,7 @@ img {
     z-index: 2;
 }
 
-/* Badge profesional que sale del costado */
-/*.resumen-card.filtro-activo::before {
-    content: 'FILTRO ACTIVO';
-    position: absolute;
-    top: 50%;
-    right: -85px;
-    transform: translateY(-50%) rotate(90deg);
-    background: currentColor;
-    color: white;
-    padding: 8px 16px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    z-index: 3;
-    //animation: slideInBadge 0.6s ease-out 0.3s both;
-    white-space: nowrap;
-} */
+
 
 /* Efecto de brillo sutil en el borde */
 .resumen-card.filtro-activo {
