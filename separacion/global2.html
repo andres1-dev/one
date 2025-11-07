@@ -357,14 +357,18 @@
 </head>
 <body>
 
-    <!-- Header Minimalista -->
+<!-- Header Minimalista -->
 <header class="header">
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
                 <h1>
                     <i class="fas fa-signature"></i>
-                    <span class="brand-name">Separación<sup>TM</sup><i class="status-icon fas fa-check-circle" id="statusIcon" title="Última actualización: --:--:--"></i></span>
+                    <span class="brand-name">Separación<sup>TM</sup></span>
+                    <!-- Indicador de estado simplificado -->
+                    <div class="status-indicator-simple" id="statusIndicator" title="Última actualización: --:--:--">
+                        <i class="fas fa-check-circle status-icon"></i>
+                    </div>
                 </h1>
             </div>
             
@@ -409,7 +413,7 @@
         </div>
     </div>
 </header>
-
+    
     <!-- Modal para Controles Móviles -->
     <div class="modal fade controls-modal" id="controlsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -704,26 +708,26 @@
         });
     });
 
-// ===== FUNCIONES PARA EL INDICADOR DE ESTADO MEJORADO =====
+// ===== FUNCIONES PARA EL INDICADOR DE ESTADO SIMPLIFICADO =====
 
 // Función para actualizar el indicador de estado
 function updateStatusIndicator(status) {
-    const statusIcon = document.getElementById('statusIcon');
+    const statusIndicator = document.getElementById('statusIndicator');
     
     // Remover clases anteriores
-    statusIcon.classList.remove('updating', 'error', 'fa-check-circle', 'fa-sync-alt', 'fa-exclamation-circle');
+    statusIndicator.classList.remove('updating', 'error');
     
     switch(status) {
         case 'updating':
-            statusIcon.classList.add('updating', 'fa-sync-alt');
+            statusIndicator.classList.add('updating');
             break;
             
         case 'success':
-            statusIcon.classList.add('fa-check-circle');
+            // Estado por defecto, no necesita clase adicional
             break;
             
         case 'error':
-            statusIcon.classList.add('error', 'fa-exclamation-circle');
+            statusIndicator.classList.add('error');
             break;
     }
     
@@ -747,8 +751,8 @@ function updateLastUpdateTime() {
         year: 'numeric'
     });
     
-    const statusIcon = document.getElementById('statusIcon');
-    statusIcon.title = `Última actualización: ${dateString} ${timeString}`;
+    const statusIndicator = document.getElementById('statusIndicator');
+    statusIndicator.title = `Última actualización: ${dateString} ${timeString}`;
 }
 
 // Función para iniciar actualización
@@ -768,18 +772,19 @@ function startUpdate() {
 
 // Función para finalizar actualización
 function finishUpdate(success = true) {
-    const statusIcon = document.getElementById('statusIcon');
+    const statusIndicator = document.getElementById('statusIndicator');
     
     if (success) {
-        updateStatusIndicator('success');
+        statusIndicator.classList.remove('updating', 'error');
+        updateLastUpdateTime();
         
-        // Efecto de confirmación sutil al finalizar
-        statusIcon.style.transform = 'scale(1.2)';
+        // Efecto de confirmación sutil
+        statusIndicator.style.transform = 'scale(1.1)';
         setTimeout(() => {
-            statusIcon.style.transform = 'scale(1)';
+            statusIndicator.style.transform = 'scale(1)';
         }, 300);
     } else {
-        updateStatusIndicator('error');
+        statusIndicator.classList.add('error');
     }
     
     // Rehabilitar botón de actualizar
@@ -795,12 +800,11 @@ function finishUpdate(success = true) {
 
 // Inicializar estado al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
-    // Establecer estado inicial de éxito
-    const statusIcon = document.getElementById('statusIcon');
-    statusIcon.className = 'status-icon fas fa-check-circle';
-    statusIcon.classList.remove('updating', 'error');
-    
     updateLastUpdateTime();
+    
+    // Forzar estado de éxito al inicio
+    const statusIndicator = document.getElementById('statusIndicator');
+    statusIndicator.classList.remove('updating', 'error');
 });
 
 // Hacer funciones disponibles globalmente
