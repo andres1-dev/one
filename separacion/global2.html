@@ -367,7 +367,7 @@
                     <span class="brand-name">Separación<sup>TM</sup></span>
                     <!-- Indicador de estado simplificado -->
                     <div class="status-indicator-simple" id="statusIndicator" title="Last update: --:--:--">
-                        <i class="fas fa-check-circle status-icon"></i>
+                        <i class="fas fa-check status-icon"></i>
                     </div>
                 </h1>
             </div>
@@ -713,21 +713,30 @@
 // Función para actualizar el indicador de estado
 function updateStatusIndicator(status) {
     const statusIndicator = document.getElementById('statusIndicator');
+    const statusIcon = statusIndicator.querySelector('.status-icon');
     
     // Remover clases anteriores
-    statusIndicator.classList.remove('updating', 'error');
+    statusIndicator.classList.remove('ready', 'updating', 'error');
     
     switch(status) {
         case 'updating':
             statusIndicator.classList.add('updating');
+            statusIcon.className = 'fas fa-sync-alt status-icon';
             break;
             
         case 'success':
-            // Estado por defecto, verde normal
+            statusIndicator.classList.add('ready');
+            statusIcon.className = 'fas fa-check status-icon';
             break;
             
         case 'error':
             statusIndicator.classList.add('error');
+            statusIcon.className = 'fas fa-exclamation-triangle status-icon';
+            break;
+            
+        default:
+            statusIndicator.classList.add('ready');
+            statusIcon.className = 'fas fa-check status-icon';
             break;
     }
     
@@ -776,8 +785,7 @@ function finishUpdate(success = true) {
     const statusIndicator = document.getElementById('statusIndicator');
     
     if (success) {
-        statusIndicator.classList.remove('updating', 'error');
-        updateLastUpdateTime();
+        updateStatusIndicator('success');
         
         // Efecto de confirmación sutil
         statusIndicator.style.transform = 'scale(1.1)';
@@ -785,8 +793,7 @@ function finishUpdate(success = true) {
             statusIndicator.style.transform = 'scale(1)';
         }, 300);
     } else {
-        // En error, mantener el ícono verde pero con clase error para tracking
-        statusIndicator.classList.add('error');
+        updateStatusIndicator('error');
     }
     
     // Rehabilitar botón de actualizar
@@ -802,11 +809,8 @@ function finishUpdate(success = true) {
 
 // Inicializar estado al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
+    updateStatusIndicator('success');
     updateLastUpdateTime();
-    
-    // Forzar estado de éxito al inicio
-    const statusIndicator = document.getElementById('statusIndicator');
-    statusIndicator.classList.remove('updating', 'error');
 });
 
 // Hacer funciones disponibles globalmente
