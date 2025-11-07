@@ -366,7 +366,7 @@
                     <i class="fas fa-signature"></i>
                     <span class="brand-name">Separación<sup>TM</sup></span>
                     <!-- Indicador de estado simplificado -->
-                    <div class="status-indicator-simple" id="statusIndicator" title="Última actualización: --:--:--">
+                    <div class="status-indicator-simple" id="statusIndicator" title="Last update: --:--:--">
                         <i class="fas fa-check-circle status-icon"></i>
                     </div>
                 </h1>
@@ -723,7 +723,7 @@ function updateStatusIndicator(status) {
             break;
             
         case 'success':
-            // Estado por defecto, no necesita clase adicional
+            // Estado por defecto, verde normal
             break;
             
         case 'error':
@@ -739,20 +739,21 @@ function updateLastUpdateTime() {
     const now = new Date();
     lastUpdateTime = now;
     
-    const timeString = now.toLocaleTimeString('es-ES', {
+    const timeString = now.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
+        hour12: false
     });
     
-    const dateString = now.toLocaleDateString('es-ES', {
+    const dateString = now.toLocaleDateString('en-US', {
         day: '2-digit',
-        month: '2-digit',
+        month: 'short',
         year: 'numeric'
     });
     
     const statusIndicator = document.getElementById('statusIndicator');
-    statusIndicator.title = `Última actualización: ${dateString} ${timeString}`;
+    statusIndicator.title = `Last update: ${dateString} ${timeString}`;
 }
 
 // Función para iniciar actualización
@@ -784,6 +785,7 @@ function finishUpdate(success = true) {
             statusIndicator.style.transform = 'scale(1)';
         }, 300);
     } else {
+        // En error, mantener el ícono verde pero con clase error para tracking
         statusIndicator.classList.add('error');
     }
     
