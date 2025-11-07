@@ -1630,42 +1630,31 @@ img {
 
 .status-icon {
     font-size: 0.875rem;
-    color: var(--success-color);
+    color: #22c55e; /* Verde siempre */
     transition: all var(--transition-fast);
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .status-indicator-simple:hover .status-icon {
     transform: scale(1.05);
-    color: #22c55e; /* Verde más vibrante */
+    color: #16a34a; /* Verde más oscuro en hover */
 }
 
 /* Estados del indicador */
 .status-indicator-simple.updating .status-icon {
-    color: var(--info-color);
+    color: #3b82f6; /* Azul para actualización */
     animation: spin 1.5s linear infinite;
 }
 
 .status-indicator-simple.error .status-icon {
-    color: #ef4444; /* Rojo más definido */
-    animation: pulse-error 2s ease-in-out infinite;
+    color: #22c55e; /* Mantener verde incluso en error */
+    animation: none; /* Sin animación en error */
 }
 
-/* Animaciones mejoradas */
+/* Animación de giro para actualización */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-
-@keyframes pulse-error {
-    0%, 100% { 
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% { 
-        opacity: 0.7;
-        transform: scale(1.05);
-    }
 }
 
 /* Ajustes responsivos */
