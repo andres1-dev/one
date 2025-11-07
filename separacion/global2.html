@@ -210,96 +210,93 @@
             padding: 1rem;
         }
 
-        /* ===== HEADER MEJORADO CON ÍCONO DE VERIFICACIÓN ===== */
-.header-brand {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
+        /* ===== SPINER PROFESIONAL ===== */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-left: 1rem;
+        }
 
-.brand-title {
-    font-size: clamp(1.25rem, 4vw, 1.75rem);
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    color: var(--text-primary);
-    font-style: italic;
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-}
+        .spinner-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+        }
 
-.brand-tm {
-    font-size: 0.6em;
-    vertical-align: super;
-    margin-left: 2px;
-    color: var(--accent-color);
-    font-weight: 400;
-    font-style: normal;
-}
+        .spinner-icon i {
+            font-size: 0.875rem;
+            color: var(--accent-color);
+            transition: all 0.3s ease;
+        }
 
-.status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-left: 0.5rem;
-}
+        .spinner-icon.rotating i {
+            animation: spin 1.5s linear infinite;
+        }
 
-.status-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-}
+        .spinner-icon.success i {
+            color: #28a745;
+        }
 
-.status-icon i {
-    font-size: 0.875rem;
-    color: var(--success-color);
-    transition: all 0.3s ease;
-}
+        .spinner-icon.warning i {
+            color: #ffc107;
+        }
 
-.status-icon.rotating i {
-    animation: spin 1.5s linear infinite;
-}
+        .spinner-icon.error i {
+            color: #dc3545;
+        }
 
-.status-icon.updating i {
-    color: var(--warning-color);
-}
+        .status-text {
+            font-weight: 500;
+            white-space: nowrap;
+        }
 
-.status-icon.error i {
-    color: var(--danger-color);
-}
+        .status-text.updating {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
 
-.last-update {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    min-width: 140px;
-    text-align: right;
-}
+        .last-update {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.125rem;
+            white-space: nowrap;
+        }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .status-indicator {
-        margin-left: 0.25rem;
-        gap: 0.375rem;
-    }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-controls .control-item:not(.mobile-menu-btn) {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: flex;
+            }
+            
+            .header .d-flex.justify-content-between {
+                flex-direction: row;
+                align-items: center;
+            }
 
-    .last-update {
-        font-size: 0.6875rem;
-        min-width: 120px;
-    }
-}
+            .status-indicator {
+                margin-left: 0.5rem;
+                gap: 0.5rem;
+            }
+
+            .status-text, .last-update {
+                font-size: 0.75rem;
+            }
+        }
+
         @media (min-width: 769px) {
             .mobile-menu-btn {
                 display: none !important;
@@ -360,67 +357,62 @@
 </head>
 <body>
     <!-- Header Minimalista -->
+    <!-- Header Minimalista -->
 <header class="header">
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
-                <div class="header-brand">
-                    <h1 class="brand-title">
-                        <i class="fas fa-signature"></i>
-                        Separación<span class="brand-tm">™</span>
-                    </h1>
-                    
+                <h1>
+                    <i class="fas fa-signature"></i>
+                    <span class="brand-name">Separación<sup>TM</sup></span>
                     <!-- Indicador de estado simplificado -->
-                    <div class="status-indicator">
-                        <div class="status-icon" id="statusIcon">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="last-update" id="lastUpdate">--/--/---- --:--:-- --</div>
+                    <div class="status-indicator-simple" id="statusIndicator" title="Última actualización: --:--:--">
+                        <i class="fas fa-check-circle status-icon"></i>
                     </div>
-                </div>
+                </h1>
             </div>
-                
-                <!-- Controles del Header -->
-                <div class="header-controls">
-                    <!-- Flatpickr -->
-                    <div class="control-item flatpickr-control">
-                        <input type="text" 
-                               class="form-control form-control-sm flatpickr-header-input" 
-                               id="filtroFechaHeader" 
-                               placeholder="Rango de fechas"
-                               autocomplete="off"
-                               title="Seleccionar rango de fechas">
-                    </div>
-                    
-                    <!-- Botón Actualizar -->
-                    <button type="button" 
-                            class="control-item control-btn" 
-                            onclick="cargarTablaDocumentos()"
-                            title="Actualizar tabla"
-                            id="btnActualizar">
-                        <i class="fas fa-sync-alt"></i>
-                        <span class="hide-xs">Actualizar</span>
-                    </button>
-                    
-                    <!-- Botón Mostrar Finalizados -->
-                    <button id="btnToggleFinalizados" 
-                            class="control-item control-btn" 
-                            onclick="toggleFinalizados()"
-                            title="Mostrar/ocultar finalizados">
-                        <i class="fas fa-eye"></i>
-                        <span class="hide-xs">Finalizados</span>
-                    </button>
-
-                    <!-- Botón Menú Móvil -->
-                    <button class="mobile-menu-btn" 
-                            onclick="abrirModalControles()"
-                            title="Opciones">
-                        <i class="fas fa-cog"></i>
-                    </button>
+            
+            <!-- Controles del Header -->
+            <div class="header-controls">
+                <!-- Flatpickr -->
+                <div class="control-item flatpickr-control">
+                    <input type="text" 
+                           class="form-control form-control-sm flatpickr-header-input" 
+                           id="filtroFechaHeader" 
+                           placeholder="Rango de fechas"
+                           autocomplete="off"
+                           title="Seleccionar rango de fechas">
                 </div>
+                
+                <!-- Botón Actualizar -->
+                <button type="button" 
+                        class="control-item control-btn" 
+                        onclick="cargarTablaDocumentos()"
+                        title="Actualizar tabla"
+                        id="btnActualizar">
+                    <i class="fas fa-sync-alt"></i>
+                    <span class="hide-xs">Actualizar</span>
+                </button>
+                
+                <!-- Botón Mostrar Finalizados -->
+                <button id="btnToggleFinalizados" 
+                        class="control-item control-btn" 
+                        onclick="toggleFinalizados()"
+                        title="Mostrar/ocultar finalizados">
+                    <i class="fas fa-eye"></i>
+                    <span class="hide-xs">Finalizados</span>
+                </button>
+
+                <!-- Botón Menú Móvil -->
+                <button class="mobile-menu-btn" 
+                        onclick="abrirModalControles()"
+                        title="Opciones">
+                    <i class="fas fa-cog"></i>
+                </button>
             </div>
         </div>
-    </header>
+    </div>
+</header>
 
     <!-- Modal para Controles Móviles -->
     <div class="modal fade controls-modal" id="controlsModal" tabindex="-1" aria-hidden="true">
@@ -704,7 +696,7 @@
         window.flatpickrInstance = flatpickrInstance;
 
         // Inicializar estado de actualización
-        updateStatusIndicator('ready');
+        updateStatusIndicator('ready', 'Listo');
         updateLastUpdateTime();
 
         // Añadir animaciones de entrada
@@ -719,65 +711,80 @@
     // ===== FUNCIONES PARA EL INDICADOR DE ESTADO =====
 
     // Función para actualizar el indicador de estado
-    function updateStatusIndicator(status) {
+    function updateStatusIndicator(status, message) {
         const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
         
         // Remover clases anteriores
-        statusIcon.classList.remove('rotating', 'updating', 'error');
+        statusIcon.classList.remove('rotating', 'success', 'warning', 'error');
+        statusText.classList.remove('updating');
         
         switch(status) {
             case 'updating':
                 statusIcon.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                statusIcon.classList.add('rotating', 'updating');
+                statusIcon.classList.add('rotating');
+                statusText.textContent = message || 'Actualizando...';
+                statusText.classList.add('updating');
                 isUpdating = true;
                 break;
                 
             case 'success':
                 statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                statusIcon.classList.add('success');
+                statusText.textContent = message || 'Listo';
+                isUpdating = false;
+                break;
+                
+            case 'warning':
+                statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                statusIcon.classList.add('warning');
+                statusText.textContent = message || 'Advertencia';
                 isUpdating = false;
                 break;
                 
             case 'error':
                 statusIcon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
                 statusIcon.classList.add('error');
+                statusText.textContent = message || 'Error';
                 isUpdating = false;
                 break;
                 
             case 'ready':
             default:
                 statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                statusIcon.classList.add('success');
+                statusText.textContent = message || 'Listo';
                 isUpdating = false;
                 break;
         }
     }
 
     // Función para actualizar la hora de última actualización
-    // Función para actualizar la hora de última actualización
-function updateLastUpdateTime() {
-    const now = new Date();
-    lastUpdateTime = now;
-    
-    const dateString = now.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-    
-    const timeString = now.toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-    });
-    
-    document.getElementById('lastUpdate').textContent = `${dateString} ${timeString}`;
-}
+    function updateLastUpdateTime() {
+        const now = new Date();
+        lastUpdateTime = now;
+        
+        const timeString = now.toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        const dateString = now.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+        
+        document.getElementById('lastUpdate').textContent = 
+            `Última actualización: ${dateString} ${timeString}`;
+    }
 
     // Función para iniciar actualización
     function startUpdate() {
         if (isUpdating) return;
         
-        updateStatusIndicator('updating');
+        updateStatusIndicator('updating', 'Actualizando...');
         
         // Deshabilitar botón de actualizar temporalmente
         const btnActualizar = document.getElementById('btnActualizar');
@@ -789,12 +796,12 @@ function updateLastUpdateTime() {
     }
 
     // Función para finalizar actualización
-    function finishUpdate(success = true) {
+    function finishUpdate(success = true, message = null) {
         if (success) {
-            updateStatusIndicator('success');
+            updateStatusIndicator('success', message || 'Listo');
             updateLastUpdateTime();
         } else {
-            updateStatusIndicator('error');
+            updateStatusIndicator('error', message || 'Error en actualización');
         }
         
         // Rehabilitar botón de actualizar
@@ -1024,7 +1031,7 @@ function updateLastUpdateTime() {
                         .then(() => finishUpdate(true))
                         .catch(error => {
                             console.error('Error al cargar tabla:', error);
-                            finishUpdate(false);
+                            finishUpdate(false, 'Error al cargar');
                         });
                 } else {
                     // Si no es promesa, asumir éxito después de un tiempo
@@ -1032,19 +1039,65 @@ function updateLastUpdateTime() {
                 }
             } catch (error) {
                 console.error('Error al ejecutar cargarTablaDocumentos:', error);
-                finishUpdate(false);
+                finishUpdate(false, 'Error al cargar');
             }
         } else {
             // Si no existe la función, simular carga
-            console.warn('cargarTablaDocumentos no encontrado, simulando carga...');
+            console.warn('Función cargarTablaDocumentos no disponible');
             setTimeout(() => finishUpdate(true), 1500);
         }
     };
 
-    // Inicializar el texto de finalizados al cargar
+    // Funciones globales simplificadas
+    function buscarDocumentoEnTabla(rec) {
+        if (document.getElementById('recInput')) {
+            document.getElementById('recInput').value = rec;
+        }
+        if (window.buscarPorREC) {
+            window.buscarPorREC();
+        }
+    }
+
+    function imprimirSoloClientesDesdeTabla(rec) {
+        if (document.getElementById('recInput')) {
+            document.getElementById('recInput').value = rec;
+        }
+        if (window.imprimirSoloClientes) {
+            window.imprimirSoloClientes();
+        }
+    }
+
+    function mostrarOpcionesDesdeTabla(rec) {
+        if (document.getElementById('recInput')) {
+            document.getElementById('recInput').value = rec;
+        }
+        if (window.mostrarOpcionesImpresion) {
+            window.mostrarOpcionesImpresion();
+        }
+    }
+
+    // Hacer funciones disponibles globalmente
+    window.buscarDocumentoEnTabla = buscarDocumentoEnTabla;
+    window.imprimirSoloClientesDesdeTabla = imprimirSoloClientesDesdeTabla;
+    window.mostrarOpcionesDesdeTabla = mostrarOpcionesDesdeTabla;
+    window.limpiarFiltroFecha = limpiarFiltroFecha;
+    window.aplicarFiltroFecha = aplicarFiltroFecha;
+    window.abrirFlatpickrModal = abrirFlatpickrModal;
+    window.cerrarModalControles = cerrarModalControles;
+    window.updateStatusIndicator = updateStatusIndicator;
+    window.startUpdate = startUpdate;
+    window.finishUpdate = finishUpdate;
+
+    // Inicializar texto de finalizados
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(actualizarTextoFinalizados, 500);
     });
+
+    // Optimización: Prevenir zoom en inputs en iOS
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        const meta = document.querySelector('meta[name="viewport"]');
+        meta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
+    }
     </script>
 </body>
 </html>
