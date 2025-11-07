@@ -353,6 +353,40 @@
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
         }
+
+
+        /* Estilos para el botón de limpiar fechas */
+.flatpickr-control .btn-limpiar-fecha {
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+}
+
+.flatpickr-control .btn-limpiar-fecha:hover {
+    color: var(--danger-color, #dc3545);
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.flatpickr-control .btn-limpiar-fecha:active {
+    transform: scale(0.95);
+}
+
+/* Mejorar el input cuando tiene fechas seleccionadas */
+.flatpickr-header-input.has-dates {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+
+
+
+        
     </style>
 </head>
 <body>
@@ -371,18 +405,25 @@
                     </div>
                 </h1>
             </div>
-            
-            <!-- Controles del Header -->
-            <div class="header-controls">
-                <!-- Flatpickr -->
-                <div class="control-item flatpickr-control">
-                    <input type="text" 
-                           class="form-control form-control-sm flatpickr-header-input" 
-                           id="filtroFechaHeader" 
-                           placeholder="Rango de fechas"
-                           autocomplete="off"
-                           title="Seleccionar rango de fechas">
-                </div>
+        
+                <!-- Controles del Header -->
+                <div class="header-controls">
+                    <!-- Flatpickr con botón de limpiar integrado -->
+                    <div class="control-item flatpickr-control">
+                        <input type="text" 
+                               class="form-control form-control-sm flatpickr-header-input" 
+                               id="filtroFechaHeader" 
+                               placeholder="Rango de fechas"
+                               autocomplete="off"
+                               title="Seleccionar rango de fechas">
+                        <button type="button" 
+                                class="control-btn btn-limpiar-fecha" 
+                                onclick="limpiarFiltroFechaHeader()"
+                                title="Limpiar fechas"
+                                style="border-left: 1px solid var(--border-color);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 
                 <!-- Botón Actualizar -->
                 <button type="button" 
@@ -470,35 +511,41 @@
         </div>
     </div>
 
-    <!-- Modal para Flatpickr en Móvil -->
-    <div class="modal fade" id="flatpickrModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-calendar-alt me-2"></i>
-                        Rango de Fechas
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Modal para Flatpickr en Móvil -->
+<div class="modal fade" id="flatpickrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Rango de Fechas
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" 
+                       class="form-control form-control-lg text-center" 
+                       id="filtroFechaMobile" 
+                       placeholder="Seleccionar rango de fechas"
+                       autocomplete="off">
+                <!-- Indicador de estado -->
+                <div class="text-center mt-2">
+                    <small class="text-muted" id="estadoFechasMobile">
+                        No hay fechas seleccionadas
+                    </small>
                 </div>
-                <div class="modal-body">
-                    <input type="text" 
-                           class="form-control form-control-lg text-center" 
-                           id="filtroFechaMobile" 
-                           placeholder="Seleccionar rango de fechas"
-                           autocomplete="off">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltroFechaMovil()">
-                        Limpiar
-                    </button>
-                    <button type="button" class="btn btn-primary" onclick="aplicarFiltroFechaMovil()">
-                        Aplicar
-                    </button>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" onclick="limpiarFiltroFechaMovil()">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltroFechaMovil()">
+                    <i class="fas fa-check me-1"></i>Aplicar
+                </button>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Contenido Principal -->
     <div class="container-fluid">
@@ -672,33 +719,45 @@
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Inicializando Flatpickr en header...');
         
-        // Inicializar flatpickr del header (PC)
-        flatpickrInstance = flatpickr("#filtroFechaHeader", {
-            mode: "range",
-            locale: "es",
-            dateFormat: "d/m/Y",
-            allowInput: true,
-            onChange: function(selectedDates, dateStr, instance) {
-                console.log('Flatpickr PC onChange:', selectedDates);
-                selectedDatesGlobal = selectedDates;
-                
-                // Aplicar filtro automáticamente cuando se selecciona rango completo
-                if (selectedDates.length === 2) {
-                    aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
-                } else if (selectedDates.length === 0) {
-                    // Limpiar filtro cuando no hay fechas seleccionadas
-                    limpiarFiltroFecha();
-                }
-            },
-            onClose: function(selectedDates, dateStr, instance) {
-                console.log('Flatpickr PC onClose:', selectedDates);
-                
-                // Limpiar si no hay fechas seleccionadas
-                if (selectedDates.length === 0) {
-                    limpiarFiltroFecha();
-                }
-            }
-        });
+
+// Inicializar flatpickr del header (PC)
+flatpickrInstance = flatpickr("#filtroFechaHeader", {
+    mode: "range",
+    locale: "es",
+    dateFormat: "d/m/Y",
+    allowInput: true,
+    onChange: function(selectedDates, dateStr, instance) {
+        console.log('Flatpickr PC onChange:', selectedDates);
+        selectedDatesGlobal = selectedDates;
+        
+        // Actualizar clase del input
+        const input = document.getElementById('filtroFechaHeader');
+        if (selectedDates.length > 0) {
+            input.classList.add('has-dates');
+        } else {
+            input.classList.remove('has-dates');
+        }
+        
+        // Aplicar filtro automáticamente cuando se selecciona rango completo
+        if (selectedDates.length === 2) {
+            aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
+        } else if (selectedDates.length === 0) {
+            // Limpiar filtro cuando no hay fechas seleccionadas
+            limpiarFiltroFecha();
+        }
+    },
+    onOpen: function(selectedDates, dateStr, instance) {
+        console.log('Flatpickr abierto');
+    },
+    onClose: function(selectedDates, dateStr, instance) {
+        console.log('Flatpickr cerrado:', selectedDates);
+        
+        // Limpiar si no hay fechas seleccionadas
+        if (selectedDates.length === 0) {
+            limpiarFiltroFecha();
+        }
+    }
+});
         
         console.log('Flatpickr PC inicializado:', flatpickrInstance);
         
@@ -717,6 +776,82 @@
             }, index * 100);
         });
     });
+
+
+// ===== FUNCIONES MEJORADAS PARA LIMPIAR FECHAS =====
+
+// Función para limpiar completamente el filtro de fechas
+function limpiarFiltroFechaCompleto() {
+    console.log('Limpiando filtro de fecha completo...');
+    
+    // Limpiar flatpickr del header
+    if (flatpickrInstance) {
+        flatpickrInstance.clear();
+    }
+    
+    // Limpiar flatpickr móvil si está activo
+    if (flatpickrMobileInstance) {
+        flatpickrMobileInstance.clear();
+    }
+    
+    // Resetear variables globales
+    selectedDatesGlobal = [];
+    rangoFechasSeleccionado = null;
+    filtrosActivos.fecha = null;
+    
+    // Limpiar filtro en DataTable
+    if (window.limpiarFiltroFechaDataTable) {
+        window.limpiarFiltroFechaDataTable();
+    } else if (window.limpiarFiltros) {
+        window.limpiarFiltros();
+    } else {
+        console.warn('Función limpiarFiltros no disponible, recargando tabla...');
+        if (window.cargarTablaDocumentos) {
+            window.cargarTablaDocumentos();
+        }
+    }
+    
+    // Cerrar modales si están abiertos
+    cerrarModalesFechas();
+    
+    // Mostrar confirmación
+    Swal.fire({
+        icon: 'success',
+        title: 'Filtro limpiado',
+        text: 'Se han restablecido las fechas',
+        timer: 1500,
+        showConfirmButton: false
+    });
+}
+
+// Función para cerrar modales relacionados con fechas
+function cerrarModalesFechas() {
+    const flatpickrModal = bootstrap.Modal.getInstance(document.getElementById('flatpickrModal'));
+    if (flatpickrModal) {
+        flatpickrModal.hide();
+    }
+    
+    const controlsModal = bootstrap.Modal.getInstance(document.getElementById('controlsModal'));
+    if (controlsModal) {
+        controlsModal.hide();
+    }
+}
+
+// Función para limpiar desde el header (nuevo botón)
+function limpiarFiltroFechaHeader() {
+    limpiarFiltroFechaCompleto();
+}
+
+// Función para limpiar desde móvil
+function limpiarFiltroFechaMovil() {
+    if (flatpickrMobileInstance) {
+        flatpickrMobileInstance.clear();
+    }
+    selectedDatesGlobal = [];
+    limpiarFiltroFechaCompleto();
+}
+        
+        
 
 // ===== FUNCIONES PARA EL INDICADOR DE ESTADO SIMPLIFICADO =====
 
