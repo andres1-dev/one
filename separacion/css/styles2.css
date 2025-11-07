@@ -1629,10 +1629,10 @@ img {
 }
 
 .status-icon {
-    font-size: 0.875rem;
-    color: var(--text-primary); /* Color del texto por defecto */
+    font-size: 0.75rem; /* Más pequeño */
+    color: var(--text-primary);
     transition: all var(--transition-fast);
-    background: transparent; /* Sin fondo */
+    background: transparent;
 }
 
 .status-indicator-simple:hover .status-icon {
@@ -1666,7 +1666,7 @@ img {
     }
     
     .status-icon {
-        font-size: 0.75rem;
+        font-size: 0.65rem; /* Aún más pequeño en móvil */
     }
     
     .brand-name sup {
