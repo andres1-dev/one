@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Medición de Rendimiento</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --text-color: #333;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+            color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            box-shadow: var(--box-shadow);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .filters-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 992px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 15px;
+            text-align: center;
+            transition: var(--transition);
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .metric-details {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-good {
+            background-color: var(--secondary-color);
+        }
+        
+        .progress-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .progress-danger {
+            background-color: var(--danger-color);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: var(--light-color);
+            font-weight: 600;
+            color: var(--dark-color);
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .performance-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .performance-excellent {
+            background-color: var(--secondary-color);
+        }
+        
+        .performance-good {
+            background-color: #27ae60;
+        }
+        
+        .performance-average {
+            background-color: var(--warning-color);
+        }
+        
+        .performance-poor {
+            background-color: var(--danger-color);
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .summary-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .summary-label {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            height: 400px;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+            color: var(--dark-color);
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .error-message {
+            background-color: #ffeaea;
+            color: var(--danger-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .data-source {
+            text-align: center;
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+        
+        .details-toggle {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: underline;
+        }
+        
+        .details-container {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            font-size: 12px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+        
+        .detail-value {
+            color: var(--dark-color);
+        }
+        
+        .spider-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .weights-info {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .weights-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+        
+        .weights-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .weight-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+        
+        .weight-metric {
+            color: #7f8c8d;
+        }
+        
+        .weight-value {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .debug-info {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            border-left: 4px solid var(--warning-color);
+            font-size: 12px;
+        }
+        
+        .debug-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sistema de Medición de Rendimiento</h1>
+            <p class="subtitle">Analiza el desempeño de los colaboradores por día según múltiples métricas</p>
+        </header>
+        
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="dateFilter">Fecha</label>
+                <input type="date" id="dateFilter">
+            </div>
+            
+            <div class="filter-group">
+                <label for="userFilter">Colaborador</label>
+                <select id="userFilter">
+                    <option value="">Todos los colaboradores</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <button id="searchButton">
+                    <span id="searchIcon">🔍</span>
+                    <span id="searchText">Buscar</span>
+                    <div id="searchLoading" class="loading hidden"></div>
+                </button>
+            </div>
+        </div>
+        
+        <div id="errorMessage" class="error-message hidden"></div>
+        
+        <div id="dashboard" class="hidden">
+            <div class="weights-info">
+                <div class="weights-title">📊 Distribución de Pesos para la Puntuación Final</div>
+                <div class="weights-list">
+                    <div class="weight-item">
+                        <span class="weight-metric">Eficiencia (Velocidad):</span>
+                        <span class="weight-value">35%</span>
+                    </div>
+                    <div class="weight-item">
+                        <span class="weight-metric">Capacidad (Volumen):</span>
+                        <span class="weight-value">30%</span>
+                    </div>
+                    <div class="weight-item">
+                        <span class="weight-metric">Efectividad (Lotes):</span>
+                        <span class="weight-value">20%</span>
+                    </div>
+                    <div class="weight-item">
+                        <span class="weight-metric">Gestión de Pausas:</span>
+                        <span class="weight-value">10%</span>
+                    </div>
+                    <div class="weight-item">
+                        <span class="weight-metric">Gestión de Tiempo Muerto:</span>
+                        <span class="weight-value">5%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="debugInfo" class="debug-info hidden">
+                <div class="debug-title">🔍 Información de Depuración</div>
+                <div id="debugContent"></div>
+            </div>
+            
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="summary-label">Total Colaboradores</div>
+                    <div class="summary-value" id="totalUsers">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Total Documentos</div>
+                    <div class="summary-value" id="totalDocuments">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Eficiencia Promedio</div>
+                    <div class="summary-value" id="avgEfficiency">0%</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Efectividad Promedio</div>
+                    <div class="summary-value" id="avgEffectiveness">0%</div>
+                </div>
+            </div>
+            
+            <div class="dashboard">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Rendimiento por Colaborador</div>
+                    </div>
+                    <div class="table-container">
+                        <table id="performanceTable">
+                            <thead>
+                                <tr>
+                                    <th>Colaborador</th>
+                                    <th>Eficiencia</th>
+                                    <th>Efectividad</th>
+                                    <th>Capacidad</th>
+                                    <th>Pausas</th>
+                                    <th>Tiempo Muerto</th>
+                                    <th>Puntuación</th>
+                                </tr>
+                            </thead>
+                            <tbody id="performanceTableBody">
+                                <!-- Los datos se llenarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Métricas Clave</div>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="efficiencyScore">0%</div>
+                            <div class="metric-label">Eficiencia</div>
+                            <div class="progress-bar">
+                                <div class="progress progress-good" id="efficiencyBar" style="width: 0%"></div>
+                            </div>
+                            <div class="metric-desc">Meta: 4 segundos (100%)</div>
+                            <button class="details-toggle" onclick="toggleDetails('efficiencyDetails')">Ver detalles</button>
+                            <div id="efficiencyDetails" class="details-container hidden">
+                                <div class="detail-row">
+                                    <span class="detail-label">Tiempo promedio:</span>
+                                    <span class="detail-value" id="efficiencyTime">0 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Meta:</span>
+                                    <span class="detail-value">4 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Diferencia:</span>
+                                    <span class="detail-value" id="efficiencyDiff">0 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Peso en evaluación:</span>
+                                    <span class="detail-value">35%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="effectivenessScore">0%</div>
+                            <div class="metric-label">Efectividad</div>
+                            <div class="progress-bar">
+                                <div class="progress progress-good" id="effectivenessBar" style="width: 0%"></div>
+                            </div>
+                            <div class="metric-desc">Meta: 20 lotes (100%)</div>
+                            <button class="details-toggle" onclick="toggleDetails('effectivenessDetails')">Ver detalles</button>
+                            <div id="effectivenessDetails" class="details-container hidden">
+                                <div class="detail-row">
+                                    <span class="detail-label">Lotes procesados:</span>
+                                    <span class="detail-value" id="effectivenessLotes">0</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Meta:</span>
+                                    <span class="detail-value">20 lotes</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Diferencia:</span>
+                                    <span class="detail-value" id="effectivenessDiff">0 lotes</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Peso en evaluación:</span>
+                                    <span class="detail-value">20%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="capacityScore">0%</div>
+                            <div class="metric-label">Capacidad</div>
+                            <div class="progress-bar">
+                                <div class="progress progress-good" id="capacityBar" style="width: 0%"></div>
+                            </div>
+                            <div class="metric-desc">Meta: 7920 unidades (100%)</div>
+                            <button class="details-toggle" onclick="toggleDetails('capacityDetails')">Ver detalles</button>
+                            <div id="capacityDetails" class="details-container hidden">
+                                <div class="detail-row">
+                                    <span class="detail-label">Unidades totales:</span>
+                                    <span class="detail-value" id="capacityUnits">0</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Meta:</span>
+                                    <span class="detail-value">7920 unidades</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Diferencia:</span>
+                                    <span class="detail-value" id="capacityDiff">0 unidades</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Peso en evaluación:</span>
+                                    <span class="detail-value">30%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="pausesScore">0%</div>
+                            <div class="metric-label">Pausas</div>
+                            <div class="progress-bar">
+                                <div class="progress progress-good" id="pausesBar" style="width: 0%"></div>
+                            </div>
+                            <div class="metric-desc">Meta: 2700 segundos (100%)</div>
+                            <button class="details-toggle" onclick="toggleDetails('pausesDetails')">Ver detalles</button>
+                            <div id="pausesDetails" class="details-container hidden">
+                                <div class="detail-row">
+                                    <span class="detail-label">Promedio pausas:</span>
+                                    <span class="detail-value" id="pausesTime">0 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Meta:</span>
+                                    <span class="detail-value">2700 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Diferencia:</span>
+                                    <span class="detail-value" id="pausesDiff">0 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Porcentaje:</span>
+                                    <span class="detail-value" id="pausesPercent">0%</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Peso en evaluación:</span>
+                                    <span class="detail-value">10%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="downtimeScore">0%</div>
+                            <div class="metric-label">Tiempo Muerto</div>
+                            <div class="progress-bar">
+                                <div class="progress progress-good" id="downtimeBar" style="width: 0%"></div>
+                            </div>
+                            <div class="metric-desc">Meta: 3600 segundos (100%)</div>
+                            <button class="details-toggle" onclick="toggleDetails('downtimeDetails')">Ver detalles</button>
+                            <div id="downtimeDetails" class="details-container hidden">
+                                <div class="detail-row">
+                                    <span class="detail-label">Tiempo muerto:</span>
+                                    <span class="detail-value" id="downtimeTime">0 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Meta:</span>
+                                    <span class="detail-value">3600 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Diferencia:</span>
+                                    <span class="detail-value" id="downtimeDiff">0 seg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Porcentaje:</span>
+                                    <span class="detail-value" id="downtimePercent">0%</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Peso en evaluación:</span>
+                                    <span class="detail-value">5%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Detalle General de Documentos</div>
+                </div>
+                <div class="table-container">
+                    <table id="detailTable">
+                        <thead>
+                            <tr>
+                                <th>Documento</th>
+                                <th>Colaborador</th>
+                                <th>Fecha</th>
+                                <th>Duración (seg)</th>
+                                <th>Pausas (seg)</th>
+                                <th>Cantidad</th>
+                                <th>Tiempo/Unidad</th>
+                                <th>Eficiencia</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailTableBody">
+                            <!-- Los datos se llenarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="charts-container">
+                <div class="chart">
+                    <div class="chart-title">Gráfico Spider - Comparación de Métricas</div>
+                    <div class="spider-container">
+                        <canvas id="spiderChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart">
+                    <div class="chart-title">Resumen Consolidado por Colaborador</div>
+                    <div class="table-container">
+                        <table id="consolidatedTable">
+                            <thead>
+                                <tr>
+                                    <th>Colaborador</th>
+                                    <th>Documentos</th>
+                                    <th>Unidades</th>
+                                    <th>Tiempo Total</th>
+                                    <th>Pausas</th>
+                                    <th>Tiempo Muerto</th>
+                                    <th>Puntuación Final</th>
+                                </tr>
+                            </thead>
+                            <tbody id="consolidatedTableBody">
+                                <!-- Los datos se llenarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="emptyState" class="empty-state">
+            <i>📊</i>
+            <h3>No hay datos para mostrar</h3>
+            <p>Selecciona una fecha y haz clic en "Buscar" para ver los resultados</p>
+        </div>
+        
+        <div class="data-source">
+            Fuente de datos: Hojas de cálculo de Google Sheets
+        </div>
+    </div>
+
+    <!-- Incluir biblioteca XLSX para generar Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Incluir Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Configuración
+        const CONFIG = {
+            SPREADSHEET_IDS: {
+                main: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+                rec: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc", 
+                clientes: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE"
+            },
+            API_KEY: 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM',
+            
+            // Métricas de referencia
+            METRICS: {
+                EFFICIENCY_TARGET: 4, // 4 segundos = 100%
+                EFFECTIVENESS_TARGET: 20, // 20 lotes = 100%
+                CAPACITY_TARGET: 7920, // 7920 unidades = 100%
+                PAUSES_LIMIT: 2700, // 2700 segundos = 100%
+                DOWNTIME_LIMIT: 3600, // 3600 segundos = 100%
+                JORNADA_LABORAL: 31680 // 31680 segundos (8 horas 48 minutos)
+            },
+            
+            // Pesos para la evaluación (suman 100%)
+            WEIGHTS: {
+                EFFICIENCY: 0.40,    // 40% - Mayor peso por velocidad
+                CAPACITY: 0.35,      // 35% - Segundo mayor peso por volumen
+                EFFECTIVENESS: 0.15, // 15% - Peso medio por cantidad de lotes
+                PAUSES: 0.05,        // 5% - Peso menor por gestión de pausas
+                DOWNTIME: 0.05       // 5%  - Peso mínimo por tiempo muerto
+            }
+        };
+
+        // Estado de la aplicación
+        const appState = {
+            documentosJSON: null,
+            filteredData: null,
+            selectedDate: null,
+            selectedUser: null,
+            isLoading: false
+        };
+
+        // Elementos del DOM
+        const elements = {
+            dateFilter: document.getElementById('dateFilter'),
+            userFilter: document.getElementById('userFilter'),
+            searchButton: document.getElementById('searchButton'),
+            searchIcon: document.getElementById('searchIcon'),
+            searchText: document.getElementById('searchText'),
+            searchLoading: document.getElementById('searchLoading'),
+            errorMessage: document.getElementById('errorMessage'),
+            dashboard: document.getElementById('dashboard'),
+            emptyState: document.getElementById('emptyState'),
+            debugInfo: document.getElementById('debugInfo'),
+            debugContent: document.getElementById('debugContent'),
+            totalUsers: document.getElementById('totalUsers'),
+            totalDocuments: document.getElementById('totalDocuments'),
+            avgEfficiency: document.getElementById('avgEfficiency'),
+            avgEffectiveness: document.getElementById('avgEffectiveness'),
+            performanceTableBody: document.getElementById('performanceTableBody'),
+            detailTableBody: document.getElementById('detailTableBody'),
+            consolidatedTableBody: document.getElementById('consolidatedTableBody'),
+            efficiencyScore: document.getElementById('efficiencyScore'),
+            effectivenessScore: document.getElementById('effectivenessScore'),
+            capacityScore: document.getElementById('capacityScore'),
+            pausesScore: document.getElementById('pausesScore'),
+            downtimeScore: document.getElementById('downtimeScore'),
+            efficiencyBar: document.getElementById('efficiencyBar'),
+            effectivenessBar: document.getElementById('effectivenessBar'),
+            capacityBar: document.getElementById('capacityBar'),
+            pausesBar: document.getElementById('pausesBar'),
+            downtimeBar: document.getElementById('downtimeBar'),
+            // Detalles
+            efficiencyTime: document.getElementById('efficiencyTime'),
+            efficiencyDiff: document.getElementById('efficiencyDiff'),
+            effectivenessLotes: document.getElementById('effectivenessLotes'),
+            effectivenessDiff: document.getElementById('effectivenessDiff'),
+            capacityUnits: document.getElementById('capacityUnits'),
+            capacityDiff: document.getElementById('capacityDiff'),
+            pausesTime: document.getElementById('pausesTime'),
+            pausesDiff: document.getElementById('pausesDiff'),
+            pausesPercent: document.getElementById('pausesPercent'),
+            downtimeTime: document.getElementById('downtimeTime'),
+            downtimeDiff: document.getElementById('downtimeDiff'),
+            downtimePercent: document.getElementById('downtimePercent')
+        };
+
+        // Función para mostrar/ocultar detalles
+        function toggleDetails(detailsId) {
+            const details = document.getElementById(detailsId);
+            details.classList.toggle('hidden');
+        }
+
+        // Función optimizada para convertir tiempo HH:MM:SS a segundos
+        function tiempoASegundos(tiempo) {
+            if (!tiempo || tiempo === '00:00:00') return 0;
+            try {
+                const partes = tiempo.split(':');
+                const horas = parseInt(partes[0]) || 0;
+                const minutos = parseInt(partes[1]) || 0;
+                const segundos = parseInt(partes[2]) || 0;
+                return (horas * 3600) + (minutos * 60) + segundos;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        // Función para convertir pausas (que pueden venir en diferentes formatos) a segundos
+        function pausasASegundos(pausas) {
+            if (!pausas || pausas === '0' || pausas === '00:00:00') return 0;
+            
+            // Si ya es un número (segundos)
+            if (!isNaN(pausas) && pausas !== '') {
+                return parseInt(pausas) || 0;
+            }
+            
+            // Si viene en formato HH:MM:SS
+            if (pausas.includes(':')) {
+                return tiempoASegundos(pausas);
+            }
+            
+            return 0;
+        }
+
+        // Función original para obtener documentos JSON
+        async function obtenerDocumentosJSON() {
+            const SPREADSHEET_IDS = {
+                main: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+                rec: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc", 
+                clientes: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE"
+            };
+            const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+
+            try {
+                console.time('TiempoTotal');
+                
+                // Obtener TODOS los datos en paralelo
+                const [data2Values, recValues, dataValues] = await Promise.all([
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.main}/values/DATA2!S2:S?key=${API_KEY}`).then(r => r.json()).then(d => d.values || []),
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.rec}/values/DataBase!A2:AG?key=${API_KEY}`).then(r => r.json()).then(d => d.values || []),
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.clientes}/values/DATA!A2:K?key=${API_KEY}`).then(r => r.json()).then(d => d.values || [])
+                ]);
+
+                console.time('Procesamiento');
+                
+                // 1. Procesar DATA - Solo documentos finalizados
+                const documentosFinalizados = new Set();
+                const documentosDataMap = {};
+
+                dataValues.forEach(row => {
+                    if (!row?.[0]) return;
+                    
+                    const documento = String(row[0]).trim();
+                    const estado = String(row[3] || '').toUpperCase();
+                    const colaborador = String(row[4] || '');
+                    
+                    if (estado === 'FINALIZADO' && 
+                        !colaborador.toUpperCase().includes('SIN SEPARACIÓN') &&
+                        !colaborador.toUpperCase().includes('SIN SEPARACION')) {
+                        
+                        documentosFinalizados.add(documento);
+                        
+                        // Convertir duración y pausas a segundos inmediatamente
+                        const duracionOriginal = row[7] || '00:00:00';
+                        const pausasOriginal = row[10] || '0';
+                        
+                        documentosDataMap[documento] = {
+                            responsable: colaborador,
+                            fecha: (row[6] || '').split(' ')[0] || '-',
+                            duracion_segundos: tiempoASegundos(duracionOriginal),
+                            duracion_original: duracionOriginal,
+                            pausas_segundos: pausasASegundos(pausasOriginal),
+                            pausas_original: pausasOriginal
+                        };
+                    }
+                });
+
+                // 2. Procesar DATA2 - Información de productos
+                const documentosData2Map = {};
+                data2Values.forEach(row => {
+                    try {
+                        if (row?.[0]) {
+                            const jsonData = JSON.parse(row[0]);
+                            const documento = String(jsonData.A || '').trim();
+                            if (documentosFinalizados.has(documento)) {
+                                documentosData2Map[documento] = {
+                                    cantidad: Number(jsonData.CANTIDAD) || 0,
+                                    prenda: jsonData.PRENDA || '',
+                                    lote: jsonData.LOTE || '',
+                                    refProv: jsonData.REFPROV || ''
+                                };
+                            }
+                        }
+                    } catch (e) {}
+                });
+
+                // 3. Procesar REC - Información adicional
+                const documentosRecMap = {};
+                recValues.forEach(row => {
+                    if (row?.[0]) {
+                        const documento = String(row[0]).trim().replace(/^REC/i, '');
+                        if (documentosFinalizados.has(documento)) {
+                            documentosRecMap[documento] = {
+                                cantidad: Number(row[18]) || 0,
+                                prenda: row[29] || '',
+                                lote: Number(row[8]) || 0,
+                                refProv: String(row[6] || '')
+                            };
+                        }
+                    }
+                });
+
+                // 4. Combinar y calcular métricas (usando segundos)
+                const resultado = Array.from(documentosFinalizados).map(documento => {
+                    const data = documentosDataMap[documento] || {};
+                    const data2 = documentosData2Map[documento] || {};
+                    const rec = documentosRecMap[documento] || {};
+                    
+                    const cantidad = data2.cantidad || rec.cantidad || 0;
+                    const duracionSegundos = data.duracion_segundos || 0;
+                    
+                    let tiempo = 0;
+                    let eficiencia = 0;
+                    
+                    if (cantidad > 0 && duracionSegundos > 0) {
+                        tiempo = duracionSegundos / cantidad;
+                        eficiencia = 4 / tiempo;
+                    }
+
+                    return {
+                        documento: `REC${documento}`,
+                        responsable: data.responsable,
+                        fecha: data.fecha,
+                        duracion_segundos: duracionSegundos,
+                        pausas_segundos: data.pausas_segundos,
+                        cantidad: cantidad,
+                        prenda: data2.prenda || rec.prenda,
+                        lote: data2.lote || rec.lote,
+                        refProv: data2.refProv || rec.refProv,
+                        tiempo: Number(tiempo.toFixed(6)),
+                        eficiencia: Number(eficiencia.toFixed(6))
+                    };
+                }).filter(doc => doc.cantidad > 0);
+
+                console.timeEnd('Procesamiento');
+                console.timeEnd('TiempoTotal');
+                
+                console.log(`✅ ${resultado.length} documentos procesados en JSON`);
+                console.log('Muestra (primeros 3):', resultado.slice(0, 3));
+                
+                return resultado;
+
+            } catch (error) {
+                console.error('Error:', error);
+                throw error;
+            }
+        }
+
+        // Inicializar la aplicación
+        function init() {
+            // Establecer la fecha de hoy por defecto
+            const today = new Date().toISOString().split('T')[0];
+            elements.dateFilter.value = today;
+            appState.selectedDate = today;
+            
+            // Cargar datos iniciales
+            loadInitialData();
+            
+            // Configurar event listeners
+            elements.dateFilter.addEventListener('change', function() {
+                appState.selectedDate = this.value;
+            });
+            
+            elements.userFilter.addEventListener('change', function() {
+                appState.selectedUser = this.value;
+            });
+            
+            elements.searchButton.addEventListener('click', searchData);
+        }
+
+        // Cargar datos iniciales
+        async function loadInitialData() {
+            try {
+                setLoadingState(true);
+                elements.errorMessage.classList.add('hidden');
+                
+                // Obtener datos de las hojas de cálculo
+                const data = await obtenerDocumentosJSON();
+                appState.documentosJSON = data;
+                
+                // Actualizar filtro de usuarios
+                updateUserFilter(data);
+                
+                // Realizar búsqueda inicial con la fecha de hoy
+                searchData();
+                
+            } catch (error) {
+                console.error('Error al cargar datos iniciales:', error);
+                showError('Error al cargar los datos iniciales. Por favor, recarga la página.');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // Actualizar el filtro de usuarios con los datos obtenidos
+        function updateUserFilter(data) {
+            // Obtener lista única de usuarios
+            const users = [...new Set(data.map(item => item.responsable))].sort();
+            
+            // Limpiar el select
+            elements.userFilter.innerHTML = '<option value="">Todos los colaboradores</option>';
+            
+            // Agregar opciones
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user;
+                option.textContent = user;
+                elements.userFilter.appendChild(option);
+            });
+        }
+
+        // Buscar datos según los filtros
+        function searchData() {
+            if (!appState.documentosJSON) {
+                showError('Los datos aún no se han cargado. Por favor, espera.');
+                return;
+            }
+            
+            if (!appState.selectedDate) {
+                showError('Por favor, selecciona una fecha.');
+                return;
+            }
+            
+            try {
+                setLoadingState(true);
+                elements.errorMessage.classList.add('hidden');
+                
+                // Filtrar datos por fecha y usuario
+                appState.filteredData = appState.documentosJSON.filter(item => {
+                    const dateMatch = item.fecha === appState.selectedDate;
+                    const userMatch = !appState.selectedUser || item.responsable === appState.selectedUser;
+                    return dateMatch && userMatch;
+                });
+                
+                // Actualizar la interfaz
+                updateDashboard();
+                
+            } catch (error) {
+                console.error('Error al buscar datos:', error);
+                showError('Error al procesar los datos. Por favor, intenta de nuevo.');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // Actualizar el dashboard con los datos filtrados
+        function updateDashboard() {
+            if (!appState.filteredData || appState.filteredData.length === 0) {
+                elements.dashboard.classList.add('hidden');
+                elements.emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            elements.dashboard.classList.remove('hidden');
+            elements.emptyState.classList.add('hidden');
+            
+            // Calcular métricas
+            const metrics = calculateMetrics(appState.filteredData);
+            
+            // Actualizar resumen
+            updateSummary(metrics);
+            
+            // Actualizar tabla de rendimiento
+            updatePerformanceTable(metrics);
+            
+            // Actualizar tabla de detalles
+            updateDetailTable();
+            
+            // Actualizar tabla consolidada
+            updateConsolidatedTable(metrics);
+            
+            // Actualizar métricas clave
+            updateKeyMetrics(metrics);
+            
+            // Actualizar gráfico spider
+            updateSpiderChart(metrics);
+        }
+
+        // Calcular métricas a partir de los datos filtrados
+        function calculateMetrics(data) {
+            // Agrupar datos por colaborador
+            const users = [...new Set(data.map(item => item.responsable))];
+            const userMetrics = {};
+            
+            // Variables para métricas globales
+            let globalTotalUnits = 0;
+            let globalTotalDocuments = 0;
+            let globalTotalDuration = 0;
+            let globalTotalPauses = 0;
+            let globalTotalDowntime = 0;
+            let globalTotalProductiveTime = 0;
+            
+            users.forEach(user => {
+                const userData = data.filter(item => item.responsable === user);
+                
+                // Calcular métricas para este usuario
+                const totalDocuments = userData.length;
+                const totalUnits = userData.reduce((sum, item) => sum + item.cantidad, 0);
+                const totalDuration = userData.reduce((sum, item) => sum + item.duracion_segundos, 0);
+                const totalPauses = userData.reduce((sum, item) => sum + item.pausas_segundos, 0);
+                
+                // CALCULO CORREGIDO: Promedio de pausas por registro con pausas
+                const registrosConPausas = userData.filter(item => item.pausas_segundos > 0);
+                const promedioPausas = registrosConPausas.length > 0 ? totalPauses / registrosConPausas.length : 0;
+                
+                // CALCULO CORREGIDO: Tiempo muerto = Jornada - Duración total - Pausas
+                const downtime = Math.max(0, CONFIG.METRICS.JORNADA_LABORAL - totalDuration - totalPauses);
+                
+                // Calcular eficiencia (basada en tiempo promedio por unidad)
+                const productiveTime = userData.reduce((sum, item) => sum + (item.cantidad * item.tiempo), 0);
+                const avgTimePerUnit = totalUnits > 0 ? productiveTime / totalUnits : 0;
+                const efficiency = avgTimePerUnit > 0 ? Math.min(100, (CONFIG.METRICS.EFFICIENCY_TARGET / avgTimePerUnit) * 100) : 0;
+                
+                // Calcular efectividad (lotes por día)
+                const effectiveness = Math.min(100, (totalDocuments / CONFIG.METRICS.EFFECTIVENESS_TARGET) * 100);
+                
+                // Calcular capacidad (unidades por día)
+                const capacity = Math.min(100, (totalUnits / CONFIG.METRICS.CAPACITY_TARGET) * 100);
+                
+                // CALCULO CORREGIDO: Pausas - Meta / Promedio * 100
+                const pausesScore = promedioPausas > 0 ? Math.min(100, (CONFIG.METRICS.PAUSES_LIMIT / promedioPausas) * 100) : 100;
+                
+                // CALCULO CORREGIDO: Tiempo muerto - Meta / Tiempo muerto * 100
+                const downtimeScore = downtime > 0 ? Math.min(100, (CONFIG.METRICS.DOWNTIME_LIMIT / downtime) * 100) : 100;
+                
+                // Calcular puntuación general CON PESOS
+                const overallScore = (
+                    efficiency * CONFIG.WEIGHTS.EFFICIENCY + 
+                    effectiveness * CONFIG.WEIGHTS.EFFECTIVENESS + 
+                    capacity * CONFIG.WEIGHTS.CAPACITY + 
+                    pausesScore * CONFIG.WEIGHTS.PAUSES + 
+                    downtimeScore * CONFIG.WEIGHTS.DOWNTIME
+                );
+                
+                userMetrics[user] = {
+                    totalDocuments,
+                    totalUnits,
+                    totalDuration,
+                    totalPauses,
+                    promedioPausas,
+                    registrosConPausas: registrosConPausas.length,
+                    downtime,
+                    productiveTime,
+                    avgTimePerUnit,
+                    efficiency,
+                    effectiveness,
+                    capacity,
+                    pausesScore,
+                    downtimeScore,
+                    overallScore,
+                    // Para debug
+                    jornada: CONFIG.METRICS.JORNADA_LABORAL
+                };
+                
+                // Acumular para métricas globales
+                globalTotalUnits += totalUnits;
+                globalTotalDocuments += totalDocuments;
+                globalTotalDuration += totalDuration;
+                globalTotalPauses += totalPauses;
+                globalTotalDowntime += downtime;
+                globalTotalProductiveTime += productiveTime;
+            });
+            
+            // Calcular promedios globales
+            const avgEfficiency = users.reduce((sum, user) => sum + userMetrics[user].efficiency, 0) / users.length;
+            const avgEffectiveness = users.reduce((sum, user) => sum + userMetrics[user].effectiveness, 0) / users.length;
+            const globalAvgTimePerUnit = globalTotalUnits > 0 ? globalTotalProductiveTime / globalTotalUnits : 0;
+            
+            return {
+                users,
+                userMetrics,
+                avgEfficiency,
+                avgEffectiveness,
+                totalDocuments: globalTotalDocuments,
+                totalUnits: globalTotalUnits,
+                totalDuration: globalTotalDuration,
+                totalPauses: globalTotalPauses,
+                totalDowntime: globalTotalDowntime,
+                avgTimePerUnit: globalAvgTimePerUnit
+            };
+        }
+
+        // Actualizar el resumen
+        function updateSummary(metrics) {
+            elements.totalUsers.textContent = metrics.users.length;
+            elements.totalDocuments.textContent = metrics.totalDocuments;
+            elements.avgEfficiency.textContent = `${metrics.avgEfficiency.toFixed(1)}%`;
+            elements.avgEffectiveness.textContent = `${metrics.avgEffectiveness.toFixed(1)}%`;
+        }
+
+        // Actualizar la tabla de rendimiento
+        function updatePerformanceTable(metrics) {
+            const tableBody = elements.performanceTableBody;
+            tableBody.innerHTML = '';
+            
+            metrics.users.forEach(user => {
+                const userData = metrics.userMetrics[user];
+                const row = document.createElement('tr');
+                
+                // Determinar indicador de rendimiento
+                let performanceClass = 'performance-poor';
+                if (userData.overallScore >= 80) performanceClass = 'performance-excellent';
+                else if (userData.overallScore >= 70) performanceClass = 'performance-good';
+                else if (userData.overallScore >= 60) performanceClass = 'performance-average';
+                
+                row.innerHTML = `
+                    <td>${user}</td>
+                    <td>${userData.efficiency.toFixed(1)}%</td>
+                    <td>${userData.effectiveness.toFixed(1)}%</td>
+                    <td>${userData.capacity.toFixed(1)}%</td>
+                    <td>${userData.pausesScore.toFixed(1)}%</td>
+                    <td>${userData.downtimeScore.toFixed(1)}%</td>
+                    <td><span class="performance-indicator ${performanceClass}"></span>${userData.overallScore.toFixed(1)}%</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Actualizar la tabla de detalles
+        function updateDetailTable() {
+            const tableBody = elements.detailTableBody;
+            tableBody.innerHTML = '';
+            
+            appState.filteredData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.documento}</td>
+                    <td>${item.responsable}</td>
+                    <td>${item.fecha}</td>
+                    <td>${item.duracion_segundos}</td>
+                    <td>${item.pausas_segundos}</td>
+                    <td>${item.cantidad}</td>
+                    <td>${item.tiempo.toFixed(2)}</td>
+                    <td>${item.eficiencia.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Actualizar la tabla consolidada
+        function updateConsolidatedTable(metrics) {
+            const tableBody = elements.consolidatedTableBody;
+            tableBody.innerHTML = '';
+            
+            metrics.users.forEach(user => {
+                const userData = metrics.userMetrics[user];
+                const row = document.createElement('tr');
+                
+                // Determinar indicador de rendimiento
+                let performanceClass = 'performance-poor';
+                if (userData.overallScore >= 80) performanceClass = 'performance-excellent';
+                else if (userData.overallScore >= 70) performanceClass = 'performance-good';
+                else if (userData.overallScore >= 60) performanceClass = 'performance-average';
+                
+                row.innerHTML = `
+                    <td>${user}</td>
+                    <td>${userData.totalDocuments}</td>
+                    <td>${userData.totalUnits}</td>
+                    <td>${userData.totalDuration}</td>
+                    <td>${userData.totalPauses}</td>
+                    <td>${userData.downtime.toFixed(0)}</td>
+                    <td><span class="performance-indicator ${performanceClass}"></span>${userData.overallScore.toFixed(1)}%</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Actualizar métricas clave (promedio general)
+        function updateKeyMetrics(metrics) {
+            // Calcular promedios de todas las métricas
+            const avgEfficiency = metrics.avgEfficiency;
+            const avgEffectiveness = metrics.avgEffectiveness;
+            const avgCapacity = metrics.users.reduce((sum, user) => sum + metrics.userMetrics[user].capacity, 0) / metrics.users.length;
+            const avgPauses = metrics.users.reduce((sum, user) => sum + metrics.userMetrics[user].pausesScore, 0) / metrics.users.length;
+            const avgDowntime = metrics.users.reduce((sum, user) => sum + metrics.userMetrics[user].downtimeScore, 0) / metrics.users.length;
+            
+            // Actualizar valores principales
+            elements.efficiencyScore.textContent = `${avgEfficiency.toFixed(1)}%`;
+            elements.effectivenessScore.textContent = `${avgEffectiveness.toFixed(1)}%`;
+            elements.capacityScore.textContent = `${avgCapacity.toFixed(1)}%`;
+            elements.pausesScore.textContent = `${avgPauses.toFixed(1)}%`;
+            elements.downtimeScore.textContent = `${avgDowntime.toFixed(1)}%`;
+            
+            // Actualizar barras de progreso
+            elements.efficiencyBar.style.width = `${avgEfficiency}%`;
+            elements.effectivenessBar.style.width = `${avgEffectiveness}%`;
+            elements.capacityBar.style.width = `${avgCapacity}%`;
+            elements.pausesBar.style.width = `${avgPauses}%`;
+            elements.downtimeBar.style.width = `${avgDowntime}%`;
+            
+            // Actualizar colores según el rendimiento
+            updateProgressBarColor(elements.efficiencyBar, avgEfficiency);
+            updateProgressBarColor(elements.effectivenessBar, avgEffectiveness);
+            updateProgressBarColor(elements.capacityBar, avgCapacity);
+            updateProgressBarColor(elements.pausesBar, avgPauses);
+            updateProgressBarColor(elements.downtimeBar, avgDowntime);
+            
+            // Actualizar detalles
+            elements.efficiencyTime.textContent = `${metrics.avgTimePerUnit.toFixed(2)} seg`;
+            elements.efficiencyDiff.textContent = `${(metrics.avgTimePerUnit - CONFIG.METRICS.EFFICIENCY_TARGET).toFixed(2)} seg`;
+            
+            elements.effectivenessLotes.textContent = `${metrics.totalDocuments}`;
+            elements.effectivenessDiff.textContent = `${(metrics.totalDocuments - CONFIG.METRICS.EFFECTIVENESS_TARGET)} lotes`;
+            
+            elements.capacityUnits.textContent = `${metrics.totalUnits}`;
+            elements.capacityDiff.textContent = `${(metrics.totalUnits - CONFIG.METRICS.CAPACITY_TARGET)} unidades`;
+            
+            // CORREGIDO: Mostrar promedio de pausas y porcentaje
+            const promedioPausasGlobal = metrics.users.reduce((sum, user) => sum + metrics.userMetrics[user].promedioPausas, 0) / metrics.users.length;
+            const pausesPercent = (CONFIG.METRICS.PAUSES_LIMIT / promedioPausasGlobal) * 100;
+            elements.pausesTime.textContent = `${promedioPausasGlobal.toFixed(0)} seg (promedio)`;
+            elements.pausesDiff.textContent = `${(promedioPausasGlobal - CONFIG.METRICS.PAUSES_LIMIT).toFixed(0)} seg`;
+            elements.pausesPercent.textContent = `${pausesPercent.toFixed(1)}%`;
+            
+            // CORREGIDO: Mostrar tiempo muerto y porcentaje
+            const downtimePercent = (CONFIG.METRICS.DOWNTIME_LIMIT / metrics.totalDowntime) * 100;
+            elements.downtimeTime.textContent = `${metrics.totalDowntime.toFixed(0)} seg`;
+            elements.downtimeDiff.textContent = `${(metrics.totalDowntime - CONFIG.METRICS.DOWNTIME_LIMIT).toFixed(0)} seg`;
+            elements.downtimePercent.textContent = `${downtimePercent.toFixed(1)}%`;
+            
+            // Mostrar información de debug para el primer usuario
+            if (metrics.users.length > 0) {
+                const firstUser = metrics.users[0];
+                const userData = metrics.userMetrics[firstUser];
+                showDebugInfo(userData, firstUser);
+            }
+        }
+
+        // Mostrar información de debug
+        function showDebugInfo(userData, userName) {
+            elements.debugInfo.classList.remove('hidden');
+            elements.debugContent.innerHTML = `
+                <div><strong>Usuario:</strong> ${userName}</div>
+                <div><strong>Jornada:</strong> ${userData.jornada} seg</div>
+                <div><strong>Duración Total:</strong> ${userData.totalDuration} seg</div>
+                <div><strong>Pausas Total:</strong> ${userData.totalPauses} seg</div>
+                <div><strong>Registros con pausas:</strong> ${userData.registrosConPausas}</div>
+                <div><strong>Promedio Pausas:</strong> ${userData.promedioPausas.toFixed(0)} seg (${userData.totalPauses} / ${userData.registrosConPausas})</div>
+                <div><strong>Tiempo Muerto:</strong> ${userData.downtime} seg (${userData.jornada} - ${userData.totalDuration} - ${userData.totalPauses})</div>
+                <div><strong>Puntuación Pausas:</strong> ${userData.pausesScore.toFixed(1)}% (${CONFIG.METRICS.PAUSES_LIMIT} / ${userData.promedioPausas.toFixed(0)} * 100)</div>
+                <div><strong>Puntuación Tiempo Muerto:</strong> ${userData.downtimeScore.toFixed(1)}% (${CONFIG.METRICS.DOWNTIME_LIMIT} / ${userData.downtime} * 100)</div>
+            `;
+        }
+
+        // Actualizar el color de la barra de progreso según el valor
+        function updateProgressBarColor(bar, value) {
+            bar.classList.remove('progress-good', 'progress-warning', 'progress-danger');
+            
+            if (value >= 80) {
+                bar.classList.add('progress-good');
+            } else if (value >= 60) {
+                bar.classList.add('progress-warning');
+            } else {
+                bar.classList.add('progress-danger');
+            }
+        }
+
+        // Actualizar gráfico spider
+        function updateSpiderChart(metrics) {
+            const ctx = document.getElementById('spiderChart').getContext('2d');
+            
+            // Preparar datos para el gráfico spider
+            const labels = ['Eficiencia', 'Efectividad', 'Capacidad', 'Pausas', 'Tiempo Muerto'];
+            
+            // Calcular promedios para el gráfico spider
+            const avgEfficiency = metrics.avgEfficiency;
+            const avgEffectiveness = metrics.avgEffectiveness;
+            const avgCapacity = metrics.users.reduce((sum, user) => sum + metrics.userMetrics[user].capacity, 0) / metrics.users.length;
+            const avgPauses = metrics.users.reduce((sum, user) => sum + metrics.userMetrics[user].pausesScore, 0) / metrics.users.length;
+            const avgDowntime = metrics.users.reduce((sum, user) => sum + metrics.userMetrics[user].downtimeScore, 0) / metrics.users.length;
+            
+            const data = [avgEfficiency, avgEffectiveness, avgCapacity, avgPauses, avgDowntime];
+            
+            // Crear o actualizar el gráfico
+            if (window.spiderChart) {
+                window.spiderChart.destroy();
+            }
+            
+            window.spiderChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Promedio General',
+                        data: data,
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        pointBackgroundColor: 'rgba(52, 152, 219, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(52, 152, 219, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: {
+                                stepSize: 20
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.r.toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Mostrar mensaje de error
+        function showError(message) {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.classList.remove('hidden');
+        }
+
+        // Establecer estado de carga
+        function setLoadingState(isLoading) {
+            appState.isLoading = isLoading;
+            
+            if (isLoading) {
+                elements.searchButton.disabled = true;
+                elements.searchIcon.classList.add('hidden');
+                elements.searchText.classList.add('hidden');
+                elements.searchLoading.classList.remove('hidden');
+            } else {
+                elements.searchButton.disabled = false;
+                elements.searchIcon.classList.remove('hidden');
+                elements.searchText.classList.remove('hidden');
+                elements.searchLoading.classList.add('hidden');
+            }
+        }
+
+        // Inicializar la aplicación cuando se carga la página
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
