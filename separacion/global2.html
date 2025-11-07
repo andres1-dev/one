@@ -366,7 +366,7 @@
                     <i class="fas fa-signature"></i>
                     <span class="brand-name">Separación<sup>TM</sup></span>
                     <!-- Indicador de estado simplificado -->
-                    <div class="status-indicator-simple" id="statusIndicator" title="Last update: --:--:--">
+                    <div class="status-indicator-simple" id="statusIndicator" title="Última actualización: --:--:--">
                         <i class="fas fa-check status-icon"></i>
                     </div>
                 </h1>
@@ -748,21 +748,22 @@ function updateLastUpdateTime() {
     const now = new Date();
     lastUpdateTime = now;
     
-    const timeString = now.toLocaleTimeString('en-US', {
+    const timeString = now.toLocaleTimeString('es-ES', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false
+        hour12: true
     });
     
-    const dateString = now.toLocaleDateString('en-US', {
-        day: '2-digit',
-        month: 'short',
+    const dateString = now.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
         year: 'numeric'
     });
     
     const statusIndicator = document.getElementById('statusIndicator');
-    statusIndicator.title = `Last update: ${dateString} ${timeString}`;
+    statusIndicator.title = `Última actualización: ${dateString}, ${timeString}`;
 }
 
 // Función para iniciar actualización
