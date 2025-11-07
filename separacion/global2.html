@@ -403,6 +403,16 @@
                     <span class="hide-xs">Finalizados</span>
                 </button>
 
+                <!-- Botón Estadísticas -->
+                <button type="button" 
+                        class="control-item control-btn" 
+                        onclick="mostrarEstadisticas()"
+                        title="Ver estadísticas"
+                        id="btnEstadisticas">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="hide-xs">Estadísticas</span>
+                </button>
+
                 <!-- Botón Menú Móvil -->
                 <button class="mobile-menu-btn" 
                         onclick="abrirModalControles()"
@@ -415,50 +425,60 @@
 </header>
     
     <!-- Modal para Controles Móviles -->
-    <div class="modal fade controls-modal" id="controlsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-cog me-2"></i>
-                        Opciones
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade controls-modal" id="controlsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog me-2"></i>
+                    Opciones
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Opción Filtro Fechas -->
+                <div class="control-option" onclick="abrirFlatpickrModal()">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div class="control-option-content">
+                        <div class="control-option-title">Filtrar por Fechas</div>
+                        <div class="control-option-desc">Seleccionar rango de fechas</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-muted"></i>
                 </div>
-                <div class="modal-body">
-                    <!-- Opción Filtro Fechas -->
-                    <div class="control-option" onclick="abrirFlatpickrModal()">
-                        <i class="fas fa-calendar-alt"></i>
-                        <div class="control-option-content">
-                            <div class="control-option-title">Filtrar por Fechas</div>
-                            <div class="control-option-desc">Seleccionar rango de fechas</div>
-                        </div>
-                        <i class="fas fa-chevron-right text-muted"></i>
+                
+                <!-- Opción Actualizar -->
+                <div class="control-option" onclick="ejecutarActualizar()">
+                    <i class="fas fa-sync-alt"></i>
+                    <div class="control-option-content">
+                        <div class="control-option-title">Actualizar Tabla</div>
+                        <div class="control-option-desc">Refrescar datos actuales</div>
                     </div>
-                    
-                    <!-- Opción Actualizar -->
-                    <div class="control-option" onclick="ejecutarActualizar()">
-                        <i class="fas fa-sync-alt"></i>
-                        <div class="control-option-content">
-                            <div class="control-option-title">Actualizar Tabla</div>
-                            <div class="control-option-desc">Refrescar datos actuales</div>
-                        </div>
-                        <i class="fas fa-chevron-right text-muted"></i>
+                    <i class="fas fa-chevron-right text-muted"></i>
+                </div>
+                
+                <!-- Opción Mostrar Finalizados -->
+                <div class="control-option" onclick="ejecutarToggleFinalizados()">
+                    <i class="fas fa-eye"></i>
+                    <div class="control-option-content">
+                        <div class="control-option-title" id="modalToggleText">Mostrar Finalizados</div>
+                        <div class="control-option-desc">Ver documentos completados</div>
                     </div>
-                    
-                    <!-- Opción Mostrar Finalizados -->
-                    <div class="control-option" onclick="ejecutarToggleFinalizados()">
-                        <i class="fas fa-eye"></i>
-                        <div class="control-option-content">
-                            <div class="control-option-title" id="modalToggleText">Mostrar Finalizados</div>
-                            <div class="control-option-desc">Ver documentos completados</div>
-                        </div>
-                        <i class="fas fa-chevron-right text-muted"></i>
+                    <i class="fas fa-chevron-right text-muted"></i>
+                </div>
+                
+                <!-- Opción Estadísticas -->
+                <div class="control-option" onclick="ejecutarEstadisticas()">
+                    <i class="fas fa-chart-bar"></i>
+                    <div class="control-option-content">
+                        <div class="control-option-title">Ver Estadísticas</div>
+                        <div class="control-option-desc">Análisis y métricas</div>
                     </div>
+                    <i class="fas fa-chevron-right text-muted"></i>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Modal para Flatpickr en Móvil -->
     <div class="modal fade" id="flatpickrModal" tabindex="-1" aria-hidden="true">
@@ -659,54 +679,61 @@
     let lastUpdateTime = null;
 
     // Inicializar Flatpickr después de que se cargue la página
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Inicializando Flatpickr en header...');
-        
-        // Inicializar flatpickr del header (PC)
-        flatpickrInstance = flatpickr("#filtroFechaHeader", {
-            mode: "range",
-            locale: "es",
-            dateFormat: "d/m/Y",
-            allowInput: true,
-            onChange: function(selectedDates, dateStr, instance) {
-                console.log('Flatpickr PC onChange:', selectedDates);
-                selectedDatesGlobal = selectedDates;
-                
-                // Aplicar filtro automáticamente cuando se selecciona rango completo
-                if (selectedDates.length === 2) {
-                    aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
-                } else if (selectedDates.length === 0) {
-                    // Limpiar filtro cuando no hay fechas seleccionadas
-                    limpiarFiltroFecha();
-                }
-            },
-            onClose: function(selectedDates, dateStr, instance) {
-                console.log('Flatpickr PC onClose:', selectedDates);
-                
-                // Limpiar si no hay fechas seleccionadas
-                if (selectedDates.length === 0) {
-                    limpiarFiltroFecha();
-                }
+    // Inicializar Flatpickr después de que se cargue la página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inicializando Flatpickr en header...');
+    
+    // Inicializar flatpickr del header (PC)
+    flatpickrInstance = flatpickr("#filtroFechaHeader", {
+        mode: "range",
+        locale: "es",
+        dateFormat: "d/m/Y",
+        allowInput: true,
+        // Agregar botón de limpiar
+        plugins: [new flatpickrConfirmPlugin({
+            confirmText: "Aplicar",
+            cancelText: "Limpiar",
+            theme: "light"
+        })],
+        onChange: function(selectedDates, dateStr, instance) {
+            console.log('Flatpickr PC onChange:', selectedDates);
+            selectedDatesGlobal = selectedDates;
+            
+            // Aplicar filtro automáticamente cuando se selecciona rango completo
+            if (selectedDates.length === 2) {
+                aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
+            } else if (selectedDates.length === 0) {
+                // Limpiar filtro cuando no hay fechas seleccionadas
+                limpiarFiltroFecha();
             }
-        });
-        
-        console.log('Flatpickr PC inicializado:', flatpickrInstance);
-        
-        // Hacer disponible globalmente
-        window.flatpickrInstance = flatpickrInstance;
-
-        // Inicializar estado de actualización
-        updateStatusIndicator('ready', 'Listo');
-        updateLastUpdateTime();
-
-        // Añadir animaciones de entrada
-        const elements = document.querySelectorAll('.fade-in');
-        elements.forEach((el, index) => {
-            setTimeout(() => {
-                el.style.opacity = '1';
-            }, index * 100);
-        });
+        },
+        onClose: function(selectedDates, dateStr, instance) {
+            console.log('Flatpickr PC onClose:', selectedDates);
+            
+            // Limpiar si no hay fechas seleccionadas
+            if (selectedDates.length === 0) {
+                limpiarFiltroFecha();
+            }
+        }
     });
+    
+    console.log('Flatpickr PC inicializado:', flatpickrInstance);
+    
+    // Hacer disponible globalmente
+    window.flatpickrInstance = flatpickrInstance;
+
+    // Inicializar estado de actualización
+    updateStatusIndicator('ready', 'Listo');
+    updateLastUpdateTime();
+
+    // Añadir animaciones de entrada
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((el, index) => {
+        setTimeout(() => {
+            el.style.opacity = '1';
+        }, index * 100);
+    });
+});
 
 // ===== FUNCIONES PARA EL INDICADOR DE ESTADO SIMPLIFICADO =====
 
