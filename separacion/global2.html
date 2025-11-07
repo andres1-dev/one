@@ -710,111 +710,100 @@
 
     // ===== FUNCIONES PARA EL INDICADOR DE ESTADO =====
 
-    // Función para actualizar el indicador de estado
-    function updateStatusIndicator(status, message) {
-        const statusIcon = document.getElementById('statusIcon');
-        const statusText = document.getElementById('statusText');
-        
-        // Remover clases anteriores
-        statusIcon.classList.remove('rotating', 'success', 'warning', 'error');
-        statusText.classList.remove('updating');
-        
-        switch(status) {
-            case 'updating':
-                statusIcon.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                statusIcon.classList.add('rotating');
-                statusText.textContent = message || 'Actualizando...';
-                statusText.classList.add('updating');
-                isUpdating = true;
-                break;
-                
-            case 'success':
-                statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-                statusIcon.classList.add('success');
-                statusText.textContent = message || 'Listo';
-                isUpdating = false;
-                break;
-                
-            case 'warning':
-                statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-                statusIcon.classList.add('warning');
-                statusText.textContent = message || 'Advertencia';
-                isUpdating = false;
-                break;
-                
-            case 'error':
-                statusIcon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
-                statusIcon.classList.add('error');
-                statusText.textContent = message || 'Error';
-                isUpdating = false;
-                break;
-                
-            case 'ready':
-            default:
-                statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-                statusIcon.classList.add('success');
-                statusText.textContent = message || 'Listo';
-                isUpdating = false;
-                break;
-        }
-    }
+// ===== FUNCIONES PARA EL INDICADOR DE ESTADO SIMPLIFICADO =====
 
-    // Función para actualizar la hora de última actualización
-    function updateLastUpdateTime() {
-        const now = new Date();
-        lastUpdateTime = now;
-        
-        const timeString = now.toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-        
-        const dateString = now.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-        
-        document.getElementById('lastUpdate').textContent = 
-            `Última actualización: ${dateString} ${timeString}`;
+// Función para actualizar el indicador de estado
+function updateStatusIndicator(status) {
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusIcon = statusIndicator.querySelector('.status-icon');
+    
+    // Remover clases anteriores
+    statusIndicator.classList.remove('updating', 'error');
+    
+    switch(status) {
+        case 'updating':
+            statusIndicator.classList.add('updating');
+            statusIcon.className = 'fas fa-sync-alt status-icon';
+            break;
+            
+        case 'success':
+            statusIndicator.classList.remove('updating', 'error');
+            statusIcon.className = 'fas fa-check-circle status-icon';
+            break;
+            
+        case 'error':
+            statusIndicator.classList.add('error');
+            statusIcon.className = 'fas fa-exclamation-circle status-icon';
+            break;
+            
+        default:
+            statusIndicator.classList.remove('updating', 'error');
+            statusIcon.className = 'fas fa-check-circle status-icon';
+            break;
     }
+}
 
-    // Función para iniciar actualización
-    function startUpdate() {
-        if (isUpdating) return;
-        
-        updateStatusIndicator('updating', 'Actualizando...');
-        
-        // Deshabilitar botón de actualizar temporalmente
-        const btnActualizar = document.getElementById('btnActualizar');
-        if (btnActualizar) {
-            btnActualizar.disabled = true;
-            btnActualizar.style.opacity = '0.6';
-            btnActualizar.style.cursor = 'not-allowed';
-        }
+// Función para actualizar el tooltip con la hora de última actualización
+function updateLastUpdateTime() {
+    const now = new Date();
+    lastUpdateTime = now;
+    
+    const timeString = now.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    const dateString = now.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+    
+    const statusIndicator = document.getElementById('statusIndicator');
+    statusIndicator.title = `Última actualización: ${dateString} ${timeString}`;
+}
+
+// Función para iniciar actualización
+function startUpdate() {
+    if (isUpdating) return;
+    
+    updateStatusIndicator('updating');
+    
+    // Deshabilitar botón de actualizar temporalmente
+    const btnActualizar = document.getElementById('btnActualizar');
+    if (btnActualizar) {
+        btnActualizar.disabled = true;
+        btnActualizar.style.opacity = '0.6';
+        btnActualizar.style.cursor = 'not-allowed';
     }
+}
 
-    // Función para finalizar actualización
-    function finishUpdate(success = true, message = null) {
-        if (success) {
-            updateStatusIndicator('success', message || 'Listo');
-            updateLastUpdateTime();
-        } else {
-            updateStatusIndicator('error', message || 'Error en actualización');
-        }
-        
-        // Rehabilitar botón de actualizar
-        const btnActualizar = document.getElementById('btnActualizar');
-        if (btnActualizar) {
-            setTimeout(() => {
-                btnActualizar.disabled = false;
-                btnActualizar.style.opacity = '1';
-                btnActualizar.style.cursor = 'pointer';
-            }, 1000);
-        }
+// Función para finalizar actualización
+function finishUpdate(success = true) {
+    if (success) {
+        updateStatusIndicator('success');
+        updateLastUpdateTime();
+    } else {
+        updateStatusIndicator('error');
     }
+    
+    // Rehabilitar botón de actualizar
+    const btnActualizar = document.getElementById('btnActualizar');
+    if (btnActualizar) {
+        setTimeout(() => {
+            btnActualizar.disabled = false;
+            btnActualizar.style.opacity = '1';
+            btnActualizar.style.cursor = 'pointer';
+        }, 1000);
+    }
+}
 
+// Inicializar estado
+document.addEventListener('DOMContentLoaded', function() {
+    updateLastUpdateTime();
+});
+        
     // ===== FUNCIONES CORREGIDAS PARA FILTRADO DE FECHAS =====
 
     // Función para aplicar filtro de fecha (común para PC y móvil)
