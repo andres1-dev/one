@@ -1630,25 +1630,27 @@ img {
 
 .status-icon {
     font-size: 0.875rem;
-    color: #22c55e; /* Verde siempre */
+    color: var(--text-primary); /* Color del texto por defecto */
     transition: all var(--transition-fast);
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    background: transparent; /* Sin fondo */
 }
 
 .status-indicator-simple:hover .status-icon {
     transform: scale(1.05);
-    color: #16a34a; /* Verde más oscuro en hover */
 }
 
 /* Estados del indicador */
+.status-indicator-simple.ready .status-icon {
+    color: #22c55e; /* Verde cuando está listo */
+}
+
 .status-indicator-simple.updating .status-icon {
-    color: #3b82f6; /* Azul para actualización */
+    color: #3b82f6; /* Azul durante actualización */
     animation: spin 1.5s linear infinite;
 }
 
 .status-indicator-simple.error .status-icon {
-    color: #22c55e; /* Mantener verde incluso en error */
-    animation: none; /* Sin animación en error */
+    color: #ef4444; /* Rojo en error */
 }
 
 /* Animación de giro para actualización */
