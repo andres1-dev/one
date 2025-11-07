@@ -356,8 +356,7 @@
     </style>
 </head>
 <body>
-    <!-- Header Minimalista -->
-    <!-- Header Minimalista -->
+<!-- Header Minimalista -->
 <header class="header">
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center">
@@ -413,6 +412,7 @@
         </div>
     </div>
 </header>
+
 
     <!-- Modal para Controles Móviles -->
     <div class="modal fade controls-modal" id="controlsModal" tabindex="-1" aria-hidden="true">
@@ -708,14 +708,11 @@
         });
     });
 
-    // ===== FUNCIONES PARA EL INDICADOR DE ESTADO =====
-
 // ===== FUNCIONES PARA EL INDICADOR DE ESTADO SIMPLIFICADO =====
 
 // Función para actualizar el indicador de estado
 function updateStatusIndicator(status) {
     const statusIndicator = document.getElementById('statusIndicator');
-    const statusIcon = statusIndicator.querySelector('.status-icon');
     
     // Remover clases anteriores
     statusIndicator.classList.remove('updating', 'error');
@@ -723,24 +720,18 @@ function updateStatusIndicator(status) {
     switch(status) {
         case 'updating':
             statusIndicator.classList.add('updating');
-            statusIcon.className = 'fas fa-sync-alt status-icon';
             break;
             
         case 'success':
-            statusIndicator.classList.remove('updating', 'error');
-            statusIcon.className = 'fas fa-check-circle status-icon';
+            // Estado por defecto, no necesita clase adicional
             break;
             
         case 'error':
             statusIndicator.classList.add('error');
-            statusIcon.className = 'fas fa-exclamation-circle status-icon';
-            break;
-            
-        default:
-            statusIndicator.classList.remove('updating', 'error');
-            statusIcon.className = 'fas fa-check-circle status-icon';
             break;
     }
+    
+    updateLastUpdateTime();
 }
 
 // Función para actualizar el tooltip con la hora de última actualización
@@ -781,11 +772,19 @@ function startUpdate() {
 
 // Función para finalizar actualización
 function finishUpdate(success = true) {
+    const statusIndicator = document.getElementById('statusIndicator');
+    
     if (success) {
-        updateStatusIndicator('success');
+        statusIndicator.classList.remove('updating', 'error');
         updateLastUpdateTime();
+        
+        // Efecto de confirmación sutil
+        statusIndicator.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            statusIndicator.style.transform = 'scale(1)';
+        }, 300);
     } else {
-        updateStatusIndicator('error');
+        statusIndicator.classList.add('error');
     }
     
     // Rehabilitar botón de actualizar
@@ -799,10 +798,19 @@ function finishUpdate(success = true) {
     }
 }
 
-// Inicializar estado
+// Inicializar estado al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     updateLastUpdateTime();
+    
+    // Forzar estado de éxito al inicio
+    const statusIndicator = document.getElementById('statusIndicator');
+    statusIndicator.classList.remove('updating', 'error');
 });
+
+// Hacer funciones disponibles globalmente
+window.updateStatusIndicator = updateStatusIndicator;
+window.startUpdate = startUpdate;
+window.finishUpdate = finishUpdate;
         
     // ===== FUNCIONES CORREGIDAS PARA FILTRADO DE FECHAS =====
 
