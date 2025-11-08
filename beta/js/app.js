@@ -1,4 +1,3 @@
-
 // Variables globales
 let database = [];
 let currentQRParts = null;
@@ -312,20 +311,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadDataFromServer() {
-  statusDiv.className = 'loading';
-  statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
-  dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con el servidor...';
-  
-  // Usamos fetch para obtener los datos del servidor
-  fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(serverData => handleDataLoadSuccess(serverData))
-    .catch(error => handleDataLoadError(error));
+    statusDiv.className = 'loading';
+    statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
+    dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con Sheets API...';
+
+    sheetsDataService.getData()
+        .then(serverData => handleDataLoadSuccess(serverData))
+        .catch(error => handleDataLoadError(error));
 }
 
 function handleDataLoadSuccess(serverData) {
@@ -949,60 +941,47 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Función para refrescar los datos
   function refreshData() {
-    // Actualizar el estado para mostrar que estamos cargando
     statusDiv.className = 'loading';
     statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO...';
     dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando...';
-    
-    // Llamar a la API para obtener datos frescos
-    fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
-      .then(response => {
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        return response.json();
-      })
-      .then(serverData => {
-        if (serverData && serverData.success && serverData.data) {
-          // Actualizar datos globales
-          database = serverData.data;
-          dataLoaded = true;
-          cacheData(database);
-          
-          // Actualizar interfaz
-          statusDiv.className = 'ready';
-          statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> DATOS ACTUALIZADOS';
-          dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}`;
-          
-          // Re-procesar datos actuales si hay un QR activo
-          if (currentQRParts) {
-            processQRCodeParts(currentQRParts);
-          } else {
-            resultsDiv.innerHTML = `
-              <div class="result-item" style="text-align: center; color: var(--gray);">
-                <div style="text-align: center;">
-                  <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
-                </div>
-                <h1>PandaDash</h1>
-                <div class="name">Andrés Mendoza</div>
-              </div>
-            `;
-          }
-          
-          // Efecto sonoro de éxito
-          playSuccessSound();
-        } else {
-          throw new Error('Datos incorrectos');
-        }
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        statusDiv.className = 'error';
-        statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
-        
-        // Efecto sonoro de error
-        playErrorSound();
-      });
-  }
-});
+
+    sheetsDataService.forceRefresh()
+        .then(serverData => {
+            if (serverData && serverData.success && serverData.data) {
+                database = serverData.data;
+                dataLoaded = true;
+                cacheData(database);
+
+                statusDiv.className = 'ready';
+                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> DATOS ACTUALIZADOS';
+                dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}`;
+
+                if (currentQRParts) {
+                    processQRCodeParts(currentQRParts);
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="result-item" style="text-align: center; color: var(--gray);">
+                            <div style="text-align: center;">
+                                <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+                            </div>
+                            <h1>PandaDash</h1>
+                            <div class="name">Andrés Mendoza</div>
+                        </div>
+                    `;
+                }
+
+                playSuccessSound();
+            } else {
+                throw new Error('Datos incorrectos');
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            statusDiv.className = 'error';
+            statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
+            playErrorSound();
+        });
+}
 
 // Detector de eventos para PWA Install
 let deferredPrompt;
