@@ -2,6 +2,12 @@
 
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
+  // Inicializar managers
+  setupConfigPanel();
+
+  initializeKeyboardManager();
+  initializeQRScanner();
+  
   // Inicializar la cola de carga
   initializeUploadQueue();
   
@@ -301,6 +307,28 @@ function parseQRCode(code) {
   }
   
   return null;
+}
+
+// Agrega funciones para manejar el panel de configuración
+function setupConfigPanel() {
+  const configBtn = document.getElementById('configBtn');
+  const configPanel = document.getElementById('configPanel');
+  const closeConfig = document.getElementById('closeConfig');
+  
+  configBtn.addEventListener('click', () => {
+    configPanel.style.display = 'block';
+  });
+  
+  closeConfig.addEventListener('click', () => {
+    configPanel.style.display = 'none';
+  });
+  
+  // Cerrar panel al hacer clic fuera
+  configPanel.addEventListener('click', (e) => {
+    if (e.target === configPanel) {
+      configPanel.style.display = 'none';
+    }
+  });
 }
 
 // Procesa las partes del código QR y muestra los resultados
