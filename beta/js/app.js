@@ -1,4 +1,4 @@
-// Variables globales 1
+// Variables globales
 let database = [];
 let currentQRParts = null;
 let dataLoaded = false;
@@ -150,8 +150,8 @@ function aplicarMarcaDeAgua(ctx, width, height) {
   }
 
   // 3. Título: PandaDash (más grande)
-  ctx.font = `700 ${fontSizeTitle}px ${fontFamily}`;
-  ctx.fillText("PandaDash", marginLeft, posY);
+  ctx.font = `500 ${fontSizeTitle}px ${fontFamily}`;
+  ctx.fillText("Entregas", marginLeft, posY);
 }
 
 // Función para subir la foto capturada
@@ -310,15 +310,69 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// FUNCIÓN CORREGIDA - usa sheetsDataService en lugar de dataService
-function loadDataFromServer() {
+async function loadDataFromServer() {
     statusDiv.className = 'loading';
     statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
-    dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con Sheets API...';
+    dataStats.innerHTML = '<i class="fas fa-database"></i> Conectando con Google Sheets...';
+    
+    try {
+        const result = await sheetsAPI.obtenerDatosCombinados();
+        
+        if (result.success) {
+            database = result.data;
+            dataLoaded = true;
+            cacheData(database);
+            
+            statusDiv.className = 'ready';
+            statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> SISTEMA LISTO';
+            dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()} | Sheets API`;
+            
+            // Mostrar contenido principal
+            mostrarPantallaInicial();
+            hideLoadingScreen();
+            playSuccessSound();
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        handleDataLoadError(error);
+    }
+}
 
-    sheetsDataService.getData()
-        .then(serverData => handleDataLoadSuccess(serverData))
-        .catch(error => handleDataLoadError(error));
+// Función para verificar confirmación en tiempo real
+async function verificarConfirmacionEnTiempoReal(documento, lote, referencia, cantidad, nit) {
+    try {
+        const resultado = await sheetsAPI.verificarConfirmacion(documento, lote, referencia, cantidad, nit);
+        
+        if (resultado.confirmado) {
+            // Detener la cola para este elemento si está confirmado
+            detenerColaParaElemento(documento, lote, referencia, cantidad, nit);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error en verificación en tiempo real:', error);
+        return false;
+    }
+}
+
+// Función para detener la cola cuando un elemento está confirmado
+function detenerColaParaElemento(documento, lote, referencia, cantidad, nit) {
+    const clave = `${documento}_${lote}_${referencia}_${cantidad}_${nit}`;
+    
+    // Buscar y eliminar el trabajo de la cola si existe
+    uploadQueue.queue = uploadQueue.queue.filter(job => {
+        if (job.type === 'photo') {
+            const jobClave = `${job.data.documento}_${job.data.lote}_${job.data.referencia}_${job.data.cantidad}_${job.data.nit}`;
+            return jobClave !== clave;
+        }
+        return true;
+    });
+    
+    uploadQueue.saveQueue();
+    uploadQueue.updateQueueCounter();
+    
+    console.log(`Elemento confirmado y removido de cola: ${clave}`);
 }
 
 function handleDataLoadSuccess(serverData) {
@@ -892,49 +946,110 @@ function mostrarError(mensaje) {
   statusDiv.innerHTML = `<span style="color: var(--danger)">${mensaje}</span>`;
 }
 
-// FUNCIÓN CORREGIDA para pull-to-refresh
-function refreshData() {
+// Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
+document.addEventListener('DOMContentLoaded', () => {
+  // Referencias a elementos clave
+  const statusDiv = document.getElementById('status');
+  const dataStats = document.getElementById('data-stats');
+  const resultsDiv = document.getElementById('results');
+  
+  // Variables de control
+  let startY = 0;
+  let isPulling = false;
+  
+  // Manejador para touchstart (inicio del gesto)
+  document.addEventListener('touchstart', function(e) {
+    // Solo activar si hay dos o más dedos tocando la pantalla
+    if (e.touches.length >= 2 && window.scrollY < 10) {
+      startY = e.touches[0].clientY;
+      isPulling = true;
+      e.preventDefault(); // Prevenir comportamiento por defecto
+    }
+  }, { passive: false });
+  
+  // Manejador para touchmove (movimiento durante el gesto)
+  document.addEventListener('touchmove', function(e) {
+    // Verificar si estamos en un gesto válido y hay dos dedos
+    if (!isPulling || e.touches.length < 2) return;
+    
+    // Calcular la distancia desplazada
+    const currentY = e.touches[0].clientY;
+    const pullDistance = currentY - startY;
+    
+    // Si hay un movimiento hacia abajo de al menos 20px, activar actualización
+    if (pullDistance > 20) {
+      // Desactivar el gesto para evitar múltiples actualizaciones
+      isPulling = false;
+      
+      // Iniciar la actualización inmediatamente
+      refreshData();
+      
+      // Prevenir comportamiento predeterminado
+      e.preventDefault();
+    }
+  }, { passive: false });
+  
+  // Manejador para touchend (fin del gesto)
+  document.addEventListener('touchend', function() {
+    isPulling = false;
+  });
+  
+  // Función para refrescar los datos
+  function refreshData() {
+    // Actualizar el estado para mostrar que estamos cargando
     statusDiv.className = 'loading';
     statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO...';
     dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando...';
-
-    sheetsDataService.forceRefresh()
-        .then(serverData => {
-            if (serverData && serverData.success && serverData.data) {
-                database = serverData.data;
-                dataLoaded = true;
-                cacheData(database);
-
-                statusDiv.className = 'ready';
-                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> DATOS ACTUALIZADOS';
-                dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}`;
-
-                if (currentQRParts) {
-                    processQRCodeParts(currentQRParts);
-                } else {
-                    resultsDiv.innerHTML = `
-                        <div class="result-item" style="text-align: center; color: var(--gray);">
-                            <div style="text-align: center;">
-                                <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
-                            </div>
-                            <h1>PandaDash</h1>
-                            <div class="name">Andrés Mendoza</div>
-                        </div>
-                    `;
-                }
-
-                playSuccessSound();
-            } else {
-                throw new Error('Datos incorrectos');
-            }
-        })
-        .catch(error => {
-            console.error("Error:", error);
-            statusDiv.className = 'error';
-            statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
-            playErrorSound();
-        });
-}
+    
+    // Llamar a la API para obtener datos frescos
+    fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
+      .then(response => {
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        return response.json();
+      })
+      .then(serverData => {
+        if (serverData && serverData.success && serverData.data) {
+          // Actualizar datos globales
+          database = serverData.data;
+          dataLoaded = true;
+          cacheData(database);
+          
+          // Actualizar interfaz
+          statusDiv.className = 'ready';
+          statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> DATOS ACTUALIZADOS';
+          dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}`;
+          
+          // Re-procesar datos actuales si hay un QR activo
+          if (currentQRParts) {
+            processQRCodeParts(currentQRParts);
+          } else {
+            resultsDiv.innerHTML = `
+              <div class="result-item" style="text-align: center; color: var(--gray);">
+                <div style="text-align: center;">
+                  <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+                </div>
+                <h1>PandaDash</h1>
+                <div class="name">Andrés Mendoza</div>
+              </div>
+            `;
+          }
+          
+          // Efecto sonoro de éxito
+          playSuccessSound();
+        } else {
+          throw new Error('Datos incorrectos');
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        statusDiv.className = 'error';
+        statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
+        
+        // Efecto sonoro de error
+        playErrorSound();
+      });
+  }
+});
 
 // Detector de eventos para PWA Install
 let deferredPrompt;
