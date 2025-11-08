@@ -1,30 +1,30 @@
-const CACHE_NAME = 'pandadash-v4.0.0';
+const CACHE_NAME = 'pandadash-v4.0.0-one';
 const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  './css/styles.css',
-  './js/config.js',
-  './js/keyboard-blocker.js',
-  './js/upload-queue.js',
-  './js/camera.js',
-  './js/asentar-factura.js',
-  './js/main.js',
-  './icons/icon-192x192.png',
-  './icons/icon-512x512.png'
+  '/one/beta/',
+  '/one/beta/index.html',
+  '/one/beta/manifest.json',
+  '/one/beta/css/styles.css',
+  '/one/beta/js/config.js',
+  '/one/beta/js/keyboard-blocker.js',
+  '/one/beta/js/upload-queue.js',
+  '/one/beta/js/camera.js',
+  '/one/beta/js/asentar-factura.js',
+  '/one/beta/js/main.js',
+  '/one/beta/icons/icon-192x192.png',
+  '/one/beta/icons/icon-512x512.png'
 ];
 
 // Instalación
 self.addEventListener('install', event => {
-  console.log('🔄 Service Worker instalando...');
+  console.log('🔄 Service Worker instalando para /one/beta/...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('✅ Cache abierto');
+        console.log('✅ Cache abierto para /one/beta/');
         return cache.addAll(urlsToCache);
       })
       .then(() => {
-        console.log('✅ Todos los recursos cacheados');
+        console.log('✅ Todos los recursos cacheados para /one/beta/');
         return self.skipWaiting();
       })
       .catch(error => {
@@ -35,7 +35,7 @@ self.addEventListener('install', event => {
 
 // Activación
 self.addEventListener('activate', event => {
-  console.log('🔄 Service Worker activando...');
+  console.log('🔄 Service Worker activando para /one/beta/...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -47,7 +47,7 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => {
-      console.log('✅ Service Worker activado');
+      console.log('✅ Service Worker activado para /one/beta/');
       return self.clients.claim();
     })
   );
@@ -55,20 +55,25 @@ self.addEventListener('activate', event => {
 
 // Fetch
 self.addEventListener('fetch', event => {
+  const requestUrl = new URL(event.request.url);
+  
+  // Solo manejar requests dentro del scope /one/beta/
+  if (!requestUrl.pathname.startsWith('/one/beta/')) {
+    return;
+  }
+
   // Para las APIs, siempre ir a red primero
   if (event.request.url.includes('/macros/s/')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          // Si la respuesta es válida, la devolvemos
           if (response && response.status === 200) {
             return response;
           }
           throw new Error('Network response was not ok');
         })
         .catch(error => {
-          console.log('🌐 Fetch failed, returning offline page:', error);
-          // En caso de error, podrías devolver una respuesta de caché si tienes una
+          console.log('🌐 Fetch failed for API:', error);
           return caches.match(event.request);
         })
     );
@@ -97,9 +102,9 @@ self.addEventListener('fetch', event => {
           })
           .catch(error => {
             console.log('🌐 Fetch failed:', error);
-            // Si es una página, podrías devolver una página offline
+            // Si es una página, devolvemos el index.html
             if (event.request.destination === 'document') {
-              return caches.match('./index.html');
+              return caches.match('/one/beta/index.html');
             }
           });
       })
