@@ -954,9 +954,9 @@ class SheetsAPI {
 }
 
 // Instancia global
-const sheetsAPIOptimized = new SheetsAPIOptimized();
+const sheetsAPI = new SheetsAPI();
 
 // Exportar para uso en módulos
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { SheetsAPIOptimized, sheetsAPIOptimized };
+    module.exports = { SheetsAPI, sheetsAPI };
 }
