@@ -177,52 +177,97 @@ class UploadQueue {
   
   async processQueue() {
     if (this.isProcessing || this.queue.length === 0 || !navigator.onLine) {
-      this.updateQueueCounter();
-      return;
+        this.updateQueueCounter();
+        return;
     }
-    
+
     this.isProcessing = true;
     this.updateQueueCounter();
-    
+
     while (this.queue.length > 0 && navigator.onLine) {
-      const job = this.queue[0];
-      
-      try {
-        if (job.type === 'photo') {
-          await this.processPhotoJob(job);
-        } else if (job.type === 'data') {
-          await this.processDataJob(job);
+        const job = this.queue[0];
+
+        try {
+            // VERIFICAR SI YA ESTÁ CONFIRMADO ANTES DE PROCESAR
+            const yaConfirmado = await this.verificarYDetenerSiConfirmado(job);
+            if (yaConfirmado) {
+                // Eliminar trabajo ya confirmado
+                this.queue.shift();
+                this.saveQueue();
+                this.updateQueueCounter();
+                continue;
+            }
+
+            if (job.type === 'photo') {
+                await this.processPhotoJob(job);
+            } else if (job.type === 'data') {
+                await this.processDataJob(job);
+            }
+
+            // Eliminar trabajo completado
+            this.queue.shift();
+            this.saveQueue();
+            this.updateQueueCounter();
+        } catch (error) {
+            console.error("Error al procesar trabajo:", error);
+            job.retries++;
+            job.lastError = error.message;
+            job.lastAttempt = new Date().toISOString();
+
+            // VERIFICAR SI SE CONFIRMÓ DURANTE EL REINTENTO
+            const yaConfirmado = await this.verificarYDetenerSiConfirmado(job);
+            if (yaConfirmado) {
+                this.queue.shift();
+                this.saveQueue();
+                this.updateQueueCounter();
+                continue;
+            }
+
+            // MODIFICACIÓN PARA REINTENTOS ILIMITADOS
+            if (CONFIG.MAX_RETRIES > 0 && job.retries >= CONFIG.MAX_RETRIES) {
+                this.queue.shift();
+            } else {
+                job.status = 'retrying';
+                this.queue.push(this.queue.shift());
+            }
+
+            this.saveQueue();
+            this.updateQueueCounter();
+            break;
         }
-        
-        // Eliminar trabajo completado
-        this.queue.shift();
-        this.saveQueue();
-        this.updateQueueCounter();
-      } catch (error) {
-        console.error("Error al procesar trabajo:", error);
-        job.retries++;
-        job.lastError = error.message;
-        job.lastAttempt = new Date().toISOString();
-        
-        // MODIFICACIÓN PARA REINTENTOS ILIMITADOS
-        if (CONFIG.MAX_RETRIES > 0 && job.retries >= CONFIG.MAX_RETRIES) {
-          // Eliminar solo si MAX_RETRIES es positivo y se alcanzó el límite
-          this.queue.shift();
-        } else {
-          job.status = 'retrying';
-          // Mover al final de la cola para reintentar más tarde (reintentos ilimitados)
-          this.queue.push(this.queue.shift());
-        }
-        
-        this.saveQueue();
-        this.updateQueueCounter();
-        break;
-      }
     }
-    
+
     this.isProcessing = false;
     this.updateQueueCounter();
-  }
+}
+  
+  // Agregar esta función en upload-queue.js
+async verificarYDetenerSiConfirmado(job) {
+    try {
+        const confirmacion = await sheetsDataService.verificarConfirmacion(job.factura);
+        
+        if (confirmacion.confirmado) {
+            console.log(`Factura ${job.factura} ya confirmada, deteniendo reintentos`);
+            
+            // Actualizar UI si el elemento todavía está visible
+            if (job.btnElementId) {
+                const btnElement = document.querySelector(`[data-factura="${job.btnElementId}"]`);
+                if (btnElement) {
+                    btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+                    btnElement.style.backgroundColor = '#28a745';
+                    btnElement.disabled = true;
+                }
+            }
+            
+            return true; // Indicar que debe detenerse
+        }
+        
+        return false; // Continuar con los reintentos
+    } catch (error) {
+        console.error("Error verificando confirmación:", error);
+        return false; // En caso de error, continuar
+    }
+}
   
   async processPhotoJob(job) {
     const formData = new FormData();
