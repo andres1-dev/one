@@ -56,17 +56,20 @@ class UploadQueue {
     localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(this.queue));
   }
   
-  addJob(job) {
-    this.queue.push({
-      ...job,
-      retries: 0,
-      timestamp: new Date().toISOString(),
-      status: 'pending'
-    });
+addJob(job) {
+    const jobWithDefaults = {
+        ...job,
+        retries: 0,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        onSuccess: job.onSuccess || (() => {})
+    };
+    
+    this.queue.push(jobWithDefaults);
     this.saveQueue();
     this.updateQueueCounter();
     this.processQueue();
-  }
+}
   
   initEventListeners() {
     window.addEventListener('online', () => {
@@ -224,46 +227,43 @@ class UploadQueue {
     this.updateQueueCounter();
   }
   
-  async processPhotoJob(job) {
-  const formData = new FormData();
-  Object.keys(job.data).forEach(key => {
-    if (key !== 'esSinFactura') {
-      formData.append(key, job.data[key]);
-    }
-  });
-  
-  const response = await fetch(API_URL_POST, {
-    method: 'POST',
-    body: formData
-  });
-  
-  if (!response.ok) {
-    throw new Error(`HTTP error: ${response.status}`);
-  }
-  
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.message || "Error en la respuesta del servidor");
-  }
-  
-  // ACTUALIZAR DATOS DESPUÉS DE SUBIR FOTO EXITOSAMENTE
-  try {
-    await dataManager.refreshData();
-    console.log('Datos actualizados después de subir foto');
-  } catch (error) {
-    console.error('Error actualizando datos después de subir foto:', error);
-  }
-  
-  // Actualizar UI si el elemento todavía está visible
-  if (job.btnElementId) {
-    const btnElement = document.querySelector(`[data-factura="${job.btnElementId}"]`);
+  // En processPhotoJob, después del éxito, ejecutar callback
+async processPhotoJob(job) {
+    const formData = new FormData();
+    Object.keys(job.data).forEach(key => {
+        if (key !== 'esSinFactura') {
+            formData.append(key, job.data[key]);
+        }
+    });
     
-    if (btnElement && !job.esSinFactura) {
-      btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-      btnElement.style.backgroundColor = '#28a745';
-      btnElement.disabled = true;
+    const response = await fetch(API_URL_POST, {
+        method: 'POST',
+        body: formData
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
     }
-  }
+    
+    const result = await response.json();
+    if (!result.success) {
+        throw new Error(result.message || "Error en la respuesta del servidor");
+    }
+    
+    // Ejecutar callback de éxito
+    if (job.onSuccess) {
+        job.onSuccess();
+    }
+    
+    // Actualizar UI si el elemento todavía está visible
+    if (job.btnElementId) {
+        const btnElement = document.querySelector(`[data-factura="${job.btnElementId}"]`);
+        if (btnElement && !job.esSinFactura) {
+            btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+            btnElement.style.backgroundColor = '#28a745';
+            btnElement.disabled = true;
+        }
+    }
 }
   
   async processDataJob(job) {
