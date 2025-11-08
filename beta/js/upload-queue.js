@@ -8,15 +8,23 @@ class UploadQueue {
     this.processQueue(); // Intentar procesar cola al iniciar
     
     // Inicializar eventos para el contador de cola
-    document.getElementById('queueCounter').addEventListener('click', this.toggleQueueDetails.bind(this));
-    document.getElementById('closeQueueDetails').addEventListener('click', this.hideQueueDetails.bind(this));
+    const queueCounter = document.getElementById('queueCounter');
+    const closeQueueDetails = document.getElementById('closeQueueDetails');
+    
+    if (queueCounter) {
+      queueCounter.addEventListener('click', this.toggleQueueDetails.bind(this));
+    }
+    
+    if (closeQueueDetails) {
+      closeQueueDetails.addEventListener('click', this.hideQueueDetails.bind(this));
+    }
     
     // Cerrar detalles al hacer clic fuera
     document.addEventListener('click', (e) => {
       const queueDetails = document.getElementById('queueDetails');
       const queueCounter = document.getElementById('queueCounter');
       
-      if (queueDetails.style.display === 'block' && 
+      if (queueDetails && queueDetails.style.display === 'block' && 
           e.target !== queueDetails && 
           !queueDetails.contains(e.target) &&
           e.target !== queueCounter) {
@@ -63,11 +71,15 @@ class UploadQueue {
     const counter = document.getElementById('queueCounter');
     const queueItemsList = document.getElementById('queueItemsList');
     
+    if (!counter) return;
+    
     if (this.queue.length === 0) {
       counter.textContent = '0';
       counter.className = 'empty';
       counter.title = 'No hay elementos en cola';
-      queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
+      if (queueItemsList) {
+        queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
+      }
     } else {
       counter.textContent = this.queue.length;
       counter.className = this.isProcessing ? 'processing' : '';
@@ -80,6 +92,7 @@ class UploadQueue {
   
   updateQueueItemsList() {
     const queueItemsList = document.getElementById('queueItemsList');
+    if (!queueItemsList) return;
     
     if (this.queue.length === 0) {
       queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
@@ -140,22 +153,28 @@ class UploadQueue {
   
   toggleQueueDetails() {
     const details = document.getElementById('queueDetails');
-    if (details.style.display === 'block') {
-      this.hideQueueDetails();
-    } else {
-      this.showQueueDetails();
+    if (details) {
+      if (details.style.display === 'block') {
+        this.hideQueueDetails();
+      } else {
+        this.showQueueDetails();
+      }
     }
   }
   
   showQueueDetails() {
     const details = document.getElementById('queueDetails');
-    details.style.display = 'block';
-    this.updateQueueItemsList();
+    if (details) {
+      details.style.display = 'block';
+      this.updateQueueItemsList();
+    }
   }
   
   hideQueueDetails() {
     const details = document.getElementById('queueDetails');
-    details.style.display = 'none';
+    if (details) {
+      details.style.display = 'none';
+    }
   }
   
   async processQueue() {
@@ -230,7 +249,6 @@ class UploadQueue {
       const btnElement = document.querySelector(`[data-factura="${job.btnElementId}"]`);
       
       // Solo actualizar si el botón existe y no es una entrega sin factura
-      // (Las entregas sin factura ya se actualizaron en subirFotoCapturada)
       if (btnElement && !job.esSinFactura) {
         btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
         btnElement.style.backgroundColor = '#28a745';
@@ -261,9 +279,6 @@ class UploadQueue {
 }
 
 // Inicializar la cola de carga
-let uploadQueue;
-
-// Función para inicializar la cola (se llama desde main.js)
 function initializeUploadQueue() {
   uploadQueue = new UploadQueue();
   return uploadQueue;
