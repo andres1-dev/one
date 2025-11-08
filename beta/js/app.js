@@ -1,3 +1,4 @@
+
 // Variables globales
 let database = [];
 let currentQRParts = null;
@@ -15,16 +16,6 @@ const installBtn = document.getElementById('installBtn');
 
 // Función para procesar entregas
 function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
-    // VERIFICAR SI YA ESTÁ CONFIRMADO ANTES DE PERMITIR ENTREGA
-    if (dataService.isFacturaConfirmed(factura)) {
-        mostrarNotificacion(
-            'warning', 
-            'Entrega ya confirmada', 
-            `La factura ${factura} ya fue confirmada anteriormente.`
-        );
-        return;
-    }
-  
   // Verificar si la entrega no tiene factura y manejarlo apropiadamente
   const esSinFactura = !factura || factura.trim() === "";
   
@@ -320,59 +311,67 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-async function loadDataFromServer(forceRefresh = false) {
-    statusDiv.className = 'loading';
-    statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS EN TIEMPO REAL...';
-    dataStats.innerHTML = '<i class="fas fa-bolt"></i> Conectando con Sheets API...';
-    
-    try {
-        const serverData = await dataService.getRealTimeData();
-        handleDataLoadSuccess(serverData);
-    } catch (error) {
-        handleDataLoadError(error);
-    }
+function loadDataFromServer() {
+  statusDiv.className = 'loading';
+  statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
+  dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con el servidor...';
+  
+  // Usamos fetch para obtener los datos del servidor
+  fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(serverData => handleDataLoadSuccess(serverData))
+    .catch(error => handleDataLoadError(error));
 }
 
 function handleDataLoadSuccess(serverData) {
-    database = serverData;
+  if (serverData && serverData.success && serverData.data) {
+    database = serverData.data;
     dataLoaded = true;
+    cacheData(database);
     
-    // NO USAR CACHE - eliminamos cacheData()
-    
+    // Actualizar UI de estado
     statusDiv.className = 'ready';
     statusDiv.innerHTML = `
-        <i class="fas fa-bolt"></i> SISTEMA LISTO - TIEMPO REAL
+      <i class="fas fa-check-circle"></i> SISTEMA LISTO
     `;
     dataStats.innerHTML = `
-        <i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}
+      <i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}
     `;
     
     // Mostrar contenido principal
     resultsDiv.innerHTML = `
-        <div class="result-item" style="text-align: center; color: var(--gray);">
-            <div style="text-align: center;">
-                <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
-            </div>
-            <h1 style="margin: 0;">PandaDash</h1>
-            <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
-                <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
-                <p style="margin: 2px 0;">
-                    Supported by 
-                    <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
-                        GrupoTDM
-                    </a>
-                </p>
-                <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
-                    <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
-                    <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
-                    <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
-                </div>
-            </div>
+      <div class="result-item" style="text-align: center; color: var(--gray);">
+        <div style="text-align: center;">
+          <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
         </div>
+        <h1 style="margin: 0;">PandaDash</h1>
+        <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
+          <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
+          <p style="margin: 2px 0;">
+            Supported by 
+            <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
+              GrupoTDM
+            </a>
+          </p>
+          <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
+            <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
+            <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
+            <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
+          </div>
+        </div>
+      </div>
     `;
     
     hideLoadingScreen();
     playSuccessSound();
+  } else {
+    handleDataLoadError(new Error('Formato de datos incorrecto'));
+  }
 }
 
 function handleDataLoadError(error) {
@@ -561,44 +560,37 @@ function parseQRCode(code) {
 
 // Procesa las partes del código QR y muestra los resultados
 function processQRCodeParts(parts) {
-    const { documento, nit } = parts;
+  const { documento, nit } = parts;
+  
+  // Buscar un registro que coincida con el documento
+  const result = database.find(item => 
+    item.documento && item.documento.toString() === documento
+  );
+  
+  if (result) {
+    // Filtramos los datosSiesa para mostrar solo los que coinciden con el NIT
+    const filteredItem = JSON.parse(JSON.stringify(result));
     
-    console.log(`🔍 Buscando documento: ${documento}, NIT: ${nit}`);
-    
-    // Buscar por documento (que ahora es la factura)
-    const result = database.find(item => {
-        console.log(`Comparando: ${item.documento} con ${documento}`);
-        return item.documento && item.documento.toString() === documento;
-    });
-    
-    if (result) {
-        console.log(`✅ Documento encontrado: ${result.documento}`);
+    if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
+      // Filtramos por NIT en lugar de por cliente
+      filteredItem.datosSiesa = filteredItem.datosSiesa.filter(siesa => {
+        // Extraemos solo dígitos del NIT para comparar (por si acaso viene con formato)
+        const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
+        const scanNitDigits = nit.replace(/\D/g, '');
         
-        // Filtrar datosSiesa por NIT
-        const filteredItem = JSON.parse(JSON.stringify(result));
-        
-        if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
-            filteredItem.datosSiesa = filteredItem.datosSiesa.filter(siesa => {
-                const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
-                const scanNitDigits = nit.replace(/\D/g, '');
-                
-                console.log(`Comparando NITs: ${siesaNitDigits} con ${scanNitDigits}`);
-                return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
-            });
-            
-            console.log(`📋 Facturas después de filtrar por NIT: ${filteredItem.datosSiesa.length}`);
-            displayFullResult(filteredItem, parts);
-            playSuccessSound();
-        } else {
-            console.log(`ℹ️ No hay datosSiesa para filtrar`);
-            displayFullResult(filteredItem, parts);
-            playSuccessSound();
-        }
+        return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
+      });
+      
+      displayFullResult(filteredItem, parts);
+      playSuccessSound();
     } else {
-        console.log(`❌ Documento no encontrado: ${documento}`);
-        showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
-        playErrorSound();
+      displayFullResult(filteredItem, parts);
+      playSuccessSound();
     }
+  } else {
+    showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
+    playErrorSound();
+  }
 }
 
 function displayFullResult(item, qrParts) {
@@ -619,111 +611,148 @@ function displayFullResult(item, qrParts) {
 }
 
 function displayItemData(data, title = 'Datos', qrParts) {
-    let html = `<div class="siesa-header">${title} <span class="timestamp">${new Date().toLocaleString()}</span></div>`;
+  let html = `<div class="siesa-header">${title} <span class="timestamp">${new Date().toLocaleString()}</span></div>`;
+  
+  // Asegurar que se muestra el lote en primer lugar, seguido de otras propiedades
+  // Orden de propiedades: documento, lote, referencia, y luego el resto
+  const ordenPropiedades = ['documento', 'lote', 'referencia'];
+  
+  // Mostrar primero las propiedades prioritarias en el orden deseado
+  ordenPropiedades.forEach(propKey => {
+    if (propKey in data && propKey !== 'datosSiesa') {
+      html += `
+        <div class="result-row">
+          <div class="col-header">${formatKey(propKey)}:</div>
+          <div class="json-value">${formatValue(data[propKey], propKey)}</div>
+        </div>
+      `;
+    }
+  });
+  
+  // Mostrar el resto de propiedades que no están en la lista de prioridad
+  for (const key in data) {
+    if (key === 'datosSiesa' || ordenPropiedades.includes(key)) continue;
     
-    // Orden de propiedades: documento, lote, referencia, y luego el resto
-    const ordenPropiedades = ['documento', 'lote', 'referencia'];
-    
-    // Mostrar primero las propiedades prioritarias
-    ordenPropiedades.forEach(propKey => {
-        if (propKey in data && propKey !== 'datosSiesa') {
-            html += `
-                <div class="result-row">
-                    <div class="col-header">${formatKey(propKey)}:</div>
-                    <div class="json-value">${formatValue(data[propKey], propKey)}</div>
-                </div>
-            `;
-        }
-    });
-    
-    // Mostrar el resto de propiedades
-    for (const key in data) {
-        if (key === 'datosSiesa' || ordenPropiedades.includes(key)) continue;
+    html += `
+      <div class="result-row">
+        <div class="col-header">${formatKey(key)}:</div>
+        <div class="json-value">${formatValue(data[key], key)}</div>
+      </div>
+    `;
+  }
+  
+  // Mostrar datosSiesa si existen
+  if (data.datosSiesa && Array.isArray(data.datosSiesa)) {
+    if (data.datosSiesa.length === 0) {
+      html += `<div class="no-data" style="padding: 15px; text-align: center;"><i class="fas fa-search"></i> No hay registros que coincidan con el NIT escaneado</div>`;
+    } else {
+      html += `<div class="siesa-header">Documentos Relacionados <span class="badge badge-success">${data.datosSiesa.length} registros</span></div>`;
+      
+      data.datosSiesa.forEach((siesa, index) => {
+        const estadoBadge = siesa.estado === 'Aprobadas' ? 'badge-success' : 'badge-warning';
         
-        html += `
+        html += `<div class="siesa-item">`;
+        html += `<div class="siesa-header">Factura #${index + 1} <span class="badge ${estadoBadge}">${siesa.estado || 'Sin estado'}</span></div>`;
+        
+        // Orden preferido para propiedades de datosSiesa
+        const ordenSiesaPropiedades = ['factura', 'nit', 'lote', 'referencia', 'cantidad', 'estado', 'cliente', 'valorBruto', 'fecha', 'proovedor'];
+        
+        // Mostrar propiedades en el orden preferido
+        ordenSiesaPropiedades.forEach(propKey => {
+          if (propKey in siesa) {
+            html += `
+              <div class="result-row">
+                <div class="col-header">${formatKey(propKey)}:</div>
+                <div class="json-value">${formatValue(siesa[propKey], propKey)}</div>
+              </div>
+            `;
+          }
+        });
+        
+        // Mostrar cualquier propiedad adicional que no esté en la lista ordenada
+        for (const key in siesa) {
+          if (ordenSiesaPropiedades.includes(key)) continue;
+          
+          html += `
             <div class="result-row">
-                <div class="col-header">${formatKey(key)}:</div>
-                <div class="json-value">${formatValue(data[key], key)}</div>
+              <div class="col-header">${formatKey(key)}:</div>
+              <div class="json-value">${formatValue(siesa[key], key)}</div>
             </div>
-        `;
-    }
-    
-    // Mostrar datosSiesa si existen
-    if (data.datosSiesa && Array.isArray(data.datosSiesa)) {
-        if (data.datosSiesa.length === 0) {
-            html += `<div class="no-data" style="padding: 15px; text-align: center;"><i class="fas fa-search"></i> No hay registros que coincidan con el NIT escaneado</div>`;
-        } else {
-            html += `<div class="siesa-header">Documentos Relacionados <span class="badge badge-success">${data.datosSiesa.length} registros</span></div>`;
-            
-            data.datosSiesa.forEach((siesa, index) => {
-                const estadoBadge = siesa.estado === 'Aprobadas' ? 'badge-success' : 'badge-warning';
-                
-                html += `<div class="siesa-item">`;
-                html += `<div class="siesa-header">Factura #${index + 1} <span class="badge ${estadoBadge}">${siesa.estado || 'Sin estado'}</span></div>`;
-                
-                // Orden preferido para propiedades de datosSiesa
-                const ordenSiesaPropiedades = ['factura', 'nit', 'lote', 'referencia', 'cantidad', 'estado', 'cliente', 'valorBruto', 'fecha', 'proovedor', 'confirmacion'];
-                
-                // Mostrar propiedades en el orden preferido
-                ordenSiesaPropiedades.forEach(propKey => {
-                    if (propKey in siesa && siesa[propKey] !== '') {
-                        html += `
-                            <div class="result-row">
-                                <div class="col-header">${formatKey(propKey)}:</div>
-                                <div class="json-value">${formatValue(siesa[propKey], propKey)}</div>
-                            </div>
-                        `;
-                    }
-                });
-                
-                // Mostrar cualquier propiedad adicional
-                for (const key in siesa) {
-                    if (ordenSiesaPropiedades.includes(key) || siesa[key] === '') continue;
-                    
-                    html += `
-                        <div class="result-row">
-                            <div class="col-header">${formatKey(key)}:</div>
-                            <div class="json-value">${formatValue(siesa[key], key)}</div>
-                        </div>
-                    `;
-                }
-                
-                // LÓGICA DE CONFIRMACIÓN - CORREGIDA
-                if (siesa.confirmacion && siesa.confirmacion === "ENTREGADO") { 
-                    html += `
-                        <div class="action-buttons">
-                            <div style="background-color: #28a745; color: white; text-align: center; padding: 12px 20px; border-radius: 8px; font-weight: 500; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-                                <i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    html += `
-                        <div class="action-buttons">
-                            <button class="delivery-btn" 
-                                data-factura="${siesa.factura}"
-                                style="height: 48px; padding: 12px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px;"
-                                onclick="procesarEntrega(
-                                    '${data.documento}', 
-                                    '${siesa.lote || data.lote}', 
-                                    '${siesa.referencia}', 
-                                    '${siesa.cantidad}', 
-                                    '${siesa.factura}', 
-                                    '${siesa.nit || qrParts.nit}', 
-                                    this
-                                )">
-                                <i class="fas fa-truck"></i> CONFIRMAR ENTREGA
-                            </button>
-                        </div>
-                    `;
-                }
-                
-                html += `</div>`;
-            });
+          `;
         }
+        
+        // Verifica el estado de confirmación
+        if (siesa.confirmacion && siesa.confirmacion.trim() === "ENTREGADO") { 
+          // Si ya está entregado, mostrar mensaje sin botón
+          html += `
+            <div class="action-buttons">
+              <div style="background-color: #28a745; color: white; text-align: center; padding: 12px 20px; border-radius: 8px; font-weight: 500; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA
+              </div>
+            </div>
+          `;
+        } else if (siesa.confirmacion && siesa.confirmacion.includes("PENDIENTE FACTURA")) {
+          // Caso pendiente factura - verificar si tiene número de factura
+          const tieneFactura = siesa.factura && siesa.factura.trim() !== "";
+          
+          if (tieneFactura) {
+            // Si tiene factura, mostrar botón para asentar
+            html += `
+              <div class="action-buttons">
+                <button class="delivery-btn" 
+                  data-factura="${siesa.factura}"
+                  style="background-color: #f8961e; height: 48px; padding: 12px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px;"
+                  onclick="asentarFactura(
+                    '${data.documento}', 
+                    '${siesa.lote || data.lote}', 
+                    '${siesa.referencia}', 
+                    '${siesa.cantidad}', 
+                    '${siesa.factura}', 
+                    '${siesa.nit || qrParts.nit}', 
+                    this
+                  )">
+                  <i class="fas fa-file-invoice"></i> ASENTAR FACTURA
+                </button>
+              </div>
+            `;
+          } else {
+            // Si no tiene factura, mostrar solo mensaje (no botón)
+            html += `
+              <div class="action-buttons">
+                <div style="background-color: #6c757d; color: white; text-align: center; padding: 12px 20px; border-radius: 8px; font-weight: 500; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                  <i class="fas fa-clock"></i> PENDIENTE FACTURA
+                </div>
+              </div>
+            `;
+          }
+        } else {
+          // Caso normal - confirmar entrega
+          html += `
+            <div class="action-buttons">
+              <button class="delivery-btn" 
+                data-factura="${siesa.factura}"
+                style="height: 48px; padding: 12px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px;"
+                onclick="procesarEntrega(
+                  '${data.documento}', 
+                  '${siesa.lote || data.lote}', 
+                  '${siesa.referencia}', 
+                  '${siesa.cantidad}', 
+                  '${siesa.factura}', 
+                  '${siesa.nit || qrParts.nit}', 
+                  this
+                )">
+                <i class="fas fa-truck"></i> CONFIRMAR ENTREGA
+              </button>
+            </div>
+          `;
+        }
+        
+        html += `</div>`;
+      });
     }
-    
-    return html;
+  }
+  
+  return html;
 }
 
 function formatKey(key) {
