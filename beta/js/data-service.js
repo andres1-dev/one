@@ -1,4 +1,4 @@
-// Servicio de datos con Sheets API v4
+// Servicio de datos con Sheets API v4 - CORREGIDO
 class DataService {
     constructor() {
         this.API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
@@ -13,13 +13,11 @@ class DataService {
         try {
             console.log('🔄 Obteniendo datos en tiempo real...');
             
-            // Obtener datos de ambas fuentes simultáneamente
             const [siesaData, soportesData] = await Promise.all([
                 this.getSiesaData(),
                 this.getSoportesData()
             ]);
 
-            // Procesar y combinar datos
             const processedData = this.processData(siesaData, soportesData);
             
             this.currentData = processedData;
@@ -83,7 +81,7 @@ class DataService {
         return data.values || [];
     }
 
-    // Procesar y combinar datos (basado en la lógica del GAS)
+    // Procesar y combinar datos (CORREGIDO)
     processData(siesaData, soportesData) {
         const { siesa, siesaV2 } = siesaData;
         
@@ -118,7 +116,7 @@ class DataService {
     }
 
     processSoportes(soportesData) {
-        if (soportesData.length <= 1) return {};
+        if (!soportesData || soportesData.length <= 1) return {};
         
         const headers = soportesData[0];
         const facturaIndex = headers.indexOf("Factura");
@@ -126,23 +124,24 @@ class DataService {
         const urlIndex = headers.indexOf("Url_Ih3");
         
         if (facturaIndex === -1 || registroIndex === -1 || urlIndex === -1) {
-            throw new Error("Columnas requeridas no encontradas en SOPORTES");
+            console.warn("Columnas requeridas no encontradas en SOPORTES");
+            return {};
         }
         
         const soportesPorFactura = {};
         
         for (let i = 1; i < soportesData.length; i++) {
             const row = soportesData[i];
-            if (row.length > Math.max(facturaIndex, registroIndex, urlIndex)) {
+            if (row && row.length > Math.max(facturaIndex, registroIndex, urlIndex)) {
                 const factura = row[facturaIndex];
                 const registro = row[registroIndex];
                 const url = row[urlIndex];
                 
-                if (factura) {
+                if (factura && factura.trim() !== '') {
                     if (!soportesPorFactura[factura]) {
                         soportesPorFactura[factura] = [];
                     }
-                    if (registro) {
+                    if (registro && registro.trim() !== '') {
                         soportesPorFactura[factura].push({
                             registro: registro.trim(),
                             url: url || ''
@@ -158,11 +157,13 @@ class DataService {
     processComplementarios(siesaV2) {
         const complementData = {};
         
+        if (!siesaV2 || siesaV2.length <= 1) return complementData;
+        
         for (let i = 1; i < siesaV2.length; i++) {
             const row = siesaV2[i];
-            if (row.length >= 3) {
+            if (row && row.length >= 3) {
                 const key = row[0];
-                if (key) {
+                if (key && key.trim() !== '') {
                     if (!complementData[key]) {
                         complementData[key] = {
                             sumValue1: parseFloat(row[1]) || 0,
@@ -186,9 +187,13 @@ class DataService {
     processDatosPrincipales(dataSiesa, soportesPorFactura, datosComplementarios, clientesEspecificos, estadosExcluir, prefijosValidos) {
         const resultados = [];
         
+        if (!dataSiesa || dataSiesa.length <= 1) return resultados;
+        
         const normalizarCliente = nombre => (nombre || '').replace(/S\.A\.S\.?/g, 'SAS').replace(/\s+/g, ' ').trim();
         
         const esClienteValido = (nombreCliente, listaClientes) => {
+            if (!nombreCliente) return false;
+            
             const clienteNormalizado = normalizarCliente(nombreCliente);
             
             // Buscar coincidencia exacta primero
@@ -202,8 +207,8 @@ class DataService {
             return listaClientes.some(c => {
                 const clienteListaNormalizado = normalizarCliente(c.nombre);
                 
-                const palabrasCliente = clienteNormalizado.split(' ');
-                const palabrasLista = clienteListaNormalizado.split(' ');
+                const palabrasCliente = clienteNormalizado.split(' ').filter(w => w.length > 0);
+                const palabrasLista = clienteListaNormalizado.split(' ').filter(w => w.length > 0);
                 
                 if (palabrasCliente.length > 2 && palabrasLista.length > 2) {
                     const primerosDosCliente = palabrasCliente.slice(0, 2).join(' ');
@@ -217,15 +222,20 @@ class DataService {
         };
         
         const formatearFecha = fechaStr => {
-            const partes = (fechaStr || '').split('/');
+            if (!fechaStr) return '';
+            const partes = fechaStr.split('/');
             return partes.length === 3 ? `${partes[1]}/${partes[0]}/${partes[2]}` : fechaStr;
         };
         
         const extraerSoloFecha = fechaHoraStr => (fechaHoraStr || '').split(' ')[0];
         
-        const tienePrefijoValido = valor => prefijosValidos.some(p => (valor || '').toUpperCase().startsWith(p));
+        const tienePrefijoValido = valor => {
+            if (!valor) return false;
+            return prefijosValidos.some(p => valor.toUpperCase().startsWith(p));
+        };
         
         const obtenerNitCliente = nombre => {
+            if (!nombre) return '';
             const clienteNormalizado = normalizarCliente(nombre);
             const cliente = clientesEspecificos.find(c => normalizarCliente(c.nombre) === clienteNormalizado);
             return cliente ? cliente.nit : '';
@@ -233,11 +243,11 @@ class DataService {
         
         for (let i = 1; i < dataSiesa.length; i++) {
             const row = dataSiesa[i];
-            if (row.length < 7) continue;
+            if (!row || row.length < 7) continue;
             
-            const estado = row[0] || '';
-            const factura = row[1] || '';
-            const nombreClienteOriginal = row[3] || '';
+            const estado = (row[0] || '').trim();
+            const factura = (row[1] || '').trim();
+            const nombreClienteOriginal = (row[3] || '').trim();
             
             // Aplicar filtros
             if (estadosExcluir.includes(estado)) continue;
@@ -245,11 +255,11 @@ class DataService {
             if (!esClienteValido(nombreClienteOriginal, clientesEspecificos)) continue;
             
             // Procesar datos según estructura
-            const col6Value = row[6] || '';
+            const col6Value = (row[6] || '').trim();
             let selectedValue = '';
             
-            if (col6Value == "5" && row.length > 4) selectedValue = row[4] || '';
-            if (col6Value == "3" && row.length > 5) selectedValue = row[5] || '';
+            if (col6Value == "5" && row.length > 4) selectedValue = (row[4] || '').trim();
+            if (col6Value == "3" && row.length > 5) selectedValue = (row[5] || '').trim();
             
             const complementData = datosComplementarios[factura] || { 
                 sumValue1: 0, value2Items: [], sumValue3: 0, count: 0 
@@ -274,8 +284,12 @@ class DataService {
             if (col6Value == "5") proveedor = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
             if (col6Value == "3") proveedor = "TEXTILES Y CREACIONES LOS ANGELES SAS";
             
+            // AGREGAR CAMPO DOCUMENTO CRÍTICO PARA EL QR
+            const documento = factura; // Usar la factura como documento para el QR
+            
             // Agregar resultado
             resultados.push({
+                documento: documento, // CAMPO CRÍTICO PARA EL QR
                 estado: estado,
                 factura: factura,
                 fecha: formatearFecha(row[2] || ''),
@@ -288,11 +302,26 @@ class DataService {
                 cantidad: complementData.sumValue3,
                 nit: obtenerNitCliente(nombreClienteOriginal),
                 fechaEntrega: fechaEntrega,
-                confirmacion: confirmacion, // NUEVO CAMPO CRÍTICO
-                soportes: soportes
+                confirmacion: confirmacion,
+                soportes: soportes,
+                // Para compatibilidad con el código existente
+                datosSiesa: [{
+                    factura: factura,
+                    nit: obtenerNitCliente(nombreClienteOriginal),
+                    lote: selectedValue,
+                    referencia: referencia,
+                    cantidad: complementData.sumValue3,
+                    estado: estado,
+                    cliente: normalizarCliente(nombreClienteOriginal),
+                    valorBruto: complementData.sumValue1,
+                    fecha: formatearFecha(row[2] || ''),
+                    proovedor: proveedor,
+                    confirmacion: confirmacion
+                }]
             });
         }
         
+        console.log(`📊 Registros procesados: ${resultados.length}`);
         return resultados;
     }
 
@@ -305,6 +334,11 @@ class DataService {
     // Obtener datos de una factura específica
     getFacturaData(factura) {
         return this.currentData.find(item => item.factura === factura);
+    }
+
+    // Buscar por documento (para el QR)
+    findByDocumento(documento) {
+        return this.currentData.find(item => item.documento === documento);
     }
 
     // Obtener tiempo desde última actualización
