@@ -19,6 +19,7 @@
   --border-radius: 8px;
   --box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   --transition: all 0.3s ease;
+  --white: #ffffff;
 }
 
 * {
@@ -39,7 +40,7 @@ body {
   font-family: 'Roboto', sans-serif;
   margin: 0;
   padding: 0;
-  background: var(--bg-color);
+  background: var(--white);
   color: var(--dark);
   touch-action: manipulation;
   -webkit-touch-callout: none;
