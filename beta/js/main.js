@@ -241,55 +241,113 @@ function clearOldCache() {
 }
 
 function setupEventListeners() {
-  // Foco persistente excepto cuando la cámara está abierta
-  function enforceFocus() {
-    // Solo aplicar foco si la cámara no está abierta
-    if (document.activeElement !== barcodeInput && 
-        document.getElementById('cameraModal').style.display !== 'flex') {
-      barcodeInput.focus();
-    }
-    setTimeout(enforceFocus, 100);
-  }
-  enforceFocus();
+  // Prevenir focus en el input
+  const barcodeInput = document.getElementById('barcode');
   
-  // Detector para deshabilitar el teclado virtual en dispositivos móviles
-  document.addEventListener('touchstart', function(e) {
-    if (document.getElementById('cameraModal').style.display === 'flex' && 
-        e.target.tagName !== 'BUTTON') {
-      e.preventDefault();
-      if (document.activeElement) {
-        document.activeElement.blur();
-      }
+  // Bloquear completamente el teclado virtual pero permitir escaneo láser
+  barcodeInput.addEventListener('focus', (e) => {
+    e.preventDefault();
+    barcodeInput.blur();
+    
+    // Solo mostrar mensaje si es un toque directo
+    if (!window.isProgrammaticFocus) {
+      setTimeout(() => {
+        barcodeInput.blur();
+      }, 100);
     }
-  }, { passive: false });
-  
-  // Detectar escaneo
-  barcodeInput.addEventListener('input', function() {
-    const code = this.value.trim();
-    if (code.length < 5) return; // Un código válido debe tener al menos 5 caracteres
-    
-    // Analizar el formato del código: DOCUMENTO-NIT
-    const parts = parseQRCode(code);
-    
-    if (parts) {
-      currentQRParts = parts; // Guardar las partes para uso posterior
-      const startTime = Date.now();
-      processQRCodeParts(parts);
-      const searchTime = Date.now() - startTime;
-      
-      statusDiv.className = 'processed';
-      statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
-    } else {
-      showError(code, "Formato de código QR no válido. Use formato: DOCUMENTO-NIT");
-      playErrorSound();
-      statusDiv.textContent = `FORMATO INVÁLIDO`;
-    }
-    
-    setTimeout(() => {
-      this.value = '';
-      this.focus();
-    }, 50);
   });
+
+  // Permitir escaneo láser - el input sigue funcionando para recibir datos
+  barcodeInput.addEventListener('input', function(e) {
+    const code = this.value.trim();
+    if (code.length >= 3) {
+      processBarcodeInput(code);
+    }
+  });
+
+  // Botón de cámara flotante
+  document.getElementById('cameraToggleBtn').addEventListener('click', function() {
+    if (barcodeInput.readOnly) {
+      // Activar entrada manual temporal
+      barcodeInput.readOnly = false;
+      barcodeInput.classList.remove('readonly');
+      barcodeInput.placeholder = "Modo manual activado - Escribe o escanea";
+      this.classList.add('active');
+      this.title = "Desactivar entrada manual";
+      
+      // Auto-desactivar después de 30 segundos
+      setTimeout(() => {
+        if (!barcodeInput.matches(':focus')) {
+          barcodeInput.readOnly = true;
+          barcodeInput.classList.add('readonly');
+          barcodeInput.placeholder = "Escanea un código QR";
+          this.classList.remove('active');
+          this.title = "Activar entrada manual";
+        }
+      }, 30000);
+    } else {
+      // Desactivar entrada manual
+      barcodeInput.readOnly = true;
+      barcodeInput.classList.add('readonly');
+      barcodeInput.placeholder = "Escanea un código QR";
+      this.classList.remove('active');
+      this.title = "Activar entrada manual";
+      barcodeInput.blur();
+    }
+  });
+
+  // Foco persistente pero controlado
+  function enforceControlledFocus() {
+    if (document.activeElement !== barcodeInput && 
+        document.getElementById('cameraModal').style.display !== 'flex' &&
+        barcodeInput.readOnly) {
+      // Solo hacer focus programáticamente, no por interacción del usuario
+      window.isProgrammaticFocus = true;
+      barcodeInput.focus();
+      setTimeout(() => {
+        window.isProgrammaticFocus = false;
+      }, 100);
+    }
+    setTimeout(enforceControlledFocus, 500);
+  }
+  enforceControlledFocus();
+}
+
+// Función mejorada para procesar input de barcode
+function processBarcodeInput(code) {
+  if (!code || code.length < 3) return;
+  
+  console.log("Procesando código:", code);
+  
+  // Normalizar código
+  const cleanCode = code.trim().toUpperCase();
+  
+  // Procesar el código
+  const parts = parseQRCode(cleanCode);
+  
+  if (parts) {
+    currentQRParts = parts;
+    const startTime = Date.now();
+    processQRCodeParts(parts);
+    const searchTime = Date.now() - startTime;
+    
+    statusDiv.className = 'processed';
+    statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
+    
+    // Limpiar input después de procesamiento exitoso
+    setTimeout(() => {
+      barcodeInput.value = '';
+    }, 100);
+    
+    playSuccessSound();
+  } else {
+    // Si no es un formato reconocido, mantener el valor para edición manual
+    statusDiv.className = 'error';
+    statusDiv.textContent = 'FORMATO NO RECONOCIDO';
+    playErrorSound();
+    
+    // No limpiar el input para permitir corrección manual
+  }
 }
 
 // Función para analizar el código QR
