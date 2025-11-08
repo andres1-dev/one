@@ -1,4 +1,14 @@
-// QR Scanner functionality with QuaggaJS
+// QR Scanner functionality with QuaggaJS - ELIMINAR "class QRScanner" de aquí
+// Mover toda la clase al final del archivo
+
+// Inicializar escáner QR - ESTO DEBE IR AL FINAL
+function initializeQRScanner() {
+  console.log('🎯 Inicializando escáner QR/Barcode...');
+  qrScanner = new QRScanner();
+  return qrScanner;
+}
+
+// Clase QRScanner - MOVER AL FINAL
 class QRScanner {
   constructor() {
     this.isScanning = false;
@@ -10,37 +20,57 @@ class QRScanner {
 
   initEventListeners() {
     // Botón para abrir escáner QR
-    document.getElementById('qrScannerBtn').addEventListener('click', () => {
-      this.openQRScanner();
-    });
+    const qrScannerBtn = document.getElementById('qrScannerBtn');
+    if (qrScannerBtn) {
+      qrScannerBtn.addEventListener('click', () => {
+        this.openQRScanner();
+      });
+    }
 
     // Botón para cerrar escáner QR
-    document.getElementById('closeQrScanner').addEventListener('click', () => {
-      this.closeQRScanner();
-    });
+    const closeQrScanner = document.getElementById('closeQrScanner');
+    if (closeQrScanner) {
+      closeQrScanner.addEventListener('click', () => {
+        this.closeQRScanner();
+      });
+    }
 
     // Botón de linterna
-    document.getElementById('toggleTorchBtn').addEventListener('click', () => {
-      this.toggleTorch();
-    });
+    const toggleTorchBtn = document.getElementById('toggleTorchBtn');
+    if (toggleTorchBtn) {
+      toggleTorchBtn.addEventListener('click', () => {
+        this.toggleTorch();
+      });
+    }
 
     // Botón de cambiar cámara
-    document.getElementById('switchCameraBtn').addEventListener('click', () => {
-      this.switchCamera();
-    });
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
+    if (switchCameraBtn) {
+      switchCameraBtn.addEventListener('click', () => {
+        this.switchCamera();
+      });
+    }
 
     // Cerrar al hacer clic fuera
-    document.getElementById('qrScannerModal').addEventListener('click', (e) => {
-      if (e.target.id === 'qrScannerModal') {
-        this.closeQRScanner();
-      }
-    });
+    const qrScannerModal = document.getElementById('qrScannerModal');
+    if (qrScannerModal) {
+      qrScannerModal.addEventListener('click', (e) => {
+        if (e.target.id === 'qrScannerModal') {
+          this.closeQRScanner();
+        }
+      });
+    }
   }
 
   async openQRScanner() {
     console.log('📷 Abriendo escáner QR/Barcode...');
     const modal = document.getElementById('qrScannerModal');
     const scannerStatus = document.getElementById('scannerStatus');
+    
+    if (!modal || !scannerStatus) {
+      console.error('❌ Elementos del escáner no encontrados');
+      return;
+    }
     
     modal.style.display = 'flex';
     scannerStatus.textContent = 'Preparando cámara...';
@@ -71,9 +101,9 @@ class QRScanner {
       
       // Mostrar botón de cambiar cámara solo si hay más de una
       const switchBtn = document.getElementById('switchCameraBtn');
-      if (this.cameras.length > 1) {
+      if (this.cameras.length > 1 && switchBtn) {
         switchBtn.classList.add('available');
-      } else {
+      } else if (switchBtn) {
         switchBtn.classList.remove('available');
       }
       
@@ -84,11 +114,17 @@ class QRScanner {
 
   initializeQuagga() {
     return new Promise((resolve, reject) => {
+      const interactiveElement = document.querySelector('#interactive');
+      if (!interactiveElement) {
+        reject(new Error('Elemento #interactive no encontrado'));
+        return;
+      }
+
       Quagga.init({
         inputStream: {
           name: "Live",
           type: "LiveStream",
-          target: document.querySelector('#interactive'),
+          target: interactiveElement,
           constraints: {
             facingMode: this.currentCamera,
             width: { min: 640 },
@@ -105,8 +141,7 @@ class QRScanner {
             "codabar_reader",
             "upc_reader",
             "upc_e_reader",
-            "i2of5_reader",
-            "qrcode_reader"  // QR code support
+            "i2of5_reader"
           ]
         },
         locate: true,
@@ -136,7 +171,7 @@ class QRScanner {
     const drawingCtx = Quagga.canvas.ctx.overlay;
     const drawingCanvas = Quagga.canvas.dom.overlay;
 
-    if (result) {
+    if (result && drawingCtx && drawingCanvas) {
       if (result.boxes) {
         drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
         result.boxes.filter(box => box !== result.box).forEach(box => {
@@ -170,27 +205,33 @@ class QRScanner {
 
   processDetectedCode(code) {
     const scannerStatus = document.getElementById('scannerStatus');
-    scannerStatus.textContent = 'Código detectado!';
-    scannerStatus.style.color = '#28a745';
+    if (scannerStatus) {
+      scannerStatus.textContent = 'Código detectado!';
+      scannerStatus.style.color = '#28a745';
+    }
     
     // Feedback visual
     const modal = document.getElementById('qrScannerModal');
-    modal.classList.add('scanning-active');
+    if (modal) {
+      modal.classList.add('scanning-active');
+    }
     
     // Sonido de éxito
-    playSuccessSound();
+    if (typeof playSuccessSound === 'function') {
+      playSuccessSound();
+    }
     
     // Mostrar el código detectado brevemente antes de cerrar
     setTimeout(() => {
       this.closeQRScanner();
       
       // Insertar el código en el input y procesarlo
-      if (barcodeInput) {
-        barcodeInput.value = code;
+      if (window.barcodeInput) {
+        window.barcodeInput.value = code;
         
         // Disparar evento de input para procesar automáticamente
         const inputEvent = new Event('input', { bubbles: true });
-        barcodeInput.dispatchEvent(inputEvent);
+        window.barcodeInput.dispatchEvent(inputEvent);
       }
       
       // Feedback en el estado principal
@@ -200,22 +241,26 @@ class QRScanner {
   }
 
   showDetectionFeedback(code) {
-    const originalBackground = statusDiv.style.backgroundColor;
-    const originalHTML = statusDiv.innerHTML;
+    if (!window.statusDiv) return;
     
-    statusDiv.style.backgroundColor = '#28a745';
-    statusDiv.innerHTML = `<i class="fas fa-check-circle"></i> CÓDIGO DETECTADO: ${code.substring(0, 15)}...`;
+    const originalBackground = window.statusDiv.style.backgroundColor;
+    const originalHTML = window.statusDiv.innerHTML;
+    
+    window.statusDiv.style.backgroundColor = '#28a745';
+    window.statusDiv.innerHTML = `<i class="fas fa-check-circle"></i> CÓDIGO DETECTADO: ${code.substring(0, 15)}...`;
     
     setTimeout(() => {
-      if (statusDiv) {
-        statusDiv.style.backgroundColor = originalBackground;
-        statusDiv.innerHTML = originalHTML;
+      if (window.statusDiv) {
+        window.statusDiv.style.backgroundColor = originalBackground;
+        window.statusDiv.innerHTML = originalHTML;
       }
     }, 3000);
   }
 
   showScannerError(message) {
     const scannerStatus = document.getElementById('scannerStatus');
+    if (!scannerStatus) return;
+    
     scannerStatus.innerHTML = `<span style="color: #dc3545;">❌ ${message}</span>`;
     
     // Agregar botón de reintento
@@ -241,12 +286,14 @@ class QRScanner {
           this.torchEnabled = !this.torchEnabled;
           
           const torchBtn = document.getElementById('toggleTorchBtn');
-          if (this.torchEnabled) {
-            torchBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Apagar Linterna';
-            torchBtn.style.backgroundColor = '#f8961e';
-          } else {
-            torchBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Linterna';
-            torchBtn.style.backgroundColor = '';
+          if (torchBtn) {
+            if (this.torchEnabled) {
+              torchBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Apagar Linterna';
+              torchBtn.style.backgroundColor = '#f8961e';
+            } else {
+              torchBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Linterna';
+              torchBtn.style.backgroundColor = '';
+            }
           }
         } else {
           this.showScannerError('Linterna no disponible en este dispositivo');
@@ -276,7 +323,9 @@ class QRScanner {
       this.isScanning = true;
       
       const scannerStatus = document.getElementById('scannerStatus');
-      scannerStatus.textContent = `Cámara ${this.currentCamera === 'environment' ? 'trasera' : 'frontal'} activada`;
+      if (scannerStatus) {
+        scannerStatus.textContent = `Cámara ${this.currentCamera === 'environment' ? 'trasera' : 'frontal'} activada`;
+      }
       
     } catch (error) {
       console.error('❌ Error cambiando cámara:', error);
@@ -294,30 +343,27 @@ class QRScanner {
     }
     
     const modal = document.getElementById('qrScannerModal');
-    modal.style.display = 'none';
-    modal.classList.remove('scanning-active');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('scanning-active');
+    }
     
     // Restaurar estado
     const scannerStatus = document.getElementById('scannerStatus');
-    scannerStatus.textContent = 'Preparando cámara...';
-    scannerStatus.style.color = '';
+    if (scannerStatus) {
+      scannerStatus.textContent = 'Preparando cámara...';
+      scannerStatus.style.color = '';
+    }
     
     const torchBtn = document.getElementById('toggleTorchBtn');
-    torchBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Linterna';
-    torchBtn.style.backgroundColor = '';
+    if (torchBtn) {
+      torchBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Linterna';
+      torchBtn.style.backgroundColor = '';
+    }
     this.torchEnabled = false;
     
     // Limpiar cualquier error
     const errorElements = document.querySelectorAll('.scanner-error');
     errorElements.forEach(el => el.remove());
   }
-}
-
-// Inicializar escáner QR
-let qrScanner;
-
-function initializeQRScanner() {
-  console.log('🎯 Inicializando escáner QR/Barcode...');
-  qrScanner = new QRScanner();
-  return qrScanner;
 }
