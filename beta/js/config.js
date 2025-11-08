@@ -19,6 +19,7 @@ let preventKeyboardTimer = null;
 let currentQRParts = null;
 let dataLoaded = false;
 let keyboardEnabled = false; // ← AGREGAR ESTA LÍNEA
+let qrScanner = null; // ← Agregar referencia al escáner
 
 // Constantes para la cola de carga - INTENTOS ILIMITADOS
 const UPLOAD_QUEUE_KEY = 'pdaUploadQueue';
