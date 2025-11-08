@@ -18,6 +18,165 @@ document.addEventListener('DOMContentLoaded', () => {
       e.target.blur();
     }
   });
+
+
+  // Funciones para deshabilitar completamente el teclado
+function disableKeyboardCompletely() {
+  // 1. Prevenir todos los eventos de teclado
+  document.addEventListener('keydown', preventAllKeyboardEvents, true);
+  document.addEventListener('keyup', preventAllKeyboardEvents, true);
+  document.addEventListener('keypress', preventAllKeyboardEvents, true);
+  
+  // 2. Prevenir eventos de focus en inputs
+  document.addEventListener('focusin', preventFocus, true);
+  
+  // 3. Prevenir eventos de touch que puedan abrir el teclado
+  document.addEventListener('touchstart', preventTouchKeyboard, true);
+  document.addEventListener('touchend', preventTouchKeyboard, true);
+  
+  // 4. Deshabilitar todos los inputs existentes
+  disableAllInputs();
+  
+  // 5. Observer para deshabilitar nuevos inputs que se creen dinámicamente
+  setupInputObserver();
+  
+  console.log("Teclado completamente deshabilitado");
+}
+
+function preventAllKeyboardEvents(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  return false;
+}
+
+function preventFocus(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.blur();
+    
+    // Forzar blur inmediatamente
+    setTimeout(() => {
+      if (document.activeElement === e.target) {
+        e.target.blur();
+      }
+    }, 0);
+  }
+}
+
+function preventTouchKeyboard(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.blur();
+  }
+}
+
+function disableAllInputs() {
+  // Deshabilitar todos los inputs y textareas
+  const inputs = document.querySelectorAll('input, textarea');
+  inputs.forEach(input => {
+    input.setAttribute('readonly', 'true');
+    input.setAttribute('disabled', 'true');
+    input.style.caretColor = 'transparent';
+    input.style.color = 'transparent';
+    input.style.textShadow = 'none';
+    
+    // Agregar event listeners adicionales
+    input.addEventListener('focus', (e) => {
+      e.preventDefault();
+      e.target.blur();
+    }, true);
+    
+    input.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.target.blur();
+    }, true);
+    
+    input.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.target.blur();
+    }, true);
+  });
+}
+
+function setupInputObserver() {
+  // Observer para detectar y deshabilitar nuevos inputs que se agreguen al DOM
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) { // Element node
+          if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
+            disableElement(node);
+          }
+          
+          // Buscar inputs dentro del nodo agregado
+          const inputs = node.querySelectorAll && node.querySelectorAll('input, textarea');
+          if (inputs) {
+            inputs.forEach(disableElement);
+          }
+        }
+      });
+    });
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+function disableElement(element) {
+  element.setAttribute('readonly', 'true');
+  element.setAttribute('disabled', 'true');
+  element.style.caretColor = 'transparent';
+  element.style.color = 'transparent';
+  element.style.textShadow = 'none';
+  
+  element.addEventListener('focus', (e) => {
+    e.preventDefault();
+    e.target.blur();
+  }, true);
+  
+  element.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.target.blur();
+  }, true);
+  
+  element.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    e.target.blur();
+  }, true);
+}
+
+// Función para el input de código de barras (permite solo escaneo)
+function setupBarcodeInput() {
+  const barcodeInput = document.getElementById('barcode');
+  if (!barcodeInput) return;
+  
+  // Hacerlo invisible pero funcional para escaneo
+  barcodeInput.style.opacity = '0';
+  barcodeInput.style.position = 'absolute';
+  barcodeInput.style.left = '-9999px';
+  barcodeInput.style.width = '1px';
+  barcodeInput.style.height = '1px';
+  barcodeInput.style.overflow = 'hidden';
+  
+  // Solo permitir input programático, no humano
+  barcodeInput.addEventListener('focus', (e) => {
+    e.preventDefault();
+    // No hacer blur aquí para permitir que reciba datos del escáner
+  });
+  
+  barcodeInput.addEventListener('click', (e) => {
+    e.preventDefault();
+  });
+  
+  barcodeInput.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+  });
+}
   
   // Manejar el cambio de orientación en dispositivos móviles
   window.addEventListener('orientationchange', function() {
@@ -235,11 +394,20 @@ function clearOldCache() {
   }
 }
 
+// Reemplazar la función setupEventListeners existente por esta:
 function setupEventListeners() {
-  // Foco persistente excepto cuando la cámara está abierta
+  // Deshabilitar teclado completamente
+  if (CONFIG.DISABLE_KEYBOARD) {
+    disableKeyboardCompletely();
+  }
+  
+  // Configurar input de código de barras especial
+  setupBarcodeInput();
+  
+  // Foco persistente para escaneo (pero invisible)
   function enforceFocus() {
-    // Solo aplicar foco si la cámara no está abierta
-    if (document.activeElement !== barcodeInput && 
+    const barcodeInput = document.getElementById('barcode');
+    if (barcodeInput && document.activeElement !== barcodeInput && 
         document.getElementById('cameraModal').style.display !== 'flex') {
       barcodeInput.focus();
     }
