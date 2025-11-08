@@ -2,8 +2,6 @@
 
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
-  initializeScanner();
-  
   // Inicializar la cola de carga
   initializeUploadQueue();
   
@@ -237,76 +235,57 @@ function clearOldCache() {
   }
 }
 
-// Función setupEventListeners actualizada:
 function setupEventListeners() {
-  const barcodeInput = document.getElementById('barcode');
-  
-  // Prevenir focus en el input pero permitir escaneo láser
-  barcodeInput.addEventListener('focus', (e) => {
-    e.preventDefault();
-    barcodeInput.blur();
-    
-    if (!window.isProgrammaticFocus) {
-      setTimeout(() => {
-        barcodeInput.blur();
-      }, 100);
-    }
-  });
-
-  // Permitir escaneo láser - el input sigue funcionando para recibir datos
-  barcodeInput.addEventListener('input', function(e) {
-    const code = this.value.trim();
-    if (code.length >= 3) {
-      processBarcodeInput(code);
-    }
-  });
-
-  // Foco persistente pero controlado
-  function enforceControlledFocus() {
+  // Foco persistente excepto cuando la cámara está abierta
+  function enforceFocus() {
+    // Solo aplicar foco si la cámara no está abierta
     if (document.activeElement !== barcodeInput && 
-        document.getElementById('cameraModal').style.display !== 'flex' &&
-        document.getElementById('scannerModal').style.display !== 'flex') {
-      window.isProgrammaticFocus = true;
+        document.getElementById('cameraModal').style.display !== 'flex') {
       barcodeInput.focus();
-      setTimeout(() => {
-        window.isProgrammaticFocus = false;
-      }, 100);
     }
-    setTimeout(enforceControlledFocus, 500);
+    setTimeout(enforceFocus, 100);
   }
-  enforceControlledFocus();
-}
-
-// Función para procesar input de barcode (igual que antes)
-function processBarcodeInput(code) {
-  if (!code || code.length < 3) return;
+  enforceFocus();
   
-  console.log("Procesando código:", code);
+  // Detector para deshabilitar el teclado virtual en dispositivos móviles
+  document.addEventListener('touchstart', function(e) {
+    if (document.getElementById('cameraModal').style.display === 'flex' && 
+        e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
+      if (document.activeElement) {
+        document.activeElement.blur();
+      }
+    }
+  }, { passive: false });
   
-  const cleanCode = code.trim().toUpperCase();
-  const parts = parseQRCode(cleanCode);
-  
-  if (parts) {
-    currentQRParts = parts;
-    const startTime = Date.now();
-    processQRCodeParts(parts);
-    const searchTime = Date.now() - startTime;
+  // Detectar escaneo
+  barcodeInput.addEventListener('input', function() {
+    const code = this.value.trim();
+    if (code.length < 5) return; // Un código válido debe tener al menos 5 caracteres
     
-    statusDiv.className = 'processed';
-    statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
+    // Analizar el formato del código: DOCUMENTO-NIT
+    const parts = parseQRCode(code);
+    
+    if (parts) {
+      currentQRParts = parts; // Guardar las partes para uso posterior
+      const startTime = Date.now();
+      processQRCodeParts(parts);
+      const searchTime = Date.now() - startTime;
+      
+      statusDiv.className = 'processed';
+      statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
+    } else {
+      showError(code, "Formato de código QR no válido. Use formato: DOCUMENTO-NIT");
+      playErrorSound();
+      statusDiv.textContent = `FORMATO INVÁLIDO`;
+    }
     
     setTimeout(() => {
-      barcodeInput.value = '';
-    }, 100);
-    
-    playSuccessSound();
-  } else {
-    statusDiv.className = 'error';
-    statusDiv.textContent = 'FORMATO NO RECONOCIDO';
-    playErrorSound();
-  }
+      this.value = '';
+      this.focus();
+    }, 50);
+  });
 }
-
 
 // Función para analizar el código QR
 function parseQRCode(code) {
@@ -323,29 +302,6 @@ function parseQRCode(code) {
   
   return null;
 }
-
-// Agrega funciones para manejar el panel de configuración
-function setupConfigPanel() {
-  const configBtn = document.getElementById('configBtn');
-  const configPanel = document.getElementById('configPanel');
-  const closeConfig = document.getElementById('closeConfig');
-  
-  configBtn.addEventListener('click', () => {
-    configPanel.style.display = 'block';
-  });
-  
-  closeConfig.addEventListener('click', () => {
-    configPanel.style.display = 'none';
-  });
-  
-  // Cerrar panel al hacer clic fuera
-  configPanel.addEventListener('click', (e) => {
-    if (e.target === configPanel) {
-      configPanel.style.display = 'none';
-    }
-  });
-}
-
 
 // Procesa las partes del código QR y muestra los resultados
 function processQRCodeParts(parts) {
