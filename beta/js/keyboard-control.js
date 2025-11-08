@@ -21,6 +21,8 @@ class InputController {
       keyboardBtn.addEventListener('click', () => {
         this.toggleKeyboard();
       });
+    } else {
+      console.error('keyboardToggleBtn no encontrado');
     }
 
     // Botón escáner QR
@@ -28,6 +30,8 @@ class InputController {
       qrBtn.addEventListener('click', () => {
         this.openQRScanner();
       });
+    } else {
+      console.error('qrScannerBtn no encontrado');
     }
 
     // Eventos del input
@@ -76,6 +80,8 @@ class InputController {
           }
         }
       });
+    } else {
+      console.error('barcode input no encontrado');
     }
 
     // Cerrar escáner QR con Escape
@@ -91,6 +97,8 @@ class InputController {
       closeQRBtn.addEventListener('click', () => {
         this.closeQRScanner();
       });
+    } else {
+      console.error('closeQRScanner no encontrado');
     }
   }
 
@@ -348,11 +356,11 @@ class InputController {
   }
 }
 
-// Variable global para el controlador - usa un nombre diferente
-let globalInputController;
-
-// Función de inicialización
+// SOLUCIÓN: No declares la variable aquí, solo la función de inicialización
 function initializeInputController() {
-  globalInputController = new InputController();
-  return globalInputController;
+  // Si ya existe, no crear otra instancia
+  if (!window.appInputController) {
+    window.appInputController = new InputController();
+  }
+  return window.appInputController;
 }
