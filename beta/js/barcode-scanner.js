@@ -1,4 +1,4 @@
-// Lector de código de barras real con biblioteca BarcodeDetector
+// Lector de código de barras simplificado
 class BarcodeScanner {
   constructor() {
     this.isScanning = false;
@@ -7,46 +7,16 @@ class BarcodeScanner {
     this.canvasElement = null;
     this.context = null;
     this.scanInterval = null;
-    this.barcodeDetector = null;
     this.init();
   }
   
-  async init() {
-    await this.setupBarcodeDetector();
+  init() {
     this.setupEventListeners();
   }
   
-  async setupBarcodeDetector() {
-    // Verificar si el navegador soporta BarcodeDetector
-    if ('BarcodeDetector' in window) {
-      try {
-        // Obtener los formatos soportados
-        const formats = await BarcodeDetector.getSupportedFormats();
-        console.log('Formatos soportados:', formats);
-        
-        this.barcodeDetector = new BarcodeDetector({
-          formats: ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
-        });
-        
-        console.log('BarcodeDetector inicializado correctamente');
-      } catch (error) {
-        console.error('Error al inicializar BarcodeDetector:', error);
-        this.fallbackToCanvasDetection();
-      }
-    } else {
-      console.warn('BarcodeDetector no está soportado en este navegador');
-      this.fallbackToCanvasDetection();
-    }
-  }
-  
-  fallbackToCanvasDetection() {
-    console.log('Usando detección por canvas (modo fallback)');
-    // En modo fallback, usaremos detección básica por canvas
-  }
-  
   setupEventListeners() {
-    // Botón de iniciar escáner desde configuración
-    document.getElementById('startScannerBtn').addEventListener('click', () => {
+    // Botón de cámara en el input
+    document.getElementById('cameraBtn').addEventListener('click', () => {
       this.startScanner();
     });
   }
@@ -68,8 +38,8 @@ class BarcodeScanner {
         audio: false
       });
       
-      // Crear elementos dinámicamente
-      this.createScannerElements();
+      // Crear modal de escáner
+      this.createScannerModal();
       
       // Configurar video
       this.videoElement.srcObject = this.stream;
@@ -79,16 +49,13 @@ class BarcodeScanner {
       this.isScanning = true;
       this.startDetection();
       
-      // Cerrar panel de configuración
-      document.getElementById('configPanel').style.display = 'none';
-      
     } catch (error) {
       console.error('Error al acceder a la cámara:', error);
       alert('No se pudo acceder a la cámara. Asegúrate de permitir el acceso.');
     }
   }
   
-  createScannerElements() {
+  createScannerModal() {
     // Crear modal de escáner
     let scannerModal = document.getElementById('scannerModal');
     if (!scannerModal) {
@@ -108,7 +75,7 @@ class BarcodeScanner {
             </button>
           </div>
           <div id="scannerStatus" class="uploading-status">
-            <i class="fas fa-qrcode"></i> Escaneando...
+            <i class="fas fa-qrcode"></i> Enfoca el código QR en el marco
           </div>
         </div>
       `;
@@ -136,7 +103,7 @@ class BarcodeScanner {
   startDetection() {
     this.scanInterval = setInterval(() => {
       this.captureAndDetect();
-    }, 500); // Revisar cada 500ms
+    }, 1000); // Revisar cada 1 segundo
   }
   
   async captureAndDetect() {
@@ -145,20 +112,18 @@ class BarcodeScanner {
     }
     
     try {
-      // Configurar canvas con las dimensiones del video
+      // Configurar canvas
       this.canvasElement.width = this.videoElement.videoWidth;
       this.canvasElement.height = this.videoElement.videoHeight;
       
-      // Dibujar frame actual en el canvas
+      // Dibujar frame en canvas
       this.context.drawImage(this.videoElement, 0, 0, this.canvasElement.width, this.canvasElement.height);
       
-      // Intentar detección con BarcodeDetector si está disponible
-      if (this.barcodeDetector) {
+      // Intentar detectar con BarcodeDetector si está disponible
+      if ('BarcodeDetector' in window) {
         await this.detectWithBarcodeDetector();
-      } else {
-        // Fallback a detección básica por canvas
-        this.detectWithCanvas();
       }
+      
     } catch (error) {
       console.error('Error en detección:', error);
     }
@@ -166,6 +131,13 @@ class BarcodeScanner {
   
   async detectWithBarcodeDetector() {
     try {
+      // Crear detector si no existe
+      if (!this.barcodeDetector) {
+        this.barcodeDetector = new BarcodeDetector({
+          formats: ['qr_code', 'code_128', 'code_39', 'ean_13']
+        });
+      }
+      
       const barcodes = await this.barcodeDetector.detect(this.canvasElement);
       
       if (barcodes.length > 0) {
@@ -175,21 +147,6 @@ class BarcodeScanner {
       }
     } catch (error) {
       console.error('Error en BarcodeDetector:', error);
-    }
-  }
-  
-  detectWithCanvas() {
-    // Detección básica por análisis de imagen (para códigos QR simples)
-    // Esta es una implementación básica - en producción usar una librería dedicada
-    try {
-      const imageData = this.context.getImageData(0, 0, this.canvasElement.width, this.canvasElement.height);
-      
-      // Aquí iría el código de detección más avanzado
-      // Por simplicidad, simulamos que no detectamos nada
-      // En producción, integrar con una librería como jsQR o similar
-      
-    } catch (error) {
-      console.error('Error en detección por canvas:', error);
     }
   }
   
@@ -214,12 +171,9 @@ class BarcodeScanner {
   }
   
   processDetectedCode(code) {
-    // Normalizar código
-    const normalizedCode = code.trim().toUpperCase();
-    
-    // Poner el código en el input
+    // Poner el código en el input HIDDEN
     const barcodeInput = document.getElementById('barcode');
-    barcodeInput.value = normalizedCode;
+    barcodeInput.value = code;
     
     // Procesar automáticamente
     setTimeout(() => {
