@@ -189,54 +189,16 @@ function processBarcodeInput() {
   }
 }
 
-// Función parseQRCode más flexible
 function parseQRCode(code) {
-  if (!code || code.length < 3) return null;
+  // Buscamos un formato como "REC58101-805027653"
+  const regex = /^([A-Za-z0-9-]+)-([0-9]+)$/;
+  const match = code.match(regex);
   
-  const cleanCode = code.trim().toUpperCase();
-  
-  // Múltiples formatos soportados - MUY FLEXIBLE
-  const formatPatterns = [
-    // Formato: DOCUMENTO-NIT (ej: REC58101-805027653)
-    /^([A-Za-z0-9]{3,})[-_\s]?([0-9]{3,})$/,
-    
-    // Formato: NIT-DOCUMENTO (inverso)
-    /^([0-9]{3,})[-_\s]?([A-Za-z0-9]{3,})$/,
-    
-    // Formato con espacios
-    /^([A-Za-z0-9]{3,})\s+([0-9]{3,})$/,
-    /^([0-9]{3,})\s+([A-Za-z0-9]{3,})$/,
-    
-    // Solo números (tratar como NIT, documento vacío)
-    /^([0-9]{3,})$/,
-    
-    // Solo letras y números (tratar como documento, NIT vacío)
-    /^([A-Za-z0-9]{3,})$/
-  ];
-  
-  for (const pattern of formatPatterns) {
-    const match = cleanCode.match(pattern);
-    if (match) {
-      // Determinar qué es documento y qué es NIT basado en el patrón
-      if (pattern.toString().includes('[A-Za-z0-9]{3,}[-_\\s]?[0-9]{3,}')) {
-        return { documento: match[1], nit: match[2] };
-      }
-      else if (pattern.toString().includes('[0-9]{3,}[-_\\s]?[A-Za-z0-9]{3,}')) {
-        return { documento: match[2], nit: match[1] };
-      }
-      else if (pattern.toString().includes('[A-Za-z0-9]{3,}\\s+[0-9]{3,}')) {
-        return { documento: match[1], nit: match[2] };
-      }
-      else if (pattern.toString().includes('[0-9]{3,}\\s+[A-Za-z0-9]{3,}')) {
-        return { documento: match[2], nit: match[1] };
-      }
-      else if (pattern.toString().includes('^([0-9]{3,})$')) {
-        return { documento: '', nit: match[1] }; // Solo NIT
-      }
-      else if (pattern.toString().includes('^([A-Za-z0-9]{3,})$')) {
-        return { documento: match[1], nit: '' }; // Solo documento
-      }
-    }
+  if (match) {
+    return {
+      documento: match[1],
+      nit: match[2]
+    };
   }
   
   return null;
