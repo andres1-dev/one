@@ -15,7 +15,7 @@ const offlineBanner = document.getElementById('offline-banner');
 const installBtn = document.getElementById('installBtn');
 
 // Función para procesar entregas
-function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
+async function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
     // Verificar si la factura ya fue entregada
   const puedeProcesar = await dataManager.canProcessFactura(factura);
   
