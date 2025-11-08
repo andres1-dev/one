@@ -1,6 +1,6 @@
 // Configuración y constantes
 const CONFIG = {
-  VERSION: "4.2.0",
+  VERSION: "4.0.0",
   CACHE_TTL: 24 * 60 * 60 * 1000, // 24 horas en milisegundos
   MAX_IMAGE_SIZE: 800, // Tamaño máximo para redimensionar imágenes
   MAX_CHUNK_SIZE: 50000, // ~50KB por solicitud
