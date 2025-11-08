@@ -847,4 +847,343 @@ class PandaDashApp {
         this.scanner.style.display = 'flex';
         this.loadingScreen.style.opacity = '0';
         
-        setTimeout(()
+        setTimeout(() => {
+            this.loadingScreen.style.display = 'none';
+            if (this.barcodeInput) {
+                this.barcodeInput.focus();
+            }
+        }, 500);
+    }
+
+    // ========== CACHE Y ALMACENAMIENTO ==========
+
+    getCachedData(key) {
+        const cache = localStorage.getItem('pandadash_cache');
+        if (!cache) return null;
+        
+        try {
+            const parsed = JSON.parse(cache);
+            if (Date.now() - parsed.timestamp > this.config.CACHE_TTL) return null;
+            return parsed.data[key];
+        } catch (e) {
+            console.error("Error al parsear cache:", e);
+            return null;
+        }
+    }
+
+    setCachedData(key, data) {
+        try {
+            const existingCache = localStorage.getItem('pandadash_cache');
+            const cache = existingCache ? JSON.parse(existingCache) : { data: {}, timestamp: Date.now() };
+            
+            cache.data[key] = data;
+            cache.timestamp = Date.now();
+            
+            localStorage.setItem('pandadash_cache', JSON.stringify(cache));
+        } catch (e) {
+            console.error("Error al guardar en cache:", e);
+        }
+    }
+
+    // ========== EVENTOS Y LISTENERS ==========
+
+    enforceFocus() {
+        const enforce = () => {
+            if (document.activeElement !== this.barcodeInput && 
+                document.getElementById('cameraModal').style.display !== 'flex') {
+                this.barcodeInput.focus();
+            }
+            setTimeout(enforce, 100);
+        };
+        enforce();
+    }
+
+    handleOnline() {
+        this.offlineBanner.style.display = 'none';
+        this.updateStatus('reconnected', '<i class="fas fa-wifi"></i> CONEXIÓN RESTABLECIDA');
+        
+        if (!this.dataLoaded) {
+            setTimeout(() => this.loadDataFromServer(), 1000);
+        }
+    }
+
+    handleOffline() {
+        this.offlineBanner.style.display = 'block';
+        this.updateStatus('offline', `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wifi-off" viewBox="0 0 16 16">
+                    <path d="M10.706 3.294A12.6 12.6 0 0 0 8 3C5.259 3 2.723 3.882.663 5.379a.485.485 0 0 0-.048.736.52.52 0 0 0 .668.05A11.45 11.45 0 0 1 8 4q.946 0 1.852.148zM8 6c-1.905 0-3.68.56-5.166 1.526a.48.48 0 0 0-.063.745.525.525 0 0 0 .652.065 8.45 8.45 0 0 1 3.51-1.27zm2.596 1.404.785-.785q.947.362 1.785.907a.482.482 0 0 1 .063.745.525.525 0 0 1-.652.065 8.5 8.5 0 0 0-1.98-.932zM8 10l.933-.933a6.5 6.5 0 0 1 2.013.637c.285.145.326.524.1.75l-.015.015a.53.53 0 0 1-.611.09A5.5 5.5 0 0 0 8 10m4.905-4.905.747-.747q.886.451 1.685 1.03a.485.485 0 0 1 .047.737.52.52 0 0 1-.668.05 11.5 11.5 0 0 0-1.811-1.07M9.02 11.78c.238.14.236.464.04.66l-.707.706a.5.5 0 0 1-.707 0l-.707-.707c-.195-.195-.197-.518.04-.66A2 2 0 0 1 8 11.5c.374 0 .723.102 1.021.28zm4.355-9.905a.53.53 0 0 1 .75.75l-10.75 10.75a.53.53 0 0 1-.75-.75z"/>
+                </svg>
+                <span>MODO OFFLINE ACTIVO</span>
+            </div>
+        `);
+    }
+
+    setupPWAInstall() {
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            this.installBtn.style.display = 'block';
+        });
+        
+        this.installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const choiceResult = await deferredPrompt.userChoice;
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('App instalada');
+                }
+                deferredPrompt = null;
+                this.installBtn.style.display = 'none';
+            }
+        });
+    }
+
+    setupZoomPrevention() {
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
+        
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) e.preventDefault();
+            lastTouchEnd = now;
+        }, { passive: false });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    setupPullToRefresh() {
+        let startY = 0;
+        let isPulling = false;
+        
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length >= 2 && window.scrollY < 10) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (!isPulling || e.touches.length < 2) return;
+            
+            const currentY = e.touches[0].clientY;
+            const pullDistance = currentY - startY;
+            
+            if (pullDistance > 20) {
+                isPulling = false;
+                this.refreshData();
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', () => {
+            isPulling = false;
+        });
+    }
+
+    async refreshData() {
+        this.updateStatus('loading', '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO...');
+        this.dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando...';
+        
+        try {
+            const newData = await this.fetchDataFromSheets();
+            this.database = newData;
+            this.dataLoaded = true;
+            
+            this.updateStatus('ready', '<i class="fas fa-check-circle"></i> DATOS ACTUALIZADOS');
+            this.dataStats.innerHTML = `<i class="fas fa-database"></i> ${newData.length} registros | ${new Date().toLocaleTimeString()}`;
+            
+            if (this.currentQRParts) {
+                this.processQRCodeParts(this.currentQRParts);
+            } else {
+                this.showWelcomeScreen();
+            }
+            
+            this.playSuccessSound();
+        } catch (error) {
+            console.error("Error:", error);
+            this.updateStatus('error', '<i class="fas fa-exclamation-circle"></i> ERROR');
+            this.playErrorSound();
+        }
+    }
+
+    // ========== NOTIFICACIONES Y SONIDOS ==========
+
+    mostrarNotificacion(tipo, mensaje) {
+        const notificacion = document.createElement('div');
+        notificacion.className = `notificacion-${tipo}`;
+        notificacion.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            ${tipo === 'success' ? 'background: #28a745;' : ''}
+            ${tipo === 'warning' ? 'background: #ffc107; color: #000;' : ''}
+            ${tipo === 'error' ? 'background: #dc3545;' : ''}
+        `;
+        notificacion.textContent = mensaje;
+
+        document.body.appendChild(notificacion);
+
+        setTimeout(() => {
+            if (notificacion.parentNode) {
+                notificacion.parentNode.removeChild(notificacion);
+            }
+        }, 5000);
+    }
+
+    mostrarError(mensaje) {
+        console.error(mensaje);
+        this.mostrarNotificacion('error', mensaje);
+    }
+
+    playSuccessSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+            const osc = ctx.createOscillator(); 
+            const gainNode = ctx.createGain(); 
+            osc.type = "sine"; 
+            osc.frequency.value = 800; 
+            gainNode.gain.value = 1; 
+            osc.connect(gainNode); 
+            gainNode.connect(ctx.destination); 
+            osc.start(); 
+            osc.stop(ctx.currentTime + 0.25);
+        } catch (e) {
+            console.log("Error al reproducir sonido de éxito:", e);
+        }
+    }
+
+    playErrorSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+            const osc = ctx.createOscillator(); 
+            const gainNode = ctx.createGain(); 
+            osc.type = "sawtooth"; 
+            osc.frequency.setValueAtTime(300, ctx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5); 
+            gainNode.gain.value = 0.8; 
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); 
+            osc.connect(gainNode); 
+            gainNode.connect(ctx.destination); 
+            osc.start(); 
+            osc.stop(ctx.currentTime + 0.5);
+        } catch (e) {
+            console.log("Error al reproducir sonido de error:", e);
+        }
+    }
+}
+
+// ========== FUNCIONES GLOBALES ==========
+
+// Función global para asentar facturas
+async function asentarFactura(documento, lote, referencia, cantidad, factura, nit, btnElement) {
+    if (!documento || !lote || !referencia || !cantidad || !factura || !nit) {
+        mostrarErrorGlobal("Faltan datos obligatorios para asentar la factura");
+        return;
+    }
+  
+    if (btnElement) {
+        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ASENTANDO...';
+        btnElement.style.backgroundColor = '#4cc9f0';
+        btnElement.disabled = true;
+    }
+  
+    actualizarEstadoGlobal('loading', '<i class="fas fa-sync fa-spin"></i> ASENTANDO FACTURA...');
+  
+    const formData = new FormData();
+    formData.append('documento', documento);
+    formData.append('lote', lote);
+    formData.append('referencia', referencia);
+    formData.append('cantidad', cantidad);
+    formData.append('factura', factura);
+    formData.append('nit', nit);
+  
+    try {
+        const response = await fetch(app.config.API_URL_ASENTAR_FACTURA, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (btnElement) {
+                btnElement.innerHTML = '<i class="fas fa-check-circle"></i> FACTURA ASENTADA';
+                btnElement.style.backgroundColor = '#28a745';
+                btnElement.disabled = true;
+            }
+            
+            actualizarEstadoGlobal('processed', '<i class="fas fa-check-circle"></i> FACTURA ASENTADA CORRECTAMENTE');
+            app.playSuccessSound();
+        } else {
+            if (btnElement) {
+                btnElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> NO ENCONTRADO';
+                btnElement.style.backgroundColor = '#f8961e';
+                btnElement.disabled = false;
+            }
+            
+            actualizarEstadoGlobal('warning', '<i class="fas fa-exclamation-triangle"></i> NO SE PUDO ASENTAR LA FACTURA');
+            app.playErrorSound();
+        }
+    } catch (error) {
+        console.error("Error al asentar factura:", error);
+        
+        if (btnElement) {
+            btnElement.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
+            btnElement.style.backgroundColor = '#f72585';
+            btnElement.disabled = false;
+        }
+        
+        actualizarEstadoGlobal('error', `<i class="fas fa-exclamation-circle"></i> ERROR: ${error.message}`);
+        app.playErrorSound();
+    }
+}
+
+function mostrarErrorGlobal(mensaje) {
+    console.error(mensaje);
+    actualizarEstadoGlobal('error', `<span style="color: var(--danger)">${mensaje}</span>`);
+}
+
+function actualizarEstadoGlobal(className, html) {
+    const statusDiv = document.getElementById('status');
+    if (!statusDiv) return;
+    statusDiv.className = className;
+    statusDiv.innerHTML = html;
+}
+
+// ========== INICIALIZACIÓN ==========
+
+// Crear instancia global
+const app = new PandaDashApp();
+
+// Hacer disponible globalmente
+window.app = app;
+window.procesarEntrega = (documento, lote, referencia, cantidad, factura, nit, btnElement) => {
+    app.procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement);
+};
+window.asentarFactura = asentarFactura;
+
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+    });
+}
