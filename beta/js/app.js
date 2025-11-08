@@ -384,18 +384,20 @@ function detenerColaParaElemento(documento, lote, referencia, cantidad, nit) {
     const clave = `${documento}_${lote}_${referencia}_${cantidad}_${nit}`;
     
     // Buscar y eliminar el trabajo de la cola si existe
-    uploadQueue.queue = uploadQueue.queue.filter(job => {
-        if (job.type === 'photo') {
-            const jobClave = `${job.data.documento}_${job.data.lote}_${job.data.referencia}_${job.data.cantidad}_${job.data.nit}`;
-            return jobClave !== clave;
-        }
-        return true;
-    });
-    
-    uploadQueue.saveQueue();
-    uploadQueue.updateQueueCounter();
-    
-    console.log(`Elemento confirmado y removido de cola: ${clave}`);
+    if (uploadQueue && uploadQueue.queue) {
+        uploadQueue.queue = uploadQueue.queue.filter(job => {
+            if (job.type === 'photo') {
+                const jobClave = `${job.data.documento}_${job.data.lote}_${job.data.referencia}_${job.data.cantidad}_${job.data.nit}`;
+                return jobClave !== clave;
+            }
+            return true;
+        });
+        
+        uploadQueue.saveQueue();
+        uploadQueue.updateQueueCounter();
+        
+        console.log(`Elemento confirmado y removido de cola: ${clave}`);
+    }
 }
 
 function handleDataLoadSuccess(serverData) {
