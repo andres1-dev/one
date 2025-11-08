@@ -277,7 +277,7 @@ function playErrorSound() {
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
   // Cargar datos desde el servidor
-  await loadDataFromServer();
+  loadDataFromServer();
   
   setupEventListeners();
   
