@@ -12,7 +12,7 @@ const SPREADSHEET_IDS = {
     SOPORTES: "1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw"
 };
 
-class SheetsAPIOptimized {
+class SheetsAPI {
     constructor() {
         this.cache = new Map();
         // Cache diferenciado por tipo de dato
