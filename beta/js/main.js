@@ -1,131 +1,3 @@
-// Archivo principal que inicializa la aplicación
-
-// Inicialización al cargar el documento
-document.addEventListener('DOMContentLoaded', () => {
-  // Inicializar managers
-  setupConfigPanel();
-  initializeConfigManager();
-
-  initializeKeyboardManager();
-  initializeQRScanner();
-  
-  // Inicializar la cola de carga
-  initializeUploadQueue();
-  
-  // Cargar datos desde el servidor
-  loadDataFromServer();
-  
-  setupEventListeners();
-  
-  // Agregar eventos para prevenir el teclado virtual en la cámara
-  document.addEventListener('focusin', function(e) {
-    if (document.getElementById('cameraModal').style.display === 'flex' && 
-        e.target.id !== 'dummyInput') {
-      e.preventDefault();
-      e.target.blur();
-    }
-  });
-  
-  // Manejar el cambio de orientación en dispositivos móviles
-  window.addEventListener('orientationchange', function() {
-    if (document.getElementById('cameraModal').style.display === 'flex') {
-      setTimeout(() => {
-        document.activeElement.blur();
-      }, 300);
-    }
-  });
-  
-  // Verificar si estamos en modo offline
-  window.addEventListener('online', function() {
-    offlineBanner.style.display = 'none';
-    statusDiv.className = 'reconnected';
-    statusDiv.innerHTML = '<i class="fas fa-wifi"></i> CONEXIÓN RESTABLECIDA';
-    // Si los datos aún no se han cargado, intentar cargarlos de nuevo
-    if (!dataLoaded) {
-      setTimeout(() => loadDataFromServer(), 1000);
-    }
-  });
-  
-  window.addEventListener('offline', function() {
-    offlineBanner.style.display = 'block';
-    statusDiv.className = 'offline';
-    statusDiv.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wifi-off" viewBox="0 0 16 16">
-          <path d="M10.706 3.294A12.6 12.6 0 0 0 8 3C5.259 3 2.723 3.882.663 5.379a.485.485 0 0 0-.048.736.52.52 0 0 0 .668.05A11.45 11.45 0 0 1 8 4q.946 0 1.852.148zM8 6c-1.905 0-3.68.56-5.166 1.526a.48.48 0 0 0-.063.745.525.525 0 0 0 .652.065 8.45 8.45 0 0 1 3.51-1.27zm2.596 1.404.785-.785q.947.362 1.785.907a.482.482 0 0 1 .063.745.525.525 0 0 1-.652.065 8.5 8.5 0 0 0-1.98-.932zM8 10l.933-.933a6.5 6.5 0 0 1 2.013.637c.285.145.326.524.1.75l-.015.015a.53.53 0 0 1-.611.09A5.5 5.5 0 0 0 8 10m4.905-4.905.747-.747q.886.451 1.685 1.03a.485.485 0 0 1 .047.737.52.52 0 0 1-.668.05 11.5 11.5 0 0 0-1.811-1.07M9.02 11.78c.238.14.236.464.04.66l-.707.706a.5.5 0 0 1-.707 0l-.707-.707c-.195-.195-.197-.518.04-.66A2 2 0 0 1 8 11.5c.374 0 .723.102 1.021.28zm4.355-9.905a.53.53 0 0 1 .75.75l-10.75 10.75a.53.53 0 0 1-.75-.75z"/>
-        </svg>
-        <span>MODO OFFLINE ACTIVO</span>
-      </div>
-    `;
-  });
-  
-  // Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
-  setupPullToRefresh();
-});
-
-function loadDataFromServer() {
-  statusDiv.className = 'loading';
-  statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
-  dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con el servidor...';
-  
-  // Usamos fetch para obtener los datos del servidor
-  fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(serverData => handleDataLoadSuccess(serverData))
-    .catch(error => handleDataLoadError(error));
-}
-
-function handleDataLoadSuccess(serverData) {
-  if (serverData && serverData.success && serverData.data) {
-    database = serverData.data;
-    dataLoaded = true;
-    cacheData(database);
-    
-    // Actualizar UI de estado
-    statusDiv.className = 'ready';
-    statusDiv.innerHTML = `
-      <i class="fas fa-check-circle"></i> SISTEMA LISTO
-    `;
-    dataStats.innerHTML = `
-      <i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}
-    `;
-    
-    // Mostrar contenido principal
-    resultsDiv.innerHTML = `
-      <div class="result-item" style="text-align: center; color: var(--gray);">
-        <div style="text-align: center;">
-          <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
-        </div>
-        <h1 style="margin: 0;">PandaDash</h1>
-        <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
-          <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
-          <p style="margin: 2px 0;">
-            Supported by 
-            <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
-              GrupoTDM
-            </a>
-          </p>
-          <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
-            <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
-            <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    hideLoadingScreen();
-    playSuccessSound();
-  } else {
-    handleDataLoadError(new Error('Formato de datos incorrecto'));
-  }
-}
-
 // Gestión simplificada del teclado y configuración
 class ConfigManager {
   constructor() {
@@ -317,6 +189,180 @@ function processBarcodeInput() {
   }
 }
 
+// Función parseQRCode más flexible
+function parseQRCode(code) {
+  if (!code || code.length < 3) return null;
+  
+  const cleanCode = code.trim().toUpperCase();
+  
+  // Múltiples formatos soportados - MUY FLEXIBLE
+  const formatPatterns = [
+    // Formato: DOCUMENTO-NIT (ej: REC58101-805027653)
+    /^([A-Za-z0-9]{3,})[-_\s]?([0-9]{3,})$/,
+    
+    // Formato: NIT-DOCUMENTO (inverso)
+    /^([0-9]{3,})[-_\s]?([A-Za-z0-9]{3,})$/,
+    
+    // Formato con espacios
+    /^([A-Za-z0-9]{3,})\s+([0-9]{3,})$/,
+    /^([0-9]{3,})\s+([A-Za-z0-9]{3,})$/,
+    
+    // Solo números (tratar como NIT, documento vacío)
+    /^([0-9]{3,})$/,
+    
+    // Solo letras y números (tratar como documento, NIT vacío)
+    /^([A-Za-z0-9]{3,})$/
+  ];
+  
+  for (const pattern of formatPatterns) {
+    const match = cleanCode.match(pattern);
+    if (match) {
+      // Determinar qué es documento y qué es NIT basado en el patrón
+      if (pattern.toString().includes('[A-Za-z0-9]{3,}[-_\\s]?[0-9]{3,}')) {
+        return { documento: match[1], nit: match[2] };
+      }
+      else if (pattern.toString().includes('[0-9]{3,}[-_\\s]?[A-Za-z0-9]{3,}')) {
+        return { documento: match[2], nit: match[1] };
+      }
+      else if (pattern.toString().includes('[A-Za-z0-9]{3,}\\s+[0-9]{3,}')) {
+        return { documento: match[1], nit: match[2] };
+      }
+      else if (pattern.toString().includes('[0-9]{3,}\\s+[A-Za-z0-9]{3,}')) {
+        return { documento: match[2], nit: match[1] };
+      }
+      else if (pattern.toString().includes('^([0-9]{3,})$')) {
+        return { documento: '', nit: match[1] }; // Solo NIT
+      }
+      else if (pattern.toString().includes('^([A-Za-z0-9]{3,})$')) {
+        return { documento: match[1], nit: '' }; // Solo documento
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Archivo principal que inicializa la aplicación
+document.addEventListener('DOMContentLoaded', () => {
+  // Inicializar managers
+  initializeConfigManager();
+  initializeBarcodeScanner();
+  initializeUploadQueue();
+  
+  // Cargar datos desde el servidor
+  loadDataFromServer();
+  
+  setupEventListeners();
+  
+  // Agregar eventos para prevenir el teclado virtual en la cámara
+  document.addEventListener('focusin', function(e) {
+    if (document.getElementById('cameraModal').style.display === 'flex' && 
+        e.target.id !== 'dummyInput') {
+      e.preventDefault();
+      e.target.blur();
+    }
+  });
+  
+  // Manejar el cambio de orientación en dispositivos móviles
+  window.addEventListener('orientationchange', function() {
+    if (document.getElementById('cameraModal').style.display === 'flex') {
+      setTimeout(() => {
+        document.activeElement.blur();
+      }, 300);
+    }
+  });
+  
+  // Verificar si estamos en modo offline
+  window.addEventListener('online', function() {
+    offlineBanner.style.display = 'none';
+    statusDiv.className = 'reconnected';
+    statusDiv.innerHTML = '<i class="fas fa-wifi"></i> CONEXIÓN RESTABLECIDA';
+    // Si los datos aún no se han cargado, intentar cargarlos de nuevo
+    if (!dataLoaded) {
+      setTimeout(() => loadDataFromServer(), 1000);
+    }
+  });
+  
+  window.addEventListener('offline', function() {
+    offlineBanner.style.display = 'block';
+    statusDiv.className = 'offline';
+    statusDiv.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wifi-off" viewBox="0 0 16 16">
+          <path d="M10.706 3.294A12.6 12.6 0 0 0 8 3C5.259 3 2.723 3.882.663 5.379a.485.485 0 0 0-.048.736.52.52 0 0 0 .668.05A11.45 11.45 0 0 1 8 4q.946 0 1.852.148zM8 6c-1.905 0-3.68.56-5.166 1.526a.48.48 0 0 0-.063.745.525.525 0 0 0 .652.065 8.45 8.45 0 0 1 3.51-1.27zm2.596 1.404.785-.785q.947.362 1.785.907a.482.482 0 0 1 .063.745.525.525 0 0 1-.652.065 8.5 8.5 0 0 0-1.98-.932zM8 10l.933-.933a6.5 6.5 0 0 1 2.013.637c.285.145.326.524.1.75l-.015.015a.53.53 0 0 1-.611.09A5.5 5.5 0 0 0 8 10m4.905-4.905.747-.747q.886.451 1.685 1.03a.485.485 0 0 1 .047.737.52.52 0 0 1-.668.05 11.5 11.5 0 0 0-1.811-1.07M9.02 11.78c.238.14.236.464.04.66l-.707.706a.5.5 0 0 1-.707 0l-.707-.707c-.195-.195-.197-.518.04-.66A2 2 0 0 1 8 11.5c.374 0 .723.102 1.021.28zm4.355-9.905a.53.53 0 0 1 .75.75l-10.75 10.75a.53.53 0 0 1-.75-.75z"/>
+        </svg>
+        <span>MODO OFFLINE ACTIVO</span>
+      </div>
+    `;
+  });
+  
+  // Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
+  setupPullToRefresh();
+});
+
+function loadDataFromServer() {
+  statusDiv.className = 'loading';
+  statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
+  dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con el servidor...';
+  
+  // Usamos fetch para obtener los datos del servidor
+  fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(serverData => handleDataLoadSuccess(serverData))
+    .catch(error => handleDataLoadError(error));
+}
+
+function handleDataLoadSuccess(serverData) {
+  if (serverData && serverData.success && serverData.data) {
+    database = serverData.data;
+    dataLoaded = true;
+    cacheData(database);
+    
+    // Actualizar UI de estado
+    statusDiv.className = 'ready';
+    statusDiv.innerHTML = `
+      <i class="fas fa-check-circle"></i> SISTEMA LISTO
+    `;
+    dataStats.innerHTML = `
+      <i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}
+    `;
+    
+    // Mostrar contenido principal
+    resultsDiv.innerHTML = `
+      <div class="result-item" style="text-align: center; color: var(--gray);">
+        <div style="text-align: center;">
+          <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+        </div>
+        <h1 style="margin: 0;">PandaDash</h1>
+        <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
+          <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
+          <p style="margin: 2px 0;">
+            Supported by 
+            <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
+              GrupoTDM
+            </a>
+          </p>
+          <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
+            <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
+            <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
+            <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    hideLoadingScreen();
+    playSuccessSound();
+  } else {
+    handleDataLoadError(new Error('Formato de datos incorrecto'));
+  }
+}
+
 function handleDataLoadError(error) {
   console.error("Error al cargar datos:", error);
   
@@ -459,7 +505,7 @@ function setupEventListeners() {
   // Detectar escaneo
   barcodeInput.addEventListener('input', function() {
     const code = this.value.trim();
-    if (code.length < 5) return; // Un código válido debe tener al menos 5 caracteres
+    if (code.length < 3) return; // Un código válido debe tener al menos 3 caracteres
     
     // Analizar el formato del código: DOCUMENTO-NIT
     const parts = parseQRCode(code);
@@ -482,44 +528,6 @@ function setupEventListeners() {
       this.value = '';
       this.focus();
     }, 50);
-  });
-}
-
-// Función para analizar el código QR
-function parseQRCode(code) {
-  // Buscamos un formato como "REC58101-805027653"
-  const regex = /^([A-Za-z0-9-]+)-([0-9]+)$/;
-  const match = code.match(regex);
-  
-  if (match) {
-    return {
-      documento: match[1],
-      nit: match[2]
-    };
-  }
-  
-  return null;
-}
-
-// Agrega funciones para manejar el panel de configuración
-function setupConfigPanel() {
-  const configBtn = document.getElementById('configBtn');
-  const configPanel = document.getElementById('configPanel');
-  const closeConfig = document.getElementById('closeConfig');
-  
-  configBtn.addEventListener('click', () => {
-    configPanel.style.display = 'block';
-  });
-  
-  closeConfig.addEventListener('click', () => {
-    configPanel.style.display = 'none';
-  });
-  
-  // Cerrar panel al hacer clic fuera
-  configPanel.addEventListener('click', (e) => {
-    if (e.target === configPanel) {
-      configPanel.style.display = 'none';
-    }
   });
 }
 
