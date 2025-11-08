@@ -7,8 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicializar la cola de carga
   initializeUploadQueue();
   
-  // Inicializar escáner QR
-  initializeQRScanner();
+  // Inicializar escáner QR - ESTA LÍNEA ES IMPORTANTE
+  qrScanner = initializeQRScanner();
   
   // Configurar control de teclado
   setupKeyboardControl();
