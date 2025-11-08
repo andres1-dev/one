@@ -266,7 +266,7 @@ function setupEventListeners() {
   
   // Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
   setupPullToRefresh();
-});
+);
 
 function loadDataFromServer() {
   statusDiv.className = 'loading';
