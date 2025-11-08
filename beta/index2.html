@@ -42,10 +42,7 @@
 
     <div class="barcode-input-container">
       <i class="fa-solid fa-qrcode"></i>
-      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR o ingresa manualmente" readonly>
-      <button id="manualInputBtn" class="btn btn-sm" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">
-        <i class="fas fa-keyboard"></i>
-      </button>
+      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR" readonly>
     </div>
 
     <div id="status">Iniciando Sistema...</div>
@@ -80,67 +77,10 @@
     <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
   </div>
 
-  <!-- Modal de escáner QR -->
-  <div id="qrScannerModal" class="camera-modal">
-    <div id="interactive" class="camera-view"></div>
-    <div class="scanner-overlay">
-      <div class="scanner-frame"></div>
-      <div class="scanner-line"></div>
-    </div>
-    <div class="camera-actions">
-      <button id="toggleCameraBtn" class="btn btn-warning">
-        <i class="fas fa-sync-alt"></i> Cambiar Cámara
-      </button>
-      <button id="closeScannerBtn" class="btn btn-danger">
-        <i class="fas fa-times"></i> Cerrar Escáner
-      </button>
-    </div>
-    <div id="scannerStatus" class="uploading-status">
-      <i class="fas fa-qrcode"></i> Acerca el código QR a la cámara
-    </div>
-  </div>
-
-  <!-- Botones flotantes -->
-  <div id="floatingButtons">
-    <button id="configBtn" class="floating-btn" title="Configuración">
-      <i class="fas fa-cog"></i>
-    </button>
-    <button id="qrScannerBtn" class="floating-btn" title="Escanear QR">
-      <i class="fas fa-camera"></i>
-    </button>
-    <button id="keyboardToggleBtn" class="floating-btn" title="Teclado Desactivado">
-      <i class="fas fa-keyboard"></i>
-    </button>
-  </div>
-
-  <!-- Panel de configuración -->
-  <div id="configPanel" class="config-panel">
-    <h3>Configuración <i class="fas fa-times" id="closeConfig"></i></h3>
-    <div class="config-option">
-      <label>
-        <input type="checkbox" id="autoSubmitToggle"> Envío automático
-      </label>
-      <small>Enviar automáticamente al completar el formato</small>
-    </div>
-    <div class="config-option">
-      <label>
-        <input type="checkbox" id="keyboardToggle" checked> Teclado habilitado
-      </label>
-      <small>Permitir entrada manual con teclado</small>
-    </div>
-    <div class="config-option">
-      <label>
-        <input type="checkbox" id="soundToggle" checked> Sonidos
-      </label>
-      <small>Reproducir sonidos de feedback</small>
-    </div>
-    <div class="config-option">
-      <label>
-        <input type="checkbox" id="vibrationToggle"> Vibración
-      </label>
-      <small>Vibrar al escanear (solo móviles)</small>
-    </div>
-  </div>
+  <!-- Botón flotante único para cámara -->
+  <button id="cameraToggleBtn" class="floating-btn" title="Activar/Desactivar Cámara">
+    <i class="fas fa-camera"></i>
+  </button>
 
   <!-- Contador de cola y panel de detalles -->
   <div id="queueCounter" class="empty" title="No hay elementos en cola">0</div>
@@ -152,12 +92,9 @@
   </div>
 
   <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/quagga2@1.7.4/dist/quagga.min.js"></script>
   <script src="js/config.js"></script>
-  <script src="js/keyboard-manager.js"></script>
   <script src="js/upload-queue.js"></script>
   <script src="js/camera.js"></script>
-  <script src="js/quagga-scanner.js"></script>
   <script src="js/asentar-factura.js"></script>
   <script src="js/main.js"></script>
 </body>
