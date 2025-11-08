@@ -39,12 +39,18 @@
       <i class="fas fa-wifi-slash"></i> No hay conexión a internet
     </div>
 
-    <!-- Reemplaza la sección del barcode input con esta nueva estructura -->
-    <div class="barcode-input-container">
-      <i class="fa-solid fa-qrcode" id="qrScannerBtn"></i>
-      <input type="text" id="barcode" placeholder="Escanea un código QR" readonly>
-      <i class="fa-solid fa-keyboard" id="keyboardToggleBtn"></i>
-    </div>
+<!-- Reemplaza el barcode-input-container con esta estructura -->
+<div class="barcode-input-container">
+  <button class="input-icon-btn" id="qrScannerBtn" title="Escanear QR">
+    <i class="fa-solid fa-qrcode"></i>
+  </button>
+  
+  <input type="text" id="barcode" placeholder="Escanea un código QR" readonly>
+  
+  <button class="input-icon-btn" id="keyboardToggleBtn" title="Teclado deshabilitado">
+    <i class="fa-solid fa-keyboard"></i>
+  </button>
+</div>
 
     <div id="status">Iniciando Sistema...</div>
     <div class="data-stats" id="data-stats">Cargando datos...</div>
