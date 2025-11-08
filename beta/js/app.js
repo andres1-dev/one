@@ -677,27 +677,45 @@ function parseQRCode(code) {
 
 // Procesa las partes del código QR y muestra los resultados
 // Modificar la función processQRCodeParts para mejor manejo de facturas entregadas
+// Mejorar la función de búsqueda para ser más flexible
 function processQRCodeParts(parts) {
     const { documento, nit } = parts;
     
-    // Buscar un registro que coincida con el documento
-    const result = database.find(item => 
-        item.documento && item.documento.toString() === documento
-    );
+    console.log('🔍 Buscando documento:', documento, 'NIT:', nit);
+    console.log('📊 Total de registros en base de datos:', database.length);
+    
+    // Buscar un registro que coincida con el documento - búsqueda más flexible
+    const result = database.find(item => {
+        if (!item.documento) return false;
+        
+        // Comparación flexible - eliminar espacios y normalizar
+        const docDB = item.documento.toString().trim().toUpperCase();
+        const docScan = documento.trim().toUpperCase();
+        
+        return docDB === docScan;
+    });
     
     if (result) {
+        console.log('✅ Documento encontrado:', result.documento);
+        
         // Filtramos los datosSiesa para mostrar solo los que coinciden con el NIT
         const filteredItem = JSON.parse(JSON.stringify(result));
         
         if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
             // Filtramos por NIT en lugar de por cliente
             filteredItem.datosSiesa = filteredItem.datosSiesa.filter(siesa => {
-                // Extraemos solo dígitos del NIT para comparar (por si acaso viene con formato)
-                const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
+                if (!siesa.nit) return false;
+                
+                // Extraemos solo dígitos del NIT para comparar
+                const siesaNitDigits = siesa.nit.toString().replace(/\D/g, '');
                 const scanNitDigits = nit.replace(/\D/g, '');
                 
-                return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
+                const match = siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
+                console.log(`🔍 Comparando NIT: ${siesaNitDigits} vs ${scanNitDigits} -> ${match}`);
+                return match;
             });
+            
+            console.log(`📋 Facturas después de filtrar por NIT: ${filteredItem.datosSiesa.length}`);
             
             // VERIFICAR SI TODAS LAS FACTURAS ESTÁN ENTREGADAS
             const todasEntregadas = filteredItem.datosSiesa.every(siesa => 
@@ -705,18 +723,26 @@ function processQRCodeParts(parts) {
             );
             
             if (todasEntregadas && filteredItem.datosSiesa.length > 0) {
-                // Mostrar mensaje de que todas las facturas están entregadas
+                console.log('✅ Todas las facturas entregadas');
                 showAllDeliveredMessage(filteredItem);
                 playSuccessSound();
-            } else {
+            } else if (filteredItem.datosSiesa.length > 0) {
+                console.log('📝 Mostrando facturas pendientes');
                 displayFullResult(filteredItem, parts);
                 playSuccessSound();
+            } else {
+                console.log('❌ No hay facturas que coincidan con el NIT');
+                showError(`${documento}-${nit}`, "No hay facturas que coincidan con el NIT proporcionado");
+                playErrorSound();
             }
         } else {
+            console.log('❌ No hay datosSiesa en el documento');
             displayFullResult(filteredItem, parts);
             playSuccessSound();
         }
     } else {
+        console.log('❌ Documento no encontrado en base de datos');
+        console.log('Documentos disponibles:', database.map(d => d.documento));
         showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
         playErrorSound();
     }
