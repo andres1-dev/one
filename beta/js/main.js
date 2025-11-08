@@ -2,270 +2,59 @@
 
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Iniciando PandaDash...');
-  
   // Inicializar la cola de carga
   initializeUploadQueue();
-  
-  // Inicializar escáner QR - ESTA LÍNEA ES IMPORTANTE
-  initializeQRScanner();
-  
-  // Configurar control de teclado
-  setupKeyboardControl();
   
   // Cargar datos desde el servidor
   loadDataFromServer();
   
-  // Configurar event listeners
   setupEventListeners();
   
-  // Configurar PWA
-  setupPWA();
-  
-  console.log('✅ PandaDash inicializado correctamente');
-});
-
-function setupKeyboardControl() {
-  console.log('⌨️ Configurando control de teclado...');
-  
-  const keyboardToggleBtn = document.getElementById('keyboardToggleBtn');
-  const barcodeInput = document.getElementById('barcode');
-  
-  if (!keyboardToggleBtn || !barcodeInput) {
-    console.error('❌ No se encontraron elementos del teclado');
-    return;
-  }
-  
-  // Estado inicial - teclado DESHABILITADO
-  keyboardEnabled = false;
-  barcodeInput.readOnly = true;
-  barcodeInput.className = '';
-  keyboardToggleBtn.className = 'keyboard-disabled';
-  keyboardToggleBtn.title = 'Activar teclado';
-  
-  // Evento para toggle de teclado
-  keyboardToggleBtn.addEventListener('click', function() {
-    keyboardEnabled = !keyboardEnabled;
-    console.log(`⌨️ Teclado ${keyboardEnabled ? 'ACTIVADO' : 'DESACTIVADO'}`);
-    
-    if (keyboardEnabled) {
-      // Habilitar teclado
-      barcodeInput.readOnly = false;
-      barcodeInput.className = 'enabled';
-      barcodeInput.placeholder = 'Escribe el código manualmente';
-      keyboardToggleBtn.className = 'keyboard-enabled';
-      keyboardToggleBtn.title = 'Desactivar teclado';
-      keyboardToggleBtn.innerHTML = '<i class="fas fa-keyboard"></i>';
-      
-      // Enfocar el input
-      setTimeout(() => {
-        barcodeInput.focus();
-      }, 100);
-      
-      showKeyboardStatus('Teclado ACTIVADO - Puedes escribir manualmente', 'success');
-      
-    } else {
-      // Deshabilitar teclado
-      barcodeInput.readOnly = true;
-      barcodeInput.className = '';
-      barcodeInput.placeholder = 'Código escaneado aparecerá aquí';
-      keyboardToggleBtn.className = 'keyboard-disabled';
-      keyboardToggleBtn.title = 'Activar teclado';
-      keyboardToggleBtn.innerHTML = '<i class="fas fa-keyboard"></i>';
-      
-      // Quitar foco
-      barcodeInput.blur();
-      
-      showKeyboardStatus('Teclado DESACTIVADO - Usa escáner QR', 'info');
-    }
-  });
-  
-  // Prevenir cualquier foco no deseado cuando está deshabilitado
-  barcodeInput.addEventListener('focus', function(e) {
-    if (this.readOnly) {
-      console.log('🛑 Foco prevenido - teclado deshabilitado');
-      e.preventDefault();
-      this.blur();
-      
-      // Sugerir usar el botón de teclado
-      showKeyboardStatus('Presiona el botón del teclado para habilitar escritura', 'warning');
-      
-      // Efecto visual en el botón
-      keyboardToggleBtn.style.transform = 'scale(1.2)';
-      setTimeout(() => {
-        keyboardToggleBtn.style.transform = 'scale(1)';
-      }, 500);
-    }
-  });
-  
-  // Prevenir clics que puedan abrir el teclado
-  barcodeInput.addEventListener('click', function(e) {
-    if (this.readOnly) {
-      console.log('🛑 Clic prevenido - teclado deshabilitado');
-      e.preventDefault();
-      this.blur();
-      
-      showKeyboardStatus('Habilita el teclado para escribir manualmente', 'info');
-    }
-  });
-  
-  // Manejar el evento de input (cuando se escribe manualmente)
-  barcodeInput.addEventListener('input', function() {
-    if (!keyboardEnabled) {
-      console.log('🛑 Input ignorado - teclado deshabilitado');
-      return;
-    }
-    
-    const code = this.value.trim();
-    console.log(`📝 Input recibido: "${code}"`);
-    
-    if (code.length < 5) return;
-    
-    // Procesar código como si fuera escaneado
-    const parts = parseQRCode(code);
-    
-    if (parts) {
-      console.log('✅ Código válido detectado:', parts);
-      currentQRParts = parts;
-      const startTime = Date.now();
-      processQRCodeParts(parts);
-      const searchTime = Date.now() - startTime;
-      
-      statusDiv.className = 'processed';
-      statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
-    } else {
-      console.log('❌ Formato de código inválido');
-      showError(code, "Formato de código no válido. Use formato: DOCUMENTO-NIT");
-      playErrorSound();
-      statusDiv.textContent = `FORMATO INVÁLIDO`;
-    }
-    
-    // Limpiar input después de procesar
-    setTimeout(() => {
-      this.value = '';
-    }, 50);
-  });
-  
-  console.log('✅ Control de teclado configurado');
-}
-
-function showKeyboardStatus(message, type = 'info') {
-  // Remover notificación anterior si existe
-  const existingNotification = document.querySelector('.keyboard-status-notification');
-  if (existingNotification) {
-    existingNotification.remove();
-  }
-  
-  // Crear notificación
-  const notification = document.createElement('div');
-  notification.className = `keyboard-status-notification ${type}`;
-  notification.textContent = message;
-  
-  document.body.appendChild(notification);
-  
-  // Remover después de 3 segundos
-  setTimeout(() => {
-    if (notification.parentNode) {
-      notification.parentNode.removeChild(notification);
-    }
-  }, 3000);
-}
-
-function setupEventListeners() {
-  console.log('🔧 Configurando event listeners...');
-  
-  // Foco persistente SOLO cuando el teclado está habilitado
-  function enforceFocus() {
-    if (keyboardEnabled && 
-        document.activeElement !== barcodeInput && 
-        document.getElementById('cameraModal').style.display !== 'flex' &&
-        document.getElementById('qrScannerModal').style.display !== 'flex') {
-      barcodeInput.focus();
-    }
-    setTimeout(enforceFocus, 100);
-  }
-  enforceFocus();
-  
-  // Detector para deshabilitar el teclado virtual
-  document.addEventListener('touchstart', function(e) {
-    const cameraModal = document.getElementById('cameraModal');
-    const qrScannerModal = document.getElementById('qrScannerModal');
-    
-    if ((cameraModal.style.display === 'flex' || qrScannerModal.style.display === 'flex') && 
-        e.target.tagName !== 'BUTTON') {
-      e.preventDefault();
-      if (document.activeElement) {
-        document.activeElement.blur();
-      }
-    }
-    
-    // Prevenir que toques en el input abran el teclado si está deshabilitado
-    if (e.target === barcodeInput && barcodeInput.readOnly) {
-      e.preventDefault();
-      barcodeInput.blur();
-    }
-  }, { passive: false });
-  
-  // Prevenir enfoque no deseado en cualquier input
+  // Agregar eventos para prevenir el teclado virtual en la cámara
   document.addEventListener('focusin', function(e) {
-    const cameraModal = document.getElementById('cameraModal');
-    const qrScannerModal = document.getElementById('qrScannerModal');
-    
-    // Si algún modal está abierto, prevenir enfoque
-    if ((cameraModal.style.display === 'flex' || qrScannerModal.style.display === 'flex') && 
+    if (document.getElementById('cameraModal').style.display === 'flex' && 
         e.target.id !== 'dummyInput') {
       e.preventDefault();
       e.target.blur();
     }
-    
-    // Si el teclado está deshabilitado y se enfoca el input, prevenir
-    if (e.target === barcodeInput && !keyboardEnabled) {
-      e.preventDefault();
-      e.target.blur();
-    }
   });
   
-  // Manejar el cambio de orientación
+  // Manejar el cambio de orientación en dispositivos móviles
   window.addEventListener('orientationchange', function() {
-    const cameraModal = document.getElementById('cameraModal');
-    const qrScannerModal = document.getElementById('qrScannerModal');
-    
-    if (cameraModal.style.display === 'flex' || qrScannerModal.style.display === 'flex') {
+    if (document.getElementById('cameraModal').style.display === 'flex') {
       setTimeout(() => {
         document.activeElement.blur();
       }, 300);
     }
   });
   
-  // Conexión/Desconexión
+  // Verificar si estamos en modo offline
   window.addEventListener('online', function() {
-    console.log('🌐 Conexión restablecida');
     offlineBanner.style.display = 'none';
     statusDiv.className = 'reconnected';
     statusDiv.innerHTML = '<i class="fas fa-wifi"></i> CONEXIÓN RESTABLECIDA';
-    
+    // Si los datos aún no se han cargado, intentar cargarlos de nuevo
     if (!dataLoaded) {
       setTimeout(() => loadDataFromServer(), 1000);
     }
   });
   
   window.addEventListener('offline', function() {
-    console.log('📴 Sin conexión');
     offlineBanner.style.display = 'block';
     statusDiv.className = 'offline';
     statusDiv.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center;">
-        <i class="fas fa-wifi-slash"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wifi-off" viewBox="0 0 16 16">
+          <path d="M10.706 3.294A12.6 12.6 0 0 0 8 3C5.259 3 2.723 3.882.663 5.379a.485.485 0 0 0-.048.736.52.52 0 0 0 .668.05A11.45 11.45 0 0 1 8 4q.946 0 1.852.148zM8 6c-1.905 0-3.68.56-5.166 1.526a.48.48 0 0 0-.063.745.525.525 0 0 0 .652.065 8.45 8.45 0 0 1 3.51-1.27zm2.596 1.404.785-.785q.947.362 1.785.907a.482.482 0 0 1 .063.745.525.525 0 0 1-.652.065 8.5 8.5 0 0 0-1.98-.932zM8 10l.933-.933a6.5 6.5 0 0 1 2.013.637c.285.145.326.524.1.75l-.015.015a.53.53 0 0 1-.611.09A5.5 5.5 0 0 0 8 10m4.905-4.905.747-.747q.886.451 1.685 1.03a.485.485 0 0 1 .047.737.52.52 0 0 1-.668.05 11.5 11.5 0 0 0-1.811-1.07M9.02 11.78c.238.14.236.464.04.66l-.707.706a.5.5 0 0 1-.707 0l-.707-.707c-.195-.195-.197-.518.04-.66A2 2 0 0 1 8 11.5c.374 0 .723.102 1.021.28zm4.355-9.905a.53.53 0 0 1 .75.75l-10.75 10.75a.53.53 0 0 1-.75-.75z"/>
+        </svg>
         <span>MODO OFFLINE ACTIVO</span>
       </div>
     `;
   });
   
-  console.log('✅ Event listeners configurados');
-}
-  
   // Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
   setupPullToRefresh();
+});
 
 function loadDataFromServer() {
   statusDiv.className = 'loading';
