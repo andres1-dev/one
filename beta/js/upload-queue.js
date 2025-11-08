@@ -52,7 +52,8 @@ class UploadQueue {
     }
   }
 
-  async verificarYDetenerSiConfirmado(job) {
+  // En la clase UploadQueue, agregar este método:
+async verificarYDetenerSiConfirmado(job) {
     if (job.type === 'photo') {
         const { documento, lote, referencia, cantidad, nit } = job.data;
         
