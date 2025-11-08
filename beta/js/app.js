@@ -1,4 +1,3 @@
-
 // Variables globales
 let database = [];
 let currentQRParts = null;
@@ -14,21 +13,78 @@ const dataStats = document.getElementById('data-stats');
 const offlineBanner = document.getElementById('offline-banner');
 const installBtn = document.getElementById('installBtn');
 
-// Función para procesar entregas
-async function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
-    // Verificar si la factura ya fue entregada
-  const puedeProcesar = await dataManager.canProcessFactura(factura);
-  
-  if (!puedeProcesar) {
-    mostrarError("Esta factura ya fue entregada anteriormente");
-    if (btnElement) {
-      btnElement.innerHTML = '<i class="fas fa-check-circle"></i> YA ENTREGADA';
-      btnElement.style.backgroundColor = '#6c757d';
-      btnElement.disabled = true;
-    }
-    return;
-  }
+
+// Reemplazar la función loadDataFromServer existente
+function loadDataFromServer() {
+    statusDiv.className = 'loading';
+    statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
+    dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con Sheets API...';
     
+    dataService.getCombinedData()
+        .then(serverData => handleDataLoadSuccess(serverData))
+        .catch(error => handleDataLoadError(error));
+}
+
+// Función para forzar actualización después de subir foto
+async function refreshAfterUpload(factura) {
+    try {
+        console.log(`🔄 Actualizando datos después de subir foto para factura: ${factura}`);
+        
+        const updatedData = await dataService.forceRefresh();
+        database = updatedData;
+        dataLoaded = true;
+        cacheData(database);
+        
+        // Si hay un QR activo, reprocesarlo para reflejar los cambios
+        if (currentQRParts) {
+            processQRCodeParts(currentQRParts);
+        }
+        
+        // Verificar si la factura ya está marcada como entregada
+        const facturaData = updatedData.find(d => d.factura === factura);
+        if (facturaData && facturaData.confirmacion === "ENTREGADO") {
+            console.log(`✅ Factura ${factura} confirmada como ENTREGADA`);
+            
+            // Detener la cola para esta factura
+            stopQueueForFactura(factura);
+            
+            // Actualizar UI inmediatamente
+            updateUIForConfirmedFactura(factura);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error actualizando datos:', error);
+        return false;
+    }
+}
+
+// Detener la cola para una factura específica
+function stopQueueForFactura(factura) {
+    uploadQueue.queue = uploadQueue.queue.filter(job => 
+        !(job.factura === factura && job.type === 'photo')
+    );
+    uploadQueue.saveQueue();
+    uploadQueue.updateQueueCounter();
+    console.log(`🛑 Cola detenida para factura: ${factura}`);
+}
+
+// Actualizar UI cuando una factura está confirmada
+function updateUIForConfirmedFactura(factura) {
+    // Actualizar botones en la interfaz
+    const buttons = document.querySelectorAll(`.delivery-btn[data-factura="${factura}"]`);
+    buttons.forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+        btn.style.backgroundColor = '#28a745';
+        btn.disabled = true;
+    });
+    
+    // Actualizar estado general
+    actualizarEstado('processed', `<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA - ${factura}`);
+}
+
+// Función para procesar entregas
+function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
   // Verificar si la entrega no tiene factura y manejarlo apropiadamente
   const esSinFactura = !factura || factura.trim() === "";
   
@@ -169,72 +225,74 @@ function aplicarMarcaDeAgua(ctx, width, height) {
 }
 
 // Función para subir la foto capturada
+// Modificar la función subirFotoCapturada para incluir actualización automática
 async function subirFotoCapturada(blob) {
-  if (!currentDocumentData || !blob) {
-    console.error("No hay datos disponibles para subir");
-    statusDiv.innerHTML = '<span style="color: var(--danger)">Error: No hay datos para subir</span>';
-    return;
-  }
-  
-  const { documento, lote, referencia, cantidad, factura, nit, btnElement, esSinFactura } = currentDocumentData;
-  
-  try {
-    // Convertir blob a base64
-    const base64Data = await blobToBase64(blob);
-    const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
-    
-    // Crear objeto de trabajo para la cola
-    const jobData = {
-      documento: documento,
-      lote: lote,
-      referencia: referencia,
-      cantidad: cantidad,
-      factura: factura,
-      nit: nit,
-      fotoBase64: base64Data,
-      fotoNombre: nombreArchivo,
-      fotoTipo: 'image/jpeg',
-      timestamp: new Date().toISOString(),
-      esSinFactura: esSinFactura // Pasar esta propiedad a la cola
-    };
-    
-    // Agregar a la cola
-    uploadQueue.addJob({
-      type: 'photo',
-      data: jobData,
-      factura: factura,
-      btnElementId: btnElement ? btnElement.getAttribute('data-factura') : null,
-      esSinFactura: esSinFactura
-    });
-    
-    // Actualizar botón de entrega si existe
-    if (btnElement) {
-      btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> PROCESANDO...';
-      btnElement.style.backgroundColor = '#4cc9f0';
-      
-      // Si es sin factura, actualizamos el botón inmediatamente después de añadirlo a la cola
-      if (esSinFactura) {
-        setTimeout(() => {
-          btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-          btnElement.style.backgroundColor = '#28a745';
-          btnElement.disabled = true;
-          
-          // Actualizar estado global
-          actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
-        }, 2000);
-      }
+    if (!currentDocumentData || !blob) {
+        console.error("No hay datos disponibles para subir");
+        statusDiv.innerHTML = '<span style="color: var(--danger)">Error: No hay datos para subir</span>';
+        return;
     }
     
-    // Reproducir sonido de éxito
-    playSuccessSound();
+    const { documento, lote, referencia, cantidad, factura, nit, btnElement, esSinFactura } = currentDocumentData;
     
-  } catch (error) {
-    console.error("Error al preparar foto:", error);
-    statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen</span>';
-    
-    // Reproducir sonido de error
-    playErrorSound();
-  }
+    try {
+        // Convertir blob a base64
+        const base64Data = await blobToBase64(blob);
+        const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
+        
+        // Crear objeto de trabajo para la cola
+        const jobData = {
+            documento: documento,
+            lote: lote,
+            referencia: referencia,
+            cantidad: cantidad,
+            factura: factura,
+            nit: nit,
+            fotoBase64: base64Data,
+            fotoNombre: nombreArchivo,
+            fotoTipo: 'image/jpeg',
+            timestamp: new Date().toISOString(),
+            esSinFactura: esSinFactura
+        };
+        
+        // Agregar a la cola
+        uploadQueue.addJob({
+            type: 'photo',
+            data: jobData,
+            factura: factura,
+            btnElementId: btnElement ? btnElement.getAttribute('data-factura') : null,
+            esSinFactura: esSinFactura,
+            // Callback para después de subir exitosamente
+            onSuccess: () => {
+                // Actualizar datos después de subir exitosamente
+                setTimeout(() => {
+                    refreshAfterUpload(factura);
+                }, 2000);
+            }
+        });
+        
+        // Actualizar botón de entrega si existe
+        if (btnElement) {
+            btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> PROCESANDO...';
+            btnElement.style.backgroundColor = '#4cc9f0';
+            
+            if (esSinFactura) {
+                setTimeout(() => {
+                    btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+                    btnElement.style.backgroundColor = '#28a745';
+                    btnElement.disabled = true;
+                    actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
+                }, 2000);
+            }
+        }
+        
+        playSuccessSound();
+        
+    } catch (error) {
+        console.error("Error al preparar foto:", error);
+        statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen</span>';
+        playErrorSound();
+    }
 }
 
 // Funciones para sonidos de feedback
@@ -324,93 +382,67 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-async function loadDataFromServer() {
+function loadDataFromServer() {
   statusDiv.className = 'loading';
   statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
-  dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con Sheets API...';
+  dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con el servidor...';
   
-  try {
-    await dataManager.loadInitialData();
-    handleDataLoadSuccess();
+  // Usamos fetch para obtener los datos del servidor
+  fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(serverData => handleDataLoadSuccess(serverData))
+    .catch(error => handleDataLoadError(error));
+}
+
+function handleDataLoadSuccess(serverData) {
+  if (serverData && serverData.success && serverData.data) {
+    database = serverData.data;
+    dataLoaded = true;
+    cacheData(database);
     
-    // Iniciar auto-refresh cada 2 minutos
-    dataManager.startAutoRefresh(120000);
+    // Actualizar UI de estado
+    statusDiv.className = 'ready';
+    statusDiv.innerHTML = `
+      <i class="fas fa-check-circle"></i> SISTEMA LISTO
+    `;
+    dataStats.innerHTML = `
+      <i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}
+    `;
     
-  } catch (error) {
-    handleDataLoadError(error);
+    // Mostrar contenido principal
+    resultsDiv.innerHTML = `
+      <div class="result-item" style="text-align: center; color: var(--gray);">
+        <div style="text-align: center;">
+          <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+        </div>
+        <h1 style="margin: 0;">PandaDash</h1>
+        <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
+          <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
+          <p style="margin: 2px 0;">
+            Supported by 
+            <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
+              GrupoTDM
+            </a>
+          </p>
+          <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
+            <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
+            <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
+            <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    hideLoadingScreen();
+    playSuccessSound();
+  } else {
+    handleDataLoadError(new Error('Formato de datos incorrecto'));
   }
-}
-
-function handleDataLoadSuccess() {
-  const stats = dataManager.getCurrentStats();
-  
-  statusDiv.className = 'ready';
-  statusDiv.innerHTML = `
-    <i class="fas fa-check-circle"></i> SISTEMA LISTO
-  `;
-  dataStats.innerHTML = `
-    <i class="fas fa-database"></i> ${stats.total} registros | 
-    <i class="fas fa-check text-success"></i> ${stats.entregados} entregados | 
-    <i class="fas fa-clock text-warning"></i> ${stats.pendientes} pendientes |
-    ${new Date().toLocaleTimeString()}
-  `;
-  
-  // Mostrar contenido principal
-  showWelcomeScreen();
-  hideLoadingScreen();
-  playSuccessSound();
-}
-
-// Nueva función para mostrar pantalla de bienvenida
-function showWelcomeScreen() {
-  const stats = dataManager.getCurrentStats();
-  
-  resultsDiv.innerHTML = `
-    <div class="result-item" style="text-align: center; color: var(--gray);">
-      <div style="text-align: center;">
-        <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
-      </div>
-      <h1 style="margin: 0;">PandaDash</h1>
-      
-      <div style="margin: 15px 0; padding: 15px; background: var(--primary-light); border-radius: var(--border-radius);">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center;">
-          <div>
-            <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${stats.total}</div>
-            <div style="font-size: 12px;">Total</div>
-          </div>
-          <div>
-            <div style="font-size: 24px; font-weight: bold; color: var(--success);">${stats.entregados}</div>
-            <div style="font-size: 12px;">Entregados</div>
-          </div>
-          <div>
-            <div style="font-size: 24px; font-weight: bold; color: var(--warning);">${stats.pendientes}</div>
-            <div style="font-size: 12px;">Pendientes</div>
-          </div>
-          <div>
-            <div style="font-size: 14px; font-weight: bold; color: var(--gray);">
-              ${stats.ultimaActualizacion ? new Date(stats.ultimaActualizacion).toLocaleTimeString() : 'N/A'}
-            </div>
-            <div style="font-size: 10px;">Actualizado</div>
-          </div>
-        </div>
-      </div>
-      
-      <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
-        <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
-        <p style="margin: 2px 0;">
-          Supported by 
-          <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
-            GrupoTDM
-          </a>
-        </p>
-        <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
-          <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
-          <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
-          <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
-        </div>
-      </div>
-    </div>
-  `;
 }
 
 function handleDataLoadError(error) {
@@ -598,22 +630,36 @@ function parseQRCode(code) {
 }
 
 // Procesa las partes del código QR y muestra los resultados
-async function processQRCodeParts(parts) {
+function processQRCodeParts(parts) {
   const { documento, nit } = parts;
   
-  try {
-    const results = await dataManager.searchByDocument(documento);
+  // Buscar un registro que coincida con el documento
+  const result = database.find(item => 
+    item.documento && item.documento.toString() === documento
+  );
+  
+  if (result) {
+    // Filtramos los datosSiesa para mostrar solo los que coinciden con el NIT
+    const filteredItem = JSON.parse(JSON.stringify(result));
     
-    if (results && results.length > 0) {
-      displayFullResult(results[0], parts);
+    if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
+      // Filtramos por NIT en lugar de por cliente
+      filteredItem.datosSiesa = filteredItem.datosSiesa.filter(siesa => {
+        // Extraemos solo dígitos del NIT para comparar (por si acaso viene con formato)
+        const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
+        const scanNitDigits = nit.replace(/\D/g, '');
+        
+        return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
+      });
+      
+      displayFullResult(filteredItem, parts);
       playSuccessSound();
     } else {
-      showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
-      playErrorSound();
+      displayFullResult(filteredItem, parts);
+      playSuccessSound();
     }
-  } catch (error) {
-    console.error("Error buscando documento:", error);
-    showError(`${documento}-${nit}`, "Error al buscar en la base de datos");
+  } else {
+    showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
     playErrorSound();
   }
 }
