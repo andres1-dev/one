@@ -802,3 +802,250 @@ h1 {
 
 
 
+
+
+/* Estilos para el escáner QR */
+#qrScannerModal {
+  display: none;
+  background: rgba(0,0,0,0.98);
+}
+
+.scanner-header {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  z-index: 10001;
+}
+
+.scanner-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 18px;
+}
+
+.scanner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.scanner-frame {
+  width: 250px;
+  height: 250px;
+  border: 2px solid #4361ee;
+  border-radius: 15px;
+  box-shadow: 0 0 0 1000px rgba(0,0,0,0.7);
+  position: relative;
+}
+
+.scanner-frame::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid transparent;
+  border-image: linear-gradient(45deg, #4361ee, #4cc9f0, #4361ee);
+  border-image-slice: 1;
+  border-radius: 15px;
+  animation: scannerBorder 2s linear infinite;
+}
+
+@keyframes scannerBorder {
+  0% { border-image-source: linear-gradient(45deg, #4361ee, #4cc9f0, #4361ee); }
+  50% { border-image-source: linear-gradient(45deg, #4cc9f0, #4361ee, #4cc9f0); }
+  100% { border-image-source: linear-gradient(45deg, #4361ee, #4cc9f0, #4361ee); }
+}
+
+.scanner-instructions {
+  margin-top: 280px;
+  text-align: center;
+  color: white;
+  background: rgba(0,0,0,0.7);
+  padding: 15px 25px;
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+}
+
+.scanner-instructions i {
+  font-size: 24px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.scanner-instructions p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.scanner-actions {
+  position: absolute;
+  bottom: 30px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+/* Botón de teclado en el input */
+.barcode-input-container {
+  position: relative;
+  max-width: 400px;
+  margin: 20px auto;
+}
+
+#barcode {
+  width: 100%;
+  padding: 16px 50px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  background-color: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  appearance: none;
+  text-align: center;
+  cursor: default;
+}
+
+#barcode:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+#barcode.readonly {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+#barcode.enabled {
+  background-color: #ffffff;
+  color: #333;
+  cursor: text;
+}
+
+.barcode-input-container i {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a6acad;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.barcode-input-container i:hover {
+  color: #4361ee;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.barcode-input-container i:first-child {
+  left: 16px;
+}
+
+.barcode-input-container i:last-child {
+  right: 16px;
+}
+
+.keyboard-enabled {
+  color: #4361ee !important;
+}
+
+.keyboard-disabled {
+  color: #a6acad !important;
+}
+
+/* Indicador de estado del teclado */
+.keyboard-status {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #6c757d;
+  border: 2px solid white;
+  z-index: 11;
+}
+
+.keyboard-status.active {
+  background-color: #28a745;
+}
+
+.keyboard-status.inactive {
+  background-color: #6c757d;
+}
+
+/* Efectos de escaneo QR */
+.scanner-laser {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #4361ee, transparent);
+  animation: scanLaser 2s ease-in-out infinite;
+}
+
+@keyframes scanLaser {
+  0% { top: 0; opacity: 0; }
+  50% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Mejoras responsive */
+@media (max-width: 768px) {
+  .scanner-frame {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .scanner-instructions {
+    margin-top: 230px;
+    padding: 12px 20px;
+  }
+  
+  .scanner-instructions p {
+    font-size: 13px;
+  }
+  
+  #barcode {
+    padding: 14px 50px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .scanner-frame {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .scanner-instructions {
+    margin-top: 210px;
+    padding: 10px 15px;
+  }
+  
+  .scanner-header h3 {
+    font-size: 16px;
+  }
+}
