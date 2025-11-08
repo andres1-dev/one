@@ -1119,3 +1119,81 @@ h1 {
     font-size: 14px;
   }
 }
+
+
+
+
+
+/* Estilos para el viewport de Quagga */
+.viewport {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  height: 300px;
+  margin: 0 auto;
+}
+
+.scanner-view {
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Canvas de Quagga */
+.viewport canvas, .viewport video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+/* Overlay de dibujo de Quagga */
+.drawingBuffer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Mejoras para el escáner */
+#scannerStatus {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.scanner-instructions small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Indicador de escaneo activo */
+.scanning-active .scanner-laser {
+  animation: scanLaser 1.5s ease-in-out infinite;
+}
+
+.scanning-active .scanner-frame::before {
+  animation: scannerBorder 1s linear infinite;
+}
+
+/* Estado de error */
+.scanner-error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  border-radius: 5px;
+  margin: 10px;
+  text-align: center;
+}
+
+/* Botón de cambiar cámara */
+#switchCameraBtn {
+  display: none; /* Solo mostrar si hay múltiples cámaras */
+}
+
+#switchCameraBtn.available {
+  display: inline-flex;
+}
