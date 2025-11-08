@@ -2,10 +2,7 @@
 
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
-  setupConfigPanel();
-  // Inicializar managers
-  initializeKeyboardManager();
-  initializeQRScanner();
+  initializeScanner();
   
   // Inicializar la cola de carga
   initializeUploadQueue();
@@ -240,16 +237,15 @@ function clearOldCache() {
   }
 }
 
+// Función setupEventListeners actualizada:
 function setupEventListeners() {
-  // Prevenir focus en el input
   const barcodeInput = document.getElementById('barcode');
   
-  // Bloquear completamente el teclado virtual pero permitir escaneo láser
+  // Prevenir focus en el input pero permitir escaneo láser
   barcodeInput.addEventListener('focus', (e) => {
     e.preventDefault();
     barcodeInput.blur();
     
-    // Solo mostrar mensaje si es un toque directo
     if (!window.isProgrammaticFocus) {
       setTimeout(() => {
         barcodeInput.blur();
@@ -265,43 +261,11 @@ function setupEventListeners() {
     }
   });
 
-  // Botón de cámara flotante
-  document.getElementById('cameraToggleBtn').addEventListener('click', function() {
-    if (barcodeInput.readOnly) {
-      // Activar entrada manual temporal
-      barcodeInput.readOnly = false;
-      barcodeInput.classList.remove('readonly');
-      barcodeInput.placeholder = "Modo manual activado - Escribe o escanea";
-      this.classList.add('active');
-      this.title = "Desactivar entrada manual";
-      
-      // Auto-desactivar después de 30 segundos
-      setTimeout(() => {
-        if (!barcodeInput.matches(':focus')) {
-          barcodeInput.readOnly = true;
-          barcodeInput.classList.add('readonly');
-          barcodeInput.placeholder = "Escanea un código QR";
-          this.classList.remove('active');
-          this.title = "Activar entrada manual";
-        }
-      }, 30000);
-    } else {
-      // Desactivar entrada manual
-      barcodeInput.readOnly = true;
-      barcodeInput.classList.add('readonly');
-      barcodeInput.placeholder = "Escanea un código QR";
-      this.classList.remove('active');
-      this.title = "Activar entrada manual";
-      barcodeInput.blur();
-    }
-  });
-
   // Foco persistente pero controlado
   function enforceControlledFocus() {
     if (document.activeElement !== barcodeInput && 
         document.getElementById('cameraModal').style.display !== 'flex' &&
-        barcodeInput.readOnly) {
-      // Solo hacer focus programáticamente, no por interacción del usuario
+        document.getElementById('scannerModal').style.display !== 'flex') {
       window.isProgrammaticFocus = true;
       barcodeInput.focus();
       setTimeout(() => {
@@ -313,16 +277,13 @@ function setupEventListeners() {
   enforceControlledFocus();
 }
 
-// Función mejorada para procesar input de barcode
+// Función para procesar input de barcode (igual que antes)
 function processBarcodeInput(code) {
   if (!code || code.length < 3) return;
   
   console.log("Procesando código:", code);
   
-  // Normalizar código
   const cleanCode = code.trim().toUpperCase();
-  
-  // Procesar el código
   const parts = parseQRCode(cleanCode);
   
   if (parts) {
@@ -334,21 +295,18 @@ function processBarcodeInput(code) {
     statusDiv.className = 'processed';
     statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
     
-    // Limpiar input después de procesamiento exitoso
     setTimeout(() => {
       barcodeInput.value = '';
     }, 100);
     
     playSuccessSound();
   } else {
-    // Si no es un formato reconocido, mantener el valor para edición manual
     statusDiv.className = 'error';
     statusDiv.textContent = 'FORMATO NO RECONOCIDO';
     playErrorSound();
-    
-    // No limpiar el input para permitir corrección manual
   }
 }
+
 
 // Función para analizar el código QR
 function parseQRCode(code) {
