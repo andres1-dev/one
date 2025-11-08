@@ -156,71 +156,72 @@ function aplicarMarcaDeAgua(ctx, width, height) {
 
 // Función para subir la foto capturada
 async function subirFotoCapturada(blob) {
-  if (!currentDocumentData || !blob) {
-    console.error("No hay datos disponibles para subir");
-    statusDiv.innerHTML = '<span style="color: var(--danger)">Error: No hay datos para subir</span>';
-    return;
-  }
-  
-  const { documento, lote, referencia, cantidad, factura, nit, btnElement, esSinFactura } = currentDocumentData;
-  
-  try {
-    // Convertir blob a base64
-    const base64Data = await blobToBase64(blob);
-    const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
-    
-    // Crear objeto de trabajo para la cola
-    const jobData = {
-      documento: documento,
-      lote: lote,
-      referencia: referencia,
-      cantidad: cantidad,
-      factura: factura,
-      nit: nit,
-      fotoBase64: base64Data,
-      fotoNombre: nombreArchivo,
-      fotoTipo: 'image/jpeg',
-      timestamp: new Date().toISOString(),
-      esSinFactura: esSinFactura // Pasar esta propiedad a la cola
-    };
-    
-    // Agregar a la cola
-    uploadQueue.addJob({
-      type: 'photo',
-      data: jobData,
-      factura: factura,
-      btnElementId: btnElement ? btnElement.getAttribute('data-factura') : null,
-      esSinFactura: esSinFactura
-    });
-    
-    // Actualizar botón de entrega si existe
-    if (btnElement) {
-      btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> PROCESANDO...';
-      btnElement.style.backgroundColor = '#4cc9f0';
-      
-      // Si es sin factura, actualizamos el botón inmediatamente después de añadirlo a la cola
-      if (esSinFactura) {
-        setTimeout(() => {
-          btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-          btnElement.style.backgroundColor = '#28a745';
-          btnElement.disabled = true;
-          
-          // Actualizar estado global
-          actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
-        }, 2000);
-      }
+    if (!currentDocumentData || !blob) {
+        console.error("No hay datos disponibles para subir");
+        statusDiv.innerHTML = '<span style="color: var(--danger)">Error: No hay datos para subir</span>';
+        return;
     }
     
-    // Reproducir sonido de éxito
-    playSuccessSound();
+    const { documento, lote, referencia, cantidad, factura, nit, btnElement, esSinFactura } = currentDocumentData;
     
-  } catch (error) {
-    console.error("Error al preparar foto:", error);
-    statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen</span>';
-    
-    // Reproducir sonido de error
-    playErrorSound();
-  }
+    try {
+        // Convertir blob a base64
+        const base64Data = await blobToBase64(blob);
+        const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
+        
+        // Crear objeto de trabajo para la cola
+        const jobData = {
+            documento: documento,
+            lote: lote,
+            referencia: referencia,
+            cantidad: cantidad,
+            factura: factura,
+            nit: nit,
+            fotoBase64: base64Data,
+            fotoNombre: nombreArchivo,
+            fotoTipo: 'image/jpeg',
+            timestamp: new Date().toISOString(),
+            esSinFactura: esSinFactura
+        };
+        
+        // Agregar a la cola
+        uploadQueue.addJob({
+            type: 'photo',
+            data: jobData,
+            factura: factura,
+            btnElementId: btnElement ? btnElement.getAttribute('data-factura') : null,
+            esSinFactura: esSinFactura,
+            // Callback para después de subir exitosamente
+            onSuccess: () => {
+                // Actualizar datos después de subir exitosamente
+                setTimeout(() => {
+                    refreshAfterUpload(factura);
+                }, 2000);
+            }
+        });
+        
+        // Actualizar botón de entrega si existe
+        if (btnElement) {
+            btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> PROCESANDO...';
+            btnElement.style.backgroundColor = '#4cc9f0';
+            
+            if (esSinFactura) {
+                setTimeout(() => {
+                    btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+                    btnElement.style.backgroundColor = '#28a745';
+                    btnElement.disabled = true;
+                    actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
+                }, 2000);
+            }
+        }
+        
+        playSuccessSound();
+        
+    } catch (error) {
+        console.error("Error al preparar foto:", error);
+        statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen</span>';
+        playErrorSound();
+    }
 }
 
 // Funciones para sonidos de feedback
@@ -310,21 +311,73 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Reemplazar la función loadDataFromServer existente
 function loadDataFromServer() {
-  statusDiv.className = 'loading';
-  statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
-  dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con el servidor...';
-  
-  // Usamos fetch para obtener los datos del servidor
-  fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(serverData => handleDataLoadSuccess(serverData))
-    .catch(error => handleDataLoadError(error));
+    statusDiv.className = 'loading';
+    statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
+    dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con Sheets API...';
+    
+    dataService.getCombinedData()
+        .then(serverData => handleDataLoadSuccess(serverData))
+        .catch(error => handleDataLoadError(error));
+}
+
+// Función para forzar actualización después de subir foto
+async function refreshAfterUpload(factura) {
+    try {
+        console.log(`🔄 Actualizando datos después de subir foto para factura: ${factura}`);
+        
+        const updatedData = await dataService.forceRefresh();
+        database = updatedData;
+        dataLoaded = true;
+        cacheData(database);
+        
+        // Si hay un QR activo, reprocesarlo para reflejar los cambios
+        if (currentQRParts) {
+            processQRCodeParts(currentQRParts);
+        }
+        
+        // Verificar si la factura ya está marcada como entregada
+        const facturaData = updatedData.find(d => d.factura === factura);
+        if (facturaData && facturaData.confirmacion === "ENTREGADO") {
+            console.log(`✅ Factura ${factura} confirmada como ENTREGADA`);
+            
+            // Detener la cola para esta factura
+            stopQueueForFactura(factura);
+            
+            // Actualizar UI inmediatamente
+            updateUIForConfirmedFactura(factura);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error actualizando datos:', error);
+        return false;
+    }
+}
+
+// Detener la cola para una factura específica
+function stopQueueForFactura(factura) {
+    uploadQueue.queue = uploadQueue.queue.filter(job => 
+        !(job.factura === factura && job.type === 'photo')
+    );
+    uploadQueue.saveQueue();
+    uploadQueue.updateQueueCounter();
+    console.log(`🛑 Cola detenida para factura: ${factura}`);
+}
+
+// Actualizar UI cuando una factura está confirmada
+function updateUIForConfirmedFactura(factura) {
+    // Actualizar botones en la interfaz
+    const buttons = document.querySelectorAll(`.delivery-btn[data-factura="${factura}"]`);
+    buttons.forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+        btn.style.backgroundColor = '#28a745';
+        btn.disabled = true;
+    });
+    
+    // Actualizar estado general
+    actualizarEstado('processed', `<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA - ${factura}`);
 }
 
 function handleDataLoadSuccess(serverData) {
