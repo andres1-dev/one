@@ -58,12 +58,6 @@ function asentarFactura(documento, lote, referencia, cantidad, factura, nit, btn
       // Reproducir sonido de éxito
       reproducirSonidoExito();
       
-      // Mostrar notificación temporal
-      /*mostrarNotificacion(
-        'success',
-        `Factura "${factura}" asentada correctamente.`,
-        data.message
-      );*/
     } else {
       // Operación fallida pero respuesta recibida
       if (btnElement) {
@@ -74,13 +68,6 @@ function asentarFactura(documento, lote, referencia, cantidad, factura, nit, btn
       
       // Actualizar estado
       actualizarEstado('warning', '<i class="fas fa-exclamation-triangle"></i> NO SE PUDO ASENTAR LA FACTURA');
-      
-      // Mostrar notificación de advertencia
-      mostrarNotificacion(
-        'warning',
-        'No se pudo asentar la factura.',
-        data.message || 'El servidor no pudo procesar la solicitud.'
-      );
       
       // Reproducir sonido de advertencia (opcional, puedes usar el mismo que el de error)
       reproducirSonidoError();
@@ -98,13 +85,6 @@ function asentarFactura(documento, lote, referencia, cantidad, factura, nit, btn
     
     // Actualizar estado
     actualizarEstado('error', `<i class="fas fa-exclamation-circle"></i> ERROR: ${error.message}`);
-    
-    // Mostrar notificación de error
-    mostrarNotificacion(
-      'error',
-      'Error de conexión',
-      `No se pudo conectar con el servidor: ${error.message}`
-    );
     
     // Reproducir sonido de error
     reproducirSonidoError();
@@ -128,90 +108,6 @@ function mostrarError(mensaje) {
   if (!statusDiv) return;
   statusDiv.className = 'error';
   statusDiv.innerHTML = `<span style="color: var(--danger)">${mensaje}</span>`;
-}
-
-/**
- * Muestra una notificación temporal
- */
-function mostrarNotificacion(tipo, titulo, mensaje) {
-  // Crear elemento de notificación
-  const notificacion = document.createElement('div');
-  notificacion.className = `result-item notificacion-${tipo}`;
-  
-  // Estilos según el tipo
-  let colorFondo, colorTexto, icono;
-  
-  if (tipo === 'success') {
-    colorFondo = '#d4edda';
-    colorTexto = '#155724';
-    icono = 'fa-check-circle';
-  } else if (tipo === 'warning') {
-    colorFondo = '#fff3cd';
-    colorTexto = '#856404';
-    icono = 'fa-exclamation-triangle';
-  } else { // error
-    colorFondo = '#f8d7da';
-    colorTexto = '#721c24';
-    icono = 'fa-exclamation-circle';
-  }
-  
-  // Aplicar estilos
-  notificacion.style.backgroundColor = colorFondo;
-  notificacion.style.color = colorTexto;
-  notificacion.style.padding = '15px';
-  notificacion.style.marginTop = '10px';
-  notificacion.style.borderRadius = '8px';
-  notificacion.style.textAlign = 'center';
-  notificacion.style.fontWeight = '500';
-  notificacion.style.position = 'relative';
-  
-  // Contenido
-  notificacion.innerHTML = `
-    <i class="fas ${icono}"></i> 
-    <strong>${titulo}</strong>
-    <div style="font-size: 13px; margin-top: 5px; opacity: 0.8">
-      ${mensaje}
-    </div>
-    <span class="cerrar-notificacion" style="position: absolute; top: 5px; right: 10px; cursor: pointer;">
-      <i class="fas fa-times"></i>
-    </span>
-  `;
-  
-  // Insertar al principio de los resultados
-  if (resultsDiv) {
-    const firstChild = resultsDiv.firstChild;
-    if (firstChild) {
-      resultsDiv.insertBefore(notificacion, firstChild);
-    } else {
-      resultsDiv.appendChild(notificacion);
-    }
-  } else {
-    // Si no hay contenedor de resultados, agregar al body
-    document.body.appendChild(notificacion);
-    notificacion.style.position = 'fixed';
-    notificacion.style.top = '20px';
-    notificacion.style.left = '50%';
-    notificacion.style.transform = 'translateX(-50%)';
-    notificacion.style.zIndex = '9999';
-    notificacion.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    notificacion.style.maxWidth = '90%';
-    notificacion.style.width = '350px';
-  }
-  
-  // Agregar evento para cerrar la notificación
-  const cerrarBtn = notificacion.querySelector('.cerrar-notificacion');
-  if (cerrarBtn) {
-    cerrarBtn.addEventListener('click', () => {
-      notificacion.remove();
-    });
-  }
-  
-  // Eliminar automáticamente después de 6 segundos
-  setTimeout(() => {
-    if (notificacion.parentNode) {
-      notificacion.parentNode.removeChild(notificacion);
-    }
-  }, 6000);
 }
 
 /**
