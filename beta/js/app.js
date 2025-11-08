@@ -3,7 +3,7 @@ class PandaDashApp {
     constructor() {
         this.config = {
             VERSION: "5.0.0",
-            CACHE_TTL: 5 * 60 * 1000, // 5 minutos
+            CACHE_TTL: 1 * 60 * 100, // 5 minutos
             MAX_IMAGE_SIZE: 800,
             API_KEY: 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM', // Reemplaza con tu API Key
             SPREADSHEET_ID_SIESA: '1FcQhVIKtWy4O-aGTNfA6l4C5Q4_u1LZErpj3CMglfQM',
