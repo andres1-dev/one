@@ -4,6 +4,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Inicializar la cola de carga
   initializeUploadQueue();
+
+  // Inicializar controlador de teclado y QR
+  initializeInputController();
   
   // Cargar datos desde el servidor
   loadDataFromServer();
