@@ -39,9 +39,13 @@
       <i class="fas fa-wifi-slash"></i> No hay conexión a internet
     </div>
 
-    <div class="barcode-input-container">
-      <i class="fa-solid fa-qrcode"></i>
-      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR" readonly>
+    <!-- Input para PDA/Láser (siempre activo pero oculto) -->
+    <input type="text" id="pdaInput" autofocus placeholder="Escanea con láser PDA" style="position: absolute; opacity: 0; height: 1px; width: 1px;">
+
+    <!-- Input para teclado manual (solo visible si está habilitado) -->
+    <div class="barcode-input-container" id="manualInputContainer" style="display: none;">
+      <i class="fa-solid fa-keyboard"></i>
+      <input type="text" id="manualInput" placeholder="Escribe manualmente el código">
       <button id="cameraBtn" class="btn btn-sm camera-btn" title="Escanear con cámara">
         <i class="fas fa-camera"></i>
       </button>
@@ -76,7 +80,6 @@
     <div id="uploadStatus" class="uploading-status">
       <i class="fas fa-spinner fa-pulse"></i> Subiendo foto...
     </div>
-    <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
   </div>
 
   <!-- Botón flotante de configuración -->
@@ -94,9 +97,9 @@
       <h4>Entrada de Datos</h4>
       <div class="config-option">
         <label>
-          <input type="checkbox" id="keyboardToggle"> Habilitar teclado
+          <input type="checkbox" id="keyboardToggle"> Habilitar teclado manual
         </label>
-        <small>Permitir entrada manual con teclado</small>
+        <small>Mostrar campo para escribir manualmente</small>
       </div>
     </div>
 
