@@ -51,6 +51,27 @@ class UploadQueue {
       return [];
     }
   }
+
+  async verificarYDetenerSiConfirmado(job) {
+    if (job.type === 'photo') {
+        const { documento, lote, referencia, cantidad, nit } = job.data;
+        
+        try {
+            const confirmado = await verificarConfirmacionEnTiempoReal(
+                documento, lote, referencia, cantidad, nit
+            );
+            
+            if (confirmado) {
+                console.log(`Trabajo confirmado, eliminando de cola: ${documento}-${lote}`);
+                return true; // Indicar que debe ser eliminado
+            }
+        } catch (error) {
+            console.error('Error verificando confirmación:', error);
+        }
+    }
+    return false; // Mantener en cola
+}
+
   
   saveQueue() {
     localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(this.queue));
@@ -175,35 +196,56 @@ class UploadQueue {
     details.style.display = 'none';
   }
   
-  async processQueue() {
+  // En la clase UploadQueue, agregar este método:
+async verificarYDetenerSiConfirmado(job) {
+    if (job.type === 'photo') {
+        const { documento, lote, referencia, cantidad, nit } = job.data;
+        
+        try {
+            const confirmado = await verificarConfirmacionEnTiempoReal(
+                documento, lote, referencia, cantidad, nit
+            );
+            
+            if (confirmado) {
+                console.log(`Trabajo confirmado, eliminando de cola: ${documento}-${lote}`);
+                return true; // Indicar que debe ser eliminado
+            }
+        } catch (error) {
+            console.error('Error verificando confirmación:', error);
+        }
+    }
+    return false; // Mantener en cola
+}
+
+// Modificar el processQueue para incluir la verificación:
+async processQueue() {
     if (this.isProcessing || this.queue.length === 0 || !navigator.onLine) {
         this.updateQueueCounter();
         return;
     }
-
+    
     this.isProcessing = true;
     this.updateQueueCounter();
-
+    
     while (this.queue.length > 0 && navigator.onLine) {
         const job = this.queue[0];
-
+        
         try {
-            // VERIFICAR SI YA ESTÁ CONFIRMADO ANTES DE PROCESAR
-            const yaConfirmado = await this.verificarYDetenerSiConfirmado(job);
-            if (yaConfirmado) {
-                // Eliminar trabajo ya confirmado
+            // Verificar si ya está confirmado antes de procesar
+            const estaConfirmado = await this.verificarYDetenerSiConfirmado(job);
+            if (estaConfirmado) {
                 this.queue.shift();
                 this.saveQueue();
                 this.updateQueueCounter();
                 continue;
             }
-
+            
             if (job.type === 'photo') {
                 await this.processPhotoJob(job);
             } else if (job.type === 'data') {
                 await this.processDataJob(job);
             }
-
+            
             // Eliminar trabajo completado
             this.queue.shift();
             this.saveQueue();
@@ -213,60 +255,22 @@ class UploadQueue {
             job.retries++;
             job.lastError = error.message;
             job.lastAttempt = new Date().toISOString();
-
-            // VERIFICAR SI SE CONFIRMÓ DURANTE EL REINTENTO
-            const yaConfirmado = await this.verificarYDetenerSiConfirmado(job);
-            if (yaConfirmado) {
-                this.queue.shift();
-                this.saveQueue();
-                this.updateQueueCounter();
-                continue;
-            }
-
-            // MODIFICACIÓN PARA REINTENTOS ILIMITADOS
+            
             if (CONFIG.MAX_RETRIES > 0 && job.retries >= CONFIG.MAX_RETRIES) {
                 this.queue.shift();
             } else {
                 job.status = 'retrying';
                 this.queue.push(this.queue.shift());
             }
-
+            
             this.saveQueue();
             this.updateQueueCounter();
             break;
         }
     }
-
+    
     this.isProcessing = false;
     this.updateQueueCounter();
-}
-  
-  // Agregar esta función en upload-queue.js
-async verificarYDetenerSiConfirmado(job) {
-    try {
-        const confirmacion = await sheetsDataService.verificarConfirmacion(job.factura);
-        
-        if (confirmacion.confirmado) {
-            console.log(`Factura ${job.factura} ya confirmada, deteniendo reintentos`);
-            
-            // Actualizar UI si el elemento todavía está visible
-            if (job.btnElementId) {
-                const btnElement = document.querySelector(`[data-factura="${job.btnElementId}"]`);
-                if (btnElement) {
-                    btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-                    btnElement.style.backgroundColor = '#28a745';
-                    btnElement.disabled = true;
-                }
-            }
-            
-            return true; // Indicar que debe detenerse
-        }
-        
-        return false; // Continuar con los reintentos
-    } catch (error) {
-        console.error("Error verificando confirmación:", error);
-        return false; // En caso de error, continuar
-    }
 }
   
   async processPhotoJob(job) {
