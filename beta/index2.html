@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="PandaDash" />
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+
+  <title>PandaDash</title>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Pantalla de carga -->
+  <div id="loadingScreen">
+    <div style="text-align: center;">
+      <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+    </div>
+    <div class="triple-pulse">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <h1>PandaDash</h1>
+    <div class="name">Build 3.17.634</div>
+    <button id="installBtn">Instalar App</button>
+  </div>
+
+  <!-- Contenido principal -->
+  <div id="scanner" style="display: none;">
+    <div id="offline-banner" class="offline-banner" style="display: none;">
+      <i class="fas fa-wifi-slash"></i> No hay conexión a internet
+    </div>
+
+    <div class="barcode-input-container">
+      <i class="fa-solid fa-qrcode"></i>
+      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR o ingresa manualmente" readonly>
+      <button id="manualInputBtn" class="btn btn-sm" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">
+        <i class="fas fa-keyboard"></i>
+      </button>
+    </div>
+
+    <div id="status">Iniciando Sistema...</div>
+    <div class="data-stats" id="data-stats">Cargando datos...</div>
+    <div id="results"></div>
+
+    <footer>
+      <div class="footer-content">
+        <p></p>
+        <p></p>
+        <p></p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal de cámara -->
+  <div id="cameraModal" class="camera-modal">
+    <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
+    <canvas id="photoCanvas" style="display: none;"></canvas>
+    <img id="photoPreview" alt="Vista previa de la foto">
+    <div class="camera-actions">
+      <button id="takePhotoBtn" class="btn btn-primary">
+        <i class="fas fa-camera"></i> Tomar Foto
+      </button>
+      <button id="cancelCaptureBtn" class="btn btn-danger">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+    </div>
+    <div id="uploadStatus" class="uploading-status">
+      <i class="fas fa-spinner fa-pulse"></i> Subiendo foto...
+    </div>
+    <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
+  </div>
+
+  <!-- Modal de escáner QR -->
+  <div id="qrScannerModal" class="camera-modal">
+    <div id="interactive" class="camera-view"></div>
+    <div class="scanner-overlay">
+      <div class="scanner-frame"></div>
+      <div class="scanner-line"></div>
+    </div>
+    <div class="camera-actions">
+      <button id="toggleCameraBtn" class="btn btn-warning">
+        <i class="fas fa-sync-alt"></i> Cambiar Cámara
+      </button>
+      <button id="closeScannerBtn" class="btn btn-danger">
+        <i class="fas fa-times"></i> Cerrar Escáner
+      </button>
+    </div>
+    <div id="scannerStatus" class="uploading-status">
+      <i class="fas fa-qrcode"></i> Acerca el código QR a la cámara
+    </div>
+  </div>
+
+  <!-- Botones flotantes -->
+  <div id="floatingButtons">
+    <button id="configBtn" class="floating-btn" title="Configuración">
+      <i class="fas fa-cog"></i>
+    </button>
+    <button id="qrScannerBtn" class="floating-btn" title="Escanear QR">
+      <i class="fas fa-camera"></i>
+    </button>
+    <button id="keyboardToggleBtn" class="floating-btn" title="Teclado Desactivado">
+      <i class="fas fa-keyboard"></i>
+    </button>
+  </div>
+
+  <!-- Panel de configuración -->
+  <div id="configPanel" class="config-panel">
+    <h3>Configuración <i class="fas fa-times" id="closeConfig"></i></h3>
+    <div class="config-option">
+      <label>
+        <input type="checkbox" id="autoSubmitToggle"> Envío automático
+      </label>
+      <small>Enviar automáticamente al completar el formato</small>
+    </div>
+    <div class="config-option">
+      <label>
+        <input type="checkbox" id="keyboardToggle" checked> Teclado habilitado
+      </label>
+      <small>Permitir entrada manual con teclado</small>
+    </div>
+    <div class="config-option">
+      <label>
+        <input type="checkbox" id="soundToggle" checked> Sonidos
+      </label>
+      <small>Reproducir sonidos de feedback</small>
+    </div>
+    <div class="config-option">
+      <label>
+        <input type="checkbox" id="vibrationToggle"> Vibración
+      </label>
+      <small>Vibrar al escanear (solo móviles)</small>
+    </div>
+  </div>
+
+  <!-- Contador de cola y panel de detalles -->
+  <div id="queueCounter" class="empty" title="No hay elementos en cola">0</div>
+  <div id="queueDetails">
+    <h3>Elementos en cola <i class="fas fa-times" id="closeQueueDetails"></i></h3>
+    <div id="queueItemsList">
+      <div class="queue-no-items">No hay elementos pendientes</div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/quagga2@1.7.4/dist/quagga.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/keyboard-manager.js"></script>
+  <script src="js/upload-queue.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/quagga-scanner.js"></script>
+  <script src="js/asentar-factura.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
