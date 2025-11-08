@@ -16,7 +16,6 @@ let cameraStream = null;
 let currentDocumentData = null;
 let photoBlob = null;
 let preventKeyboardTimer = null;
-let globalInputController;
 let currentQRParts = null;
 let dataLoaded = false;
 
@@ -24,7 +23,7 @@ let dataLoaded = false;
 const UPLOAD_QUEUE_KEY = 'pdaUploadQueue';
 const MAX_RETRIES = -1; // -1 para intentos ilimitados
 
-// Elementos del DOM
+// Elementos del DOM - NO inicialices aquí, se inicializan en DOMContentLoaded
 let loadingScreen, scanner, barcodeInput, statusDiv, resultsDiv, dataStats, offlineBanner, installBtn;
 
 // Inicializar elementos DOM cuando el DOM esté listo
