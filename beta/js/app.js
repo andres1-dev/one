@@ -1,4 +1,4 @@
-// Variables globales
+// Variables globales 1
 let database = [];
 let currentQRParts = null;
 let dataLoaded = false;
