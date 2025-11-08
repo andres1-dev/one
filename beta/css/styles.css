@@ -804,6 +804,114 @@ h1 {
 
 
 
+/* Controles de entrada mejorados */
+.input-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 400px;
+  margin: 20px auto;
+  padding: 0 15px;
+}
+
+.scanner-btn {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.keyboard-btn {
+  flex-shrink: 0;
+  padding: 12px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.barcode-input-container {
+  flex: 1;
+  position: relative;
+}
+
+#barcode {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  text-align: center;
+  cursor: not-allowed;
+  transition: all 0.3s ease;
+}
+
+#barcode:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+#barcode.enabled {
+  background-color: #ffffff;
+  color: #333;
+  cursor: text;
+  border-color: #4361ee;
+}
+
+.keyboard-enabled {
+  background-color: #4361ee !important;
+  color: white !important;
+}
+
+.keyboard-disabled {
+  background-color: #6c757d !important;
+  color: white !important;
+}
+
+/* Contador de cola reposicionado */
+#queueCounter {
+  position: fixed;
+  top: 80px; /* Más abajo para no interferir */
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+#queueCounter:hover {
+  transform: scale(1.1);
+}
+
+#queueCounter.empty {
+  background-color: var(--gray);
+}
+
+#queueCounter.processing {
+  background-color: var(--warning);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
 /* Estilos para el escáner QR */
 #qrScannerModal {
   display: none;
@@ -848,6 +956,7 @@ h1 {
   border-radius: 15px;
   box-shadow: 0 0 0 1000px rgba(0,0,0,0.7);
   position: relative;
+  overflow: hidden;
 }
 
 .scanner-frame::before {
@@ -868,6 +977,22 @@ h1 {
   0% { border-image-source: linear-gradient(45deg, #4361ee, #4cc9f0, #4361ee); }
   50% { border-image-source: linear-gradient(45deg, #4cc9f0, #4361ee, #4cc9f0); }
   100% { border-image-source: linear-gradient(45deg, #4361ee, #4cc9f0, #4361ee); }
+}
+
+.scanner-laser {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #4361ee, transparent);
+  animation: scanLaser 2s ease-in-out infinite;
+}
+
+@keyframes scanLaser {
+  0% { top: 0; opacity: 0; }
+  50% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
 .scanner-instructions {
@@ -902,118 +1027,50 @@ h1 {
   gap: 15px;
 }
 
-/* Botón de teclado en el input */
-.barcode-input-container {
-  position: relative;
-  max-width: 400px;
-  margin: 20px auto;
-}
-
-#barcode {
-  width: 100%;
-  padding: 16px 50px;
-  font-size: 16px;
+/* Notificaciones de estado */
+.keyboard-status-notification {
+  position: fixed;
+  top: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #d4edda;
+  color: #155724;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 500;
-  color: #333;
-  background-color: #fff;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  appearance: none;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 1px solid #c3e6cb;
+  max-width: 90%;
   text-align: center;
-  cursor: default;
+  white-space: nowrap;
 }
 
-#barcode:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+.keyboard-status-notification.warning {
+  background: #fff3cd;
+  color: #856404;
+  border-color: #ffeaa7;
 }
 
-#barcode.readonly {
-  background-color: #f8f9fa;
-  color: #6c757d;
-  cursor: not-allowed;
-}
-
-#barcode.enabled {
-  background-color: #ffffff;
-  color: #333;
-  cursor: text;
-}
-
-.barcode-input-container i {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #a6acad;
-  font-size: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 10;
-}
-
-.barcode-input-container i:hover {
-  color: #4361ee;
-  transform: translateY(-50%) scale(1.1);
-}
-
-.barcode-input-container i:first-child {
-  left: 16px;
-}
-
-.barcode-input-container i:last-child {
-  right: 16px;
-}
-
-.keyboard-enabled {
-  color: #4361ee !important;
-}
-
-.keyboard-disabled {
-  color: #a6acad !important;
-}
-
-/* Indicador de estado del teclado */
-.keyboard-status {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: #6c757d;
-  border: 2px solid white;
-  z-index: 11;
-}
-
-.keyboard-status.active {
-  background-color: #28a745;
-}
-
-.keyboard-status.inactive {
-  background-color: #6c757d;
-}
-
-/* Efectos de escaneo QR */
-.scanner-laser {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #4361ee, transparent);
-  animation: scanLaser 2s ease-in-out infinite;
-}
-
-@keyframes scanLaser {
-  0% { top: 0; opacity: 0; }
-  50% { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
+.keyboard-status-notification.info {
+  background: #d1ecf1;
+  color: #0c5460;
+  border-color: #bee5eb;
 }
 
 /* Mejoras responsive */
 @media (max-width: 768px) {
+  .input-controls {
+    padding: 0 10px;
+    gap: 8px;
+  }
+  
+  .scanner-btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
   .scanner-frame {
     width: 200px;
     height: 200px;
@@ -1027,14 +1084,19 @@ h1 {
   .scanner-instructions p {
     font-size: 13px;
   }
-  
-  #barcode {
-    padding: 14px 50px;
-    font-size: 15px;
-  }
 }
 
 @media (max-width: 480px) {
+  .input-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .scanner-btn, .keyboard-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
   .scanner-frame {
     width: 180px;
     height: 180px;
@@ -1047,5 +1109,13 @@ h1 {
   
   .scanner-header h3 {
     font-size: 16px;
+  }
+  
+  #queueCounter {
+    top: 70px;
+    right: 15px;
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
   }
 }
