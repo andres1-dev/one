@@ -14,60 +14,69 @@ class InputController {
 
   setupEventListeners() {
     // Botón toggle teclado
-    document.getElementById('keyboardToggleBtn').addEventListener('click', () => {
-      this.toggleKeyboard();
-    });
+    const keyboardBtn = document.getElementById('keyboardToggleBtn');
+    const qrBtn = document.getElementById('qrScannerBtn');
+    
+    if (keyboardBtn) {
+      keyboardBtn.addEventListener('click', () => {
+        this.toggleKeyboard();
+      });
+    }
 
     // Botón escáner QR
-    document.getElementById('qrScannerBtn').addEventListener('click', () => {
-      this.openQRScanner();
-    });
+    if (qrBtn) {
+      qrBtn.addEventListener('click', () => {
+        this.openQRScanner();
+      });
+    }
 
     // Eventos del input
     const barcodeInput = document.getElementById('barcode');
     
-    // Prevenir cualquier foco no deseado
-    barcodeInput.addEventListener('mousedown', (e) => {
-      if (!this.keyboardEnabled) {
-        e.preventDefault();
-        this.showKeyboardDisabledMessage();
-      }
-    });
-
-    barcodeInput.addEventListener('touchstart', (e) => {
-      if (!this.keyboardEnabled) {
-        e.preventDefault();
-        this.showKeyboardDisabledMessage();
-      }
-    });
-
-    barcodeInput.addEventListener('focus', () => {
-      if (!this.keyboardEnabled) {
-        setTimeout(() => barcodeInput.blur(), 100);
-      }
-    });
-
-    // Manejar entrada manual cuando el teclado está habilitado
-    barcodeInput.addEventListener('input', (e) => {
-      if (this.keyboardEnabled) {
-        // Solo procesar si el teclado está habilitado
-        this.handleManualInput(e.target.value);
-      } else {
-        // Si no está habilitado, limpiar el input
-        e.target.value = '';
-      }
-    });
-
-    // Prevenir Enter automático
-    barcodeInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (this.keyboardEnabled && barcodeInput.value.trim().length > 0) {
-          this.processInput(barcodeInput.value.trim());
-          barcodeInput.value = '';
+    if (barcodeInput) {
+      // Prevenir cualquier foco no deseado
+      barcodeInput.addEventListener('mousedown', (e) => {
+        if (!this.keyboardEnabled) {
+          e.preventDefault();
+          this.showKeyboardDisabledMessage();
         }
-      }
-    });
+      });
+
+      barcodeInput.addEventListener('touchstart', (e) => {
+        if (!this.keyboardEnabled) {
+          e.preventDefault();
+          this.showKeyboardDisabledMessage();
+        }
+      });
+
+      barcodeInput.addEventListener('focus', () => {
+        if (!this.keyboardEnabled) {
+          setTimeout(() => barcodeInput.blur(), 100);
+        }
+      });
+
+      // Manejar entrada manual cuando el teclado está habilitado
+      barcodeInput.addEventListener('input', (e) => {
+        if (this.keyboardEnabled) {
+          // Solo procesar si el teclado está habilitado
+          this.handleManualInput(e.target.value);
+        } else {
+          // Si no está habilitado, limpiar el input
+          e.target.value = '';
+        }
+      });
+
+      // Prevenir Enter automático
+      barcodeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (this.keyboardEnabled && barcodeInput.value.trim().length > 0) {
+            this.processInput(barcodeInput.value.trim());
+            barcodeInput.value = '';
+          }
+        }
+      });
+    }
 
     // Cerrar escáner QR con Escape
     document.addEventListener('keydown', (e) => {
@@ -75,6 +84,14 @@ class InputController {
         this.closeQRScanner();
       }
     });
+
+    // Botón cerrar escáner QR
+    const closeQRBtn = document.getElementById('closeQRScanner');
+    if (closeQRBtn) {
+      closeQRBtn.addEventListener('click', () => {
+        this.closeQRScanner();
+      });
+    }
   }
 
   toggleKeyboard() {
@@ -95,10 +112,12 @@ class InputController {
     this.keyboardEnabled = true;
     const barcodeInput = document.getElementById('barcode');
     
-    barcodeInput.readOnly = false;
-    barcodeInput.classList.remove('readonly');
-    barcodeInput.classList.add('editable');
-    barcodeInput.placeholder = "Escribe el código manualmente...";
+    if (barcodeInput) {
+      barcodeInput.readOnly = false;
+      barcodeInput.classList.remove('readonly');
+      barcodeInput.classList.add('editable');
+      barcodeInput.placeholder = "Escribe el código manualmente...";
+    }
     
     console.log("Teclado habilitado - Modo edición manual");
   }
@@ -107,11 +126,13 @@ class InputController {
     this.keyboardEnabled = false;
     const barcodeInput = document.getElementById('barcode');
     
-    barcodeInput.readOnly = true;
-    barcodeInput.classList.remove('editable');
-    barcodeInput.classList.add('readonly');
-    barcodeInput.placeholder = "Escanea un código QR";
-    barcodeInput.blur();
+    if (barcodeInput) {
+      barcodeInput.readOnly = true;
+      barcodeInput.classList.remove('editable');
+      barcodeInput.classList.add('readonly');
+      barcodeInput.placeholder = "Escanea un código QR";
+      barcodeInput.blur();
+    }
     
     // Forzar blur en cualquier elemento activo
     if (document.activeElement && document.activeElement.tagName === 'INPUT') {
@@ -124,20 +145,24 @@ class InputController {
   updateKeyboardUI() {
     const keyboardBtn = document.getElementById('keyboardToggleBtn');
     
-    if (this.keyboardEnabled) {
-      keyboardBtn.classList.remove('keyboard-disabled');
-      keyboardBtn.classList.add('keyboard-enabled');
-      keyboardBtn.title = "Teclado habilitado - Click para deshabilitar";
-    } else {
-      keyboardBtn.classList.remove('keyboard-enabled');
-      keyboardBtn.classList.add('keyboard-disabled');
-      keyboardBtn.title = "Teclado deshabilitado - Click para habilitar";
+    if (keyboardBtn) {
+      if (this.keyboardEnabled) {
+        keyboardBtn.classList.remove('keyboard-disabled');
+        keyboardBtn.classList.add('keyboard-enabled');
+        keyboardBtn.title = "Teclado habilitado - Click para deshabilitar";
+      } else {
+        keyboardBtn.classList.remove('keyboard-enabled');
+        keyboardBtn.classList.add('keyboard-disabled');
+        keyboardBtn.title = "Teclado deshabilitado - Click para habilitar";
+      }
     }
   }
 
   showKeyboardDisabledMessage() {
     // Mostrar mensaje temporal
     const statusDiv = document.getElementById('status');
+    if (!statusDiv) return;
+    
     const originalContent = statusDiv.innerHTML;
     const originalClass = statusDiv.className;
     
@@ -164,6 +189,11 @@ class InputController {
     const video = document.getElementById('qrScannerVideo');
     const canvas = document.getElementById('qrScannerCanvas');
     const status = document.getElementById('scannerStatus');
+    
+    if (!modal || !video || !canvas || !status) {
+      console.error("Elementos del escáner QR no encontrados");
+      return;
+    }
     
     modal.style.display = 'flex';
     status.textContent = 'Iniciando cámara...';
@@ -206,14 +236,21 @@ class InputController {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
         // Usar jsQR para detectar códigos
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "dontInvert",
-        });
-        
-        if (code) {
-          // Código QR detectado
-          this.processScannedQR(code.data);
-          return; // Salir del loop
+        if (typeof jsQR !== 'undefined') {
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+          });
+          
+          if (code) {
+            // Código QR detectado
+            this.processScannedQR(code.data);
+            return; // Salir del loop
+          }
+        } else {
+          console.error("jsQR no está cargado");
+          status.textContent = 'Error: Librería QR no disponible';
+          this.closeQRScanner();
+          return;
         }
         
         // Continuar escaneando
@@ -234,7 +271,7 @@ class InputController {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       checkQR();
-    });
+    }, { once: true });
   }
 
   processScannedQR(qrData) {
@@ -251,25 +288,38 @@ class InputController {
   }
 
   processInput(inputData) {
-    // Aquí integras con tu lógica existente de procesamiento de QR
-    const parts = parseQRCode(inputData);
-    
-    if (parts) {
-      currentQRParts = parts;
-      const startTime = Date.now();
-      processQRCodeParts(parts);
-      const searchTime = Date.now() - startTime;
+    // Usar las funciones globales existentes
+    if (typeof parseQRCode === 'function' && typeof processQRCodeParts === 'function') {
+      const parts = parseQRCode(inputData);
       
-      statusDiv.className = 'processed';
-      statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
+      if (parts) {
+        if (typeof currentQRParts !== 'undefined') {
+          currentQRParts = parts;
+        }
+        const startTime = Date.now();
+        processQRCodeParts(parts);
+        const searchTime = Date.now() - startTime;
+        
+        const statusDiv = document.getElementById('status');
+        if (statusDiv) {
+          statusDiv.className = 'processed';
+          statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
+        }
+      } else {
+        if (typeof showError === 'function' && typeof playErrorSound === 'function') {
+          showError(inputData, "Formato de código no válido");
+          playErrorSound();
+        }
+      }
     } else {
-      showError(inputData, "Formato de código no válido");
-      playErrorSound();
+      console.error("Funciones de procesamiento QR no disponibles");
     }
   }
 
   showScanSuccess() {
     const statusDiv = document.getElementById('status');
+    if (!statusDiv) return;
+    
     const originalContent = statusDiv.innerHTML;
     const originalClass = statusDiv.className;
     
@@ -288,18 +338,21 @@ class InputController {
     const video = document.getElementById('qrScannerVideo');
     
     // Detener stream de cámara
-    if (video.srcObject) {
+    if (video && video.srcObject) {
       video.srcObject.getTracks().forEach(track => track.stop());
     }
     
-    modal.style.display = 'none';
+    if (modal) {
+      modal.style.display = 'none';
+    }
   }
 }
 
-// Inicializar controlador
-let inputController;
+// Variable global para el controlador - usa un nombre diferente
+let globalInputController;
 
+// Función de inicialización
 function initializeInputController() {
-  inputController = new InputController();
-  return inputController;
+  globalInputController = new InputController();
+  return globalInputController;
 }
