@@ -293,7 +293,7 @@ function setupEventListeners() {
 }
 
 // Función para analizar el código QR
-/*function parseQRCode(code) {
+function parseQRCode(code) {
   // Buscamos un formato como "REC58101-805027653"
   const regex = /^([A-Za-z0-9-]+)-([0-9]+)$/;
   const match = code.match(regex);
@@ -303,68 +303,6 @@ function setupEventListeners() {
       documento: match[1],
       nit: match[2]
     };
-  }
-  
-  return null;
-}*/
-
-// Actualiza la función parseQRCode para hacerla más flexible:
-function parseQRCode(code) {
-  if (!code || code.length < 3) return null;
-  
-  // Limpiar y normalizar el código
-  const cleanCode = code.trim().toUpperCase();
-  
-  // Múltiples formatos soportados:
-  const formatPatterns = [
-    // Formato: DOCUMENTO-NIT (ej: REC58101-805027653)
-    /^([A-Za-z0-9]{3,})[-_\s]?([0-9]{6,})$/,
-    
-    // Formato: NIT-DOCUMENTO (inverso)
-    /^([0-9]{6,})[-_\s]?([A-Za-z0-9]{3,})$/,
-    
-    // Formato con espacios: DOCUMENTO NIT
-    /^([A-Za-z0-9]{3,})\s+([0-9]{6,})$/,
-    
-    // Solo números (tratar como NIT)
-    /^([0-9]{6,})$/,
-    
-    // Solo letras y números (tratar como documento)
-    /^([A-Za-z0-9]{3,})$/
-  ];
-  
-  for (const pattern of formatPatterns) {
-    const match = cleanCode.match(pattern);
-    if (match) {
-      // Para formato DOCUMENTO-NIT
-      if (pattern.toString().includes('[A-Za-z0-9]{3,}[-_\\s]?[0-9]{6,}')) {
-        return {
-          documento: match[1],
-          nit: match[2]
-        };
-      }
-      // Para formato NIT-DOCUMENTO
-      else if (pattern.toString().includes('[0-9]{6,}[-_\\s]?[A-Za-z0-9]{3,}')) {
-        return {
-          documento: match[2],
-          nit: match[1]
-        };
-      }
-      // Solo números (usar como NIT)
-      else if (pattern.toString().includes('^([0-9]{6,})$')) {
-        return {
-          documento: '', // Documento vacío
-          nit: match[1]
-        };
-      }
-      // Solo letras/números (usar como documento)
-      else if (pattern.toString().includes('^([A-Za-z0-9]{3,})$')) {
-        return {
-          documento: match[1],
-          nit: '' // NIT vacío
-        };
-      }
-    }
   }
   
   return null;
