@@ -2,6 +2,7 @@
 
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
+registerServiceWorker();
 
   // Inicializar bloqueador de teclado (PRIMERO, antes que todo)
   initializeKeyboardBlocker();
@@ -844,10 +845,47 @@ installBtn.addEventListener('click', async () => {
 });
 
 // Registrar Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js');
-  });
+// Registrar Service Worker para la ruta /one/beta/
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/one/beta/service-worker.js', {
+        scope: '/one/beta/'
+      })
+      .then(function(registration) {
+        console.log('✅ ServiceWorker registrado correctamente para /one/beta/: ', registration.scope);
+        
+        // Verificar si hay una nueva versión del Service Worker
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('🔄 Nueva versión del Service Worker encontrada!');
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('🔄 Nueva versión disponible!');
+              showUpdateNotification();
+            }
+          });
+        });
+      })
+      .catch(function(error) {
+        console.log('❌ Error al registrar ServiceWorker: ', error);
+      });
+
+      // Verificar actualizaciones periódicamente
+      setInterval(() => {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.update();
+        });
+      }, 60 * 60 * 1000); // Cada hora
+    });
+  }
+}
+
+function showUpdateNotification() {
+  if (confirm('¡Nueva versión de PandaDash disponible! ¿Quieres actualizar la aplicación?')) {
+    window.location.reload();
+  }
 }
 
 // Bloqueo de zoom con JavaScript (para mayor seguridad)
