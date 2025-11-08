@@ -10,37 +10,40 @@ class DataService {
     }
 
     // Obtener datos combinados de SIESA y SOPORTES
-    async getCombinedData() {
-        // Verificar cache
-        if (this.cache && this.lastUpdate && 
-            (Date.now() - this.lastUpdate) < this.CACHE_DURATION) {
-            return this.cache;
-        }
-
-        try {
-            console.log('📡 Obteniendo datos desde Sheets API...');
-            
-            // Obtener datos en paralelo
-            const [siesaData, soportesData] = await Promise.all([
-                this.getSiesaData(),
-                this.getSoportesData()
-            ]);
-
-            // Combinar datos
-            const combinedData = this.combineData(siesaData, soportesData);
-            
-            // Actualizar cache
-            this.cache = combinedData;
-            this.lastUpdate = Date.now();
-            
-            console.log('✅ Datos actualizados correctamente');
-            return combinedData;
-            
-        } catch (error) {
-            console.error('❌ Error obteniendo datos:', error);
-            throw error;
-        }
+   async getCombinedData() {
+    // Verificar cache
+    if (this.cache && this.lastUpdate && 
+        (Date.now() - this.lastUpdate) < this.CACHE_DURATION) {
+        return this.cache;
     }
+
+    try {
+        console.log('📡 Obteniendo datos desde Sheets API...');
+        
+        // Obtener datos en paralelo
+        const [siesaData, soportesData] = await Promise.all([
+            this.getSiesaData(),
+            this.getSoportesData()
+        ]);
+
+        // Combinar datos
+        const combinedData = this.combineData(siesaData, soportesData);
+        
+        // Formatear para compatibilidad
+        const compatibleData = this.formatForLegacyCompatibility(combinedData);
+        
+        // Actualizar cache
+        this.cache = compatibleData;
+        this.lastUpdate = Date.now();
+        
+        console.log('✅ Datos actualizados correctamente. Registros:', compatibleData.length);
+        return compatibleData;
+        
+    } catch (error) {
+        console.error('❌ Error obteniendo datos:', error);
+        throw error;
+    }
+}
 
     // Obtener datos de SIESA
     async getSiesaData() {
@@ -284,6 +287,32 @@ class DataService {
             };
         });
     }
+
+        formatForLegacyCompatibility(data) {
+    return data.map(item => {
+        // Crear estructura compatible con el sistema anterior
+        return {
+            documento: item.documento || '',
+            lote: item.lote || '',
+            referencia: item.referencia || '',
+            // Mantener datosSiesa en el formato esperado
+            datosSiesa: [{
+                factura: item.factura,
+                nit: item.nit,
+                lote: item.lote,
+                referencia: item.referencia,
+                cantidad: item.cantidad,
+                estado: item.estado,
+                cliente: item.cliente,
+                valorBruto: item.valorBruto,
+                fecha: item.fecha,
+                proveedor: item.proveedor,
+                confirmacion: item.confirmacion,
+                fechaEntrega: item.fechaEntrega
+            }]
+        };
+    });
+}
 
     // Forzar actualización de datos (ignorar cache)
     async forceRefresh() {
