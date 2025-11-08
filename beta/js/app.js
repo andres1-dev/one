@@ -150,8 +150,8 @@ function aplicarMarcaDeAgua(ctx, width, height) {
   }
 
   // 3. Título: PandaDash (más grande)
-  ctx.font = `500 ${fontSizeTitle}px ${fontFamily}`;
-  ctx.fillText("Entregas", marginLeft, posY);
+  ctx.font = `700 ${fontSizeTitle}px ${fontFamily}`;
+  ctx.fillText("PandaDash", marginLeft, posY);
 }
 
 // Función para subir la foto capturada
@@ -310,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// FUNCIÓN CORREGIDA - usa sheetsDataService en lugar de dataService
 function loadDataFromServer() {
     statusDiv.className = 'loading';
     statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
@@ -891,56 +892,8 @@ function mostrarError(mensaje) {
   statusDiv.innerHTML = `<span style="color: var(--danger)">${mensaje}</span>`;
 }
 
-// Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
-document.addEventListener('DOMContentLoaded', () => {
-  // Referencias a elementos clave
-  const statusDiv = document.getElementById('status');
-  const dataStats = document.getElementById('data-stats');
-  const resultsDiv = document.getElementById('results');
-  
-  // Variables de control
-  let startY = 0;
-  let isPulling = false;
-  
-  // Manejador para touchstart (inicio del gesto)
-  document.addEventListener('touchstart', function(e) {
-    // Solo activar si hay dos o más dedos tocando la pantalla
-    if (e.touches.length >= 2 && window.scrollY < 10) {
-      startY = e.touches[0].clientY;
-      isPulling = true;
-      e.preventDefault(); // Prevenir comportamiento por defecto
-    }
-  }, { passive: false });
-  
-  // Manejador para touchmove (movimiento durante el gesto)
-  document.addEventListener('touchmove', function(e) {
-    // Verificar si estamos en un gesto válido y hay dos dedos
-    if (!isPulling || e.touches.length < 2) return;
-    
-    // Calcular la distancia desplazada
-    const currentY = e.touches[0].clientY;
-    const pullDistance = currentY - startY;
-    
-    // Si hay un movimiento hacia abajo de al menos 20px, activar actualización
-    if (pullDistance > 20) {
-      // Desactivar el gesto para evitar múltiples actualizaciones
-      isPulling = false;
-      
-      // Iniciar la actualización inmediatamente
-      refreshData();
-      
-      // Prevenir comportamiento predeterminado
-      e.preventDefault();
-    }
-  }, { passive: false });
-  
-  // Manejador para touchend (fin del gesto)
-  document.addEventListener('touchend', function() {
-    isPulling = false;
-  });
-  
-  // Función para refrescar los datos
-  function refreshData() {
+// FUNCIÓN CORREGIDA para pull-to-refresh
+function refreshData() {
     statusDiv.className = 'loading';
     statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO...';
     dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando...';
