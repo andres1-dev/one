@@ -1,8 +1,5 @@
 // Archivo principal que inicializa la aplicación
 
-// Variables para control de teclado
-let keyboardEnabled = false;
-
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
   // Inicializar la cola de carga
