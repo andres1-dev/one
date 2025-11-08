@@ -5,7 +5,7 @@ class PandaDashApp {
             VERSION: "5.0.0",
             CACHE_TTL: 5 * 60 * 1000, // 5 minutos
             MAX_IMAGE_SIZE: 800,
-            API_KEY: 'AIzaSyC4QAAHwWX7dGsBm7GJN5o6tVdKb6P8L9k', // Reemplaza con tu API Key
+            API_KEY: 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM', // Reemplaza con tu API Key
             SPREADSHEET_ID_SIESA: '1FcQhVIKtWy4O-aGTNfA6l4C5Q4_u1LZErpj3CMglfQM',
             SPREADSHEET_ID_SOPORTES: '1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw',
             API_URL_POST: 'https://script.google.com/macros/s/AKfycbwgnkjVCMWlWuXnVaxSBD18CGN3rXGZtQZIvX9QlBXSgbQndWC4uqQ2sc00DuNH6yrb/exec',
