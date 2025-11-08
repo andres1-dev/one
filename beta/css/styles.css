@@ -955,3 +955,76 @@ h1 {
   background-color: white;
   color: var(--dark);
 }
+
+
+
+/* Input PDA (oculto pero funcional) */
+#pdaInput {
+  position: absolute;
+  opacity: 0;
+  height: 1px;
+  width: 1px;
+  pointer-events: auto; /* Asegurar que puede recibir input */
+}
+
+/* Contenedor input manual */
+#manualInputContainer {
+  max-width: 400px;
+  margin: 20px auto;
+  position: relative;
+}
+
+/* Botón de cámara en el input manual */
+.camera-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 16px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.camera-btn:hover {
+  color: var(--primary-dark);
+}
+
+/* Input manual */
+#manualInput {
+  width: 100%;
+  padding: 16px 16px 16px 48px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  background-color: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  appearance: none;
+  text-align: center;
+}
+
+#manualInput::placeholder {
+  color: #888;
+  opacity: 0.7;
+}
+
+#manualInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+#manualInputContainer i {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a6acad;
+  font-size: 20px;
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
