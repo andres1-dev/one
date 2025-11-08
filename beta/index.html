@@ -39,10 +39,19 @@
       <i class="fas fa-wifi-slash"></i> No hay conexión a internet
     </div>
 
-    <div class="barcode-input-container">
-      <i class="fa-solid fa-qrcode" id="qrScannerBtn" title="Escanear código QR con cámara"></i>
-      <input type="text" id="barcode" placeholder="Escanea un código QR" readonly>
-      <i class="fa-solid fa-keyboard" id="keyboardToggleBtn" title="Activar teclado"></i>
+    <!-- Controles de entrada -->
+    <div class="input-controls">
+      <button id="qrScannerBtn" class="btn btn-primary scanner-btn">
+        <i class="fas fa-qrcode"></i> Escanear QR
+      </button>
+      
+      <div class="barcode-input-container">
+        <input type="text" id="barcode" placeholder="Código escaneado aparecerá aquí" readonly>
+      </div>
+
+      <button id="keyboardToggleBtn" class="btn btn-secondary keyboard-btn">
+        <i class="fas fa-keyboard"></i>
+      </button>
     </div>
 
     <div id="status">Iniciando Sistema...</div>
@@ -58,7 +67,7 @@
     </footer>
   </div>
 
-  <!-- Modal de cámara -->
+  <!-- Modal de cámara para fotos -->
   <div id="cameraModal" class="camera-modal">
     <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
     <canvas id="photoCanvas" style="display: none;"></canvas>
@@ -87,7 +96,9 @@
     </div>
     <video id="qrVideo" class="camera-view" autoplay playsinline></video>
     <div class="scanner-overlay">
-      <div class="scanner-frame"></div>
+      <div class="scanner-frame">
+        <div class="scanner-laser"></div>
+      </div>
       <div class="scanner-instructions">
         <i class="fas fa-qrcode"></i>
         <p>Enfoca un código QR dentro del marco</p>
