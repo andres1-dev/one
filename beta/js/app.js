@@ -611,6 +611,7 @@ function parseQRCode(code) {
 }
 
 // Procesa las partes del código QR y muestra los resultados
+// Procesa las partes del código QR y muestra los resultados
 function processQRCodeParts(parts) {
   const { documento, nit } = parts;
   
@@ -620,18 +621,21 @@ function processQRCodeParts(parts) {
   );
   
   if (result) {
-    // Filtramos los datosSiesa para mostrar solo los que coinciden con el NIT
+    // Crear una copia profunda del resultado
     const filteredItem = JSON.parse(JSON.stringify(result));
     
     if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
-      // Filtramos por NIT en lugar de por cliente
-      filteredItem.datosSiesa = filteredItem.datosSiesa.filter(siesa => {
+      // Crear una COPIA FILTRADA de datosSiesa solo para display - NO MODIFICAR EL ORIGINAL
+      const datosSiesaFiltrados = filteredItem.datosSiesa.filter(siesa => {
         // Extraemos solo dígitos del NIT para comparar (por si acaso viene con formato)
         const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
         const scanNitDigits = nit.replace(/\D/g, '');
         
         return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
       });
+      
+      // Reemplazar datosSiesa con la versión filtrada SOLO en la copia
+      filteredItem.datosSiesa = datosSiesaFiltrados;
       
       displayFullResult(filteredItem, parts);
       playSuccessSound();
