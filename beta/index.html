@@ -87,6 +87,26 @@
     </div>
   </div>
 
+  <!-- Modal para escáner QR -->
+<div id="qrScannerModal" class="qr-scanner-modal">
+  <div class="qr-scanner-view">
+    <video id="qrScannerVideo" autoplay playsinline muted></video>
+    <canvas id="qrScannerCanvas"></canvas>
+    <div class="qr-scanner-overlay"></div>
+  </div>
+  
+  <div id="scannerStatus" class="scanner-status">Preparando escáner...</div>
+  
+  <div class="qr-scanner-actions">
+    <button id="closeQRScanner" class="btn btn-danger">
+      <i class="fas fa-times"></i> Cerrar Escáner
+    </button>
+    <button id="toggleFlash" class="btn btn-warning" style="display: none;">
+      <i class="fas fa-lightbulb"></i> Flash
+    </button>
+  </div>
+</div>
+
   <!-- Incluir jsQR library -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   
@@ -96,5 +116,6 @@
   <script src="js/camera.js"></script>
   <script src="js/asentar-factura.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/keyboard-control.js"></script>
 </body>
 </html>
