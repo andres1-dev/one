@@ -39,18 +39,10 @@
       <i class="fas fa-wifi-slash"></i> No hay conexión a internet
     </div>
 
-<!-- Reemplaza el barcode-input-container con esta estructura -->
-<div class="barcode-input-container">
-  <button class="input-icon-btn" id="qrScannerBtn" title="Escanear QR">
-    <i class="fa-solid fa-qrcode"></i>
-  </button>
-  
-  <input type="text" id="barcode" placeholder="Escanea un código QR" readonly>
-  
-  <button class="input-icon-btn" id="keyboardToggleBtn" title="Teclado deshabilitado">
-    <i class="fa-solid fa-keyboard"></i>
-  </button>
-</div>
+    <div class="barcode-input-container">
+      <i class="fa-solid fa-qrcode"></i>
+      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR">
+    </div>
 
     <div id="status">Iniciando Sistema...</div>
     <div class="data-stats" id="data-stats">Cargando datos...</div>
@@ -93,36 +85,11 @@
     </div>
   </div>
 
-  <!-- Modal para escáner QR -->
-<div id="qrScannerModal" class="qr-scanner-modal">
-  <div class="qr-scanner-view">
-    <video id="qrScannerVideo" autoplay playsinline muted></video>
-    <canvas id="qrScannerCanvas"></canvas>
-    <div class="qr-scanner-overlay"></div>
-  </div>
-  
-  <div id="scannerStatus" class="scanner-status">Preparando escáner...</div>
-  
-  <div class="qr-scanner-actions">
-    <button id="closeQRScanner" class="btn btn-danger">
-      <i class="fas fa-times"></i> Cerrar Escáner
-    </button>
-    <button id="toggleFlash" class="btn btn-warning" style="display: none;">
-      <i class="fas fa-lightbulb"></i> Flash
-    </button>
-  </div>
-</div>
-
-  <!-- Incluir jsQR library -->
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-  
   <!-- Scripts -->
   <script src="js/config.js"></script>
   <script src="js/upload-queue.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/asentar-factura.js"></script>
-  <script src="js/keyboard-control.js"></script> <!-- ¡NUEVO! -->
   <script src="js/main.js"></script>
-
 </body>
 </html>
