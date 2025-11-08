@@ -39,9 +39,11 @@
       <i class="fas fa-wifi-slash"></i> No hay conexión a internet
     </div>
 
+    <!-- Reemplaza la sección del barcode input con esta nueva estructura -->
     <div class="barcode-input-container">
-      <i class="fa-solid fa-qrcode"></i>
-      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR">
+      <i class="fa-solid fa-qrcode" id="qrScannerBtn"></i>
+      <input type="text" id="barcode" placeholder="Escanea un código QR" readonly>
+      <i class="fa-solid fa-keyboard" id="keyboardToggleBtn"></i>
     </div>
 
     <div id="status">Iniciando Sistema...</div>
