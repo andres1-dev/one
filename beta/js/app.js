@@ -563,11 +563,18 @@ function parseQRCode(code) {
 function processQRCodeParts(parts) {
     const { documento, nit } = parts;
     
-    const result = database.find(item => 
-        item.documento && item.documento.toString() === documento
-    );
+    console.log(`🔍 Buscando documento: ${documento}, NIT: ${nit}`);
+    
+    // Buscar por documento (que ahora es la factura)
+    const result = database.find(item => {
+        console.log(`Comparando: ${item.documento} con ${documento}`);
+        return item.documento && item.documento.toString() === documento;
+    });
     
     if (result) {
+        console.log(`✅ Documento encontrado: ${result.documento}`);
+        
+        // Filtrar datosSiesa por NIT
         const filteredItem = JSON.parse(JSON.stringify(result));
         
         if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
@@ -575,16 +582,20 @@ function processQRCodeParts(parts) {
                 const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
                 const scanNitDigits = nit.replace(/\D/g, '');
                 
+                console.log(`Comparando NITs: ${siesaNitDigits} con ${scanNitDigits}`);
                 return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
             });
             
+            console.log(`📋 Facturas después de filtrar por NIT: ${filteredItem.datosSiesa.length}`);
             displayFullResult(filteredItem, parts);
             playSuccessSound();
         } else {
+            console.log(`ℹ️ No hay datosSiesa para filtrar`);
             displayFullResult(filteredItem, parts);
             playSuccessSound();
         }
     } else {
+        console.log(`❌ Documento no encontrado: ${documento}`);
         showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
         playErrorSound();
     }
