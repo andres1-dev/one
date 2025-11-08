@@ -2,6 +2,9 @@
 
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
+
+  // Inicializar bloqueador de teclado (PRIMERO, antes que todo)
+  initializeKeyboardBlocker();
   // Inicializar la cola de carga
   initializeUploadQueue();
   
