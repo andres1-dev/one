@@ -1,6 +1,6 @@
 // Configuración de Sheets API v4
 const SHEETS_API_CONFIG = {
-  API_KEY: 'TU_API_KEY_AQUI', // Reemplazar con tu API Key real
+  API_KEY: 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM', // Reemplazar con tu API Key real
   SPREADSHEET_ID_SIESA: '1FcQhVIKtWy4O-aGTNfA6l4C5Q4_u1LZErpj3CMglfQM',
   SPREADSHEET_ID_SOPORTES: '1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw',
   RANGES: {
