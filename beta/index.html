@@ -42,6 +42,9 @@
     <div class="barcode-input-container">
       <i class="fa-solid fa-qrcode"></i>
       <input type="text" id="barcode" autofocus placeholder="Escanea un código QR" readonly>
+      <button id="cameraBtn" class="btn btn-sm camera-btn" title="Escanear con cámara">
+        <i class="fas fa-camera"></i>
+      </button>
     </div>
 
     <div id="status">Iniciando Sistema...</div>
@@ -57,7 +60,7 @@
     </footer>
   </div>
 
-  <!-- Modal de cámara -->
+  <!-- Modal de cámara para fotos -->
   <div id="cameraModal" class="camera-modal">
     <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
     <canvas id="photoCanvas" style="display: none;"></canvas>
@@ -95,12 +98,6 @@
         </label>
         <small>Permitir entrada manual con teclado</small>
       </div>
-      <div class="config-option">
-        <label>
-          <input type="checkbox" id="scannerToggle" checked> Escáner de cámara
-        </label>
-        <small>Usar cámara para leer códigos QR</small>
-      </div>
     </div>
 
     <div class="config-section">
@@ -118,12 +115,6 @@
         <small>Vibrar al escanear (solo móviles)</small>
       </div>
     </div>
-
-    <div class="config-actions">
-      <button id="startScannerBtn" class="btn btn-primary">
-        <i class="fas fa-camera"></i> Iniciar Escáner QR
-      </button>
-    </div>
   </div>
 
   <!-- Contador de cola y panel de detalles -->
@@ -137,6 +128,7 @@
 
   <!-- Scripts -->
   <script src="js/config.js"></script>
+  <script src="js/config-manager.js"></script>
   <script src="js/upload-queue.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/barcode-scanner.js"></script>
