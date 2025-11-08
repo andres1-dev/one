@@ -1,25 +1,267 @@
-function parseQRCode(code) {
-  // Buscamos un formato como "REC58101-805027653"
-  const regex = /^([A-Za-z0-9-]+)-([0-9]+)$/;
-  const match = code.match(regex);
+// Variables globales
+let database = [];
+let currentQRParts = null;
+let dataLoaded = false;
+
+// Elementos del DOM
+const loadingScreen = document.getElementById('loadingScreen');
+const scanner = document.getElementById('scanner');
+const barcodeInput = document.getElementById('barcode');
+const statusDiv = document.getElementById('status');
+const resultsDiv = document.getElementById('results');
+const dataStats = document.getElementById('data-stats');
+const offlineBanner = document.getElementById('offline-banner');
+const installBtn = document.getElementById('installBtn');
+
+// Función para procesar entregas
+function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
+  // Verificar si la entrega no tiene factura y manejarlo apropiadamente
+  const esSinFactura = !factura || factura.trim() === "";
   
-  if (match) {
-    return {
-      documento: match[1],
-      nit: match[2]
-    };
-  }
+  // Guardar todos los datos específicos de la factura
+  currentDocumentData = {
+    documento: documento,
+    lote: lote || '',
+    referencia: referencia || '',
+    cantidad: parseFloat(cantidad) || 0,
+    factura: factura || '', // Mantener factura como está, vacía si no hay factura
+    nit: nit || '',
+    btnElement: btnElement,
+    esSinFactura: esSinFactura // Marcamos si es sin factura para tratamiento especial después
+  };
   
-  return null;
+  // Crear un input de tipo file temporal para capturar fotos
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/*';
+  fileInput.capture = 'environment'; // Usar cámara trasera por defecto
+  
+  // Agregar evento para procesar la imagen cuando se capture
+  fileInput.addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+      procesarImagenCapturada(e.target.files[0]);
+    }
+  });
+  
+  // Simular clic para abrir la cámara del dispositivo
+  fileInput.click();
 }
 
-// Archivo principal que inicializa la aplicación
-document.addEventListener('DOMContentLoaded', () => {
-  // Inicializar managers
-  initializeConfigManager();
-  initializeBarcodeScanner();
-  initializeUploadQueue();
+// Nueva función para procesar la imagen capturada
+function procesarImagenCapturada(archivo) {
+  if (!archivo) {
+    console.error("No se seleccionó ninguna imagen");
+    return;
+  }
   
+  // Mostrar estado de carga
+  const statusDiv = document.getElementById('status');
+  statusDiv.innerHTML = '<i class="fas fa-image"></i> Procesando imagen...';
+  
+  const lector = new FileReader();
+  lector.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // Crear canvas para procesamiento
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Establecer dimensiones manteniendo proporciones pero limitando tamaño
+      let width = img.width;
+      let height = img.height;
+      
+      // Redimensionar si la imagen es muy grande (para optimizar)
+      const maxDimension = CONFIG.MAX_IMAGE_SIZE || 1200;
+      if (width > height && width > maxDimension) {
+        height = (height / width) * maxDimension;
+        width = maxDimension;
+      } else if (height > width && height > maxDimension) {
+        width = (width / height) * maxDimension;
+        height = maxDimension;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Dibujar imagen en el canvas
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Aplicar marca de agua
+      aplicarMarcaDeAgua(ctx, width, height);
+      
+      // Convertir a Blob
+      canvas.toBlob(function(blob) {
+        photoBlob = blob;
+        
+        // Subir la imagen procesada a la cola
+        subirFotoCapturada(blob);
+      }, 'image/jpeg', 0.85);
+    };
+    img.src = e.target.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+
+// Función para aplicar marca de agua
+function aplicarMarcaDeAgua(ctx, width, height) {
+  // Área para la marca de agua
+  const marcaHeight = Math.floor(height / 6);
+
+  // Fondo degradado
+  const gradient = ctx.createLinearGradient(0, height - marcaHeight, 0, height);
+  gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+  gradient.addColorStop(0.2, "rgba(0, 0, 0, 0.6)");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0.8)");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, height - marcaHeight, width, marcaHeight);
+
+  // Fuente y estilo
+  const fontFamily = "Inter, sans-serif";
+  const fontSize = Math.max(10, Math.floor(width / 70)); // Tamaño base
+  const fontSizeTitle = fontSize * 2; // Título al doble
+  ctx.fillStyle = "white";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "bottom";
+
+  // Márgenes y espaciado
+  const marginLeft = Math.floor(width / 20);
+  const lineSpacing = Math.floor(fontSize * 1.6);
+  let posY = height - Math.floor(marcaHeight * 0.2);
+
+  // 1. Fecha y hora
+  ctx.font = `500 ${fontSize}px ${fontFamily}`;
+  const fecha = new Date().toLocaleString();
+  ctx.fillText(fecha, marginLeft, posY);
+  posY -= lineSpacing;
+
+  // 2. Datos técnicos (FACTURA | LOTE | REF | CANT)
+  const datos = [];
+  if (currentDocumentData) {
+    if (currentDocumentData.factura) datos.push(currentDocumentData.factura);
+    if (currentDocumentData.lote) datos.push(currentDocumentData.lote);
+    if (currentDocumentData.referencia) datos.push(currentDocumentData.referencia);
+    if (currentDocumentData.cantidad) datos.push(currentDocumentData.cantidad);
+  }
+
+  if (datos.length > 0) {
+    ctx.fillText(datos.join(" | "), marginLeft, posY);
+    posY -= lineSpacing;
+  }
+
+  // 3. Título: PandaDash (más grande)
+  ctx.font = `700 ${fontSizeTitle}px ${fontFamily}`;
+  ctx.fillText("PandaDash", marginLeft, posY);
+}
+
+// Función para subir la foto capturada
+async function subirFotoCapturada(blob) {
+  if (!currentDocumentData || !blob) {
+    console.error("No hay datos disponibles para subir");
+    statusDiv.innerHTML = '<span style="color: var(--danger)">Error: No hay datos para subir</span>';
+    return;
+  }
+  
+  const { documento, lote, referencia, cantidad, factura, nit, btnElement, esSinFactura } = currentDocumentData;
+  
+  try {
+    // Convertir blob a base64
+    const base64Data = await blobToBase64(blob);
+    const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
+    
+    // Crear objeto de trabajo para la cola
+    const jobData = {
+      documento: documento,
+      lote: lote,
+      referencia: referencia,
+      cantidad: cantidad,
+      factura: factura,
+      nit: nit,
+      fotoBase64: base64Data,
+      fotoNombre: nombreArchivo,
+      fotoTipo: 'image/jpeg',
+      timestamp: new Date().toISOString(),
+      esSinFactura: esSinFactura // Pasar esta propiedad a la cola
+    };
+    
+    // Agregar a la cola
+    uploadQueue.addJob({
+      type: 'photo',
+      data: jobData,
+      factura: factura,
+      btnElementId: btnElement ? btnElement.getAttribute('data-factura') : null,
+      esSinFactura: esSinFactura
+    });
+    
+    // Actualizar botón de entrega si existe
+    if (btnElement) {
+      btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> PROCESANDO...';
+      btnElement.style.backgroundColor = '#4cc9f0';
+      
+      // Si es sin factura, actualizamos el botón inmediatamente después de añadirlo a la cola
+      if (esSinFactura) {
+        setTimeout(() => {
+          btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+          btnElement.style.backgroundColor = '#28a745';
+          btnElement.disabled = true;
+          
+          // Actualizar estado global
+          actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
+        }, 2000);
+      }
+    }
+    
+    // Reproducir sonido de éxito
+    playSuccessSound();
+    
+  } catch (error) {
+    console.error("Error al preparar foto:", error);
+    statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen</span>';
+    
+    // Reproducir sonido de error
+    playErrorSound();
+  }
+}
+
+// Funciones para sonidos de feedback
+function playSuccessSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+    const osc = ctx.createOscillator(); 
+    const gainNode = ctx.createGain(); 
+    osc.type = "sine"; 
+    osc.frequency.value = 800; 
+    gainNode.gain.value = 1; 
+    osc.connect(gainNode); 
+    gainNode.connect(ctx.destination); 
+    osc.start(); 
+    osc.stop(ctx.currentTime + 0.25);
+  } catch (e) {
+    console.log("Error al reproducir sonido de éxito:", e);
+  }
+}
+
+function playErrorSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+    const osc = ctx.createOscillator(); 
+    const gainNode = ctx.createGain(); 
+    osc.type = "sawtooth"; 
+    osc.frequency.setValueAtTime(300, ctx.currentTime); 
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5); 
+    gainNode.gain.value = 0.8; 
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); 
+    osc.connect(gainNode); 
+    gainNode.connect(ctx.destination); 
+    osc.start(); 
+    osc.stop(ctx.currentTime + 0.5);
+  } catch (e) {
+    console.log("Error al reproducir sonido de error:", e);
+  }
+}
+
+// Inicialización al cargar el documento
+document.addEventListener('DOMContentLoaded', () => {
   // Cargar datos desde el servidor
   loadDataFromServer();
   
@@ -66,9 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
   });
-  
-  // Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
-  setupPullToRefresh();
 });
 
 function loadDataFromServer() {
@@ -276,7 +515,7 @@ function setupEventListeners() {
   // Detectar escaneo
   barcodeInput.addEventListener('input', function() {
     const code = this.value.trim();
-    if (code.length < 3) return; // Un código válido debe tener al menos 3 caracteres
+    if (code.length < 5) return; // Un código válido debe tener al menos 5 caracteres
     
     // Analizar el formato del código: DOCUMENTO-NIT
     const parts = parseQRCode(code);
@@ -300,6 +539,22 @@ function setupEventListeners() {
       this.focus();
     }, 50);
   });
+}
+
+// Función para analizar el código QR
+function parseQRCode(code) {
+  // Buscamos un formato como "REC58101-805027653"
+  const regex = /^([A-Za-z0-9-]+)-([0-9]+)$/;
+  const match = code.match(regex);
+  
+  if (match) {
+    return {
+      documento: match[1],
+      nit: match[2]
+    };
+  }
+  
+  return null;
 }
 
 // Procesa las partes del código QR y muestra los resultados
@@ -538,7 +793,118 @@ function showError(barcode, message = "Código no encontrado") {
   `;
 }
 
-function setupPullToRefresh() {
+// Función para asentar facturas
+function asentarFactura(documento, lote, referencia, cantidad, factura, nit, btnElement) {
+  // Validar datos requeridos
+  if (!documento || !lote || !referencia || !cantidad || !factura || !nit) {
+    mostrarError("Faltan datos obligatorios para asentar la factura");
+    return;
+  }
+  
+  // Mostrar estado de carga en el botón
+  if (btnElement) {
+    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ASENTANDO...';
+    btnElement.style.backgroundColor = '#4cc9f0';
+    btnElement.disabled = true;
+  }
+  
+  // Actualizar el estado general
+  actualizarEstado('loading', '<i class="fas fa-sync fa-spin"></i> ASENTANDO FACTURA...');
+  
+  // Crear un FormData para enviar los parámetros
+  const formData = new FormData();
+  formData.append('documento', documento);
+  formData.append('lote', lote);
+  formData.append('referencia', referencia);
+  formData.append('cantidad', cantidad);
+  formData.append('factura', factura);
+  formData.append('nit', nit);
+  
+  // Enviar solicitud al servidor
+  fetch(API_URL_ASENTAR_FACTURA, {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    // Verificar el resultado
+    if (data.success) {
+      // Operación exitosa
+      if (btnElement) {
+        btnElement.innerHTML = '<i class="fas fa-check-circle"></i> FACTURA ASENTADA';
+        btnElement.style.backgroundColor = '#28a745';
+        btnElement.disabled = true;
+      }
+      
+      // Actualizar estado
+      actualizarEstado('processed', '<i class="fas fa-check-circle"></i> FACTURA ASENTADA CORRECTAMENTE');
+      
+      // Reproducir sonido de éxito
+      playSuccessSound();
+    } else {
+      // Operación fallida pero respuesta recibida
+      if (btnElement) {
+        btnElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> NO ENCONTRADO';
+        btnElement.style.backgroundColor = '#f8961e';
+        btnElement.disabled = false;
+      }
+      
+      // Actualizar estado
+      actualizarEstado('warning', '<i class="fas fa-exclamation-triangle"></i> NO SE PUDO ASENTAR LA FACTURA');
+      
+      // Reproducir sonido de error
+      playErrorSound();
+    }
+  })
+  .catch(error => {
+    console.error("Error al asentar factura:", error);
+    
+    // Actualizar UI en caso de error
+    if (btnElement) {
+      btnElement.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
+      btnElement.style.backgroundColor = '#f72585';
+      btnElement.disabled = false;
+    }
+    
+    // Actualizar estado
+    actualizarEstado('error', `<i class="fas fa-exclamation-circle"></i> ERROR: ${error.message}`);
+    
+    // Reproducir sonido de error
+    playErrorSound();
+  });
+}
+
+/**
+ * Actualiza el estado general de la aplicación
+ */
+function actualizarEstado(className, html) {
+  if (!statusDiv) return;
+  statusDiv.className = className;
+  statusDiv.innerHTML = html;
+}
+
+/**
+ * Muestra un error en el estado
+ */
+function mostrarError(mensaje) {
+  console.error(mensaje);
+  if (!statusDiv) return;
+  statusDiv.className = 'error';
+  statusDiv.innerHTML = `<span style="color: var(--danger)">${mensaje}</span>`;
+}
+
+// Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
+document.addEventListener('DOMContentLoaded', () => {
+  // Referencias a elementos clave
+  const statusDiv = document.getElementById('status');
+  const dataStats = document.getElementById('data-stats');
+  const resultsDiv = document.getElementById('results');
+  
   // Variables de control
   let startY = 0;
   let isPulling = false;
@@ -621,9 +987,7 @@ function setupPullToRefresh() {
           }
           
           // Efecto sonoro de éxito
-          if (typeof playSuccessSound === 'function') {
-            playSuccessSound();
-          }
+          playSuccessSound();
         } else {
           throw new Error('Datos incorrectos');
         }
@@ -634,12 +998,10 @@ function setupPullToRefresh() {
         statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
         
         // Efecto sonoro de error
-        if (typeof playErrorSound === 'function') {
-          playErrorSound();
-        }
+        playErrorSound();
       });
   }
-}
+});
 
 // Detector de eventos para PWA Install
 let deferredPrompt;
@@ -671,13 +1033,6 @@ installBtn.addEventListener('click', async () => {
   }
 });
 
-// Registrar Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js');
-  });
-}
-
 // Bloqueo de zoom con JavaScript (para mayor seguridad)
 document.addEventListener('DOMContentLoaded', function() {
   // Prevenir gestos de zoom
@@ -704,4 +1059,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Detectar si es móvil para ajustes específicos
 function esMovil() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js');
+  });
 }
