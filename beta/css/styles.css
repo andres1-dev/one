@@ -40,7 +40,7 @@ body {
   font-family: 'Roboto', sans-serif;
   margin: 0;
   padding: 0;
-  background: var(--white);
+  background: var(--white);  // agregado el blanco para mejor apariencia
   color: var(--dark);
   touch-action: manipulation;
   -webkit-touch-callout: none;
