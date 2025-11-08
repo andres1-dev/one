@@ -621,11 +621,10 @@ function displayFullResult(item, qrParts) {
 function displayItemData(data, title = 'Datos', qrParts) {
     let html = `<div class="siesa-header">${title} <span class="timestamp">${new Date().toLocaleString()}</span></div>`;
     
-    // Asegurar que se muestra el lote en primer lugar, seguido de otras propiedades
     // Orden de propiedades: documento, lote, referencia, y luego el resto
     const ordenPropiedades = ['documento', 'lote', 'referencia'];
     
-    // Mostrar primero las propiedades prioritarias en el orden deseado
+    // Mostrar primero las propiedades prioritarias
     ordenPropiedades.forEach(propKey => {
         if (propKey in data && propKey !== 'datosSiesa') {
             html += `
@@ -637,7 +636,7 @@ function displayItemData(data, title = 'Datos', qrParts) {
         }
     });
     
-    // Mostrar el resto de propiedades que no están en la lista de prioridad
+    // Mostrar el resto de propiedades
     for (const key in data) {
         if (key === 'datosSiesa' || ordenPropiedades.includes(key)) continue;
         
@@ -667,7 +666,7 @@ function displayItemData(data, title = 'Datos', qrParts) {
                 
                 // Mostrar propiedades en el orden preferido
                 ordenSiesaPropiedades.forEach(propKey => {
-                    if (propKey in siesa) {
+                    if (propKey in siesa && siesa[propKey] !== '') {
                         html += `
                             <div class="result-row">
                                 <div class="col-header">${formatKey(propKey)}:</div>
@@ -677,9 +676,9 @@ function displayItemData(data, title = 'Datos', qrParts) {
                     }
                 });
                 
-                // Mostrar cualquier propiedad adicional que no esté en la lista ordenada
+                // Mostrar cualquier propiedad adicional
                 for (const key in siesa) {
-                    if (ordenSiesaPropiedades.includes(key)) continue;
+                    if (ordenSiesaPropiedades.includes(key) || siesa[key] === '') continue;
                     
                     html += `
                         <div class="result-row">
@@ -689,9 +688,8 @@ function displayItemData(data, title = 'Datos', qrParts) {
                     `;
                 }
                 
-                // NUEVA LÓGICA DE CONFIRMACIÓN - BLOQUE COMPLETO
+                // LÓGICA DE CONFIRMACIÓN - CORREGIDA
                 if (siesa.confirmacion && siesa.confirmacion === "ENTREGADO") { 
-                    // Si ya está entregado, mostrar mensaje sin botón
                     html += `
                         <div class="action-buttons">
                             <div style="background-color: #28a745; color: white; text-align: center; padding: 12px 20px; border-radius: 8px; font-weight: 500; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
@@ -699,42 +697,7 @@ function displayItemData(data, title = 'Datos', qrParts) {
                             </div>
                         </div>
                     `;
-                } else if (siesa.confirmacion && siesa.confirmacion.includes("PENDIENTE FACTURA")) {
-                    // Caso pendiente factura - verificar si tiene número de factura
-                    const tieneFactura = siesa.factura && siesa.factura.trim() !== "";
-                    
-                    if (tieneFactura) {
-                        // Si tiene factura, mostrar botón para asentar
-                        html += `
-                            <div class="action-buttons">
-                                <button class="delivery-btn" 
-                                    data-factura="${siesa.factura}"
-                                    style="background-color: #f8961e; height: 48px; padding: 12px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px;"
-                                    onclick="asentarFactura(
-                                        '${data.documento}', 
-                                        '${siesa.lote || data.lote}', 
-                                        '${siesa.referencia}', 
-                                        '${siesa.cantidad}', 
-                                        '${siesa.factura}', 
-                                        '${siesa.nit || qrParts.nit}', 
-                                        this
-                                    )">
-                                    <i class="fas fa-file-invoice"></i> ASENTAR FACTURA
-                                </button>
-                            </div>
-                        `;
-                    } else {
-                        // Si no tiene factura, mostrar solo mensaje (no botón)
-                        html += `
-                            <div class="action-buttons">
-                                <div style="background-color: #6c757d; color: white; text-align: center; padding: 12px 20px; border-radius: 8px; font-weight: 500; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-                                    <i class="fas fa-clock"></i> PENDIENTE FACTURA
-                                </div>
-                            </div>
-                        `;
-                    }
                 } else {
-                    // Caso normal - confirmar entrega (solo si NO está confirmado)
                     html += `
                         <div class="action-buttons">
                             <button class="delivery-btn" 
