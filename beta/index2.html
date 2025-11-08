@@ -16,7 +16,6 @@
 
   <!-- Estilos -->
   <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/styles2.css">
 </head>
 <body>
   <!-- Pantalla de carga -->
@@ -42,7 +41,7 @@
 
     <div class="barcode-input-container">
       <i class="fa-solid fa-qrcode"></i>
-      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR" readonly>
+      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR">
     </div>
 
     <div id="status">Iniciando Sistema...</div>
@@ -77,56 +76,6 @@
     <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
   </div>
 
-  <!-- Botón flotante de configuración -->
-  <div id="floatingButtons">
-    <button id="configBtn" class="floating-btn" title="Configuración">
-      <i class="fas fa-cog"></i>
-    </button>
-  </div>
-
-  <!-- Panel de configuración -->
-  <div id="configPanel" class="config-panel">
-    <h3>Configuración <i class="fas fa-times" id="closeConfig"></i></h3>
-    
-    <div class="config-section">
-      <h4>Entrada de Datos</h4>
-      <div class="config-option">
-        <label>
-          <input type="checkbox" id="keyboardToggle"> Habilitar teclado
-        </label>
-        <small>Permitir entrada manual con teclado</small>
-      </div>
-      <div class="config-option">
-        <label>
-          <input type="checkbox" id="scannerToggle" checked> Escáner de cámara
-        </label>
-        <small>Usar cámara para leer códigos QR</small>
-      </div>
-    </div>
-
-    <div class="config-section">
-      <h4>Preferencias</h4>
-      <div class="config-option">
-        <label>
-          <input type="checkbox" id="soundToggle" checked> Sonidos
-        </label>
-        <small>Reproducir sonidos de feedback</small>
-      </div>
-      <div class="config-option">
-        <label>
-          <input type="checkbox" id="vibrationToggle"> Vibración
-        </label>
-        <small>Vibrar al escanear (solo móviles)</small>
-      </div>
-    </div>
-
-    <div class="config-actions">
-      <button id="startScannerBtn" class="btn btn-primary">
-        <i class="fas fa-camera"></i> Iniciar Escáner QR
-      </button>
-    </div>
-  </div>
-
   <!-- Contador de cola y panel de detalles -->
   <div id="queueCounter" class="empty" title="No hay elementos en cola">0</div>
   <div id="queueDetails">
@@ -140,7 +89,6 @@
   <script src="js/config.js"></script>
   <script src="js/upload-queue.js"></script>
   <script src="js/camera.js"></script>
-  <script src="js/barcode-scanner.js"></script>
   <script src="js/asentar-factura.js"></script>
   <script src="js/main.js"></script>
 </body>
