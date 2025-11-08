@@ -40,8 +40,9 @@
     </div>
 
     <div class="barcode-input-container">
-      <i class="fa-solid fa-qrcode"></i>
-      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR">
+      <i class="fa-solid fa-qrcode" id="qrScannerBtn" title="Escanear código QR con cámara"></i>
+      <input type="text" id="barcode" placeholder="Escanea un código QR" readonly>
+      <i class="fa-solid fa-keyboard" id="keyboardToggleBtn" title="Activar teclado"></i>
     </div>
 
     <div id="status">Iniciando Sistema...</div>
@@ -76,6 +77,29 @@
     <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
   </div>
 
+  <!-- Modal de escáner QR -->
+  <div id="qrScannerModal" class="camera-modal">
+    <div class="scanner-header">
+      <h3>Escáner de Código QR</h3>
+      <button id="closeQrScanner" class="btn btn-danger btn-sm">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <video id="qrVideo" class="camera-view" autoplay playsinline></video>
+    <div class="scanner-overlay">
+      <div class="scanner-frame"></div>
+      <div class="scanner-instructions">
+        <i class="fas fa-qrcode"></i>
+        <p>Enfoca un código QR dentro del marco</p>
+      </div>
+    </div>
+    <div class="scanner-actions">
+      <button id="toggleTorchBtn" class="btn btn-warning">
+        <i class="fas fa-lightbulb"></i> Linterna
+      </button>
+    </div>
+  </div>
+
   <!-- Contador de cola y panel de detalles -->
   <div id="queueCounter" class="empty" title="No hay elementos en cola">0</div>
   <div id="queueDetails">
@@ -90,6 +114,7 @@
   <script src="js/upload-queue.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/asentar-factura.js"></script>
+  <script src="js/qr-scanner.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
