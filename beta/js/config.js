@@ -4,7 +4,6 @@ const CONFIG = {
   CACHE_TTL: 24 * 60 * 60 * 1000, // 24 horas en milisegundos
   MAX_IMAGE_SIZE: 800, // Tamaño máximo para redimensionar imágenes
   MAX_CHUNK_SIZE: 50000, // ~50KB por solicitud
-  SCANNER_TIMEOUT: 10000, // 10 segundos para timeout del escáner
 };
 
 // API URLs
