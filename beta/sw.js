@@ -1,13 +1,9 @@
 // sw.js
 const CACHE_NAME = 'pandadash-v4';
 const ASSETS_TO_CACHE = [
-  '/one/beta/',
-  '/one/beta/index.html',
-  '/one/beta/manifest.json',
-  '/one/beta/css/styles.css',
-  '/one/beta/js/app.js',
-  '/one/beta/js/upload-queue.js',
-  '/one/beta/js/camera.js'
+  '/one/beta/icons/icon-192.png',
+  '/one/beta/icons/icon-512.png',
+  '/one/beta/icons/icon-512-maskable.png'
 ];
 
 // Instalación y cacheo inicial
