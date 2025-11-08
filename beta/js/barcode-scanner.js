@@ -15,7 +15,7 @@ class BarcodeScanner {
   }
   
   setupEventListeners() {
-    // Botón de cámara en el input
+    // Botón de cámara en el input manual
     document.getElementById('cameraBtn').addEventListener('click', () => {
       this.startScanner();
     });
@@ -103,7 +103,7 @@ class BarcodeScanner {
   startDetection() {
     this.scanInterval = setInterval(() => {
       this.captureAndDetect();
-    }, 1000); // Revisar cada 1 segundo
+    }, 1000);
   }
   
   async captureAndDetect() {
@@ -171,9 +171,9 @@ class BarcodeScanner {
   }
   
   processDetectedCode(code) {
-    // Poner el código en el input HIDDEN
-    const barcodeInput = document.getElementById('barcode');
-    barcodeInput.value = code;
+    // Poner el código en el input PDA (que siempre está activo)
+    const pdaInput = document.getElementById('pdaInput');
+    pdaInput.value = code;
     
     // Procesar automáticamente
     setTimeout(() => {
