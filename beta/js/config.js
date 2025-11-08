@@ -23,7 +23,7 @@ let dataLoaded = false;
 const UPLOAD_QUEUE_KEY = 'pdaUploadQueue';
 const MAX_RETRIES = -1; // -1 para intentos ilimitados
 
-// Elementos del DOM - NO inicialices aquí, se inicializan en DOMContentLoaded
+// Elementos del DOM
 let loadingScreen, scanner, barcodeInput, statusDiv, resultsDiv, dataStats, offlineBanner, installBtn;
 
 // Inicializar elementos DOM cuando el DOM esté listo
