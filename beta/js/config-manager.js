@@ -40,26 +40,37 @@ class ConfigManager {
       this.saveSettings();
     });
     
-    // Input de barcode - SIEMPRE captura input físico (lector láser PDA)
-    const barcodeInput = document.getElementById('barcode');
+    // Input PDA/Láser - SIEMPRE activo y enfocado
+    const pdaInput = document.getElementById('pdaInput');
     
-    // El input siempre está activo para capturar lecturas físicas
-    barcodeInput.addEventListener('input', (e) => {
+    pdaInput.addEventListener('input', (e) => {
       this.processBarcodeInput(e.target.value);
     });
     
-    barcodeInput.addEventListener('keypress', (e) => {
+    pdaInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         this.processBarcodeInput(e.target.value);
       }
     });
     
-    // Prevenir focus no deseado (solo teclado virtual)
-    barcodeInput.addEventListener('focus', (e) => {
-      if (!this.keyboardEnabled) {
-        e.target.blur();
+    // Input manual - solo si está habilitado
+    const manualInput = document.getElementById('manualInput');
+    manualInput.addEventListener('input', (e) => {
+      this.processBarcodeInput(e.target.value);
+    });
+    
+    manualInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        this.processBarcodeInput(e.target.value);
       }
     });
+    
+    // Mantener foco en input PDA
+    setInterval(() => {
+      if (!this.keyboardEnabled) {
+        pdaInput.focus();
+      }
+    }, 1000);
     
     // Cerrar panel al hacer clic fuera
     document.getElementById('configPanel').addEventListener('click', (e) => {
@@ -80,17 +91,20 @@ class ConfigManager {
   
   setKeyboardEnabled(enabled) {
     this.keyboardEnabled = enabled;
-    const barcodeInput = document.getElementById('barcode');
+    const manualContainer = document.getElementById('manualInputContainer');
+    const pdaInput = document.getElementById('pdaInput');
     
     if (enabled) {
-      barcodeInput.readOnly = false;
-      barcodeInput.classList.remove('readonly');
-      barcodeInput.placeholder = "Escanea o escribe manualmente";
+      manualContainer.style.display = 'block';
+      pdaInput.style.opacity = '0';
+      pdaInput.style.height = '1px';
+      pdaInput.style.width = '1px';
     } else {
-      barcodeInput.readOnly = true;
-      barcodeInput.classList.add('readonly');
-      barcodeInput.placeholder = "Escanea un código QR";
-      barcodeInput.blur();
+      manualContainer.style.display = 'none';
+      pdaInput.style.opacity = '0';
+      pdaInput.style.height = '1px';
+      pdaInput.style.width = '1px';
+      pdaInput.focus();
     }
     
     this.saveSettings();
@@ -112,9 +126,10 @@ class ConfigManager {
       currentQRParts = parts;
       processQRCodeParts(parts);
       
-      // Limpiar input después del procesamiento exitoso
+      // Limpiar inputs después del procesamiento exitoso
       setTimeout(() => {
-        document.getElementById('barcode').value = '';
+        document.getElementById('pdaInput').value = '';
+        document.getElementById('manualInput').value = '';
       }, 100);
       
       // Sonido de éxito
@@ -174,14 +189,4 @@ let configManager;
 function initializeConfigManager() {
   configManager = new ConfigManager();
   return configManager;
-}
-
-// Función global para procesar input de barcode
-function processBarcodeInput() {
-  const barcodeInput = document.getElementById('barcode');
-  const code = barcodeInput.value.trim();
-  
-  if (code && code.length >= 3) {
-    configManager.processBarcodeInput(code);
-  }
 }
