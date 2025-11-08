@@ -32,6 +32,7 @@ class QRScanner {
   }
 
   async openQRScanner() {
+    console.log('📷 Abriendo escáner QR...');
     const modal = document.getElementById('qrScannerModal');
     const video = document.getElementById('qrVideo');
     
@@ -50,78 +51,37 @@ class QRScanner {
       video.srcObject = this.qrStream;
       this.isScanning = true;
       
-      // Iniciar detección de QR
-      this.startQRDetection(video);
+      // Simular detección de QR después de 3 segundos
+      this.simulateQRDetection();
       
     } catch (error) {
-      console.error("Error al acceder a la cámara QR:", error);
+      console.error("❌ Error al acceder a la cámara QR:", error);
       alert("No se pudo acceder a la cámara para escanear QR. Por favor permite el acceso.");
       this.closeQRScanner();
     }
   }
 
-  startQRDetection(video) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
+  simulateQRDetection() {
+    console.log('🔍 Simulando detección QR...');
     
-    const checkQR = () => {
-      if (!this.isScanning) return;
-      
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        this.detectQRCode(imageData);
-      }
-      
+    // Simular que se detecta un QR después de 3 segundos
+    setTimeout(() => {
       if (this.isScanning) {
-        requestAnimationFrame(checkQR);
+        // Código QR de ejemplo - en producción esto vendría de una librería real
+        const simulatedQRData = "REC58101-805027653";
+        console.log('✅ QR detectado:', simulatedQRData);
+        this.handleQRDetected(simulatedQRData);
       }
-    };
-    
-    checkQR();
-  }
-
-  detectQRCode(imageData) {
-    // Implementación simple de detección de QR
-    // En una implementación real, usarías una librería como jsQR
-    try {
-      // Simulación de detección - en producción usar jsQR
-      const qrData = this.simulateQRDetection(imageData);
-      
-      if (qrData) {
-        this.handleQRDetected(qrData);
-      }
-    } catch (error) {
-      console.error("Error en detección QR:", error);
-    }
-  }
-
-  simulateQRDetection(imageData) {
-    // Esta es una simulación - en producción implementar con jsQR
-    // Por ahora solo simula la detección después de 3 segundos
-    if (this.isScanning && !this.detectionStarted) {
-      this.detectionStarted = true;
-      setTimeout(() => {
-        if (this.isScanning) {
-          // Simular que se detectó un QR (en producción esto vendría del análisis real)
-          const simulatedData = "REC58101-805027653"; // Ejemplo
-          this.handleQRDetected(simulatedData);
-        }
-      }, 3000);
-    }
-    return null;
+    }, 3000);
   }
 
   handleQRDetected(qrData) {
-    console.log("QR detectado:", qrData);
+    console.log('🎯 Procesando QR detectado:', qrData);
     
     // Cerrar escáner
     this.closeQRScanner();
     
-    // Procesar el código QR
+    // Procesar el código QR en el input
     if (barcodeInput) {
       barcodeInput.value = qrData;
       
@@ -137,15 +97,18 @@ class QRScanner {
 
   showDetectionFeedback() {
     // Feedback visual breve
-    const originalColor = statusDiv.style.backgroundColor;
+    const originalBackground = statusDiv.style.backgroundColor;
+    const originalHTML = statusDiv.innerHTML;
+    
     statusDiv.style.backgroundColor = '#28a745';
     statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> QR DETECTADO';
     
     setTimeout(() => {
       if (statusDiv) {
-        statusDiv.style.backgroundColor = originalColor;
+        statusDiv.style.backgroundColor = originalBackground;
+        statusDiv.innerHTML = originalHTML;
       }
-    }, 1000);
+    }, 2000);
   }
 
   async toggleTorch() {
@@ -171,13 +134,13 @@ class QRScanner {
         }
       }
     } catch (error) {
-      console.error("Error al controlar la linterna:", error);
+      console.error("❌ Error al controlar la linterna:", error);
     }
   }
 
   closeQRScanner() {
+    console.log('📷 Cerrando escáner QR...');
     this.isScanning = false;
-    this.detectionStarted = false;
     
     if (this.qrStream) {
       this.qrStream.getTracks().forEach(track => track.stop());
@@ -192,13 +155,6 @@ class QRScanner {
     const torchBtn = document.getElementById('toggleTorchBtn');
     torchBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Linterna';
     torchBtn.style.backgroundColor = '';
-    
-    // Re-enfocar el input si está habilitado
-    setTimeout(() => {
-      if (barcodeInput && !barcodeInput.readOnly) {
-        barcodeInput.focus();
-      }
-    }, 300);
   }
 }
 
@@ -206,6 +162,7 @@ class QRScanner {
 let qrScanner;
 
 function initializeQRScanner() {
+  console.log('🎯 Inicializando escáner QR...');
   qrScanner = new QRScanner();
   return qrScanner;
 }
