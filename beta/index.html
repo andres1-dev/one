@@ -86,27 +86,35 @@
     <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
   </div>
 
-  <!-- Modal de escáner QR -->
+  <!-- Modal de escáner QR/Barcode -->
   <div id="qrScannerModal" class="camera-modal">
     <div class="scanner-header">
-      <h3>Escáner de Código QR</h3>
+      <h3>Escáner de Códigos</h3>
       <button id="closeQrScanner" class="btn btn-danger btn-sm">
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <video id="qrVideo" class="camera-view" autoplay playsinline></video>
+    
+    <!-- Contenedor para Quagga -->
+    <div id="interactive" class="viewport scanner-view"></div>
+    
     <div class="scanner-overlay">
       <div class="scanner-frame">
         <div class="scanner-laser"></div>
       </div>
       <div class="scanner-instructions">
         <i class="fas fa-qrcode"></i>
-        <p>Enfoca un código QR dentro del marco</p>
+        <p>Enfoca un código QR o de barras dentro del marco</p>
+        <small id="scannerStatus">Preparando cámara...</small>
       </div>
     </div>
+    
     <div class="scanner-actions">
       <button id="toggleTorchBtn" class="btn btn-warning">
         <i class="fas fa-lightbulb"></i> Linterna
+      </button>
+      <button id="switchCameraBtn" class="btn btn-info">
+        <i class="fas fa-camera-rotate"></i> Cambiar Cámara
       </button>
     </div>
   </div>
@@ -121,6 +129,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/upload-queue.js"></script>
   <script src="js/camera.js"></script>
