@@ -16,9 +16,9 @@ let cameraStream = null;
 let currentDocumentData = null;
 let photoBlob = null;
 let preventKeyboardTimer = null;
+let globalInputController;
 let currentQRParts = null;
 let dataLoaded = false;
-let inputController;
 
 // Constantes para la cola de carga - INTENTOS ILIMITADOS
 const UPLOAD_QUEUE_KEY = 'pdaUploadQueue';
