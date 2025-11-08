@@ -922,3 +922,36 @@ h1 {
   background-color: white;
   color: var(--dark);
 }
+
+
+
+
+/* Botón de cámara en el input */
+.camera-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 16px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.camera-btn:hover {
+  color: var(--primary-dark);
+}
+
+/* Input deshabilitado */
+#barcode.readonly {
+  background-color: var(--gray-light);
+  color: var(--gray);
+  cursor: default;
+}
+
+#barcode:not(.readonly) {
+  background-color: white;
+  color: var(--dark);
+}
