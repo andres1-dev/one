@@ -11,14 +11,16 @@ const API_URL_GET = "https://script.google.com/macros/s/AKfycbzja5L4QU5qLBO0vSG2
 const API_URL_POST = "https://script.google.com/macros/s/AKfycbwgnkjVCMWlWuXnVaxSBD18CGN3rXGZtQZIvX9QlBXSgbQndWC4uqQ2sc00DuNH6yrb/exec";
 
 // Variables globales
-let database = [];
-let cameraStream = null;
-let currentDocumentData = null;
-let photoBlob = null;
-let preventKeyboardTimer = null;
-let currentQRParts = null;
-let dataLoaded = false;
-let keyboardEnabled = false; // ← AGREGAR ESTA LÍNEA
+// Variables globales - SOLO DECLARAR, NO INICIALIZAR AQUÍ
+let database;
+let cameraStream;
+let currentDocumentData;
+let photoBlob;
+let preventKeyboardTimer;
+let currentQRParts;
+let dataLoaded;
+let keyboardEnabled;
+let uploadQueue;
 let qrScanner;
 
 // Constantes para la cola de carga - INTENTOS ILIMITADOS
