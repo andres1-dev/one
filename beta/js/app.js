@@ -150,8 +150,8 @@ function aplicarMarcaDeAgua(ctx, width, height) {
   }
 
   // 3. Título: PandaDash (más grande)
-  ctx.font = `700 ${fontSizeTitle}px ${fontFamily}`;
-  ctx.fillText("PandaDash", marginLeft, posY);
+  ctx.font = `500 ${fontSizeTitle}px ${fontFamily}`;
+  ctx.fillText("Entregas", marginLeft, posY);
 }
 
 // Función para subir la foto capturada
