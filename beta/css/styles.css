@@ -800,14 +800,14 @@ h1 {
 }
 
 
-/* Botones flotantes */
+
+/* ... (mantener todos los estilos anteriores) ... */
+
+/* Botón flotante de configuración */
 #floatingButtons {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
   z-index: 999;
 }
 
@@ -830,18 +830,6 @@ h1 {
 .floating-btn:hover {
   transform: scale(1.1);
   background: var(--primary-dark);
-}
-
-.floating-btn.active {
-  background: var(--success);
-}
-
-.floating-btn.warning {
-  background: var(--warning);
-}
-
-.floating-btn.warning:hover {
-  background: var(--warning-dark);
 }
 
 /* Panel de configuración */
@@ -873,10 +861,25 @@ h1 {
   color: var(--gray);
 }
 
+.config-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.config-section h4 {
+  margin-bottom: 10px;
+  color: var(--primary-dark);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .config-option {
   margin-bottom: 15px;
   padding: 10px;
-  border-bottom: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--primary-light);
 }
 
 .config-option label {
@@ -899,79 +902,23 @@ h1 {
   height: 18px;
 }
 
-/* Overlay para escáner QR */
-.scanner-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
+.config-actions {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.config-actions .btn {
   width: 100%;
-  height: 100%;
-  pointer-events: none;
 }
 
-.scanner-frame {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 250px;
-  height: 250px;
-  border: 2px solid var(--success);
-  border-radius: 15px;
-  box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7);
-}
-
-.scanner-line {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 230px;
-  height: 3px;
-  background: var(--success);
-  animation: scanLine 2s infinite linear;
-}
-
-@keyframes scanLine {
-  0%, 100% {
-    top: 30%;
-  }
-  50% {
-    top: 70%;
-  }
-}
-
-/* Mejoras para el input de código */
-.barcode-input-container {
-  position: relative;
-}
-
-#manualInputBtn {
-  background: transparent;
-  border: none;
-  color: var(--primary);
-  font-size: 16px;
-  padding: 5px;
-}
-
+/* Input deshabilitado */
 #barcode.readonly {
   background-color: var(--gray-light);
   color: var(--gray);
+  cursor: default;
 }
 
 #barcode:not(.readonly) {
   background-color: white;
   color: var(--dark);
-}
-
-/* Overlay para deshabilitar interacciones */
-.overlay-disabled {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  z-index: 9998;
-  display: none;
 }
