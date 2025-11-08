@@ -21,6 +21,12 @@
   --transition: all 0.3s ease;
 }
 
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 /* Estilos para bloquear zoom y escalado */
 html {
   touch-action: manipulation;
@@ -30,14 +36,10 @@ html {
 }
 
 body {
-  max-width: 450px;
-  margin: 0 auto;
-  position: relative;
-  overflow: hidden;
-  background: var(--bg-color);
   font-family: 'Roboto', sans-serif;
   margin: 0;
   padding: 0;
+  background: var(--bg-color);
   color: var(--dark);
   touch-action: manipulation;
   -webkit-touch-callout: none;
@@ -45,23 +47,24 @@ body {
   user-select: none;
   line-height: 1.5;
   font-size: 15px;
+  max-width: 450px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
 #scanner {
-  width: 100%;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   flex: 1;
   height: 100vh;
   max-width: 800px;
   margin: 0 auto;
-  box-shadow: 0 0 20px rgba(0,0,0,0.1);
-  background: var(--card-bg);
-  position: relative;
+  width: 100%;
+  min-height: 100vh;
 }
 
 @media (min-width: 768px) {
@@ -71,12 +74,6 @@ body {
     margin-top: 5vh;
     border-radius: 15px;
   }
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 /* Pantalla de carga */
@@ -797,234 +794,4 @@ h1 {
   color: var(--gray);
   font-style: italic;
   padding: 10px;
-}
-
-
-
-/* ... (mantener todos los estilos anteriores) ... */
-
-/* Botón flotante de configuración */
-#floatingButtons {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 999;
-}
-
-.floating-btn {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  border: none;
-  box-shadow: var(--box-shadow);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: var(--transition);
-}
-
-.floating-btn:hover {
-  transform: scale(1.1);
-  background: var(--primary-dark);
-}
-
-/* Panel de configuración */
-.config-panel {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 20px;
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  z-index: 1002;
-  width: 90%;
-  max-width: 400px;
-  display: none;
-}
-
-.config-panel h3 {
-  margin-bottom: 15px;
-  color: var(--primary);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.config-panel h3 i {
-  cursor: pointer;
-  color: var(--gray);
-}
-
-.config-section {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.config-section h4 {
-  margin-bottom: 10px;
-  color: var(--primary-dark);
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.config-option {
-  margin-bottom: 15px;
-  padding: 10px;
-  border-radius: var(--border-radius);
-  background: var(--primary-light);
-}
-
-.config-option label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.config-option small {
-  display: block;
-  margin-top: 5px;
-  color: var(--gray);
-  font-size: 12px;
-}
-
-.config-option input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-}
-
-.config-actions {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.config-actions .btn {
-  width: 100%;
-}
-
-/* Input deshabilitado */
-#barcode.readonly {
-  background-color: var(--gray-light);
-  color: var(--gray);
-  cursor: default;
-}
-
-#barcode:not(.readonly) {
-  background-color: white;
-  color: var(--dark);
-}
-
-
-
-
-/* Botón de cámara en el input */
-.camera-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: var(--primary);
-  font-size: 16px;
-  padding: 5px;
-  cursor: pointer;
-}
-
-.camera-btn:hover {
-  color: var(--primary-dark);
-}
-
-/* Input deshabilitado */
-#barcode.readonly {
-  background-color: var(--gray-light);
-  color: var(--gray);
-  cursor: default;
-}
-
-#barcode:not(.readonly) {
-  background-color: white;
-  color: var(--dark);
-}
-
-
-
-/* Input PDA (oculto pero funcional) */
-#pdaInput {
-  position: absolute;
-  opacity: 0;
-  height: 1px;
-  width: 1px;
-  pointer-events: auto; /* Asegurar que puede recibir input */
-}
-
-/* Contenedor input manual */
-#manualInputContainer {
-  max-width: 400px;
-  margin: 20px auto;
-  position: relative;
-}
-
-/* Botón de cámara en el input manual */
-.camera-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: var(--primary);
-  font-size: 16px;
-  padding: 5px;
-  cursor: pointer;
-}
-
-.camera-btn:hover {
-  color: var(--primary-dark);
-}
-
-/* Input manual */
-#manualInput {
-  width: 100%;
-  padding: 16px 16px 16px 48px;
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
-  background-color: #fff;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  appearance: none;
-  text-align: center;
-}
-
-#manualInput::placeholder {
-  color: #888;
-  opacity: 0.7;
-}
-
-#manualInput:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
-}
-
-#manualInputContainer i {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #a6acad;
-  font-size: 20px;
-  pointer-events: none;
-  transition: color 0.3s ease;
 }
