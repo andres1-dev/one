@@ -1,14 +1,232 @@
 // Archivo principal que inicializa la aplicación
 
+// Variables para control de teclado
+let keyboardEnabled = false;
+
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
   // Inicializar la cola de carga
   initializeUploadQueue();
+
+  // Inicializar escáner QR
+  initializeQRScanner();
+
+  // Configurar input como readonly por defecto
+  setupKeyboardControl();
   
   // Cargar datos desde el servidor
   loadDataFromServer();
   
   setupEventListeners();
+
+  function setupKeyboardControl() {
+  const keyboardToggleBtn = document.getElementById('keyboardToggleBtn');
+  const barcodeInput = document.getElementById('barcode');
+  
+  // Configurar estado inicial
+  barcodeInput.readOnly = true;
+  barcodeInput.className = 'readonly';
+  keyboardToggleBtn.className = 'keyboard-disabled';
+  
+  // Agregar indicador de estado
+  const statusIndicator = document.createElement('div');
+  statusIndicator.className = 'keyboard-status inactive';
+  keyboardToggleBtn.parentNode.appendChild(statusIndicator);
+  
+  // Evento para toggle de teclado
+  keyboardToggleBtn.addEventListener('click', function() {
+    keyboardEnabled = !keyboardEnabled;
+    
+    if (keyboardEnabled) {
+      // Habilitar teclado
+      barcodeInput.readOnly = false;
+      barcodeInput.className = 'enabled';
+      this.className = 'keyboard-enabled';
+      statusIndicator.className = 'keyboard-status active';
+      this.title = 'Desactivar teclado';
+      
+      // Enfocar el input
+      setTimeout(() => {
+        barcodeInput.focus();
+      }, 100);
+      
+      // Mostrar feedback
+      showKeyboardStatus('Teclado ACTIVADO - Puedes escribir manualmente', 'success');
+      
+    } else {
+      // Deshabilitar teclado
+      barcodeInput.readOnly = true;
+      barcodeInput.className = 'readonly';
+      this.className = 'keyboard-disabled';
+      statusIndicator.className = 'keyboard-status inactive';
+      this.title = 'Activar teclado';
+      
+      // Quitar foco
+      barcodeInput.blur();
+      
+      // Mostrar feedback
+      showKeyboardStatus('Teclado DESACTIVADO - Usa escáner QR', 'info');
+    }
+  });
+  
+  // Prevenir cualquier foco no deseado
+  barcodeInput.addEventListener('focus', function(e) {
+    if (this.readOnly) {
+      e.preventDefault();
+      this.blur();
+      
+      // Sugerir usar el botón de teclado
+      if (!keyboardEnabled) {
+        showKeyboardStatus('Presiona el icono del teclado para habilitar escritura', 'warning');
+        
+        // Efecto visual en el botón
+        keyboardToggleBtn.style.transform = 'translateY(-50%) scale(1.2)';
+        setTimeout(() => {
+          keyboardToggleBtn.style.transform = 'translateY(-50%)';
+        }, 500);
+      }
+    }
+  });
+  
+  // Prevenir clics que puedan abrir el teclado
+  barcodeInput.addEventListener('click', function(e) {
+    if (this.readOnly) {
+      e.preventDefault();
+      this.blur();
+      
+      // Sugerir habilitar teclado
+      showKeyboardStatus('Habilita el teclado para escribir manualmente', 'info');
+    }
+  });
+  
+  // Manejar el evento de input (cuando se escribe manualmente)
+  barcodeInput.addEventListener('input', function() {
+    if (!keyboardEnabled) return;
+    
+    const code = this.value.trim();
+    if (code.length < 5) return;
+    
+    // Procesar código como si fuera escaneado
+    const parts = parseQRCode(code);
+    
+    if (parts) {
+      currentQRParts = parts;
+      const startTime = Date.now();
+      processQRCodeParts(parts);
+      const searchTime = Date.now() - startTime;
+      
+      statusDiv.className = 'processed';
+      statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
+    } else {
+      showError(code, "Formato de código no válido. Use formato: DOCUMENTO-NIT");
+      playErrorSound();
+      statusDiv.textContent = `FORMATO INVÁLIDO`;
+    }
+    
+    // Limpiar input después de procesar
+    setTimeout(() => {
+      this.value = '';
+    }, 50);
+  });
+}
+
+function showKeyboardStatus(message, type = 'info') {
+  // Crear notificación temporal
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: ${type === 'success' ? '#d4edda' : type === 'warning' ? '#fff3cd' : '#d1ecf1'};
+    color: ${type === 'success' ? '#155724' : type === 'warning' ? '#856404' : '#0c5460'};
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: 1px solid ${type === 'success' ? '#c3e6cb' : type === 'warning' ? '#ffeaa7' : '#bee5eb'};
+    max-width: 90%;
+    text-align: center;
+    white-space: nowrap;
+  `;
+  
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  // Remover después de 3 segundos
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.parentNode.removeChild(notification);
+    }
+  }, 3000);
+}
+
+function setupEventListeners() {
+  // Foco persistente SOLO cuando el teclado está habilitado
+  function enforceFocus() {
+    if (keyboardEnabled && 
+        document.activeElement !== barcodeInput && 
+        document.getElementById('cameraModal').style.display !== 'flex' &&
+        document.getElementById('qrScannerModal').style.display !== 'flex') {
+      barcodeInput.focus();
+    }
+    setTimeout(enforceFocus, 100);
+  }
+  enforceFocus();
+  
+  // Detector para deshabilitar el teclado virtual en dispositivos móviles
+  document.addEventListener('touchstart', function(e) {
+    const cameraModal = document.getElementById('cameraModal');
+    const qrScannerModal = document.getElementById('qrScannerModal');
+    
+    if ((cameraModal.style.display === 'flex' || qrScannerModal.style.display === 'flex') && 
+        e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
+      if (document.activeElement) {
+        document.activeElement.blur();
+      }
+    }
+    
+    // Prevenir que toques en el input abran el teclado si está deshabilitado
+    if (e.target === barcodeInput && barcodeInput.readOnly) {
+      e.preventDefault();
+      barcodeInput.blur();
+    }
+  }, { passive: false });
+  
+  // Prevenir enfoque no deseado en cualquier input
+  document.addEventListener('focusin', function(e) {
+    const cameraModal = document.getElementById('cameraModal');
+    const qrScannerModal = document.getElementById('qrScannerModal');
+    
+    // Si algún modal está abierto, prevenir enfoque
+    if ((cameraModal.style.display === 'flex' || qrScannerModal.style.display === 'flex') && 
+        e.target.id !== 'dummyInput') {
+      e.preventDefault();
+      e.target.blur();
+    }
+    
+    // Si el teclado está deshabilitado y se enfoca el input, prevenir
+    if (e.target === barcodeInput && !keyboardEnabled) {
+      e.preventDefault();
+      e.target.blur();
+    }
+  });
+  
+  // Manejar el cambio de orientación
+  window.addEventListener('orientationchange', function() {
+    const cameraModal = document.getElementById('cameraModal');
+    const qrScannerModal = document.getElementById('qrScannerModal');
+    
+    if (cameraModal.style.display === 'flex' || qrScannerModal.style.display === 'flex') {
+      setTimeout(() => {
+        document.activeElement.blur();
+      }, 300);
+    }
+  });
+}
   
   // Agregar eventos para prevenir el teclado virtual en la cámara
   document.addEventListener('focusin', function(e) {
