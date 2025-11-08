@@ -709,9 +709,3 @@ document.addEventListener('DOMContentLoaded', function() {
 function esMovil() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
-
-
-// Al final del main.js, agrega:
-document.getElementById('closeQRScanner').addEventListener('click', () => {
-  inputController.closeQRScanner();
-});
