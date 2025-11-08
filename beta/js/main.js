@@ -3,6 +3,7 @@
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
   initializeScanner();
+  setupConfigPanel();
   
   // Inicializar la cola de carga
   initializeUploadQueue();
