@@ -1,4 +1,4 @@
-// Escáner de código de barras simple usando la cámara
+// Lector de código de barras real con biblioteca BarcodeDetector
 class BarcodeScanner {
   constructor() {
     this.isScanning = false;
@@ -7,11 +7,41 @@ class BarcodeScanner {
     this.canvasElement = null;
     this.context = null;
     this.scanInterval = null;
+    this.barcodeDetector = null;
     this.init();
   }
   
-  init() {
+  async init() {
+    await this.setupBarcodeDetector();
     this.setupEventListeners();
+  }
+  
+  async setupBarcodeDetector() {
+    // Verificar si el navegador soporta BarcodeDetector
+    if ('BarcodeDetector' in window) {
+      try {
+        // Obtener los formatos soportados
+        const formats = await BarcodeDetector.getSupportedFormats();
+        console.log('Formatos soportados:', formats);
+        
+        this.barcodeDetector = new BarcodeDetector({
+          formats: ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
+        });
+        
+        console.log('BarcodeDetector inicializado correctamente');
+      } catch (error) {
+        console.error('Error al inicializar BarcodeDetector:', error);
+        this.fallbackToCanvasDetection();
+      }
+    } else {
+      console.warn('BarcodeDetector no está soportado en este navegador');
+      this.fallbackToCanvasDetection();
+    }
+  }
+  
+  fallbackToCanvasDetection() {
+    console.log('Usando detección por canvas (modo fallback)');
+    // En modo fallback, usaremos detección básica por canvas
   }
   
   setupEventListeners() {
@@ -77,6 +107,9 @@ class BarcodeScanner {
               <i class="fas fa-times"></i> Cerrar Escáner
             </button>
           </div>
+          <div id="scannerStatus" class="uploading-status">
+            <i class="fas fa-qrcode"></i> Escaneando...
+          </div>
         </div>
       `;
       document.body.appendChild(scannerModal);
@@ -106,37 +139,57 @@ class BarcodeScanner {
     }, 500); // Revisar cada 500ms
   }
   
-  captureAndDetect() {
+  async captureAndDetect() {
     if (!this.videoElement || this.videoElement.readyState !== this.videoElement.HAVE_ENOUGH_DATA) {
       return;
     }
     
-    // Configurar canvas con las dimensiones del video
-    this.canvasElement.width = this.videoElement.videoWidth;
-    this.canvasElement.height = this.videoElement.videoHeight;
-    
-    // Dibujar frame actual en el canvas
-    this.context.drawImage(this.videoElement, 0, 0, this.canvasElement.width, this.canvasElement.height);
-    
-    // Obtener datos de la imagen para procesamiento
-    this.processFrame();
+    try {
+      // Configurar canvas con las dimensiones del video
+      this.canvasElement.width = this.videoElement.videoWidth;
+      this.canvasElement.height = this.videoElement.videoHeight;
+      
+      // Dibujar frame actual en el canvas
+      this.context.drawImage(this.videoElement, 0, 0, this.canvasElement.width, this.canvasElement.height);
+      
+      // Intentar detección con BarcodeDetector si está disponible
+      if (this.barcodeDetector) {
+        await this.detectWithBarcodeDetector();
+      } else {
+        // Fallback a detección básica por canvas
+        this.detectWithCanvas();
+      }
+    } catch (error) {
+      console.error('Error en detección:', error);
+    }
   }
   
-  processFrame() {
-    // Esta función intenta detectar códigos de barras simples
-    // En una implementación real, aquí integrarías una librería como JsBarcode o Quagga
-    
+  async detectWithBarcodeDetector() {
     try {
-      // Simulación de detección - En producción usar una librería real
+      const barcodes = await this.barcodeDetector.detect(this.canvasElement);
+      
+      if (barcodes.length > 0) {
+        const barcode = barcodes[0];
+        console.log('Código detectado:', barcode.rawValue);
+        this.onBarcodeDetected(barcode.rawValue);
+      }
+    } catch (error) {
+      console.error('Error en BarcodeDetector:', error);
+    }
+  }
+  
+  detectWithCanvas() {
+    // Detección básica por análisis de imagen (para códigos QR simples)
+    // Esta es una implementación básica - en producción usar una librería dedicada
+    try {
       const imageData = this.context.getImageData(0, 0, this.canvasElement.width, this.canvasElement.height);
       
-      // Aquí iría el código real de detección usando una librería
-      // Por ahora, solo simulamos que no detectamos nada
-      // En producción, reemplazar con:
-      // const detectedCode = barcodeLibrary.detect(imageData);
+      // Aquí iría el código de detección más avanzado
+      // Por simplicidad, simulamos que no detectamos nada
+      // En producción, integrar con una librería como jsQR o similar
       
     } catch (error) {
-      console.error('Error en procesamiento de frame:', error);
+      console.error('Error en detección por canvas:', error);
     }
   }
   
@@ -220,15 +273,4 @@ let barcodeScanner;
 function initializeBarcodeScanner() {
   barcodeScanner = new BarcodeScanner();
   return barcodeScanner;
-}
-
-// Función simple de detección para códigos de barras lineales básicos
-function simulateBarcodeDetection(imageData) {
-  // Esta es una simulación muy básica
-  // En producción, usar una librería como:
-  // - JsBarcode: https://github.com/lindell/JsBarcode
-  // - QuaggaJS: https://github.com/serratus/quaggaJS
-  // - ZXing: https://github.com/zxing-js/library
-  
-  return null; // Simular que no se detectó nada
 }
