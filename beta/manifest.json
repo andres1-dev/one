@@ -1,58 +1,114 @@
 {
-  "name": "PandaDash",
+  "name": "PandaDash - Sistema de Gestión Logística",
   "short_name": "PandaDash",
-  "start_url": "./index.html?source=pwa",
+  "description": "Plataforma de gestión logística y seguimiento de envíos en tiempo real con escaneo QR",
+  "start_url": "/one/beta/index.html",
+  "scope": "/one/beta/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#4361ee",
   "theme_color": "#4361ee",
-  "description": "Plataforma de gestión logística y seguimiento de envíos en tiempo real",
-  "lang": "es",
+  "lang": "es-ES",
   "dir": "ltr",
-  "categories": ["productivity", "business", "logistics"],
-  "orientation": "portrait",
-  "scope": "/beta/",
+  "categories": ["business", "productivity", "logistics"],
+  "screenshots": [
+    {
+      "src": "/one/beta/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Panel principal de escaneo QR"
+    },
+    {
+      "src": "/one/beta/screenshots/scanner.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Escáner de códigos QR"
+    }
+  ],
   "icons": [
+    { 
+      "src": "/one/beta/icons/icon-72x72.png", 
+      "sizes": "72x72", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-96x96.png", 
+      "sizes": "96x96", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-128x128.png", 
+      "sizes": "128x128", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-144x144.png", 
+      "sizes": "144x144", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-152x152.png", 
+      "sizes": "152x152", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-192x192.png", 
+      "sizes": "192x192", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-256x256.png", 
+      "sizes": "256x256", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-384x384.png", 
+      "sizes": "384x384", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-512x512.png", 
+      "sizes": "512x512", 
+      "type": "image/png", 
+      "purpose": "any" 
+    },
+    { 
+      "src": "/one/beta/icons/icon-512-maskable.png", 
+      "sizes": "512x512", 
+      "type": "image/png", 
+      "purpose": "maskable" 
+    }
+  ],
+  "shortcuts": [
     {
-      "src": "icons/icon-72x72.png",
-      "sizes": "72x72",
-      "type": "image/png"
+      "name": "Escanear Código QR",
+      "short_name": "Escanear QR",
+      "description": "Acceso directo al escáner de códigos QR",
+      "url": "/one/beta/index.html?action=scan",
+      "icons": [{ 
+        "src": "/one/beta/icons/icon-192x192.png", 
+        "sizes": "192x192", 
+        "type": "image/png" 
+      }]
     },
     {
-      "src": "icons/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "name": "Ver Entregas Pendientes",
+      "short_name": "Entregas",
+      "description": "Acceso directo a la cola de entregas pendientes",
+      "url": "/one/beta/index.html?action=queue",
+      "icons": [{ 
+        "src": "/one/beta/icons/icon-192x192.png", 
+        "sizes": "192x192", 
+        "type": "image/png" 
+      }]
     }
   ]
 }
