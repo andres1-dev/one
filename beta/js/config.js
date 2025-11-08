@@ -4,6 +4,7 @@ const CONFIG = {
   CACHE_TTL: 24 * 60 * 60 * 1000, // 24 horas en milisegundos
   MAX_IMAGE_SIZE: 800, // Tamaño máximo para redimensionar imágenes
   MAX_CHUNK_SIZE: 50000, // ~50KB por solicitud
+  DISABLE_KEYBOARD: true // Nueva configuración para deshabilitar teclado
 };
 
 // API URLs
