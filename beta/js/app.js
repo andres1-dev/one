@@ -25,7 +25,7 @@ function loadDataFromServer() {
         .catch(error => handleDataLoadError(error));
 }
 
-// Función para forzar actualización después de subir foto
+// Reemplazar la función refreshAfterUpload
 async function refreshAfterUpload(factura) {
     try {
         console.log(`🔄 Actualizando datos después de subir foto para factura: ${factura}`);
@@ -35,28 +35,55 @@ async function refreshAfterUpload(factura) {
         dataLoaded = true;
         cacheData(database);
         
-        // Si hay un QR activo, reprocesarlo para reflejar los cambios
-        if (currentQRParts) {
-            processQRCodeParts(currentQRParts);
-        }
+        console.log(`✅ Datos actualizados. Factura ${factura} en base de datos:`, 
+            updatedData.some(d => d.factura === factura));
         
-        // Verificar si la factura ya está marcada como entregada
-        const facturaData = updatedData.find(d => d.factura === factura);
-        if (facturaData && facturaData.confirmacion === "ENTREGADO") {
-            console.log(`✅ Factura ${factura} confirmada como ENTREGADA`);
-            
-            // Detener la cola para esta factura
-            stopQueueForFactura(factura);
-            
-            // Actualizar UI inmediatamente
-            updateUIForConfirmedFactura(factura);
-        }
+        // NO reprocesar el QR automáticamente - permitir nuevo escaneo
+        // Resetear el estado para permitir nuevo escaneo
+        currentQRParts = null;
+        
+        // Mostrar pantalla de inicio lista para nuevo escaneo
+        showReadyScreen();
         
         return true;
     } catch (error) {
         console.error('❌ Error actualizando datos:', error);
         return false;
     }
+}
+
+// Nueva función para mostrar pantalla lista
+function showReadyScreen() {
+    resultsDiv.innerHTML = `
+        <div class="result-item" style="text-align: center; color: var(--gray);">
+            <div style="text-align: center;">
+                <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+            </div>
+            <h1 style="margin: 0;">PandaDash</h1>
+            <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
+                <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
+                <p style="margin: 2px 0;">
+                    Supported by 
+                    <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                        GrupoTDM
+                    </a>
+                </p>
+                <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
+                    <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
+                    <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
+                    <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
+                </div>
+            </div>
+            <div style="margin-top: 15px; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                <strong>Listo para nuevo escaneo</strong>
+                <p style="margin: 5px 0 0 0; font-size: 12px;">Escanea un nuevo código QR para continuar</p>
+            </div>
+        </div>
+    `;
+    
+    statusDiv.className = 'ready';
+    statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> SISTEMA LISTO';
 }
 
 // Detener la cola para una factura específica
@@ -226,6 +253,7 @@ function aplicarMarcaDeAgua(ctx, width, height) {
 
 // Función para subir la foto capturada
 // Modificar la función subirFotoCapturada para incluir actualización automática
+// Modificar la función subirFotoCapturada para mejor flujo
 async function subirFotoCapturada(blob) {
     if (!currentDocumentData || !blob) {
         console.error("No hay datos disponibles para subir");
@@ -264,10 +292,27 @@ async function subirFotoCapturada(blob) {
             esSinFactura: esSinFactura,
             // Callback para después de subir exitosamente
             onSuccess: () => {
-                // Actualizar datos después de subir exitosamente
-                setTimeout(() => {
-                    refreshAfterUpload(factura);
-                }, 2000);
+                console.log(`✅ Foto subida exitosamente para factura: ${factura}`);
+                
+                // Para entregas sin factura, actualizar UI inmediatamente
+                if (esSinFactura) {
+                    if (btnElement) {
+                        btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+                        btnElement.style.backgroundColor = '#28a745';
+                        btnElement.disabled = true;
+                    }
+                    actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
+                    
+                    // Esperar un momento y luego resetear para nuevo escaneo
+                    setTimeout(() => {
+                        refreshAfterUpload(factura);
+                    }, 1500);
+                } else {
+                    // Para entregas con factura, actualizar datos y resetear
+                    setTimeout(() => {
+                        refreshAfterUpload(factura);
+                    }, 1000);
+                }
             }
         });
         
@@ -275,22 +320,23 @@ async function subirFotoCapturada(blob) {
         if (btnElement) {
             btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> PROCESANDO...';
             btnElement.style.backgroundColor = '#4cc9f0';
-            
-            if (esSinFactura) {
-                setTimeout(() => {
-                    btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-                    btnElement.style.backgroundColor = '#28a745';
-                    btnElement.disabled = true;
-                    actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
-                }, 2000);
-            }
+            btnElement.disabled = true;
         }
         
+        actualizarEstado('loading', '<i class="fas fa-cloud-upload-alt"></i> EN COLEA PARA SUBIR...');
         playSuccessSound();
         
     } catch (error) {
         console.error("Error al preparar foto:", error);
         statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen</span>';
+        
+        // Re-enable button on error
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.innerHTML = '<i class="fas fa-truck"></i> CONFIRMAR ENTREGA';
+            btnElement.style.backgroundColor = '';
+        }
+        
         playErrorSound();
     }
 }
@@ -630,39 +676,98 @@ function parseQRCode(code) {
 }
 
 // Procesa las partes del código QR y muestra los resultados
+// Modificar la función processQRCodeParts para mejor manejo de facturas entregadas
 function processQRCodeParts(parts) {
-  const { documento, nit } = parts;
-  
-  // Buscar un registro que coincida con el documento
-  const result = database.find(item => 
-    item.documento && item.documento.toString() === documento
-  );
-  
-  if (result) {
-    // Filtramos los datosSiesa para mostrar solo los que coinciden con el NIT
-    const filteredItem = JSON.parse(JSON.stringify(result));
+    const { documento, nit } = parts;
     
-    if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
-      // Filtramos por NIT en lugar de por cliente
-      filteredItem.datosSiesa = filteredItem.datosSiesa.filter(siesa => {
-        // Extraemos solo dígitos del NIT para comparar (por si acaso viene con formato)
-        const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
-        const scanNitDigits = nit.replace(/\D/g, '');
+    // Buscar un registro que coincida con el documento
+    const result = database.find(item => 
+        item.documento && item.documento.toString() === documento
+    );
+    
+    if (result) {
+        // Filtramos los datosSiesa para mostrar solo los que coinciden con el NIT
+        const filteredItem = JSON.parse(JSON.stringify(result));
         
-        return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
-      });
-      
-      displayFullResult(filteredItem, parts);
-      playSuccessSound();
+        if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
+            // Filtramos por NIT en lugar de por cliente
+            filteredItem.datosSiesa = filteredItem.datosSiesa.filter(siesa => {
+                // Extraemos solo dígitos del NIT para comparar (por si acaso viene con formato)
+                const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
+                const scanNitDigits = nit.replace(/\D/g, '');
+                
+                return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
+            });
+            
+            // VERIFICAR SI TODAS LAS FACTURAS ESTÁN ENTREGADAS
+            const todasEntregadas = filteredItem.datosSiesa.every(siesa => 
+                siesa.confirmacion === "ENTREGADO"
+            );
+            
+            if (todasEntregadas && filteredItem.datosSiesa.length > 0) {
+                // Mostrar mensaje de que todas las facturas están entregadas
+                showAllDeliveredMessage(filteredItem);
+                playSuccessSound();
+            } else {
+                displayFullResult(filteredItem, parts);
+                playSuccessSound();
+            }
+        } else {
+            displayFullResult(filteredItem, parts);
+            playSuccessSound();
+        }
     } else {
-      displayFullResult(filteredItem, parts);
-      playSuccessSound();
+        showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
+        playErrorSound();
     }
-  } else {
-    showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
-    playErrorSound();
-  }
 }
+
+// Nueva función para mostrar mensaje cuando todas las facturas están entregadas
+function showAllDeliveredMessage(item) {
+    resultsDiv.innerHTML = `
+        <div class="result-item">
+            <div class="siesa-header">
+                <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                Documento Completado
+                <span class="timestamp">${new Date().toLocaleString()}</span>
+            </div>
+            
+            <div class="result-row">
+                <div class="col-header">Documento:</div>
+                <div class="json-value">${item.documento}</div>
+            </div>
+            
+            <div class="result-row">
+                <div class="col-header">Estado:</div>
+                <div class="json-value" style="color: var(--success); font-weight: bold;">
+                    <i class="fas fa-check-circle"></i> TODAS LAS FACTURAS ENTREGADAS
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: var(--success); color: white; border-radius: 8px; text-align: center;">
+                <h3 style="margin: 0 0 10px 0;">
+                    <i class="fas fa-truck-loading"></i> Entrega Completada
+                </h3>
+                <p style="margin: 0; opacity: 0.9;">
+                    Todas las facturas de este documento han sido entregadas exitosamente.
+                </p>
+                <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.8;">
+                    Escanea un nuevo código QR para continuar con la siguiente entrega.
+                </p>
+            </div>
+            
+            <div style="margin-top: 15px; text-align: center;">
+                <button class="btn btn-primary" onclick="showReadyScreen()">
+                    <i class="fas fa-qrcode"></i> ESCANEAR NUEVO CÓDIGO
+                </button>
+            </div>
+        </div>
+    `;
+    
+    statusDiv.className = 'processed';
+    statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA COMPLETADA';
+}
+
 
 function displayFullResult(item, qrParts) {
   const totalRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
