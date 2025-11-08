@@ -58,7 +58,7 @@
     </footer>
   </div>
 
-  <!-- Modal de cámara -->
+  <!-- Modal de cámara para fotos -->
   <div id="cameraModal" class="camera-modal">
     <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
     <canvas id="photoCanvas" style="display: none;"></canvas>
@@ -77,9 +77,28 @@
     <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
   </div>
 
-  <!-- Botón flotante único para cámara -->
-  <button id="cameraToggleBtn" class="floating-btn" title="Activar/Desactivar Cámara">
-    <i class="fas fa-camera"></i>
+  <!-- Modal de escáner QR/Barcode -->
+  <div id="scannerModal" class="camera-modal">
+    <div id="scannerContainer" class="camera-view">
+      <div id="interactive" style="width: 100%; height: 100%;"></div>
+    </div>
+    <div class="scanner-overlay">
+      <div class="scanner-frame"></div>
+      <div class="scanner-line"></div>
+    </div>
+    <div class="camera-actions">
+      <button id="toggleScannerCameraBtn" class="btn btn-warning">
+        <i class="fas fa-sync-alt"></i> Cambiar Cámara
+      </button>
+      <button id="closeScannerBtn" class="btn btn-danger">
+        <i class="fas fa-times"></i> Cerrar Escáner
+      </button>
+    </div>
+  </div>
+
+  <!-- Botón flotante único para activar modal de escáner -->
+  <button id="scannerToggleBtn" class="floating-btn" title="Escanear con Cámara">
+    <i class="fas fa-qrcode"></i>
   </button>
 
   <!-- Contador de cola y panel de detalles -->
@@ -92,9 +111,11 @@
   </div>
 
   <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/upload-queue.js"></script>
   <script src="js/camera.js"></script>
+  <script src="js/scanner.js"></script>
   <script src="js/asentar-factura.js"></script>
   <script src="js/main.js"></script>
 </body>
