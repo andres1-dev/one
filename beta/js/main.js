@@ -4,6 +4,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Inicializar managers
   setupConfigPanel();
+  initializeConfigManager();
 
   initializeKeyboardManager();
   initializeQRScanner();
