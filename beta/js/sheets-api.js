@@ -2,12 +2,10 @@
 const SHEETS_API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
 const API_BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
 
-// IDs de las hojas de cálculo
+// IDs de las hojas de cálculo (solo las necesarias para facturas)
 const SPREADSHEET_IDS = {
     DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
-    DATA: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE",
     SIESA: "1FcQhVIKtWy4O-aGTNfA6l4C5Q4_u1LZErpj3CMglfQM",
-    REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
     SOPORTES: "1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw"
 };
 
@@ -15,13 +13,9 @@ class SheetsAPI {
     constructor() {
         this.cache = new Map();
         this.cacheTimeout = 0; // CACHE 0 - siempre datos frescos
-        this.datosRec = []; // Para almacenar datos de REC cargados en segundo plano
-        this.datosGlobales = []; // Para almacenar datos globales cargados en segundo plano
-        this.cargaCompletaLista = false; // Flag para saber si ya se cargó todo
     }
 
     async fetchSheetData(spreadsheetId, range) {
-        // Con cache 0, siempre hacemos petición fresca
         try {
             const url = `${API_BASE_URL}/${spreadsheetId}/values/${range}?key=${SHEETS_API_KEY}`;
             const response = await fetch(url);
@@ -38,45 +32,39 @@ class SheetsAPI {
         }
     }
 
-    // Obtener datos combinados - FASE 1: Solo datos esenciales para facturas
+    // Obtener SOLO datos con facturas
     async obtenerDatosCombinados() {
         try {
-            console.time('FASE1_CargaRapida_Facturas');
-            console.log('🚀 INICIANDO FASE 1 - Carga rápida para facturas...');
+            console.time('Carga_Facturas');
+            console.log('🚀 Cargando SOLO datos con facturas...');
             
-            // FASE 1: Solo lo esencial para mostrar facturas al escanear QR
+            // SOLO lo esencial para facturas
             const [
                 datosData2,
                 datosSiesa,
-                datosData,
                 datosSoportes
             ] = await Promise.all([
                 this.obtenerDatosDeData2(),
                 this.obtenerDatosSiesa(),
-                this.obtenerDatosDeDataConSumas(),
                 this.obtenerDatosSoportes()
             ]);
 
-            console.timeEnd('FASE1_CargaRapida_Facturas');
-            console.log('✅ FASE 1 COMPLETADA - Página lista para usar');
+            console.timeEnd('Carga_Facturas');
             
-            // Combinar datos mínimos para facturas (sin REC ni Globales)
-            const datosCombinados = await this.combinarDatosMinimos(
-                datosData2, datosSiesa, datosData, datosSoportes
-            );
+            // Combinar SOLO datos con facturas
+            const datosCombinados = this.combinarDatosFacturas(datosData2, datosSiesa, datosSoportes);
 
-            // FASE 2: Iniciar carga en segundo plano para entregas sin factura
-            this.iniciarCargaSegundoPlano();
+            console.log(`✅ Carga completada: ${datosCombinados.length} registros con facturas`);
 
             return {
                 success: true,
                 data: datosCombinados,
                 timestamp: new Date().toISOString(),
                 count: datosCombinados.length,
-                source: 'fase1-carga-rapida-facturas'
+                source: 'solo-facturas'
             };
         } catch (error) {
-            console.error('Error en FASE 1:', error);
+            console.error('Error cargando facturas:', error);
             return {
                 success: false,
                 error: error.message,
@@ -85,57 +73,27 @@ class SheetsAPI {
         }
     }
 
-    // FASE 2: Carga en segundo plano para entregas sin factura
-    async iniciarCargaSegundoPlano() {
-        console.log('🔄 INICIANDO FASE 2 - Carga en segundo plano para entregas sin factura...');
-        
-        // Usar setTimeout para no bloquear la interfaz
-        setTimeout(async () => {
-            try {
-                console.time('FASE2_CargaCompleta_Entregas');
-                
-                const [datosRec, datosGlobales] = await Promise.all([
-                    this.obtenerDatosRec(),
-                    this.obtenerDatosGlobales()
-                ]);
-
-                // Guardar datos para uso posterior
-                this.datosRec = datosRec;
-                this.datosGlobales = datosGlobales;
-                this.cargaCompletaLista = true;
-
-                console.timeEnd('FASE2_CargaCompleta_Entregas');
-                console.log('✅ FASE 2 COMPLETADA - Datos para entregas sin factura listos');
-                console.log(`📊 Datos REC cargados: ${datosRec.length} registros`);
-                console.log(`📊 Datos Globales cargados: ${datosGlobales.length} registros`);
-                
-            } catch (error) {
-                console.error('❌ Error en FASE 2:', error);
-            }
-        }, 1000); // Esperar 1 segundo después de que la página esté lista
-    }
-
-    // Combinación mínima para facturas (sin REC ni Globales)
-    async combinarDatosMinimos(datosData2, datosSiesa, datosData, datosSoportes) {
+    // Combinar SOLO datos que tienen facturas
+    combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
         const datosCombinados = [];
         
-        console.log('🔄 Combinando datos mínimos para facturas...');
+        console.log('🔄 Combinando datos con facturas...');
         
-        // Procesar solo datosData2 para facturas
+        // Procesar solo datosData2 que tienen coincidencias en SIESA (facturas)
         datosData2.forEach(itemData2 => {
             const documento = "REC" + itemData2.documento;
             const referencia = itemData2.referencia;
             const lote = itemData2.lote;
             
+            // Buscar coincidencias en SIESA (facturas)
             const coincidenciasSiesa = datosSiesa.filter(filaSiesa => {
                 const codigoSiesa = filaSiesa[3];
                 return String(codigoSiesa).trim() === String(lote).trim();
             });
             
-            let datosRelacionados = null;
-            
+            // SOLO incluir si tiene facturas en SIESA
             if (coincidenciasSiesa.length > 0) {
-                datosRelacionados = coincidenciasSiesa.map(fila => {
+                const datosRelacionados = coincidenciasSiesa.map(fila => {
                     const codProveedor = Number(fila[4]);
                     let nombreProveedor = fila[4];
                     
@@ -164,89 +122,20 @@ class SheetsAPI {
                         confirmacion: confirmacion
                     };
                 });
-            } else {
-                // Para facturas sin SIESA, usar datos básicos de DATA
-                datosRelacionados = this.procesarDatosBasicosParaFacturas(documento, itemData2, datosData, datosSoportes);
+                
+                datosCombinados.push({
+                    documento: documento,
+                    referencia: referencia,
+                    lote: lote,
+                    datosSiesa: datosRelacionados
+                });
             }
-            
-            datosCombinados.push({
-                documento: documento,
-                referencia: referencia,
-                lote: lote,
-                datosSiesa: datosRelacionados || null
-            });
         });
 
-        console.log(`✅ Datos combinados: ${datosCombinados.length} registros`);
+        console.log(`📊 Registros con facturas: ${datosCombinados.length}`);
         return datosCombinados;
     }
 
-    // Procesar datos básicos para facturas (sin anexos PROMO)
-    procesarDatosBasicosParaFacturas(documento, itemData2, datosData, datosSoportes) {
-        const datosRelacionados = [];
-        
-        // Solo procesar distribución principal para facturas
-        if (datosData[itemData2.documento]) {
-            const distribucion = datosData[itemData2.documento];
-            const clientesRequeridos = ['Templo', 'Shopping', 'Esteban', 'Ruben', 'Jesus', 'Alex', 'Yamilet'];
-            
-            clientesRequeridos.forEach(clienteKey => {
-                if (distribucion[clienteKey]) {
-                    const clienteData = distribucion[clienteKey];
-                    const nombreCliente = this.getNombreCliente(clienteKey);
-                    const nitCliente = clienteData.id;
-                    const cantidadTotal = clienteData.cantidadTotal || 0;
-                    
-                    if (cantidadTotal > 0) {
-                        const confirmacion = this.obtenerConfirmacion(
-                            datosSoportes, 
-                            documento,
-                            itemData2.lote, 
-                            itemData2.referencia, 
-                            String(cantidadTotal), 
-                            nitCliente
-                        );
-                        
-                        datosRelacionados.push({
-                            estado: this.getEstadoCliente(clienteKey),
-                            factura: "",
-                            fecha: "",
-                            lote: itemData2.lote,
-                            proovedor: itemData2.proveedor,
-                            cliente: nombreCliente,
-                            valorBruto: "",
-                            referencia: itemData2.referencia,
-                            cantidad: cantidadTotal,
-                            nit: nitCliente,
-                            confirmacion: confirmacion
-                        });
-                    }
-                }
-            });
-        }
-        
-        return datosRelacionados.length > 0 ? datosRelacionados : null;
-    }
-
-    // Método para obtener datos completos cuando se necesiten (entregas sin factura)
-    async obtenerDatosCompletosSiDisponibles() {
-        if (this.cargaCompletaLista) {
-            return {
-                datosRec: this.datosRec,
-                datosGlobales: this.datosGlobales,
-                disponible: true
-            };
-        } else {
-            console.log('⚠️ Datos completos aún no disponibles, cargando en segundo plano...');
-            return {
-                datosRec: [],
-                datosGlobales: [],
-                disponible: false
-            };
-        }
-    }
-
-    // Los demás métodos se mantienen igual (sin cambios en nombres)
     async obtenerDatosDeData2() {
         const values = await this.fetchSheetData(SPREADSHEET_IDS.DATA2, 'DATA2!S:S');
         const datosFiltrados = [];
@@ -276,58 +165,6 @@ class SheetsAPI {
         return datosFiltrados;
     }
 
-    async obtenerDatosDeDataConSumas() {
-        const values = await this.fetchSheetData(SPREADSHEET_IDS.DATA, 'DATA!C:C');
-        const datosPorDocumento = {};
-
-        for (let i = 0; i < values.length; i++) {
-            const cellValue = values[i][0];
-            try {
-                const data = JSON.parse(cellValue);
-                const documento = data.Documento;
-                datosPorDocumento[documento] = {};
-
-                for (const [clienteKey, clienteData] of Object.entries(data.Clientes)) {
-                    let cantidadTotal = 0;
-                    
-                    if (clienteData.distribucion && Array.isArray(clienteData.distribucion)) {
-                        cantidadTotal = clienteData.distribucion.reduce((sum, item) => {
-                            return sum + (parseInt(item.cantidad) || 0);
-                        }, 0);
-                    }
-                    
-                    datosPorDocumento[documento][clienteKey] = {
-                        id: clienteData.id,
-                        cantidadTotal: cantidadTotal,
-                        porcentaje: clienteData.porcentaje || ''
-                    };
-                }
-            } catch (e) {
-                // Ignorar celdas que no son JSON válido
-            }
-        }
-
-        return datosPorDocumento;
-    }
-
-    async obtenerDatosRec() {
-        const values = await this.fetchSheetData(SPREADSHEET_IDS.REC, 'DataBase!A2:AB');
-        
-        return values
-            .filter(row => {
-                const columnaG = row[6] ? row[6].trim() : '';
-                const columnaAB = row[27] ? row[27].trim().toUpperCase() : '';
-                return columnaG !== '' && columnaAB === 'FULL';
-            })
-            .map(row => {
-                return [
-                    row[0] || '',
-                    row[6] || '',
-                    row[8] || ''
-                ];
-            });
-    }
-
     async obtenerDatosSoportes() {
         const values = await this.fetchSheetData(SPREADSHEET_IDS.SOPORTES, 'SOPORTES!A:G');
         const soportesMap = {};
@@ -354,72 +191,6 @@ class SheetsAPI {
         return soportesMap;
     }
 
-    async obtenerDatosGlobales() {
-        const values = await this.fetchSheetData(SPREADSHEET_IDS.REC, 'DataBase!A:HR');
-        if (!values) return [];
-
-        const resultado = [];
-        const clienteTipoMap = {
-            "ESTEBAN": { nombre: "ZULUAGA GOMEZ RUBEN ESTEBAN", nit: "1007348825" },
-            "JESUS": { nombre: "ARISTIZABAL LOPEZ JESUS MARIA", nit: "70825517" },
-            "ALEX": { nombre: "QUINTERO ORTIZ JOSE ALEXANDER", nit: "14838951" },
-            "YAMILET": { nombre: "QUINTERO ORTIZ PATRICIA YAMILET", nit: "67006141" },
-            "RUBEN": { nombre: "ZULUAGA GOMEZ RUBEN ESTEBAN", nit: "1007348825" },
-            "PROMO": { nombre: "EL TEMPLO DE LA MODA SAS", nit: "805027653" },
-            "MUESTRA": { nombre: "EL TEMPLO DE LA MODA SAS", nit: "805027653" },
-            "PENDIENTE": { nombre: "EL TEMPLO DE LA MODA SAS", nit: "805027653" }
-        };
-
-        for (let i = 0; i < values.length; i++) {
-            const fila = values[i];
-            const documento = fila[0];
-            const tipo = fila[27];
-            const lote = fila[8] || "";
-            const referencia = fila[6] || "";
-            const proveedor = (fila[3] === "LINEA ANGELES") ? "TEXTILES Y CREACIONES LOS ANGELES S.A.S." : "TEXTILES Y CREACIONES EL UNIVERSO S.A.S.";
-
-            if (documento && tipo === "FULL") {
-                const grupo = {
-                    documento,
-                    referencia,
-                    lote,
-                    datosGlobal: []
-                };
-
-                for (let j = 0; j < values.length; j++) {
-                    const filaRel = values[j];
-                    const tipoRel = filaRel[27];
-                    if (filaRel[8] === lote && tipoRel !== "FULL") {
-                        let tipoCliente = tipoRel;
-                        if (tipoCliente === "PENDIENTE") tipoCliente = "PENDIENTES";
-
-                        const clienteInfo = clienteTipoMap[tipoRel];
-                        if (!clienteInfo) continue;
-
-                        const estado = tipoCliente.charAt(0).toUpperCase() + tipoCliente.slice(1).toLowerCase();
-
-                        grupo.datosGlobal.push({
-                            estado,
-                            factura: "",
-                            fecha: "",
-                            lote,
-                            proovedor: proveedor,
-                            cliente: clienteInfo.nombre,
-                            valorBruto: "",
-                            referencia: filaRel[6] || "",
-                            cantidad: filaRel[18] || "",
-                            nit: clienteInfo.nit
-                        });
-                    }
-                }
-
-                resultado.push(grupo);
-            }
-        }
-
-        return resultado;
-    }
-
     async obtenerDatosSiesa() {
         const [siesaValues, siesaV2Values] = await Promise.all([
             this.fetchSheetData(SPREADSHEET_IDS.SIESA, 'SIESA!A:G'),
@@ -439,8 +210,145 @@ class SheetsAPI {
         const estadosExcluir = ["Anuladas", "En elaboración"];
         const prefijosValidos = ["017", "FEV", "029", "FVE"];
         
-        // ... (el resto del método igual que antes)
-        // [Mantengo todo el código de SIESA igual]
+        const normalizarCliente = (nombreCliente) => {
+            if (!nombreCliente) return nombreCliente;
+            return nombreCliente
+                .replace(/S\.A\.S\.?/g, 'SAS')
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+        
+        const formatearFecha = (fechaStr) => {
+            if (!fechaStr || typeof fechaStr !== 'string') return fechaStr;
+            const partes = fechaStr.split('/');
+            return partes.length === 3 ? `${partes[1]}/${partes[0]}/${partes[2]}` : fechaStr;
+        };
+        
+        const tienePrefijoValido = (valor) => {
+            if (!valor || typeof valor !== 'string') return false;
+            return prefijosValidos.some(prefijo => valor.startsWith(prefijo));
+        };
+        
+        const obtenerNitDeCliente = (nombreNormalizado) => {
+            const clienteEncontrado = clientesEspecificos.find(
+                cliente => normalizarCliente(cliente.nombre) === nombreNormalizado
+            );
+            return clienteEncontrado ? clienteEncontrado.nit : '';
+        };
+        
+        const processedSiesaV2 = {};
+        
+        siesaV2Values.forEach(row => {
+            if (row.length >= 3) {
+                const key = row[0];
+                const value1 = parseFloat(row[1]) || 0;
+                const value2 = row[2] || '';
+                const value3 = parseFloat(row[3]) || 0;
+                
+                if (!processedSiesaV2[key]) {
+                    processedSiesaV2[key] = {
+                        sumValue1: value1,
+                        value2Items: [value2],
+                        sumValue3: value3,
+                        count: 1
+                    };
+                } else {
+                    processedSiesaV2[key].sumValue1 += value1;
+                    processedSiesaV2[key].value2Items.push(value2);
+                    processedSiesaV2[key].sumValue3 += value3;
+                    processedSiesaV2[key].count += 1;
+                }
+            }
+        });
+        
+        return siesaValues
+            .filter(row => {
+                const estado = row[0] || '';
+                return !estadosExcluir.includes(estado);
+            })
+            .filter(row => {
+                const codigo = row[1] || '';
+                return tienePrefijoValido(codigo);
+            })
+            .map(row => {
+                if (row.length >= 7) {
+                    const col6Value = row[6];
+                    let selectedValue;
+                    
+                    if (col6Value == "5") {
+                        selectedValue = row[4] || '';
+                    } else if (col6Value == "3") {
+                        selectedValue = row[5] || '';
+                    } else {
+                        selectedValue = '';
+                    }
+                    
+                    const clienteNormalizado = row[3] ? normalizarCliente(row[3]) : '';
+                    const fechaFormateada = formatearFecha(row[2] || '');
+                    const complementData = processedSiesaV2[row[1]] || { 
+                        sumValue1: 0, 
+                        value2Items: [], 
+                        sumValue3: 0,
+                        count: 0
+                    };
+                    
+                    let value2Result;
+                    if (complementData.count === 0) {
+                        value2Result = '';
+                    } else if (complementData.count === 1) {
+                        value2Result = complementData.value2Items[0];
+                    } else {
+                        value2Result = "RefVar";
+                    }
+                    
+                    const nitCliente = obtenerNitDeCliente(clienteNormalizado);
+                    
+                    return [
+                        row[0],
+                        row[1],
+                        fechaFormateada,
+                        selectedValue,
+                        row[6],
+                        clienteNormalizado,
+                        complementData.sumValue1,
+                        value2Result,
+                        complementData.sumValue3,
+                        nitCliente
+                    ];
+                } else {
+                    const clienteNormalizado = row[3] ? normalizarCliente(row[3]) : '';
+                    const complementData = processedSiesaV2[row[1]] || { 
+                        sumValue1: 0, 
+                        value2Items: [], 
+                        sumValue3: 0,
+                        count: 0
+                    };
+                    
+                    let value2Result = complementData.count === 0 ? '' : 
+                                    (complementData.count === 1 ? complementData.value2Items[0] : "RefVar");
+                    
+                    const nitCliente = obtenerNitDeCliente(clienteNormalizado);
+                    
+                    return [
+                        row[0] || '',
+                        row[1] || '',
+                        formatearFecha(row[2] || ''),
+                        '',
+                        row[6] || '', 
+                        clienteNormalizado,
+                        complementData.sumValue1,
+                        value2Result,
+                        complementData.sumValue3,
+                        nitCliente
+                    ];
+                }
+            })
+            .filter(row => {
+                const clienteNormalizado = row[5];
+                return clientesEspecificos.some(cliente => 
+                    normalizarCliente(cliente.nombre) === clienteNormalizado
+                );
+            });
     }
 
     obtenerConfirmacion(soportesMap, documento, lote, referencia, cantidad, nit) {
@@ -462,48 +370,6 @@ class SheetsAPI {
         }
         
         return "";
-    }
-
-    getNombreCliente(clienteKey) {
-        const nombres = {
-            'Templo': 'EL TEMPLO DE LA MODA SAS',
-            'Shopping': 'EL TEMPLO DE LA MODA FRESCA SAS',
-            'Esteban': 'ZULUAGA GOMEZ RUBEN ESTEBAN',
-            'Ruben': 'INVERSIONES URBANA SAS',
-            'Jesus': 'ARISTIZABAL LOPEZ JESUS MARIA',
-            'Alex': 'QUINTERO ORTIZ JOSE ALEXANDER',
-            'PROMO': 'EL TEMPLO DE LA MODA SAS',
-            'MUESTRA': 'EL TEMPLO DE LA MODA SAS'
-        };
-        return nombres[clienteKey] || clienteKey;
-    }
-
-    getNitCliente(clienteKey) {
-        const nits = {
-            'Templo': '805027653',
-            'Shopping': '900047252',
-            'Esteban': '1007348825',
-            'Ruben': '901920844',
-            'Jesus': '70825517',
-            'Alex': '14838951',
-            'PROMO': '805027653',
-            'MUESTRA': '805027653'
-        };
-        return nits[clienteKey] || '';
-    }
-
-    getEstadoCliente(clienteKey) {
-        const estados = {
-            'Templo': 'Templo',
-            'Shopping': 'Shopping',
-            'Esteban': 'Esteban',
-            'Ruben': 'Ruben',
-            'Jesus': 'Jesus',
-            'Alex': 'Alex',
-            'PROMO': 'PROMO',
-            'MUESTRA': 'MUESTRA'
-        };
-        return estados[clienteKey] || clienteKey;
     }
 
     // Método para verificar confirmación en tiempo real
