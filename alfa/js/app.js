@@ -2,7 +2,7 @@
 let database = [];
 let currentQRParts = null;
 let dataLoaded = false;
-let currentDocumentData = null;
+//let currentDocumentData = null;
 let photoBlob = null;
 
 // Variables de configuración global
