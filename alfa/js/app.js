@@ -1231,21 +1231,46 @@ function processQRCodeParts(parts) {
   }
 }
 
+// ✅ MODIFICAR en app.js - Verificar estado al mostrar resultados
 function displayFullResult(item, qrParts) {
-  const totalRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
-  const filtradosRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
-  
-  resultsDiv.innerHTML = `
-    <div class="result-item">
-      ${filtradosRegistros < totalRegistros ? `
-        <div class="filter-info">
-          <i class="fas fa-info-circle"></i> Mostrando ${filtradosRegistros} de ${totalRegistros} registros (filtrado por NIT ${qrParts.nit})
+    const totalRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
+    const filtradosRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
+    
+    // ✅ VERIFICAR ESTADO EN TIEMPO REAL DE CADA FACTURA
+    if (item.datosSiesa && item.datosSiesa.length > 0) {
+        item.datosSiesa.forEach(async (siesa, index) => {
+            if (siesa.factura && siesa.factura.trim() !== '') {
+                setTimeout(async () => {
+                    try {
+                        const estadoActual = await verificarEstadoFacturaEnTiempoReal(siesa.factura);
+                        if (estadoActual.confirmado) {
+                            // Actualizar UI si está confirmado
+                            const facturaBtn = document.querySelector(`button[data-factura="${siesa.factura}"]`);
+                            if (facturaBtn) {
+                                facturaBtn.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+                                facturaBtn.style.backgroundColor = '#28a745';
+                                facturaBtn.disabled = true;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error actualizando estado en UI:', error);
+                    }
+                }, 1000 * (index + 1)); // Escalonar las verificaciones
+            }
+        });
+    }
+    
+    resultsDiv.innerHTML = `
+        <div class="result-item">
+            ${filtradosRegistros < totalRegistros ? `
+                <div class="filter-info">
+                    <i class="fas fa-info-circle"></i> Mostrando ${filtradosRegistros} de ${totalRegistros} registros (filtrado por NIT ${qrParts.nit})
+                </div>
+            ` : ''}
+            
+            ${displayItemData(item, 'Datos del Documento', qrParts)}
         </div>
-      ` : ''}
-      
-      ${displayItemData(item, 'Datos del Documento', qrParts)}
-    </div>
-  `;
+    `;
 }
 
 function displayItemData(data, title = 'Datos', qrParts) {
