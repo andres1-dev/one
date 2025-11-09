@@ -221,84 +221,89 @@ class UploadQueue {
   }
 
   // ✅ CORRECCIÓN: ProcessQueue mejorado
-  async processQueue() {
-    if (this.isProcessing || this.queue.length === 0) {
-      this.updateQueueCounter();
-      return;
-    }
-    
-    // ✅ CORRECCIÓN: Verificar conexión
-    if (!navigator.onLine) {
-      console.log('🌐 Sin conexión - Esperando...');
-      this.updateQueueCounter();
-      return;
-    }
-    
-    this.isProcessing = true;
-    this.updateQueueCounter();
-    
-    console.log(`🔄 Procesando cola con ${this.queue.length} elementos...`);
-    
-    try {
-      while (this.queue.length > 0 && navigator.onLine) {
-        const job = this.queue[0];
+  // ✅ MEJORAR processQueue para mayor confiabilidad
+async processQueue() {
+  if (this.isProcessing) {
+    return;
+  }
+  
+  this.isProcessing = true;
+  this.updateQueueCounter();
+  
+  console.log(`🔄 Procesando cola con ${this.queue.length} elementos...`);
+  
+  try {
+    // Procesar trabajos mientras haya elementos y estemos online
+    while (this.queue.length > 0) {
+      const job = this.queue[0];
+      
+      try {
+        console.log(`🎯 Procesando trabajo ${job.id} (reintento ${job.retries})...`);
         
-        try {
-          console.log(`🎯 Procesando trabajo ${job.id} (reintento ${job.retries})...`);
-          
-          // Verificar si ya está confirmado antes de procesar
-          const estaConfirmado = await this.verificarYDetenerSiConfirmado(job);
-          if (estaConfirmado) {
-            this.queue.shift();
-            this.saveQueue();
-            this.updateQueueCounter();
-            continue;
-          }
-          
-          if (job.type === 'photo') {
-            await this.processPhotoJob(job);
-          } else if (job.type === 'data') {
-            await this.processDataJob(job);
-          }
-          
-          // ✅ ÉXITO: Eliminar trabajo completado
-          console.log(`✅ Trabajo ${job.id} completado exitosamente`);
+        // ✅ VERIFICAR SI YA ESTÁ CONFIRMADO ANTES DE PROCESAR
+        const estaConfirmado = await this.verificarYDetenerSiConfirmado(job);
+        if (estaConfirmado) {
+          console.log(`✅ Trabajo ${job.id} ya confirmado, eliminando de cola`);
           this.queue.shift();
           this.saveQueue();
           this.updateQueueCounter();
-          
-        } catch (error) {
-          await this.handleJobError(job, error);
-          break; // Salir del bucle para reintentar después
+          continue;
+        }
+        
+        // ✅ PROCESAR SEGÚN EL TIPO
+        if (job.type === 'photo') {
+          await this.processPhotoJob(job);
+        } else if (job.type === 'data') {
+          await this.processDataJob(job);
+        }
+        
+        // ✅ ÉXITO: Eliminar trabajo completado
+        console.log(`✅ Trabajo ${job.id} completado exitosamente`);
+        this.queue.shift();
+        this.saveQueue();
+        this.updateQueueCounter();
+        
+      } catch (error) {
+        await this.handleJobError(job, error);
+        
+        // Si no hay conexión, salir del bucle
+        if (!navigator.onLine) {
+          console.log('🌐 Sin conexión - Pausando procesamiento...');
+          break;
         }
       }
-    } catch (error) {
-      console.error('❌ Error crítico en processQueue:', error);
-    } finally {
-      this.isProcessing = false;
-      this.updateQueueCounter();
     }
-  }
-
-  // ✅ NUEVO: Manejo de errores por trabajo
-  async handleJobError(job, error) {
-    console.error(`❌ Error en trabajo ${job.id}:`, error);
-    
-    job.retries++;
-    job.lastError = error.message || 'Error desconocido';
-    job.lastAttempt = new Date().toISOString();
-    job.status = 'retrying';
-    
-    console.log(`🔄 Reintentando trabajo ${job.id} en ${CONFIG.RETRY_DELAY}ms (reintento ${job.retries})`);
-    
-    // Mover al final de la cola
-    this.queue.push(this.queue.shift());
-    this.saveQueue();
+  } catch (error) {
+    console.error('❌ Error crítico en processQueue:', error);
+  } finally {
+    this.isProcessing = false;
     this.updateQueueCounter();
-    
-    // Esperar antes del próximo intento
-    await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY));
   }
+}
+
+// ✅ MEJORAR manejo de errores
+async handleJobError(job, error) {
+  console.error(`❌ Error en trabajo ${job.id}:`, error);
+  
+  job.retries++;
+  job.lastError = error.message || 'Error desconocido';
+  job.lastAttempt = new Date().toISOString();
+  job.status = 'retrying';
+  
+  console.log(`🔄 Reintentando trabajo ${job.id} en ${CONFIG.RETRY_DELAY}ms (reintento ${job.retries})`);
+  
+  // ✅ MOVER AL FINAL DE LA COLA (no eliminar)
+  this.queue.push(this.queue.shift());
+  this.saveQueue();
+  this.updateQueueCounter();
+  
+  // ✅ ESPERAR antes del próximo intento (solo si hay conexión)
+  if (navigator.onLine) {
+    await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY));
+  } else {
+    console.log('🌐 Sin conexión - Esperando para reintentar...');
+  }
+}
   
   // ✅ CORRECCIÓN: ProcessPhotoJob mejorado
   async processPhotoJob(job) {
