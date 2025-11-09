@@ -1584,6 +1584,25 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+// Inicializar procesamiento automático de cola
+  setInterval(() => {
+    if (window.uploadQueue && navigator.onLine && window.uploadQueue.queue.length > 0) {
+      console.log('🔄 Verificando cola automáticamente...');
+      window.uploadQueue.processQueue();
+    }
+  }, 30000); // Verificar cada 30 segundos
+  
+  // Procesar cola inmediatamente cuando se recupera conexión
+  window.addEventListener('online', () => {
+    console.log('🌐 Conexión recuperada - Procesando cola pendiente...');
+    setTimeout(() => {
+      if (window.uploadQueue && window.uploadQueue.queue.length > 0) {
+        window.uploadQueue.processQueue();
+      }
+    }, 2000);
+  });
+});
+
 // Detectar si es móvil para ajustes específicos
 function esMovil() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
