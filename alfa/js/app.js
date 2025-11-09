@@ -70,8 +70,6 @@ function guardarConfiguracion() {
     localStorage.setItem('pandaDashConfig', JSON.stringify(config));
 }
 
-// ✅ NUEVO: Subida directa como respaldo (evita la cola si hay problemas)
-
 // Función de vibración mejorada
 function vibrar(duracion = 100) {
     if (!config.vibracionHabilitada) return;
@@ -82,60 +80,6 @@ function vibrar(duracion = 100) {
         } catch (e) {
             console.log("Vibración no soportada:", e);
         }
-    }
-}
-
-// ✅ AGREGAR en app.js - Función de verificación en tiempo real
-async function verificarEstadoFacturaEnTiempoReal(factura) {
-    if (!factura || factura.trim() === '') {
-        console.log('⚠️ Factura vacía - Considerando como pendiente');
-        return { 
-            confirmado: false, 
-            existe: false,
-            motivo: 'factura_vacia'
-        };
-    }
-    
-    try {
-        console.log(`🔍 Consultando estado en tiempo real de: ${factura}`);
-        
-        // ✅ TIMEOUT para evitar bloqueos largos
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Timeout en consulta')), 10000);
-        });
-        
-        const consultaPromise = sheetsAPI.consultarFacturaEnTiempoReal(factura);
-        
-        const resultado = await Promise.race([consultaPromise, timeoutPromise]);
-        
-        if (resultado.existe) {
-            console.log(`✅ FACTURA CONFIRMADA: ${factura} encontrada en SOPORTES`);
-            return {
-                confirmado: true,
-                existe: true,
-                timestamp: new Date().toISOString()
-            };
-        } else {
-            console.log(`📝 Factura PENDIENTE: ${factura} no encontrada en SOPORTES`);
-            return {
-                confirmado: false,
-                existe: false,
-                timestamp: new Date().toISOString()
-            };
-        }
-        
-    } catch (error) {
-        console.error('❌ Error en verificación en tiempo real:', error);
-        
-        // ✅ EN CASO DE ERROR, NO BLOQUEAR - CONSIDERAR COMO PENDIENTE
-        console.log('⚠️ Considerando factura como PENDIENTE debido a error');
-        return {
-            confirmado: false,
-            existe: false,
-            error: error.message,
-            motivo: 'error_consulta',
-            timestamp: new Date().toISOString()
-        };
     }
 }
 
@@ -188,165 +132,50 @@ function detenerColaParaElemento(documento, lote, referencia, cantidad, nit) {
     }
 }
 
-
-// ✅ CORREGIR la función procesarEntrega - Solo bloquear si YA está confirmada
+// Función para procesar entregas
+// Función para procesar entregas - CORREGIDA
 function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
-    // Verificar si la entrega no tiene factura y manejarlo apropiadamente
-    const esSinFactura = !factura || factura.trim() === "";
-    
-    // ✅ MOSTRAR ESTADO DE VERIFICACIÓN INMEDIATO
-    if (btnElement) {
-        btnElement.innerHTML = '<i class="fas fa-sync fa-spin"></i> VERIFICANDO...';
-        btnElement.disabled = true;
+  // Verificar si la entrega no tiene factura y manejarlo apropiadamente
+  const esSinFactura = !factura || factura.trim() === "";
+  
+  // ✅ CORRECCIÓN: Guardar datos incluyendo referencia al botón
+  currentDocumentData = {
+    documento: documento,
+    lote: lote || '',
+    referencia: referencia || '',
+    cantidad: parseFloat(cantidad) || 0,
+    factura: factura || '',
+    nit: nit || '',
+    btnElement: btnElement,
+    esSinFactura: esSinFactura,
+    fotoBase64: null // Inicializar como null
+  };
+  
+  // Crear un input de tipo file temporal para capturar fotos
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/*';
+  fileInput.capture = 'environment'; // Usar cámara trasera por defecto
+  
+  // Agregar evento para procesar la imagen cuando se capture
+  fileInput.addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+      procesarImagenCapturada(e.target.files[0]);
+    } else {
+      // ✅ CORRECCIÓN: Limpiar estado si se cancela
+      limpiarEstadoProcesamiento();
     }
-    
-    actualizarEstado('loading', '<i class="fas fa-sync fa-spin"></i> Verificando estado...');
-    
-    // ✅ VERIFICACIÓN EN TIEMPO REAL
-    verificarEstadoFacturaEnTiempoReal(factura)
-        .then(resultado => {
-            if (resultado.confirmado) {
-                // ✅ CASO 1: YA ESTÁ CONFIRMADA - BLOQUEAR
-                console.log(`🚫 Factura ${factura} YA CONFIRMADA - Cancelando proceso`);
-                
-                if (btnElement) {
-                    btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-                    btnElement.style.backgroundColor = '#28a745';
-                    btnElement.disabled = true;
-                }
-                
-                actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA YA CONFIRMADA');
-                playSuccessSound();
-                
-            } else {
-                // ✅ CASO 2: ESTÁ PENDIENTE - PERMITIR CAPTURA
-                console.log(`📸 Factura ${factura} PENDIENTE - Procediendo con captura`);
-                
-                if (btnElement) {
-                    btnElement.innerHTML = '<i class="fas fa-camera"></i> CONFIRMAR ENTREGA';
-                    btnElement.disabled = false;
-                }
-                
-                actualizarEstado('ready', '<i class="fas fa-camera"></i> Listo para capturar foto');
-                
-                // Guardar datos para la captura
-                currentDocumentData = {
-                    documento: documento,
-                    lote: lote || '',
-                    referencia: referencia || '',
-                    cantidad: parseFloat(cantidad) || 0,
-                    factura: factura || '',
-                    nit: nit || '',
-                    btnElement: btnElement,
-                    esSinFactura: esSinFactura,
-                    fotoBase64: null
-                };
-                
-                // Crear input de archivo para capturar foto
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = 'image/*';
-                fileInput.capture = 'environment';
-                
-                fileInput.addEventListener('change', function(e) {
-                    if (e.target.files && e.target.files[0]) {
-                        // ✅ VERIFICACIÓN FINAL RÁPIDA ANTES DE PROCESAR
-                        verificarEstadoFacturaEnTiempoReal(factura)
-                            .then(verificacionFinal => {
-                                if (verificacionFinal.confirmado) {
-                                    // Si se confirmó mientras se seleccionaba la foto
-                                    console.log(`🚫 Factura confirmada durante selección - Cancelando`);
-                                    if (btnElement) {
-                                        btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-                                        btnElement.style.backgroundColor = '#28a745';
-                                        btnElement.disabled = true;
-                                    }
-                                    actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA');
-                                    playSuccessSound();
-                                    
-                                    // Limpiar datos temporales
-                                    currentDocumentData = null;
-                                } else {
-                                    // ✅ PROCESAR IMAGEN - ESTÁ PENDIENTE
-                                    console.log(`✅ Confirmado: factura ${factura} sigue pendiente - Procesando imagen`);
-                                    procesarImagenCapturada(e.target.files[0]);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error en verificación final:', error);
-                                // En caso de error, CONTINUAR con el procesamiento
-                                console.log(`⚠️ Continuando con procesamiento a pesar de error de verificación`);
-                                procesarImagenCapturada(e.target.files[0]);
-                            });
-                    } else {
-                        limpiarEstadoProcesamiento();
-                    }
-                });
-                
-                fileInput.addEventListener('cancel', function() {
-                    console.log("Captura de foto cancelada");
-                    limpiarEstadoProcesamiento();
-                    
-                    // Restaurar botón
-                    if (btnElement) {
-                        btnElement.innerHTML = '<i class="fas fa-truck"></i> CONFIRMAR ENTREGA';
-                        btnElement.disabled = false;
-                    }
-                });
-                
-                // ✅ ABRIR CÁMARA
-                console.log("📷 Abriendo cámara para captura...");
-                fileInput.click();
-            }
-        })
-        .catch(error => {
-            console.error('❌ Error en verificación inicial:', error);
-            
-            // ✅ EN CASO DE ERROR, PERMITIR CAPTURA (NO BLOQUEAR)
-            console.log("⚠️ Error en verificación - Permitiendo captura por seguridad");
-            
-            if (btnElement) {
-                btnElement.innerHTML = '<i class="fas fa-camera"></i> CONFIRMAR ENTREGA';
-                btnElement.disabled = false;
-            }
-            
-            actualizarEstado('ready', '<i class="fas fa-camera"></i> Listo para capturar foto');
-            
-            // Continuar con procesamiento normal a pesar del error
-            currentDocumentData = {
-                documento: documento,
-                lote: lote || '',
-                referencia: referencia || '',
-                cantidad: parseFloat(cantidad) || 0,
-                factura: factura || '',
-                nit: nit || '',
-                btnElement: btnElement,
-                esSinFactura: esSinFactura,
-                fotoBase64: null
-            };
-            
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = 'image/*';
-            fileInput.capture = 'environment';
-            
-            fileInput.addEventListener('change', function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    procesarImagenCapturada(e.target.files[0]);
-                } else {
-                    limpiarEstadoProcesamiento();
-                }
-            });
-            
-            fileInput.addEventListener('cancel', function() {
-                console.log("Captura de foto cancelada");
-                limpiarEstadoProcesamiento();
-            });
-            
-            fileInput.click();
-        });
+  });
+  
+  // Agregar evento para cuando se cancela (en móviles)
+  fileInput.addEventListener('cancel', function() {
+    console.log("Captura de foto cancelada");
+    limpiarEstadoProcesamiento();
+  });
+  
+  // Simular clic para abrir la cámara del dispositivo
+  fileInput.click();
 }
-
 // Función para procesar la imagen capturada
 function procesarImagenCapturada(archivo) {
   if (!archivo) {
@@ -477,7 +306,7 @@ function aplicarMarcaDeAgua(ctx, width, height) {
   ctx.fillText("Entregas", marginLeft, posY);
 }
 
-// Función para subir la foto capturada
+// ✅ REEMPLAZAR completamente la función subirFotoCapturada en app.js
 async function subirFotoCapturada(blob) {
   if (!currentDocumentData) {
     console.error("No hay datos disponibles para subir");
@@ -573,6 +402,8 @@ async function subirFotoCapturada(blob) {
     photoBlob = null;
   }
 }
+
+
 
 // Actualizar funciones de sonido para usar configuración
 function playSuccessSound() {
@@ -1283,46 +1114,21 @@ function processQRCodeParts(parts) {
   }
 }
 
-// ✅ MODIFICAR en app.js - Verificar estado al mostrar resultados
 function displayFullResult(item, qrParts) {
-    const totalRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
-    const filtradosRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
-    
-    // ✅ VERIFICAR ESTADO EN TIEMPO REAL DE CADA FACTURA
-    if (item.datosSiesa && item.datosSiesa.length > 0) {
-        item.datosSiesa.forEach(async (siesa, index) => {
-            if (siesa.factura && siesa.factura.trim() !== '') {
-                setTimeout(async () => {
-                    try {
-                        const estadoActual = await verificarEstadoFacturaEnTiempoReal(siesa.factura);
-                        if (estadoActual.confirmado) {
-                            // Actualizar UI si está confirmado
-                            const facturaBtn = document.querySelector(`button[data-factura="${siesa.factura}"]`);
-                            if (facturaBtn) {
-                                facturaBtn.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-                                facturaBtn.style.backgroundColor = '#28a745';
-                                facturaBtn.disabled = true;
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error actualizando estado en UI:', error);
-                    }
-                }, 1000 * (index + 1)); // Escalonar las verificaciones
-            }
-        });
-    }
-    
-    resultsDiv.innerHTML = `
-        <div class="result-item">
-            ${filtradosRegistros < totalRegistros ? `
-                <div class="filter-info">
-                    <i class="fas fa-info-circle"></i> Mostrando ${filtradosRegistros} de ${totalRegistros} registros (filtrado por NIT ${qrParts.nit})
-                </div>
-            ` : ''}
-            
-            ${displayItemData(item, 'Datos del Documento', qrParts)}
+  const totalRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
+  const filtradosRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
+  
+  resultsDiv.innerHTML = `
+    <div class="result-item">
+      ${filtradosRegistros < totalRegistros ? `
+        <div class="filter-info">
+          <i class="fas fa-info-circle"></i> Mostrando ${filtradosRegistros} de ${totalRegistros} registros (filtrado por NIT ${qrParts.nit})
         </div>
-    `;
+      ` : ''}
+      
+      ${displayItemData(item, 'Datos del Documento', qrParts)}
+    </div>
+  `;
 }
 
 function displayItemData(data, title = 'Datos', qrParts) {
