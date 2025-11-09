@@ -133,20 +133,22 @@ function detenerColaParaElemento(documento, lote, referencia, cantidad, nit) {
 }
 
 // Función para procesar entregas
+// Función para procesar entregas - CORREGIDA
 function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
   // Verificar si la entrega no tiene factura y manejarlo apropiadamente
   const esSinFactura = !factura || factura.trim() === "";
   
-  // Guardar todos los datos específicos de la factura
+  // ✅ CORRECCIÓN: Guardar datos incluyendo referencia al botón
   currentDocumentData = {
     documento: documento,
     lote: lote || '',
     referencia: referencia || '',
     cantidad: parseFloat(cantidad) || 0,
-    factura: factura || '', // Mantener factura como está, vacía si no hay factura
+    factura: factura || '',
     nit: nit || '',
     btnElement: btnElement,
-    esSinFactura: esSinFactura // Marcamos si es sin factura para tratamiento especial después
+    esSinFactura: esSinFactura,
+    fotoBase64: null // Inicializar como null
   };
   
   // Crear un input de tipo file temporal para capturar fotos
@@ -159,13 +161,21 @@ function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, bt
   fileInput.addEventListener('change', function(e) {
     if (e.target.files && e.target.files[0]) {
       procesarImagenCapturada(e.target.files[0]);
+    } else {
+      // ✅ CORRECCIÓN: Limpiar estado si se cancela
+      limpiarEstadoProcesamiento();
     }
+  });
+  
+  // Agregar evento para cuando se cancela (en móviles)
+  fileInput.addEventListener('cancel', function() {
+    console.log("Captura de foto cancelada");
+    limpiarEstadoProcesamiento();
   });
   
   // Simular clic para abrir la cámara del dispositivo
   fileInput.click();
 }
-
 // Función para procesar la imagen capturada
 function procesarImagenCapturada(archivo) {
   if (!archivo) {
