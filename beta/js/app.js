@@ -10,7 +10,8 @@ let config = {
     camaraAuto: true,
     marcaAgua: true,
     sonidoHabilitado: true,
-    vibracionHabilitada: false // OFF por defecto
+    vibracionHabilitada: false, // OFF por defecto
+    camaraScanner: false // NUEVO: Escáner de cámara deshabilitado por defecto
 };
 
 
@@ -591,6 +592,18 @@ function inicializarConfiguracion() {
         config.vibracionHabilitada = e.target.checked;
         guardarConfiguracion();
     });
+
+    // NUEVO: Event listener para el toggle del escáner de cámara
+    document.getElementById('toggleCamaraScanner').addEventListener('change', function(e) {
+        config.camaraScanner = e.target.checked;
+        guardarConfiguracion();
+        
+        // Activar/desactivar el escáner de cámara
+        if (typeof cameraScanner !== 'undefined') {
+            cameraScanner.setScannerActive(e.target.checked);
+        }
+    });
+}
     
     // Evento para cerrar panel
     document.getElementById('closeConfigPanel').addEventListener('click', toggleConfigPanel);
