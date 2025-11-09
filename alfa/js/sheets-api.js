@@ -32,50 +32,57 @@ class SheetsAPI {
         }
     }
 
-    async consultarFacturaEnTiempoReal(factura) {
-        return await consultarFacturaEnTiempoReal.call(this, factura);
-    }
-
-    // Obtener SOLO datos con facturas
-    async obtenerDatosCombinados() {
-        try {
-            console.time('Carga_Facturas');
-            console.log('🚀 Cargando SOLO datos con facturas...');
-            
-            // SOLO lo esencial para facturas
-            const [
-                datosData2,
-                datosSiesa,
-                datosSoportes
-            ] = await Promise.all([
-                this.obtenerDatosDeData2(),
-                this.obtenerDatosSiesa(),
-                this.obtenerDatosSoportes()
-            ]);
-
-            console.timeEnd('Carga_Facturas');
-            
-            // Combinar SOLO datos con facturas
-            const datosCombinados = this.combinarDatosFacturas(datosData2, datosSiesa, datosSoportes);
-
-            console.log(`✅ Carga completada: ${datosCombinados.length} registros con facturas`);
-
-            return {
-                success: true,
-                data: datosCombinados,
-                timestamp: new Date().toISOString(),
-                count: datosCombinados.length,
-                source: 'solo-facturas'
-            };
-        } catch (error) {
-            console.error('Error cargando facturas:', error);
-            return {
-                success: false,
-                error: error.message,
-                timestamp: new Date().toISOString()
-            };
+    // ✅ MEJORAR la consulta en tiempo real en sheets-api.js
+async function consultarFacturaEnTiempoReal(factura) {
+    try {
+        console.log(`🔍 Búsqueda rápida de factura: ${factura}`);
+        
+        if (!factura || factura.trim() === '') {
+            return { existe: false, confirmado: false };
         }
+        
+        const facturaBuscada = String(factura).trim();
+        
+        // ✅ CONSULTA MÁS RÁPIDA - Solo traer columnas necesarias
+        const values = await this.fetchSheetData(SPREADSHEET_IDS.SOPORTES, 'SOPORTES!F:F');
+        
+        if (!values || values.length === 0) {
+            console.log('📋 Hoja SOPORTES vacía o no accesible');
+            return { existe: false, confirmado: false };
+        }
+        
+        // ✅ BÚSQUEDA RÁPIDA - Solo en columna F (facturas)
+        let encontrada = false;
+        
+        // Empezar desde la fila 1 (saltar encabezado si existe)
+        for (let i = 1; i < values.length; i++) {
+            const row = values[i];
+            if (row && row.length > 0) {
+                const facturaEnFila = String(row[0] || '').trim();
+                
+                // Comparación exacta
+                if (facturaEnFila === facturaBuscada) {
+                    encontrada = true;
+                    break; // ✅ SALIR INMEDIATAMENTE AL ENCONTRAR
+                }
+            }
+        }
+        
+        console.log(`📋 Factura ${facturaBuscada} ${encontrada ? '✅ ENCONTRADA' : '❌ NO encontrada'} en SOPORTES`);
+        
+        return {
+            existe: encontrada,
+            confirmado: encontrada,
+            timestamp: new Date().toISOString()
+        };
+        
+    } catch (error) {
+        console.error('❌ Error crítico en consulta rápida:', error);
+        
+        // ✅ EN CASO DE ERROR CRÍTICO, LANZAR EXCEPCIÓN PARA MANEJO ESPECÍFICO
+        throw new Error(`Error consultando factura: ${error.message}`);
     }
+}
 
     // Combinar SOLO datos que tienen facturas
     combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
