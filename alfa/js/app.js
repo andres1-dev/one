@@ -2,8 +2,6 @@
 let database = [];
 let currentQRParts = null;
 let dataLoaded = false;
-//let currentDocumentData = null;
-//let photoBlob = null;
 
 // Variables de configuración global
 let config = {
@@ -147,14 +145,16 @@ function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, bt
   fileInput.click();
 }
 
-// Nueva función para procesar la imagen capturada
+// Función para procesar la imagen capturada
 function procesarImagenCapturada(archivo) {
   if (!archivo) {
     console.error("No se seleccionó ninguna imagen");
+    // ✅ CORRECCIÓN: Limpiar estado de procesamiento
+    actualizarEstado('ready', '<i class="fas fa-check-circle"></i> SISTEMA LISTO');
     return;
   }
   
-  // Mostrar estado de carga
+  // ✅ CORRECCIÓN: Mostrar estado de procesamiento temporal
   const statusDiv = document.getElementById('status');
   statusDiv.innerHTML = '<i class="fas fa-image"></i> Procesando imagen...';
   
@@ -195,12 +195,31 @@ function procesarImagenCapturada(archivo) {
       canvas.toBlob(function(blob) {
         photoBlob = blob;
         
+        // ✅ CORRECCIÓN: Limpiar estado antes de subir
+        statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Imagen procesada, subiendo...';
+        
         // Subir la imagen procesada a la cola
         subirFotoCapturada(blob);
       }, 'image/jpeg', 0.85);
     };
+    
+    img.onerror = function() {
+      // ✅ CORRECCIÓN: Manejar error de carga de imagen
+      console.error("Error al cargar la imagen");
+      actualizarEstado('error', '<i class="fas fa-exclamation-circle"></i> Error al procesar imagen');
+      playErrorSound();
+    };
+    
     img.src = e.target.result;
   };
+  
+  lector.onerror = function() {
+    // ✅ CORRECCIÓN: Manejar error de lectura
+    console.error("Error al leer el archivo");
+    actualizarEstado('error', '<i class="fas fa-exclamation-circle"></i> Error al leer imagen');
+    playErrorSound();
+  };
+  
   lector.readAsDataURL(archivo);
 }
 
