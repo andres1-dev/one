@@ -227,13 +227,14 @@
     </div>
   </div>
 
+
   <!-- Scripts en el orden correcto -->
   <script src="https://cdn.jsdelivr.net/npm/quagga2@0.12.2/dist/quagga.min.js"></script>
-  <script src="js/sheets-api.js"></script>
-  <script src="js/sheets-sin-factura.js"></script>
-  <script src="js/upload-queue.js"></script>
-  <script src="js/camera.js"></script>
-  <script src="js/camera-scanner.js"></script>
-  <script src="js/app.js"></script>
+  <script src="./js/sheets-api.js"></script>
+  <script src="./js/sheets-sin-factura.js"></script>
+  <script src="./js/upload-queue.js"></script>  <!-- Debe cargarse ANTES de app.js -->
+  <script src="./js/camera.js"></script>
+  <script src="./js/camera-scanner.js"></script>
+  <script src="./js/app.js"></script>  <!-- Debe cargarse DESPUÉS de upload-queue.js -->
 </body>
 </html>
