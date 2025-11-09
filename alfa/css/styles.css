@@ -817,14 +817,23 @@ h1 {
   color: var(--danger-dark);
 }
 
+/* Mejorar estilos de miniaturas en la cola */
 .queue-thumbnail {
   width: 100%;
-  max-height: 100px;
+  max-height: 120px;
   object-fit: contain;
-  margin-top: 5px;
-  border-radius: 4px;
-  background-color: #f0f0f0;
-  display: none;
+  margin-top: 8px;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+  border: 2px solid #e9ecef;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: block; /* ✅ Mostrar siempre por defecto */
+}
+
+.queue-thumbnail:hover {
+  border-color: var(--primary);
+  transform: scale(1.02);
 }
 
 .queue-no-items {
@@ -832,6 +841,25 @@ h1 {
   color: var(--gray);
   font-style: italic;
   padding: 10px;
+}
+
+.queue-item-card {
+  padding: 12px;
+  margin-bottom: 10px;
+  background-color: var(--primary-light);
+  border-radius: var(--border-radius);
+  border-left: 3px solid var(--primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.queue-item-card:hover {
+  background-color: #e3f2fd;
+  transform: translateY(-1px);
+}
+
+.queue-item-card:active {
+  transform: translateY(0);
 }
 
 /* Panel de configuración mejorado */
