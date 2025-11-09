@@ -106,7 +106,7 @@ function preventDefaultBehavior(e) {
   }
 }
 
-// Función para capturar foto
+// Función para capturar foto - CORREGIDA
 function capturarFoto() {
   const cameraFeed = document.getElementById('cameraFeed');
   const photoPreview = document.getElementById('photoPreview');
@@ -117,26 +117,50 @@ function capturarFoto() {
     return;
   }
   
-  // Crear canvas temporal
+  // Crear canvas temporal con dimensiones correctas
   const canvas = document.createElement('canvas');
-  canvas.width = cameraFeed.videoWidth;
-  canvas.height = cameraFeed.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
+  const video = cameraFeed;
   
-  // Obtener blob de la imagen
-  canvas.toBlob(blob => {
-    photoBlob = blob;
+  // Usar las dimensiones reales del video
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  
+  const ctx = canvas.getContext('2d');
+  
+  // Dibujar el frame actual del video en el canvas
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+  // ✅ CORRECCIÓN: Obtener la imagen como base64 directamente
+  try {
+    const imageDataURL = canvas.toDataURL('image/jpeg', 0.85);
     
-    // Mostrar vista previa
-    photoPreview.src = URL.createObjectURL(blob);
-    photoPreview.style.display = 'block';
-    cameraFeed.style.display = 'none';
-    
-    // Cambiar botón para subir foto
-    takePhotoBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Subir Foto';
-    takePhotoBtn.onclick = subirFoto;
-  }, 'image/jpeg', 0.85);
+    // Convertir DataURL a blob para preview
+    fetch(imageDataURL)
+      .then(res => res.blob())
+      .then(blob => {
+        photoBlob = blob;
+        
+        // Mostrar vista previa
+        photoPreview.src = imageDataURL;
+        photoPreview.style.display = 'block';
+        cameraFeed.style.display = 'none';
+        
+        // Guardar el base64 para la cola
+        currentDocumentData.fotoBase64 = imageDataURL.split(',')[1];
+        
+        // Cambiar botón para subir foto
+        takePhotoBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Subir Foto';
+        takePhotoBtn.onclick = subirFoto;
+      })
+      .catch(error => {
+        console.error("Error al procesar imagen:", error);
+        alert("Error al procesar la imagen. Intenta de nuevo.");
+      });
+      
+  } catch (error) {
+    console.error("Error al convertir imagen:", error);
+    alert("No se pudo procesar la imagen. Intenta de nuevo.");
+  }
 }
 
 // Función para subir foto (ahora usa la cola)
