@@ -17,12 +17,12 @@ class SheetsAPI {
         this.cache = new Map();
         // Cache diferenciado por tipo de dato
         this.cacheTimeouts = {
-            SIESA: 300000,      // 5 min - datos históricos, cambian poco
-            SOPORTES: 60000,    // 1 min - confirmaciones activas
-            DATA2: 120000,      // 2 min - datos de recepción
-            DATA: 120000,       // 2 min
-            REC: 180000,        // 3 min
-            DIS: 180000         // 3 min
+            SIESA: 0,      // 5 min - datos históricos, cambian poco
+            SOPORTES: 0,    // 1 min - confirmaciones activas
+            DATA2: 0,      // 2 min - datos de recepción
+            DATA: 0,       // 2 min
+            REC: 0,        // 3 min
+            DIS: 0         // 3 min
         };
     }
 
