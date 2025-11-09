@@ -71,45 +71,6 @@ function guardarConfiguracion() {
 }
 
 // ✅ NUEVO: Subida directa como respaldo (evita la cola si hay problemas)
-async function subidaDirectaDeRespaldo(jobData) {
-  console.log('🔄 Intentando subida DIRECTA de respaldo...');
-  
-  try {
-    const formData = new FormData();
-    Object.keys(jobData).forEach(key => {
-      if (jobData[key] && key !== 'esSinFactura') {
-        formData.append(key, jobData[key]);
-      }
-    });
-    
-    // Timeout más corto para respaldo
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    
-    const response = await fetch(API_URL_POST, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.message || 'Error del servidor');
-    }
-    
-    console.log('✅ SUBIDA DIRECTA EXITOSA');
-    return true;
-    
-  } catch (error) {
-    console.error('❌ Subida directa fallida:', error);
-    return false;
-  }
-}
 
 // Función de vibración mejorada
 function vibrar(duracion = 100) {
@@ -348,7 +309,6 @@ function aplicarMarcaDeAgua(ctx, width, height) {
 }
 
 // Función para subir la foto capturada
-// ✅ MEJORADO: Subir foto capturada con múltiples estrategias
 async function subirFotoCapturada(blob) {
   if (!currentDocumentData) {
     console.error("No hay datos disponibles para subir");
@@ -372,7 +332,7 @@ async function subirFotoCapturada(blob) {
     
     const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
     
-    // Crear objeto de trabajo
+    // Crear objeto de trabajo para la cola
     const jobData = {
       documento: documento,
       lote: lote,
@@ -387,27 +347,9 @@ async function subirFotoCapturada(blob) {
       esSinFactura: esSinFactura
     };
     
-    // ✅ ESTRATEGIA 1: Intentar subida directa primero
-    console.log('🔄 Intentando subida directa...');
-    const exitoDirecto = await subidaDirectaDeRespaldo(jobData);
-    
-    if (exitoDirecto) {
-      // ✅ ÉXITO INMEDIATO
-      console.log('✅ Foto subida DIRECTAMENTE con éxito');
-      actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA');
-      
-      if (btnElement) {
-        btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-        btnElement.style.backgroundColor = '#28a745';
-        btnElement.disabled = true;
-      }
-      
-      playSuccessSound();
-      return;
-    }
-    
-    // ✅ ESTRATEGIA 2: Usar el sistema de colas (reintentos ilimitados)
-    console.log('🔄 Usando sistema de colas con reintentos ilimitados...');
+    // ✅ ELIMINAR COMPLETAMENTE LA SUBIDA DIRECTA
+    // ✅ USAR EXCLUSIVAMENTE EL SISTEMA DE COLAS
+    console.log('🔄 Agregando trabajo a cola con reintentos ilimitados...');
     
     if (typeof window.uploadQueue === 'undefined') {
       throw new Error("Sistema de colas no disponible");
@@ -429,13 +371,14 @@ async function subirFotoCapturada(blob) {
     if (btnElement) {
       btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> EN COLA...';
       btnElement.style.backgroundColor = '#4cc9f0';
+      btnElement.disabled = false; // Mantener habilitado para reintentos manuales si es necesario
     }
     
     playSuccessSound();
     
-    // ✅ ESTRATEGIA 3: Forzar procesamiento inmediato
+    // ✅ FORZAR procesamiento inmediato si hay conexión
     setTimeout(() => {
-      if (window.uploadQueue) {
+      if (window.uploadQueue && navigator.onLine) {
         window.uploadQueue.processQueue();
       }
     }, 1000);
