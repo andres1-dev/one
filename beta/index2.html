@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="PandaDash" />
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <title>PandaDash</title>
+</head>
+<body>
+  <!-- Pantalla de carga -->
+  <div id="loadingScreen">
+    <div style="text-align: center;">
+      <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+    </div>
+    <div class="triple-pulse">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <h1>PandaDash</h1>
+    <div class="name">Build 3.17.634</div>
+    
+    <!-- <button id="installBtn">Instalar App</button> -->
+    <!-- Botón PWA PandaDash - Efecto de llenado con gradiente -->
+    <button id="installBtn" class="btn-panda-fill" style="display: none;">
+        <i class="fas fa-rocket icon"></i> Instalar App
+    </button>
+    
+  </div>
+
+  <!-- Contenido principal -->
+  <div id="scanner" style="display: none;">
+    <div id="offline-banner" class="offline-banner" style="display: none;">
+      <i class="fas fa-wifi-slash"></i> No hay conexión a internet
+    </div>
+    
+    <div class="barcode-input-container">
+      <i class="fa-solid fa-qrcode"></i>
+      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR">
+    </div>
+
+    <div id="status">Iniciando Sistema...</div>
+    <div class="data-stats" id="data-stats">Cargando datos...</div>
+    <div id="results"></div>
+
+    <footer>
+        <div class="footer-content">
+            <p></p>
+            <p></p>
+            <p></p>
+        </div>
+    </footer>
+</div>
+
+    <div id="status">Iniciando Sistema...</div>
+    <div class="data-stats" id="data-stats">Cargando datos...</div>
+    <div id="results"></div>
+
+    <footer>
+      <div class="footer-content">
+        <p></p>
+        <p></p>
+        <p></p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal de cámara -->
+  <div id="cameraModal" class="camera-modal">
+    <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
+    <canvas id="photoCanvas" style="display: none;"></canvas>
+    <img id="photoPreview" alt="Vista previa de la foto">
+    <div class="camera-actions">
+      <button id="takePhotoBtn" class="btn btn-primary">
+        <i class="fas fa-camera"></i> Tomar Foto
+      </button>
+      <button id="cancelCaptureBtn" class="btn btn-danger">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+    </div>
+    <div id="uploadStatus" class="uploading-status">
+      <i class="fas fa-spinner fa-pulse"></i> Subiendo foto...
+    </div>
+    <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
+  </div>
+
+<!-- Contador de cola y panel de configuración -->
+<div id="queueCounter" class="empty" title="No hay elementos en cola">
+    <i class="fas fa-cog"></i>
+</div>
+
+<div id="queueDetails">
+    <h3>Elementos en cola <i class="fas fa-times" id="closeQueueDetails"></i></h3>
+    <div id="queueItemsList">
+        <div class="queue-no-items">No hay elementos pendientes</div>
+    </div>
+</div>
+
+<!-- Nuevo panel de configuración -->
+<div id="configPanel">
+    <h3>Configuración <i class="fas fa-times" id="closeConfigPanel"></i></h3>
+    
+    <div class="config-section">
+        <h4><i class="fas fa-database"></i> Datos</h4>
+        <div class="config-item">
+            <button id="btnConfigCargarSinFactura" class="btn btn-warning btn-sm btn-block" 
+                    onclick="cargarDatosSinFactura()">
+                <i class="fas fa-truck-loading"></i> Cargar Entregas Sin Factura
+            </button>
+            <div id="statusConfigSinFactura" style="display: none; font-size: 12px; margin-top: 5px;"></div>
+        </div>
+    </div>
+
+    <div class="config-section">
+        <h4><i class="fas fa-volume-up"></i> Sonido</h4>
+        <div class="config-item">
+            <label class="config-switch">
+                <input type="checkbox" id="toggleSonido" checked>
+                <span class="config-slider"></span>
+                <span class="config-label">Efectos de sonido</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="config-section">
+        <h4><i class="fas fa-vibrate"></i> Vibración</h4>
+        <div class="config-item">
+            <label class="config-switch">
+                <input type="checkbox" id="toggleVibracion" checked>
+                <span class="config-slider"></span>
+                <span class="config-label">Vibración al confirmar</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="config-section">
+        <h4><i class="fas fa-broom"></i> Limpieza</h4>
+        <div class="config-item">
+            <button id="btnLimpiarCache" class="btn btn-danger btn-sm btn-block" 
+                    onclick="limpiarCache()">
+                <i class="fas fa-trash"></i> Limpiar Cache
+            </button>
+        </div>
+    </div>
+</div>
+
+  <!-- Agregar esta línea después de los otros scripts -->
+  <script src="js/sheets-api.js"></script>
+  <script src="js/upload-queue.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/sheets-sin-factura.js"></script>
+  
+</body>
+</html>
