@@ -1,9 +1,9 @@
 // sw.js
 const CACHE_NAME = 'pandadash-v4';
 const ASSETS_TO_CACHE = [
-  '/one/beta/icons/icon-192.png',
-  '/one/beta/icons/icon-512.png',
-  '/one/beta/icons/icon-512-maskable.png'
+  '/one/alfa/icons/icon-192.png',
+  '/one/alfa/icons/icon-512.png',
+  '/one/alfa/icons/icon-512-maskable.png'
 ];
 
 // Instalación y cacheo inicial
