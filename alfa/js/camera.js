@@ -196,7 +196,7 @@ async function subirFoto() {
       throw new Error("No se pudieron obtener los datos de la factura");
     }
     
-    // Crear objeto de trabajo para la cola con TODOS los datos específicos
+    // Crear objeto de trabajo para la cola
     const jobData = {
       ...facturaData,
       fotoBase64: base64Data,
@@ -205,22 +205,31 @@ async function subirFoto() {
       timestamp: new Date().toISOString()
     };
     
-    // Verificar que uploadQueue existe
+    // ✅ USAR EXCLUSIVAMENTE LA COLA - SIN SUBIDA DIRECTA
     if (typeof window.uploadQueue === 'undefined') {
       throw new Error("El sistema de colas no está disponible");
     }
     
     // Agregar a la cola
-    window.uploadQueue.addJob({
+    const jobId = window.uploadQueue.addJob({
       type: 'photo',
       data: jobData,
       factura: factura,
       btnElementId: btnElement ? btnElement.getAttribute('data-factura') : null
     });
     
+    console.log(`✅ Foto agregada a cola con ID: ${jobId}`);
+    
     // Actualizar UI
     uploadStatus.innerHTML = '<i class="fas fa-check-circle"></i> En cola para subir';
     takePhotoBtn.innerHTML = '<i class="fas fa-check"></i> En cola';
+    
+    // Forzar procesamiento si hay conexión
+    if (navigator.onLine) {
+      setTimeout(() => {
+        window.uploadQueue.processQueue();
+      }, 500);
+    }
     
     // Cerrar cámara después de un breve retraso
     setTimeout(cerrarCamara, 1500);
