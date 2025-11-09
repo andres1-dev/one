@@ -85,32 +85,56 @@ function vibrar(duracion = 100) {
     }
 }
 
-// ✅ AGREGAR en app.js - Verificación en tiempo real antes de procesar entrega
+// ✅ MEJORAR la función de verificación en tiempo real
 async function verificarEstadoFacturaEnTiempoReal(factura) {
     if (!factura || factura.trim() === '') {
-        return { confirmado: false, existe: false };
+        console.log('⚠️ Factura vacía - Considerando como pendiente');
+        return { 
+            confirmado: false, 
+            existe: false,
+            motivo: 'factura_vacia'
+        };
     }
     
     try {
-        console.log(`🔄 Verificando estado en tiempo real de factura: ${factura}`);
+        console.log(`🔍 Consultando estado en tiempo real de: ${factura}`);
         
-        const resultado = await sheetsAPI.consultarFacturaEnTiempoReal(factura);
+        // ✅ TIMEOUT para evitar bloqueos largos
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Timeout en consulta')), 10000);
+        });
+        
+        const consultaPromise = sheetsAPI.consultarFacturaEnTiempoReal(factura);
+        
+        const resultado = await Promise.race([consultaPromise, timeoutPromise]);
         
         if (resultado.existe) {
-            console.log(`✅ FACTURA CONFIRMADA: ${factura} ya existe en SOPORTES`);
-            playSuccessSound();
+            console.log(`✅ FACTURA CONFIRMADA: ${factura} encontrada en SOPORTES`);
+            return {
+                confirmado: true,
+                existe: true,
+                timestamp: new Date().toISOString()
+            };
         } else {
-            console.log(`📝 Factura pendiente: ${factura} no encontrada en SOPORTES`);
+            console.log(`📝 Factura PENDIENTE: ${factura} no encontrada en SOPORTES`);
+            return {
+                confirmado: false,
+                existe: false,
+                timestamp: new Date().toISOString()
+            };
         }
-        
-        return resultado;
         
     } catch (error) {
         console.error('❌ Error en verificación en tiempo real:', error);
+        
+        // ✅ EN CASO DE ERROR, NO BLOQUEAR - CONSIDERAR COMO PENDIENTE
+        console.log('⚠️ Considerando factura como PENDIENTE debido a error');
         return {
             confirmado: false,
             existe: false,
-            error: error.message
+            error: error.message,
+            motivo: 'error_consulta',
+            timestamp: new Date().toISOString()
         };
     }
 }
