@@ -1,29 +1,32 @@
-// Configuración y constantes
+// Configuración y constantes - REINTENTOS MEJORADOS
 const CONFIG = {
   VERSION: "4.0.0",
   CACHE_TTL: 24 * 60 * 60 * 1000, // 24 horas en milisegundos
-  MAX_IMAGE_SIZE: 800, // Tamaño máximo para redimensionar imágenes
-  MAX_CHUNK_SIZE: 50000, // ~50KB por solicitud
-  MAX_RETRIES: -1 // -1 para reintentos ilimitados
+  MAX_IMAGE_SIZE: 800,
+  MAX_CHUNK_SIZE: 50000,
+  MAX_RETRIES: -1, // ✅ Reintentos ILIMITADOS
+  RETRY_DELAY: 5000, // ✅ 5 segundos entre reintentos
+  MAX_RETRY_DELAY: 60000 // ✅ Máximo 1 minuto entre reintentos
 };
 
-// API URLs
-const API_URL_POST = "https://script.google.com/macros/s/AKfycbwgnkjVCMWlWuXnVaxSBD18CGN3rXGZtQZIvX9QlBXSgbQndWC4uqQ2sc00DuNH6yrb/exec";
-
-// Constantes para la cola de carga
-const UPLOAD_QUEUE_KEY = 'pdaUploadQueue';
-
-// Clase para gestionar la cola de carga con reintentos ilimitados
 class UploadQueue {
   constructor() {
-    console.log('🔄 Inicializando UploadQueue...');
+    console.log('🔄 Inicializando UploadQueue CON REINTENTOS ILIMITADOS...');
     this.queue = this.loadQueue();
     this.isProcessing = false;
+    this.currentRetryCount = 0;
     this.initEventListeners();
     this.updateQueueCounter();
-    this.processQueue(); // Intentar procesar cola al iniciar
+    this.processQueue();
     
-    // Inicializar eventos para el contador de cola
+    // Inicializar eventos
+    this.initUIEvents();
+    
+    console.log('✅ UploadQueue inicializado con', this.queue.length, 'elementos en cola');
+  }
+
+  // ✅ NUEVO: Inicializar eventos de UI
+  initUIEvents() {
     const queueCounter = document.getElementById('queueCounter');
     const closeQueueDetails = document.getElementById('closeQueueDetails');
     
@@ -35,7 +38,6 @@ class UploadQueue {
       closeQueueDetails.addEventListener('click', this.hideQueueDetails.bind(this));
     }
     
-    // Cerrar detalles al hacer clic fuera
     document.addEventListener('click', (e) => {
       const queueDetails = document.getElementById('queueDetails');
       const queueCounter = document.getElementById('queueCounter');
@@ -47,335 +49,380 @@ class UploadQueue {
         this.hideQueueDetails();
       }
     });
-    
-    console.log('✅ UploadQueue inicializado con', this.queue.length, 'elementos en cola');
-  }
-  
-  loadQueue() {
-    try {
-      const saved = localStorage.getItem(UPLOAD_QUEUE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Error al cargar la cola:", e);
-      return [];
-    }
   }
 
-  saveQueue() {
-    try {
-      localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(this.queue));
-    } catch (e) {
-      console.error("Error al guardar la cola:", e);
-    }
-  }
-  
+  // ✅ MEJORADO: Agregar trabajo con verificación de datos
   addJob(job) {
     console.log('📦 Agregando trabajo a la cola:', job.type, job.factura);
-    this.queue.push({
+    
+    // Verificar que los datos esenciales estén presentes
+    if (job.type === 'photo') {
+      if (!job.data.fotoBase64) {
+        console.error('❌ ERROR: Trabajo de foto sin datos base64');
+        // Pero lo agregamos igual para que se reintente
+      }
+      
+      if (!job.data.documento || !job.data.factura) {
+        console.error('❌ ERROR: Trabajo de foto sin documento o factura');
+        // Pero lo agregamos igual
+      }
+    }
+    
+    const newJob = {
       ...job,
       retries: 0,
       timestamp: new Date().toISOString(),
-      status: 'pending'
-    });
+      status: 'pending',
+      lastAttempt: null,
+      lastError: null,
+      id: this.generateJobId() // ✅ ID único para tracking
+    };
+    
+    this.queue.push(newJob);
     this.saveQueue();
     this.updateQueueCounter();
-    this.processQueue();
-  }
-  
-  initEventListeners() {
-    window.addEventListener('online', () => {
-      if (this.queue.length > 0) {
-        console.log('🌐 Conexión restablecida - Procesando cola...');
-        this.processQueue();
-      }
-    });
-  }
-  
-  updateQueueCounter() {
-    const counter = document.getElementById('queueCounter');
-    const queueItemsList = document.getElementById('queueItemsList');
     
-    if (!counter) return;
-    
-    if (this.queue.length === 0) {
-      counter.textContent = '0';
-      counter.className = 'empty';
-      counter.title = 'No hay elementos en cola';
-      if (queueItemsList) {
-        queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
-      }
-    } else {
-      counter.textContent = this.queue.length;
-      counter.className = this.isProcessing ? 'processing' : '';
-      counter.title = `${this.queue.length} elementos pendientes`;
-      
-      // Actualizar la lista de elementos
-      this.updateQueueItemsList();
-    }
-  }
-  
-// En la función updateQueueItemsList, reemplaza los eventos:
-// En la función updateQueueItemsList, modifica la sección de miniaturas:
-updateQueueItemsList() {
-    const queueItemsList = document.getElementById('queueItemsList');
-    
-    if (!queueItemsList) return;
-    
-    if (this.queue.length === 0) {
-        queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
-        return;
+    // Procesar inmediatamente si está online
+    if (navigator.onLine) {
+      this.processQueue();
     }
     
-    queueItemsList.innerHTML = '';
-    
-    this.queue.forEach((item, index) => {
-        const itemElement = document.createElement('div');
-        itemElement.className = `queue-item-card ${item.status === 'retrying' ? 'retrying' : ''} ${CONFIG.MAX_RETRIES > 0 && item.retries >= CONFIG.MAX_RETRIES ? 'error' : ''}`;
-        
-        let previewContent = '';
-        let thumbnail = '';
-        
-        if (item.type === 'photo') {
-            previewContent = `Factura: ${item.factura || 'N/A'}`;
-            
-            // ✅ CORRECCIÓN: Mostrar miniatura SIEMPRE si hay base64
-            if (item.data.fotoBase64) {
-                thumbnail = `
-                    <div class="thumbnail-container">
-                        <img src="data:image/jpeg;base64,${item.data.fotoBase64}" 
-                             class="queue-thumbnail" 
-                             alt="Miniatura de factura ${item.factura}">
-                        <div class="thumbnail-overlay">Toca para ocultar/mostrar</div>
-                    </div>
-                `;
-            } else {
-                // Si no hay base64, mostrar mensaje
-                thumbnail = `<div class="no-thumbnail">📷 Imagen no disponible</div>`;
-            }
-        } else if (item.type === 'data') {
-            previewContent = `Datos: ${JSON.stringify(item.data).substring(0, 50)}...`;
-        }
-        
-        let statusInfo = '';
-        if (item.status === 'retrying') {
-            statusInfo = `<div class="queue-item-status retrying">Reintentando (${item.retries}${CONFIG.MAX_RETRIES > 0 ? `/${CONFIG.MAX_RETRIES}` : ''})</div>`;
-        } else if (CONFIG.MAX_RETRIES > 0 && item.retries >= CONFIG.MAX_RETRIES) {
-            statusInfo = `<div class="queue-item-status error">Error: ${item.lastError || 'Error desconocido'}</div>`;
-        } else {
-            statusInfo = `<div class="queue-item-status">En espera</div>`;
-        }
-        
-        itemElement.innerHTML = `
-            <div class="queue-item-header">
-                <span>${item.type === 'photo' ? '📷 Foto' : '📊 Datos'}</span>
-                <span class="queue-item-type">${new Date(item.timestamp).toLocaleTimeString()}</span>
-            </div>
-            <div class="queue-item-preview">${previewContent}</div>
-            ${thumbnail}
-            ${statusInfo}
-        `;
-        
-        // ✅ CORRECCIÓN: Manejar clics/touch para mostrar/ocultar miniatura
-        const thumbnailImg = itemElement.querySelector('.queue-thumbnail');
-        if (thumbnailImg) {
-            let isVisible = true;
-            
-            itemElement.addEventListener('click', (e) => {
-                // Solo toggle si se hace clic en la tarjeta, no en otros elementos
-                if (e.target === itemElement || e.target.classList.contains('queue-thumbnail') || e.target.classList.contains('thumbnail-container')) {
-                    isVisible = !isVisible;
-                    thumbnailImg.style.display = isVisible ? 'block' : 'none';
-                    
-                    // También mostrar/ocultar el overlay
-                    const overlay = itemElement.querySelector('.thumbnail-overlay');
-                    if (overlay) {
-                        overlay.style.display = isVisible ? 'block' : 'none';
-                    }
-                }
-            });
-            
-            // Para touch devices
-            itemElement.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                isVisible = !isVisible;
-                thumbnailImg.style.display = isVisible ? 'block' : 'none';
-                
-                const overlay = itemElement.querySelector('.thumbnail-overlay');
-                if (overlay) {
-                    overlay.style.display = isVisible ? 'block' : 'none';
-                }
-            });
-        }
-        
-        queueItemsList.appendChild(itemElement);
-    });
-}
-  
-  toggleQueueDetails() {
-    const details = document.getElementById('queueDetails');
-    if (details.style.display === 'block') {
-      this.hideQueueDetails();
-    } else {
-      this.showQueueDetails();
-    }
-  }
-  
-  showQueueDetails() {
-    const details = document.getElementById('queueDetails');
-    details.style.display = 'block';
-    this.updateQueueItemsList();
-  }
-  
-  hideQueueDetails() {
-    const details = document.getElementById('queueDetails');
-    details.style.display = 'none';
+    return newJob.id;
   }
 
-  // Función para verificar confirmación en tiempo real
-  async verificarYDetenerSiConfirmado(job) {
-    if (job.type === 'photo') {
-        const { documento, lote, referencia, cantidad, nit } = job.data;
-        
-        try {
-            // Usar la función global definida en app.js
-            if (typeof window.verificarConfirmacionEnTiempoReal === 'function') {
-                const confirmado = await window.verificarConfirmacionEnTiempoReal(
-                    documento, lote, referencia, cantidad, nit
-                );
-                
-                if (confirmado) {
-                    console.log(`✅ Trabajo confirmado, eliminando de cola: ${documento}-${lote}`);
-                    return true; // Indicar que debe ser eliminado
-                }
-            }
-        } catch (error) {
-            console.error('Error verificando confirmación:', error);
-        }
-    }
-    return false; // Mantener en cola
+  // ✅ NUEVO: Generar ID único para trabajos
+  generateJobId() {
+    return 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   }
 
+  // ✅ MEJORADO: Procesar cola con manejo robusto de errores
   async processQueue() {
-    if (this.isProcessing || this.queue.length === 0 || !navigator.onLine) {
-        this.updateQueueCounter();
-        return;
+    if (this.isProcessing || this.queue.length === 0) {
+      return;
+    }
+    
+    // Solo procesar si hay conexión
+    if (!navigator.onLine) {
+      console.log('🌐 Sin conexión - Esperando para procesar cola...');
+      this.updateQueueCounter();
+      return;
     }
     
     this.isProcessing = true;
     this.updateQueueCounter();
     
-    console.log('🔄 Procesando cola con', this.queue.length, 'elementos...');
+    console.log('🔄 PROCESANDO COLA con', this.queue.length, 'elementos...');
     
-    while (this.queue.length > 0 && navigator.onLine) {
+    try {
+      while (this.queue.length > 0 && navigator.onLine) {
         const job = this.queue[0];
         
         try {
-            // Verificar si ya está confirmado antes de procesar
-            const estaConfirmado = await this.verificarYDetenerSiConfirmado(job);
-            if (estaConfirmado) {
-                this.queue.shift();
-                this.saveQueue();
-                this.updateQueueCounter();
-                continue;
-            }
-            
-            if (job.type === 'photo') {
-                await this.processPhotoJob(job);
-            } else if (job.type === 'data') {
-                await this.processDataJob(job);
-            }
-            
-            // Eliminar trabajo completado
+          console.log(`🎯 Procesando trabajo ${job.id} (reintento ${job.retries})...`);
+          
+          // Verificar si ya está confirmado
+          const estaConfirmado = await this.verificarYDetenerSiConfirmado(job);
+          if (estaConfirmado) {
+            console.log(`✅ Trabajo ${job.id} ya confirmado - Eliminando`);
             this.queue.shift();
             this.saveQueue();
             this.updateQueueCounter();
-            
-            console.log('✅ Trabajo procesado exitosamente:', job.type, job.factura);
+            continue;
+          }
+          
+          // Procesar según el tipo
+          if (job.type === 'photo') {
+            await this.processPhotoJob(job);
+          } else if (job.type === 'data') {
+            await this.processDataJob(job);
+          }
+          
+          // ✅ ÉXITO: Eliminar trabajo completado
+          console.log(`✅ Trabajo ${job.id} COMPLETADO exitosamente`);
+          this.queue.shift();
+          this.saveQueue();
+          this.updateQueueCounter();
+          
+          // Resetear contador de reintentos
+          this.currentRetryCount = 0;
+          
         } catch (error) {
-            console.error("❌ Error al procesar trabajo:", error);
-            job.retries++;
-            job.lastError = error.message;
-            job.lastAttempt = new Date().toISOString();
-            
-            if (CONFIG.MAX_RETRIES > 0 && job.retries >= CONFIG.MAX_RETRIES) {
-                console.log('🚫 Trabajo removido por máximo de reintentos:', job.factura);
-                this.queue.shift();
-            } else {
-                job.status = 'retrying';
-                this.queue.push(this.queue.shift());
-                console.log(`🔄 Trabajo reintentado (${job.retries}):`, job.factura);
-            }
-            
-            this.saveQueue();
-            this.updateQueueCounter();
-            break;
+          await this.handleJobError(job, error);
+          break; // Salir del bucle para reintentar después
         }
+      }
+    } catch (error) {
+      console.error('❌ Error crítico en processQueue:', error);
+    } finally {
+      this.isProcessing = false;
+      this.updateQueueCounter();
+      console.log('⏹️ Procesamiento de cola finalizado');
+    }
+  }
+
+  // ✅ NUEVO: Manejo robusto de errores por trabajo
+  async handleJobError(job, error) {
+    console.error(`❌ Error en trabajo ${job.id}:`, error);
+    
+    job.retries++;
+    job.lastError = this.sanitizeErrorMessage(error);
+    job.lastAttempt = new Date().toISOString();
+    job.status = 'retrying';
+    
+    // Calcular delay exponencial para reintentos
+    const delay = this.calculateRetryDelay(job.retries);
+    
+    console.log(`🔄 Reintentando trabajo ${job.id} en ${delay}ms (reintento ${job.retries})`);
+    
+    // Mover al final de la cola
+    this.queue.push(this.queue.shift());
+    this.saveQueue();
+    this.updateQueueCounter();
+    
+    // Esperar antes del próximo intento
+    await this.delay(delay);
+  }
+
+  // ✅ NUEVO: Calcular delay exponencial con backoff
+  calculateRetryDelay(retryCount) {
+    const baseDelay = CONFIG.RETRY_DELAY;
+    const maxDelay = CONFIG.MAX_RETRY_DELAY;
+    const delay = Math.min(baseDelay * Math.pow(2, retryCount - 1), maxDelay);
+    
+    // Agregar aleatoriedad para evitar sincronización
+    const jitter = delay * 0.1 * Math.random();
+    
+    return delay + jitter;
+  }
+
+  // ✅ NUEVO: Delay helper
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ✅ NUEVO: Sanitizar mensajes de error
+  sanitizeErrorMessage(error) {
+    if (typeof error === 'string') return error;
+    if (error.message) return error.message;
+    if (error.toString) return error.toString();
+    return 'Error desconocido';
+  }
+
+  // ✅ MEJORADO: Procesar trabajo de foto con múltiples intentos
+  async processPhotoJob(job) {
+    console.log(`📤 Subiendo foto para trabajo ${job.id}:`, job.factura);
+    
+    // Verificar datos mínimos requeridos
+    if (!job.data.fotoBase64) {
+      throw new Error('Datos de imagen faltantes');
     }
     
-    this.isProcessing = false;
-    this.updateQueueCounter();
-    console.log('⏹️ Procesamiento de cola finalizado');
-  }
-  
-  async processPhotoJob(job) {
-    console.log('📤 Procesando trabajo de foto:', job.factura);
+    if (!job.data.documento || !job.data.factura) {
+      throw new Error('Datos de documento/factura faltantes');
+    }
+    
     const formData = new FormData();
-    Object.keys(job.data).forEach(key => {
-      // No enviar la propiedad esSinFactura al servidor
-      if (key !== 'esSinFactura') {
-        formData.append(key, job.data[key]);
+    
+    // ✅ AGREGAR TODOS los campos posibles
+    const fields = [
+      'documento', 'lote', 'referencia', 'cantidad', 'factura', 'nit',
+      'fotoBase64', 'fotoNombre', 'fotoTipo', 'timestamp'
+    ];
+    
+    fields.forEach(field => {
+      if (job.data[field]) {
+        formData.append(field, job.data[field]);
       }
     });
     
-    const response = await fetch(API_URL_POST, {
-      method: 'POST',
-      body: formData
-    });
+    // ✅ AGREGAR campos adicionales para debugging
+    formData.append('uploadAttempt', job.retries + 1);
+    formData.append('jobId', job.id);
+    formData.append('appVersion', CONFIG.VERSION);
     
-    if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
+    console.log(`📊 Enviando ${formData.get('fotoBase64')?.length || 0} bytes de imagen`);
+    
+    // ✅ CONFIGURACIÓN ROBUSTA de fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos timeout
+    
+    try {
+      const response = await fetch(API_URL_POST, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        },
+        // No usar 'Content-Type' para FormData, el navegador lo establece automáticamente
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // ✅ VERIFICAR respuesta HTTP
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+      }
+      
+      // ✅ VERIFICAR respuesta JSON
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        throw new Error(`Respuesta JSON inválida: ${jsonError.message}`);
+      }
+      
+      // ✅ VERIFICAR éxito del servidor
+      if (!result.success) {
+        throw new Error(result.message || `Error del servidor: ${JSON.stringify(result)}`);
+      }
+      
+      console.log(`✅ Foto subida exitosamente:`, result);
+      
+      // ✅ ACTUALIZAR UI si es necesario
+      this.updateUIAfterSuccess(job);
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      // ✅ MANEJO ESPECÍFICO de errores comunes
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout: La solicitud tardó demasiado');
+      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Error de red: No se pudo conectar al servidor');
+      } else {
+        throw error; // Re-lanzar otros errores
+      }
     }
-    
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.message || "Error en la respuesta del servidor");
-    }
-    
-    // Actualizar UI si el elemento todavía está visible
+  }
+
+  // ✅ NUEVO: Actualizar UI después de éxito
+  updateUIAfterSuccess(job) {
     if (job.btnElementId) {
       const btnElement = document.querySelector(`[data-factura="${job.btnElementId}"]`);
       
-      // Solo actualizar si el botón existe y no es una entrega sin factura
-      // (Las entregas sin factura ya se actualizaron en subirFotoCapturada)
       if (btnElement && !job.esSinFactura) {
-        btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-        btnElement.style.backgroundColor = '#28a745';
-        btnElement.disabled = true;
+        // Actualizar solo si el botón todavía existe y no es entrega sin factura
+        setTimeout(() => {
+          if (btnElement.parentNode) { // Verificar que todavía existe en el DOM
+            btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+            btnElement.style.backgroundColor = '#28a745';
+            btnElement.disabled = true;
+          }
+        }, 100);
       }
     }
+  }
+
+  // ✅ MEJORADO: Verificar confirmación con manejo de errores
+  async verificarYDetenerSiConfirmado(job) {
+    if (job.type !== 'photo') return false;
     
-    console.log('✅ Foto subida exitosamente:', job.factura);
+    const { documento, lote, referencia, cantidad, nit } = job.data;
+    
+    try {
+      if (typeof window.verificarConfirmacionEnTiempoReal === 'function') {
+        const confirmado = await window.verificarConfirmacionEnTiempoReal(
+          documento, lote, referencia, cantidad, nit
+        );
+        
+        if (confirmado) {
+          console.log(`✅ Trabajo ${job.id} YA CONFIRMADO - Eliminando de cola`);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ Error verificando confirmación para ${job.id}:`, error);
+      // No lanzar error, continuar con el proceso normal
+    }
+    
+    return false;
   }
-  
-  async processDataJob(job) {
-    // Implementación para trabajos de datos si es necesario
-    console.log("Procesando trabajo de datos:", job);
+
+  // ✅ MEJORADO: Guardar cola con verificación
+  saveQueue() {
+    try {
+      // Limitar el tamaño de la cola para evitar problemas de almacenamiento
+      if (this.queue.length > 100) {
+        console.warn('⚠️ Cola muy grande, considerando limpieza:', this.queue.length);
+        // Podrías implementar lógica para limpiar trabajos muy antiguos aquí
+      }
+      
+      localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(this.queue));
+    } catch (e) {
+      console.error('❌ Error CRÍTICO al guardar cola:', e);
+      // Intentar limpiar cache si hay error de quota
+      if (e.name === 'QuotaExceededError') {
+        this.handleStorageQuotaExceeded();
+      }
+    }
+  }
+
+  // ✅ NUEVO: Manejar exceso de almacenamiento
+  handleStorageQuotaExceeded() {
+    console.warn('⚠️ Almacenamiento lleno - Limpiando trabajos antiguos...');
+    
+    // Mantener solo los últimos 50 trabajos
+    if (this.queue.length > 50) {
+      this.queue = this.queue.slice(-50);
+      this.saveQueue();
+      console.log('✅ Cola limpiada a 50 trabajos');
+    }
+  }
+
+  // ✅ NUEVO: Forzar reintento de todos los trabajos fallidos
+  forceRetryAll() {
+    console.log('🔄 Forzando reintento de todos los trabajos...');
+    
+    this.queue.forEach(job => {
+      if (job.status === 'retrying') {
+        job.status = 'pending';
+        job.lastError = null;
+      }
+    });
+    
+    this.saveQueue();
+    this.updateQueueCounter();
+    this.processQueue();
+  }
+
+  // ✅ NUEVO: Obtener estadísticas de la cola
+  getQueueStats() {
+    const stats = {
+      total: this.queue.length,
+      pending: this.queue.filter(j => j.status === 'pending').length,
+      retrying: this.queue.filter(j => j.status === 'retrying').length,
+      totalRetries: this.queue.reduce((sum, j) => sum + j.retries, 0),
+      oldestJob: this.queue.length > 0 ? new Date(this.queue[0].timestamp) : null
+    };
+    
+    return stats;
   }
 }
 
-// ✅ CORRECCIÓN: Hacer uploadQueue global
+// ✅ Hacer funciones disponibles globalmente para debugging
 window.uploadQueue = new UploadQueue();
-console.log('✅ UploadQueue inicializado y disponible globalmente');
 
-// Función para convertir Blob a Base64
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+// ✅ Funciones de utilidad globales
+window.forceQueueRetry = function() {
+  if (window.uploadQueue) {
+    window.uploadQueue.forceRetryAll();
+  }
+};
 
-// ✅ Hacer la función disponible globalmente
-window.blobToBase64 = blobToBase64;
+window.getQueueStats = function() {
+  if (window.uploadQueue) {
+    return window.uploadQueue.getQueueStats();
+  }
+  return null;
+};
+
+window.debugQueue = function() {
+  if (window.uploadQueue) {
+    console.log('=== DEBUG COLA ===');
+    console.log('Estadísticas:', window.uploadQueue.getQueueStats());
+    console.log('Trabajos:', window.uploadQueue.queue);
+    console.log('=== FIN DEBUG ===');
+  }
+};
