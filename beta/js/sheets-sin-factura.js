@@ -3,12 +3,12 @@
 //const API_BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 // IDs de las hojas de cálculo para datos SIN FACTURA
-/* const SPREADSHEET_IDS_SF = {
+const SPREADSHEET_IDS_SF = {
     DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
     DATA: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE",
     REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
     SOPORTES: "1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw"
-};*/
+};
 
 class SheetsSinFactura {
     constructor() {
