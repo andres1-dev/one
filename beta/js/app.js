@@ -4,6 +4,13 @@ let database = [];
 let currentQRParts = null;
 let dataLoaded = false;
 
+// Variables de configuración global
+let config = {
+    sonidoHabilitado: true,
+    vibracionHabilitada: true
+};
+
+
 // Elementos del DOM
 const loadingScreen = document.getElementById('loadingScreen');
 const scanner = document.getElementById('scanner');
@@ -13,6 +20,40 @@ const resultsDiv = document.getElementById('results');
 const dataStats = document.getElementById('data-stats');
 const offlineBanner = document.getElementById('offline-banner');
 const installBtn = document.getElementById('installBtn');
+
+
+
+
+
+
+
+// Cargar configuración desde localStorage al iniciar
+function cargarConfiguracion() {
+    const configGuardada = localStorage.getItem('pandaDashConfig');
+    if (configGuardada) {
+        config = { ...config, ...JSON.parse(configGuardada) };
+        
+        // Aplicar configuración a los switches
+        document.getElementById('toggleSonido').checked = config.sonidoHabilitado;
+        document.getElementById('toggleVibracion').checked = config.vibracionHabilitada;
+    }
+}
+
+// Guardar configuración
+function guardarConfiguracion() {
+    localStorage.setItem('pandaDashConfig', JSON.stringify(config));
+}
+
+// Función de vibración
+function vibrar(duracion = 100) {
+    if (!config.vibracionHabilitada) return;
+    
+    if (navigator.vibrate) {
+        navigator.vibrate(duracion);
+    }
+}
+
+
 
 
 
@@ -314,42 +355,186 @@ async function subirFotoCapturada(blob) {
   }
 }
 
-// Funciones para sonidos de feedback
+// Modificar las funciones de sonido para respetar la configuración
 function playSuccessSound() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-    const osc = ctx.createOscillator(); 
-    const gainNode = ctx.createGain(); 
-    osc.type = "sine"; 
-    osc.frequency.value = 800; 
-    gainNode.gain.value = 1; 
-    osc.connect(gainNode); 
-    gainNode.connect(ctx.destination); 
-    osc.start(); 
-    osc.stop(ctx.currentTime + 0.25);
-  } catch (e) {
-    console.log("Error al reproducir sonido de éxito:", e);
-  }
+    if (!config.sonidoHabilitado) return;
+    
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+        const osc = ctx.createOscillator(); 
+        const gainNode = ctx.createGain(); 
+        osc.type = "sine"; 
+        osc.frequency.value = 800; 
+        gainNode.gain.value = 1; 
+        osc.connect(gainNode); 
+        gainNode.connect(ctx.destination); 
+        osc.start(); 
+        osc.stop(ctx.currentTime + 0.25);
+        
+        // Vibrar al éxito
+        vibrar(50);
+    } catch (e) {
+        console.log("Error al reproducir sonido de éxito:", e);
+    }
 }
 
 function playErrorSound() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-    const osc = ctx.createOscillator(); 
-    const gainNode = ctx.createGain(); 
-    osc.type = "sawtooth"; 
-    osc.frequency.setValueAtTime(300, ctx.currentTime); 
-    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5); 
-    gainNode.gain.value = 0.8; 
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); 
-    osc.connect(gainNode); 
-    gainNode.connect(ctx.destination); 
-    osc.start(); 
-    osc.stop(ctx.currentTime + 0.5);
-  } catch (e) {
-    console.log("Error al reproducir sonido de error:", e);
-  }
+    if (!config.sonidoHabilitado) return;
+    
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+        const osc = ctx.createOscillator(); 
+        const gainNode = ctx.createGain(); 
+        osc.type = "sawtooth"; 
+        osc.frequency.setValueAtTime(300, ctx.currentTime); 
+        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5); 
+        gainNode.gain.value = 0.8; 
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); 
+        osc.connect(gainNode); 
+        gainNode.connect(ctx.destination); 
+        osc.start(); 
+        osc.stop(ctx.currentTime + 0.5);
+        
+        // Vibrar al error
+        vibrar(200);
+    } catch (e) {
+        console.log("Error al reproducir sonido de error:", e);
+    }
 }
+
+
+// Funciones para mostrar/ocultar paneles
+function toggleConfigPanel() {
+    const configPanel = document.getElementById('configPanel');
+    const queueDetails = document.getElementById('queueDetails');
+    
+    if (configPanel.style.display === 'block') {
+        configPanel.style.display = 'none';
+    } else {
+        configPanel.style.display = 'block';
+        queueDetails.style.display = 'none';
+    }
+}
+
+function toggleQueueDetails() {
+    const queueDetails = document.getElementById('queueDetails');
+    const configPanel = document.getElementById('configPanel');
+    
+    if (queueDetails.style.display === 'block') {
+        queueDetails.style.display = 'none';
+    } else {
+        queueDetails.style.display = 'block';
+        configPanel.style.display = 'none';
+    }
+}
+
+// Función para cargar datos sin factura desde configuración
+async function cargarDatosSinFacturaDesdeConfig() {
+    const btn = document.getElementById('btnConfigCargarSinFactura');
+    const statusDiv = document.getElementById('statusConfigSinFactura');
+    
+    if (!btn || !statusDiv) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> Cargando...';
+    statusDiv.className = 'loading';
+    
+    try {
+        const resultado = await sheetsSinFactura.obtenerDatosSinFactura();
+        
+        if (resultado.success) {
+            // Combinar con los datos existentes
+            database = [...database, ...resultado.data];
+            cacheData(database);
+            
+            statusDiv.className = 'ready';
+            statusDiv.innerHTML = `<i class="fas fa-check-circle"></i> +${resultado.data.length} registros`;
+            btn.innerHTML = '<i class="fas fa-check"></i> Cargados';
+            
+            // Actualizar estadísticas
+            dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}`;
+            
+            // Cerrar panel después de éxito
+            setTimeout(() => {
+                document.getElementById('configPanel').style.display = 'none';
+            }, 2000);
+            
+        } else {
+            throw new Error(resultado.error);
+        }
+    } catch (error) {
+        console.error('Error cargando datos sin factura:', error);
+        statusDiv.className = 'error';
+        statusDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error`;
+        btn.innerHTML = '<i class="fas fa-redo"></i> Reintentar';
+        btn.disabled = false;
+    }
+}
+
+// Función para limpiar cache
+function limpiarCache() {
+    localStorage.removeItem('pdaScannerCache');
+    localStorage.removeItem('pdaUploadQueue');
+    sheetsAPI.clearCache();
+    sheetsSinFactura.clearCache();
+    
+    // Mostrar notificación
+    mostrarNotificacion('success', 'Cache limpiado', 'Todos los datos cacheados han sido eliminados');
+    
+    // Recargar datos
+    setTimeout(() => {
+        loadDataFromServer();
+    }, 1000);
+}
+
+// Inicializar eventos de configuración
+function inicializarConfiguracion() {
+    // Cargar configuración guardada
+    cargarConfiguracion();
+    
+    // Eventos para los switches
+    document.getElementById('toggleSonido').addEventListener('change', function(e) {
+        config.sonidoHabilitado = e.target.checked;
+        guardarConfiguracion();
+    });
+    
+    document.getElementById('toggleVibracion').addEventListener('change', function(e) {
+        config.vibracionHabilitada = e.target.checked;
+        guardarConfiguracion();
+    });
+    
+    // Evento para cerrar panel de configuración
+    document.getElementById('closeConfigPanel').addEventListener('click', function() {
+        document.getElementById('configPanel').style.display = 'none';
+    });
+    
+    // Evento para el contador (ahora abre configuración)
+    document.getElementById('queueCounter').addEventListener('click', toggleConfigPanel);
+    
+    // Cerrar paneles al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        const configPanel = document.getElementById('configPanel');
+        const queueDetails = document.getElementById('queueDetails');
+        const queueCounter = document.getElementById('queueCounter');
+        
+        if (configPanel.style.display === 'block' && 
+            e.target !== configPanel && 
+            !configPanel.contains(e.target) &&
+            e.target !== queueCounter) {
+            configPanel.style.display = 'none';
+        }
+        
+        if (queueDetails.style.display === 'block' && 
+            e.target !== queueDetails && 
+            !queueDetails.contains(e.target) &&
+            e.target !== queueCounter) {
+            queueDetails.style.display = 'none';
+        }
+    });
+}
+
 
 // Inicialización al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
@@ -1204,6 +1389,7 @@ installBtn.addEventListener('click', async () => {
 
 // Bloqueo de zoom con JavaScript (para mayor seguridad)
 document.addEventListener('DOMContentLoaded', function() {
+    inicializarConfiguracion();
   // Prevenir gestos de zoom
   document.addEventListener('gesturestart', function(e) {
     e.preventDefault();
