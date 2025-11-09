@@ -70,6 +70,47 @@ function guardarConfiguracion() {
     localStorage.setItem('pandaDashConfig', JSON.stringify(config));
 }
 
+// ✅ NUEVO: Subida directa como respaldo (evita la cola si hay problemas)
+async function subidaDirectaDeRespaldo(jobData) {
+  console.log('🔄 Intentando subida DIRECTA de respaldo...');
+  
+  try {
+    const formData = new FormData();
+    Object.keys(jobData).forEach(key => {
+      if (jobData[key] && key !== 'esSinFactura') {
+        formData.append(key, jobData[key]);
+      }
+    });
+    
+    // Timeout más corto para respaldo
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    
+    const response = await fetch(API_URL_POST, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Error del servidor');
+    }
+    
+    console.log('✅ SUBIDA DIRECTA EXITOSA');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Subida directa fallida:', error);
+    return false;
+  }
+}
+
 // Función de vibración mejorada
 function vibrar(duracion = 100) {
     if (!config.vibracionHabilitada) return;
@@ -307,25 +348,31 @@ function aplicarMarcaDeAgua(ctx, width, height) {
 }
 
 // Función para subir la foto capturada
-// Función para subir la foto capturada
+// ✅ MEJORADO: Subir foto capturada con múltiples estrategias
 async function subirFotoCapturada(blob) {
-  if (!currentDocumentData || !blob) {
+  if (!currentDocumentData) {
     console.error("No hay datos disponibles para subir");
-    actualizarEstado('error', '<i class="fas fa-exclamation-circle"></i> Error: No hay datos para subir');
     return;
   }
   
   const { documento, lote, referencia, cantidad, factura, nit, btnElement, esSinFactura } = currentDocumentData;
   
   try {
-    // ✅ CORRECCIÓN: Actualizar estado inmediatamente
-    actualizarEstado('loading', '<i class="fas fa-cloud-upload-alt"></i> Preparando foto...');
+    // ✅ CONVERTIR a base64 de manera robusta
+    let base64Data;
+    try {
+      base64Data = await blobToBase64(blob);
+      if (!base64Data || base64Data.length < 100) {
+        throw new Error('Datos base64 inválidos');
+      }
+    } catch (convertError) {
+      console.error('❌ Error convirtiendo imagen:', convertError);
+      throw new Error('No se pudo procesar la imagen');
+    }
     
-    // Convertir blob a base64
-    const base64Data = await blobToBase64(blob);
     const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
     
-    // Crear objeto de trabajo para la cola
+    // Crear objeto de trabajo
     const jobData = {
       documento: documento,
       lote: lote,
@@ -340,16 +387,33 @@ async function subirFotoCapturada(blob) {
       esSinFactura: esSinFactura
     };
     
-    // Verificar que uploadQueue existe
-    if (typeof window.uploadQueue === 'undefined') {
-      throw new Error("El sistema de colas no está disponible. Recarga la página.");
+    // ✅ ESTRATEGIA 1: Intentar subida directa primero
+    console.log('🔄 Intentando subida directa...');
+    const exitoDirecto = await subidaDirectaDeRespaldo(jobData);
+    
+    if (exitoDirecto) {
+      // ✅ ÉXITO INMEDIATO
+      console.log('✅ Foto subida DIRECTAMENTE con éxito');
+      actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA');
+      
+      if (btnElement) {
+        btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+        btnElement.style.backgroundColor = '#28a745';
+        btnElement.disabled = true;
+      }
+      
+      playSuccessSound();
+      return;
     }
     
-    // ✅ CORRECCIÓN: Actualizar estado antes de agregar a cola
-    actualizarEstado('processed', '<i class="fas fa-check-circle"></i> Foto en cola para subir');
+    // ✅ ESTRATEGIA 2: Usar el sistema de colas (reintentos ilimitados)
+    console.log('🔄 Usando sistema de colas con reintentos ilimitados...');
     
-    // Agregar a la cola
-    window.uploadQueue.addJob({
+    if (typeof window.uploadQueue === 'undefined') {
+      throw new Error("Sistema de colas no disponible");
+    }
+    
+    const jobId = window.uploadQueue.addJob({
       type: 'photo',
       data: jobData,
       factura: factura,
@@ -357,44 +421,44 @@ async function subirFotoCapturada(blob) {
       esSinFactura: esSinFactura
     });
     
-    // Actualizar botón de entrega si existe
+    console.log(`✅ Trabajo agregado a cola con ID: ${jobId}`);
+    
+    // Actualizar UI inmediatamente
+    actualizarEstado('processed', '<i class="fas fa-check-circle"></i> Foto en cola - Se subirá automáticamente');
+    
     if (btnElement) {
       btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> EN COLA...';
       btnElement.style.backgroundColor = '#4cc9f0';
-      
-      // Si es sin factura, actualizamos el botón inmediatamente
-      if (esSinFactura) {
-        setTimeout(() => {
-          btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-          btnElement.style.backgroundColor = '#28a745';
-          btnElement.disabled = true;
-          
-          // ✅ CORRECCIÓN: Actualizar estado global
-          actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
-        }, 1000);
-      }
     }
     
-    // Reproducir sonido de éxito
     playSuccessSound();
     
-    // ✅ CORRECCIÓN: Limpiar datos temporales
-    currentDocumentData = null;
-    photoBlob = null;
+    // ✅ ESTRATEGIA 3: Forzar procesamiento inmediato
+    setTimeout(() => {
+      if (window.uploadQueue) {
+        window.uploadQueue.processQueue();
+      }
+    }, 1000);
     
   } catch (error) {
-    console.error("Error al preparar foto:", error);
+    console.error("❌ Error CRÍTICO al preparar foto:", error);
     actualizarEstado('error', `<i class="fas fa-exclamation-circle"></i> Error: ${error.message}`);
     
-    // Reproducir sonido de error
-    playErrorSound();
-    
-    // ✅ CORRECCIÓN: Restaurar botón si hay error
+    // Restaurar botón para reintento manual
     if (btnElement) {
-      btnElement.innerHTML = '<i class="fas fa-truck"></i> CONFIRMAR ENTREGA';
-      btnElement.style.backgroundColor = '';
+      btnElement.innerHTML = '<i class="fas fa-redo"></i> REINTENTAR';
+      btnElement.style.backgroundColor = '#f8961e';
       btnElement.disabled = false;
+      btnElement.onclick = function() {
+        procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement);
+      };
     }
+    
+    playErrorSound();
+  } finally {
+    // Limpiar datos temporales
+    currentDocumentData = null;
+    photoBlob = null;
   }
 }
 
