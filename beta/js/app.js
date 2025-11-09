@@ -56,83 +56,12 @@ function vibrar(duracion = 100) {
 
 
 
-
-
-
-
-// Función para cargar datos sin factura
+// Modificar la función original para que también use la misma lógica
 async function cargarDatosSinFactura() {
-    const btn = document.getElementById('btnCargarSinFactura');
-    const statusDiv = document.getElementById('statusSinFactura');
-    const statusPrincipal = document.getElementById('status');
-    
-    if (!btn || !statusDiv) return;
-    
-    // Deshabilitar botón y mostrar estado de carga
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> CARGANDO ENTREGAS SIN FACTURA...';
-    statusDiv.style.display = 'block';
-    statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> Cargando entregas sin factura...';
-    statusDiv.className = 'loading';
-    
-    // Actualizar estado principal
-    statusPrincipal.className = 'loading';
-    statusPrincipal.innerHTML = '<i class="fas fa-truck-loading"></i> CARGANDO ENTREGAS SIN FACTURA...';
-    
-    try {
-        console.log('🔄 Iniciando carga de datos sin factura...');
-        const resultado = await sheetsSinFactura.obtenerDatosSinFactura();
-        
-        if (resultado.success) {
-            // Combinar con los datos existentes
-            const datosPrevios = database.length;
-            database = [...database, ...resultado.data];
-            cacheData(database);
-            
-            // Actualizar UI
-            statusDiv.className = 'ready';
-            statusDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${resultado.data.length} entregas sin factura cargadas correctamente`;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGAS SIN FACTURA CARGADAS';
-            btn.style.backgroundColor = '#28a745';
-            
-            statusPrincipal.className = 'ready';
-            statusPrincipal.innerHTML = `<i class="fas fa-check-circle"></i> SISTEMA ACTUALIZADO: +${resultado.data.length} sin factura`;
-            
-            // Actualizar estadísticas
-            dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros totales | ${new Date().toLocaleTimeString()}`;
-            
-            console.log(`✅ Datos sin factura cargados: ${resultado.data.length} registros nuevos`);
-            console.log(`📊 Total de registros: ${datosPrevios} → ${database.length}`);
-            
-            // Reproducir sonido de éxito
-            playSuccessSound();
-            
-            // Si hay un QR escaneado actualmente, reprocesarlo para mostrar los nuevos datos
-            if (currentQRParts) {
-                console.log('🔄 Reprocesando QR actual con nuevos datos...');
-                processQRCodeParts(currentQRParts);
-            }
-            
-        } else {
-            throw new Error(resultado.error || 'Error desconocido al cargar datos sin factura');
-        }
-    } catch (error) {
-        console.error('❌ Error cargando datos sin factura:', error);
-        
-        // Actualizar UI con error
-        statusDiv.className = 'error';
-        statusDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${error.message}`;
-        btn.innerHTML = '<i class="fas fa-redo"></i> REINTENTAR CARGA';
-        btn.style.backgroundColor = '';
-        btn.disabled = false;
-        
-        statusPrincipal.className = 'error';
-        statusPrincipal.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR AL CARGAR SIN FACTURA';
-        
-        // Reproducir sonido de error
-        playErrorSound();
-    }
+    await cargarDatosSinFacturaDesdeConfig();
 }
+
+
 
 
 
