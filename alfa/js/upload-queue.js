@@ -16,6 +16,7 @@ const UPLOAD_QUEUE_KEY = 'pdaUploadQueue';
 // Clase para gestionar la cola de carga con reintentos ilimitados
 class UploadQueue {
   constructor() {
+    console.log('🔄 Inicializando UploadQueue...');
     this.queue = this.loadQueue();
     this.isProcessing = false;
     this.initEventListeners();
@@ -23,21 +24,31 @@ class UploadQueue {
     this.processQueue(); // Intentar procesar cola al iniciar
     
     // Inicializar eventos para el contador de cola
-    document.getElementById('queueCounter').addEventListener('click', this.toggleQueueDetails.bind(this));
-    document.getElementById('closeQueueDetails').addEventListener('click', this.hideQueueDetails.bind(this));
+    const queueCounter = document.getElementById('queueCounter');
+    const closeQueueDetails = document.getElementById('closeQueueDetails');
+    
+    if (queueCounter) {
+      queueCounter.addEventListener('click', this.toggleQueueDetails.bind(this));
+    }
+    
+    if (closeQueueDetails) {
+      closeQueueDetails.addEventListener('click', this.hideQueueDetails.bind(this));
+    }
     
     // Cerrar detalles al hacer clic fuera
     document.addEventListener('click', (e) => {
       const queueDetails = document.getElementById('queueDetails');
       const queueCounter = document.getElementById('queueCounter');
       
-      if (queueDetails.style.display === 'block' && 
+      if (queueDetails && queueDetails.style.display === 'block' && 
           e.target !== queueDetails && 
           !queueDetails.contains(e.target) &&
           e.target !== queueCounter) {
         this.hideQueueDetails();
       }
     });
+    
+    console.log('✅ UploadQueue inicializado con', this.queue.length, 'elementos en cola');
   }
   
   loadQueue() {
@@ -51,10 +62,15 @@ class UploadQueue {
   }
 
   saveQueue() {
-    localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(this.queue));
+    try {
+      localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(this.queue));
+    } catch (e) {
+      console.error("Error al guardar la cola:", e);
+    }
   }
   
   addJob(job) {
+    console.log('📦 Agregando trabajo a la cola:', job.type, job.factura);
     this.queue.push({
       ...job,
       retries: 0,
@@ -69,6 +85,7 @@ class UploadQueue {
   initEventListeners() {
     window.addEventListener('online', () => {
       if (this.queue.length > 0) {
+        console.log('🌐 Conexión restablecida - Procesando cola...');
         this.processQueue();
       }
     });
@@ -78,11 +95,15 @@ class UploadQueue {
     const counter = document.getElementById('queueCounter');
     const queueItemsList = document.getElementById('queueItemsList');
     
+    if (!counter) return;
+    
     if (this.queue.length === 0) {
       counter.textContent = '0';
       counter.className = 'empty';
       counter.title = 'No hay elementos en cola';
-      queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
+      if (queueItemsList) {
+        queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
+      }
     } else {
       counter.textContent = this.queue.length;
       counter.className = this.isProcessing ? 'processing' : '';
@@ -95,6 +116,8 @@ class UploadQueue {
   
   updateQueueItemsList() {
     const queueItemsList = document.getElementById('queueItemsList');
+    
+    if (!queueItemsList) return;
     
     if (this.queue.length === 0) {
       queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
@@ -186,7 +209,7 @@ class UploadQueue {
                 );
                 
                 if (confirmado) {
-                    console.log(`Trabajo confirmado, eliminando de cola: ${documento}-${lote}`);
+                    console.log(`✅ Trabajo confirmado, eliminando de cola: ${documento}-${lote}`);
                     return true; // Indicar que debe ser eliminado
                 }
             }
@@ -205,6 +228,8 @@ class UploadQueue {
     
     this.isProcessing = true;
     this.updateQueueCounter();
+    
+    console.log('🔄 Procesando cola con', this.queue.length, 'elementos...');
     
     while (this.queue.length > 0 && navigator.onLine) {
         const job = this.queue[0];
@@ -229,17 +254,21 @@ class UploadQueue {
             this.queue.shift();
             this.saveQueue();
             this.updateQueueCounter();
+            
+            console.log('✅ Trabajo procesado exitosamente:', job.type, job.factura);
         } catch (error) {
-            console.error("Error al procesar trabajo:", error);
+            console.error("❌ Error al procesar trabajo:", error);
             job.retries++;
             job.lastError = error.message;
             job.lastAttempt = new Date().toISOString();
             
             if (CONFIG.MAX_RETRIES > 0 && job.retries >= CONFIG.MAX_RETRIES) {
+                console.log('🚫 Trabajo removido por máximo de reintentos:', job.factura);
                 this.queue.shift();
             } else {
                 job.status = 'retrying';
                 this.queue.push(this.queue.shift());
+                console.log(`🔄 Trabajo reintentado (${job.retries}):`, job.factura);
             }
             
             this.saveQueue();
@@ -250,9 +279,11 @@ class UploadQueue {
     
     this.isProcessing = false;
     this.updateQueueCounter();
+    console.log('⏹️ Procesamiento de cola finalizado');
   }
   
   async processPhotoJob(job) {
+    console.log('📤 Procesando trabajo de foto:', job.factura);
     const formData = new FormData();
     Object.keys(job.data).forEach(key => {
       // No enviar la propiedad esSinFactura al servidor
@@ -287,6 +318,8 @@ class UploadQueue {
         btnElement.disabled = true;
       }
     }
+    
+    console.log('✅ Foto subida exitosamente:', job.factura);
   }
   
   async processDataJob(job) {
@@ -295,8 +328,9 @@ class UploadQueue {
   }
 }
 
-// Inicializar la cola de carga
-const uploadQueue = new UploadQueue();
+// ✅ CORRECCIÓN: Hacer uploadQueue global
+window.uploadQueue = new UploadQueue();
+console.log('✅ UploadQueue inicializado y disponible globalmente');
 
 // Función para convertir Blob a Base64
 function blobToBase64(blob) {
@@ -307,3 +341,6 @@ function blobToBase64(blob) {
     reader.readAsDataURL(blob);
   });
 }
+
+// ✅ Hacer la función disponible globalmente
+window.blobToBase64 = blobToBase64;
