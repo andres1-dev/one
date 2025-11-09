@@ -2,8 +2,8 @@
   "name": "PandaDash",
   "short_name": "PandaDash",
   "description": "Sistema de gestión y escaneo de códigos QR para entregas",
-  "start_url": "/one/beta/",
-  "scope": "/one/beta/",
+  "start_url": "/one/alfa/",
+  "scope": "/one/alfa/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
@@ -12,7 +12,7 @@
   "dir": "ltr",
   "categories": ["business", "productivity", "utilities"],
   "icons": [
-    { "src": "/one/beta/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/one/beta/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "/one/alfa/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/one/alfa/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
