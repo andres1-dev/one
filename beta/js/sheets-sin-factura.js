@@ -1,9 +1,9 @@
 // Configuración de la API de Google Sheets para datos SIN FACTURA
 // const SHEETS_API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
-const API_BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
+//const API_BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 // IDs de las hojas de cálculo para datos SIN FACTURA
-const SPREADSHEET_IDS_SF = {
+// const SPREADSHEET_IDS_SF = {
     DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
     DATA: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE",
     REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
