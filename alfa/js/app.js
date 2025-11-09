@@ -44,6 +44,27 @@ function cargarConfiguracion() {
     }
 }
 
+// Función para limpiar estado de procesamiento
+function limpiarEstadoProcesamiento() {
+  const statusDiv = document.getElementById('status');
+  if (statusDiv) {
+    statusDiv.className = 'ready';
+    statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> SISTEMA LISTO';
+  }
+  
+  // Limpiar datos temporales
+  currentDocumentData = null;
+  photoBlob = null;
+}
+
+// Llamar esta función cuando se cierre la cámara o haya errores
+document.addEventListener('click', function(e) {
+  // Si se hace clic fuera de los elementos de cámara, limpiar estado
+  if (!e.target.closest('#cameraModal') && !e.target.closest('.delivery-btn')) {
+    setTimeout(limpiarEstadoProcesamiento, 5000); // Limpiar después de 5 segundos
+  }
+});
+
 // Guardar configuración
 function guardarConfiguracion() {
     localStorage.setItem('pandaDashConfig', JSON.stringify(config));
