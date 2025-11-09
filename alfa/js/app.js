@@ -92,12 +92,12 @@ async function verificarConfirmacionEnTiempoReal(documento, lote, referencia, ca
     }
 }
 
-// Función para detener la cola cuando un elemento está confirmado (NUEVA)
+// Función para detener la cola cuando un elemento está confirmado
 function detenerColaParaElemento(documento, lote, referencia, cantidad, nit) {
     const clave = `${documento}_${lote}_${referencia}_${cantidad}_${nit}`;
     
-    // Buscar y eliminar el trabajo de la cola si existe
-    if (window.uploadQueue && window.uploadQueue.queue) {
+    // ✅ CORRECCIÓN: Usar window.uploadQueue
+    if (typeof window.uploadQueue !== 'undefined' && window.uploadQueue.queue) {
         window.uploadQueue.queue = window.uploadQueue.queue.filter(job => {
             if (job.type === 'photo') {
                 const jobClave = `${job.data.documento}_${job.data.lote}_${job.data.referencia}_${job.data.cantidad}_${job.data.nit}`;
@@ -283,8 +283,13 @@ async function subirFotoCapturada(blob) {
       fotoNombre: nombreArchivo,
       fotoTipo: 'image/jpeg',
       timestamp: new Date().toISOString(),
-      esSinFactura: esSinFactura // Pasar esta propiedad a la cola
+      esSinFactura: esSinFactura
     };
+    
+    // ✅ CORRECCIÓN: Usar window.uploadQueue
+    if (typeof window.uploadQueue === 'undefined') {
+      throw new Error("El sistema de colas no está disponible. Recarga la página.");
+    }
     
     // Agregar a la cola
     window.uploadQueue.addJob({
@@ -318,7 +323,7 @@ async function subirFotoCapturada(blob) {
     
   } catch (error) {
     console.error("Error al preparar foto:", error);
-    statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen</span>';
+    statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen: ' + error.message + '</span>';
     
     // Reproducir sonido de error
     playErrorSound();
@@ -371,17 +376,19 @@ function playErrorSound() {
 }
 
 // Actualizar panel de cola en configuración
+// Actualizar panel de cola en configuración
 function actualizarColaEnConfiguracion() {
     const colaSection = document.getElementById('configColaSection');
     const queueItemsList = document.getElementById('configQueueItemsList');
     
-    if (!window.uploadQueue || !window.uploadQueue.queue || window.uploadQueue.queue.length === 0) {
-        colaSection.style.display = 'none';
+    // ✅ CORRECCIÓN: Usar window.uploadQueue
+    if (typeof window.uploadQueue === 'undefined' || !window.uploadQueue.queue || window.uploadQueue.queue.length === 0) {
+        if (colaSection) colaSection.style.display = 'none';
         return;
     }
     
-    colaSection.style.display = 'block';
-    queueItemsList.innerHTML = '';
+    if (colaSection) colaSection.style.display = 'block';
+    if (queueItemsList) queueItemsList.innerHTML = '';
     
     window.uploadQueue.queue.forEach((item, index) => {
         const itemElement = document.createElement('div');
@@ -412,7 +419,9 @@ function actualizarColaEnConfiguracion() {
             ${statusInfo}
         `;
         
-        queueItemsList.appendChild(itemElement);
+        if (queueItemsList) {
+            queueItemsList.appendChild(itemElement);
+        }
     });
 }
 
@@ -430,6 +439,11 @@ async function forzarCargaDatosSinFactura() {
     statusDiv.className = 'loading';
     
     try {
+        // ✅ CORRECCIÓN: Verificar que sheetsSinFactura existe
+        if (typeof sheetsSinFactura === 'undefined') {
+            throw new Error("El módulo de datos sin factura no está disponible");
+        }
+        
         const resultado = await sheetsSinFactura.obtenerDatosSinFactura();
         
         if (resultado.success) {
