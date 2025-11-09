@@ -85,6 +85,36 @@ function vibrar(duracion = 100) {
     }
 }
 
+// ✅ AGREGAR en app.js - Verificación en tiempo real antes de procesar entrega
+async function verificarEstadoFacturaEnTiempoReal(factura) {
+    if (!factura || factura.trim() === '') {
+        return { confirmado: false, existe: false };
+    }
+    
+    try {
+        console.log(`🔄 Verificando estado en tiempo real de factura: ${factura}`);
+        
+        const resultado = await sheetsAPI.consultarFacturaEnTiempoReal(factura);
+        
+        if (resultado.existe) {
+            console.log(`✅ FACTURA CONFIRMADA: ${factura} ya existe en SOPORTES`);
+            playSuccessSound();
+        } else {
+            console.log(`📝 Factura pendiente: ${factura} no encontrada en SOPORTES`);
+        }
+        
+        return resultado;
+        
+    } catch (error) {
+        console.error('❌ Error en verificación en tiempo real:', error);
+        return {
+            confirmado: false,
+            existe: false,
+            error: error.message
+        };
+    }
+}
+
 // Función para mostrar notificaciones
 function mostrarNotificacion(tipo, titulo, mensaje) {
     console.log(`[${tipo.toUpperCase()}] ${titulo}: ${mensaje}`);
@@ -134,50 +164,137 @@ function detenerColaParaElemento(documento, lote, referencia, cantidad, nit) {
     }
 }
 
-// Función para procesar entregas
-// Función para procesar entregas - CORREGIDA
+
+// ✅ MODIFICAR la función procesarEntrega para incluir verificación en tiempo real
 function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
-  // Verificar si la entrega no tiene factura y manejarlo apropiadamente
-  const esSinFactura = !factura || factura.trim() === "";
-  
-  // ✅ CORRECCIÓN: Guardar datos incluyendo referencia al botón
-  currentDocumentData = {
-    documento: documento,
-    lote: lote || '',
-    referencia: referencia || '',
-    cantidad: parseFloat(cantidad) || 0,
-    factura: factura || '',
-    nit: nit || '',
-    btnElement: btnElement,
-    esSinFactura: esSinFactura,
-    fotoBase64: null // Inicializar como null
-  };
-  
-  // Crear un input de tipo file temporal para capturar fotos
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = 'image/*';
-  fileInput.capture = 'environment'; // Usar cámara trasera por defecto
-  
-  // Agregar evento para procesar la imagen cuando se capture
-  fileInput.addEventListener('change', function(e) {
-    if (e.target.files && e.target.files[0]) {
-      procesarImagenCapturada(e.target.files[0]);
-    } else {
-      // ✅ CORRECCIÓN: Limpiar estado si se cancela
-      limpiarEstadoProcesamiento();
+    // Verificar si la entrega no tiene factura y manejarlo apropiadamente
+    const esSinFactura = !factura || factura.trim() === "";
+    
+    // ✅ VERIFICACIÓN EN TIEMPO REAL ANTES DE PROCEDER
+    verificarEstadoFacturaEnTiempoReal(factura)
+        .then(resultado => {
+            if (resultado.confirmado) {
+                // ✅ SI YA ESTÁ CONFIRMADA, ACTUALIZAR UI INMEDIATAMENTE
+                console.log(`🚫 Factura ${factura} YA CONFIRMADA - Cancelando proceso`);
+                
+                // Actualizar el botón inmediatamente
+                if (btnElement) {
+                    btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+                    btnElement.style.backgroundColor = '#28a745';
+                    btnElement.disabled = true;
+                }
+                
+                // Actualizar estado general
+                actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA YA CONFIRMADA');
+                
+                // Reproducir sonido de éxito
+                playSuccessSound();
+                
+                return; // Detener el proceso aquí
+            }
+            
+            // ✅ SI NO ESTÁ CONFIRMADA, CONTINUAR CON EL PROCESO NORMAL
+            console.log(`📸 Procediendo con captura para factura: ${factura}`);
+            
+            // Guardar datos para la captura
+            currentDocumentData = {
+                documento: documento,
+                lote: lote || '',
+                referencia: referencia || '',
+                cantidad: parseFloat(cantidad) || 0,
+                factura: factura || '',
+                nit: nit || '',
+                btnElement: btnElement,
+                esSinFactura: esSinFactura,
+                fotoBase64: null
+            };
+            
+            // Crear input de archivo para capturar foto
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.capture = 'environment';
+            
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    // ✅ VERIFICAR NUEVAMENTE ANTES DE PROCESAR LA IMAGEN
+                    verificarEstadoFacturaEnTiempoReal(factura)
+                        .then(verificacionFinal => {
+                            if (verificacionFinal.confirmado) {
+                                // Si se confirmó mientras se seleccionaba la foto
+                                console.log(`🚫 Factura confirmada durante selección - Cancelando`);
+                                if (btnElement) {
+                                    btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
+                                    btnElement.style.backgroundColor = '#28a745';
+                                    btnElement.disabled = true;
+                                }
+                                actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA');
+                                playSuccessSound();
+                            } else {
+                                // Proceder con el procesamiento de la imagen
+                                procesarImagenCapturada(e.target.files[0]);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error en verificación final:', error);
+                            // Continuar con el procesamiento a pesar del error
+                            procesarImagenCapturada(e.target.files[0]);
+                        });
+                } else {
+                    limpiarEstadoProcesamiento();
+                }
+            });
+            
+            fileInput.addEventListener('cancel', function() {
+                console.log("Captura de foto cancelada");
+                limpiarEstadoProcesamiento();
+            });
+            
+            fileInput.click();
+            
+        })
+        .catch(error => {
+            console.error('Error en verificación inicial:', error);
+            // En caso de error, continuar con el proceso normal
+            continuarConProcesamientoNormal();
+        });
+    
+    // Función para continuar con procesamiento normal en caso de error
+    function continuarConProcesamientoNormal() {
+        currentDocumentData = {
+            documento: documento,
+            lote: lote || '',
+            referencia: referencia || '',
+            cantidad: parseFloat(cantidad) || 0,
+            factura: factura || '',
+            nit: nit || '',
+            btnElement: btnElement,
+            esSinFactura: esSinFactura,
+            fotoBase64: null
+        };
+        
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.capture = 'environment';
+        
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                procesarImagenCapturada(e.target.files[0]);
+            } else {
+                limpiarEstadoProcesamiento();
+            }
+        });
+        
+        fileInput.addEventListener('cancel', function() {
+            console.log("Captura de foto cancelada");
+            limpiarEstadoProcesamiento();
+        });
+        
+        fileInput.click();
     }
-  });
-  
-  // Agregar evento para cuando se cancela (en móviles)
-  fileInput.addEventListener('cancel', function() {
-    console.log("Captura de foto cancelada");
-    limpiarEstadoProcesamiento();
-  });
-  
-  // Simular clic para abrir la cámara del dispositivo
-  fileInput.click();
 }
+
 // Función para procesar la imagen capturada
 function procesarImagenCapturada(archivo) {
   if (!archivo) {
