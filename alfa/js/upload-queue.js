@@ -220,67 +220,60 @@ class UploadQueue {
     return false;
   }
 
-  // ✅ CORRECCIÓN: ProcessQueue mejorado
-  // ✅ MEJORAR processQueue para mayor confiabilidad
+// ✅ MODIFICAR processQueue para manejar saltos
 async processQueue() {
-  if (this.isProcessing) {
-    return;
-  }
-  
-  this.isProcessing = true;
-  this.updateQueueCounter();
-  
-  console.log(`🔄 Procesando cola con ${this.queue.length} elementos...`);
-  
-  try {
-    // Procesar trabajos mientras haya elementos y estemos online
-    while (this.queue.length > 0) {
-      const job = this.queue[0];
-      
-      try {
-        console.log(`🎯 Procesando trabajo ${job.id} (reintento ${job.retries})...`);
-        
-        // ✅ VERIFICAR SI YA ESTÁ CONFIRMADO ANTES DE PROCESAR
-        const estaConfirmado = await this.verificarYDetenerSiConfirmado(job);
-        if (estaConfirmado) {
-          console.log(`✅ Trabajo ${job.id} ya confirmado, eliminando de cola`);
-          this.queue.shift();
-          this.saveQueue();
-          this.updateQueueCounter();
-          continue;
-        }
-        
-        // ✅ PROCESAR SEGÚN EL TIPO
-        if (job.type === 'photo') {
-          await this.processPhotoJob(job);
-        } else if (job.type === 'data') {
-          await this.processDataJob(job);
-        }
-        
-        // ✅ ÉXITO: Eliminar trabajo completado
-        console.log(`✅ Trabajo ${job.id} completado exitosamente`);
-        this.queue.shift();
-        this.saveQueue();
+    if (this.isProcessing || this.queue.length === 0) {
         this.updateQueueCounter();
-        
-      } catch (error) {
-        await this.handleJobError(job, error);
-        
-        // Si no hay conexión, salir del bucle
-        if (!navigator.onLine) {
-          console.log('🌐 Sin conexión - Pausando procesamiento...');
-          break;
-        }
-      }
+        return;
     }
-  } catch (error) {
-    console.error('❌ Error crítico en processQueue:', error);
-  } finally {
-    this.isProcessing = false;
+    
+    this.isProcessing = true;
     this.updateQueueCounter();
-  }
+    
+    console.log(`🔄 Procesando cola con ${this.queue.length} elementos...`);
+    
+    try {
+        while (this.queue.length > 0 && navigator.onLine) {
+            const job = this.queue[0];
+            
+            try {
+                console.log(`🎯 Procesando trabajo ${job.id} (reintento ${job.retries})...`);
+                
+                let resultado;
+                if (job.type === 'photo') {
+                    resultado = await this.processPhotoJob(job);
+                } else if (job.type === 'data') {
+                    resultado = await this.processDataJob(job);
+                }
+                
+                // ✅ MANEJAR CASO DE SALTO (ya confirmado)
+                if (resultado && resultado.skip) {
+                    console.log(`⏭️ Saltando trabajo ${job.id}: ${resultado.reason}`);
+                    this.queue.shift();
+                    this.saveQueue();
+                    this.updateQueueCounter();
+                    continue;
+                }
+                
+                // ✅ ÉXITO: Eliminar trabajo completado
+                console.log(`✅ Trabajo ${job.id} completado exitosamente`);
+                this.queue.shift();
+                this.saveQueue();
+                this.updateQueueCounter();
+                
+            } catch (error) {
+                await this.handleJobError(job, error);
+                break;
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error crítico en processQueue:', error);
+    } finally {
+        this.isProcessing = false;
+        this.updateQueueCounter();
+    }
 }
-
+  
 // ✅ MEJORAR manejo de errores
 async handleJobError(job, error) {
   console.error(`❌ Error en trabajo ${job.id}:`, error);
@@ -305,70 +298,90 @@ async handleJobError(job, error) {
   }
 }
   
-  // ✅ CORRECCIÓN: ProcessPhotoJob mejorado
-  async processPhotoJob(job) {
+  // ✅ MODIFICAR en upload-queue.js - Verificación antes de subir
+async processPhotoJob(job) {
+    console.log(`📤 Verificando estado antes de subir foto para ${job.factura}...`);
+    
+    // ✅ VERIFICAR EN TIEMPO REAL ANTES DE SUBIR
+    try {
+        if (typeof sheetsAPI !== 'undefined' && sheetsAPI.consultarFacturaEnTiempoReal) {
+            const verificacion = await sheetsAPI.consultarFacturaEnTiempoReal(job.factura);
+            
+            if (verificacion.confirmado) {
+                console.log(`✅ Factura ${job.factura} YA CONFIRMADA - Eliminando de cola`);
+                
+                // Actualizar UI si el elemento aún existe
+                this.updateUIAfterSuccess(job);
+                
+                // Eliminar trabajo de la cola
+                return { skip: true, reason: 'already_confirmed' };
+            }
+        }
+    } catch (error) {
+        console.log('⚠️ Error en verificación previa, continuando con subida:', error);
+        // Continuar con la subida a pesar del error de verificación
+    }
+    
+    // ✅ CONTINUAR CON SUBIDA NORMAL
     console.log(`📤 Subiendo foto para ${job.factura}...`);
     
-    // ✅ VERIFICAR datos esenciales
+    // Verificar datos esenciales
     if (!job.data.fotoBase64) {
-      throw new Error('No hay datos de imagen');
+        throw new Error('No hay datos de imagen');
     }
     
     if (!job.data.documento || !job.data.factura) {
-      throw new Error('Datos incompletos');
+        throw new Error('Datos incompletos');
     }
     
     const formData = new FormData();
     
-    // ✅ AGREGAR todos los campos necesarios
     const fields = [
-      'documento', 'lote', 'referencia', 'cantidad', 'factura', 'nit',
-      'fotoBase64', 'fotoNombre', 'fotoTipo', 'timestamp'
+        'documento', 'lote', 'referencia', 'cantidad', 'factura', 'nit',
+        'fotoBase64', 'fotoNombre', 'fotoTipo', 'timestamp'
     ];
     
     fields.forEach(field => {
-      if (job.data[field] !== undefined && job.data[field] !== null) {
-        formData.append(field, job.data[field]);
-      }
+        if (job.data[field] !== undefined && job.data[field] !== null) {
+            formData.append(field, job.data[field]);
+        }
     });
     
-    // ✅ CONFIGURACIÓN robusta de fetch
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seg timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     
     try {
-      const response = await fetch(API_URL_POST, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.message || 'Error en la respuesta del servidor');
-      }
-      
-      console.log(`✅ Foto subida exitosamente:`, result);
-      
-      // ✅ ACTUALIZAR UI si es necesario
-      this.updateUIAfterSuccess(job);
-      
+        const response = await fetch(API_URL_POST, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || 'Error en la respuesta del servidor');
+        }
+        
+        console.log(`✅ Foto subida exitosamente:`, result);
+        
+        this.updateUIAfterSuccess(job);
+        
     } catch (error) {
-      clearTimeout(timeoutId);
-      
-      if (error.name === 'AbortError') {
-        throw new Error('Timeout: La solicitud tardó demasiado');
-      }
-      throw error;
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+            throw new Error('Timeout: La solicitud tardó demasiado');
+        }
+        throw error;
     }
-  }
+}
 
   // ✅ NUEVO: Actualizar UI después de éxito
   updateUIAfterSuccess(job) {
