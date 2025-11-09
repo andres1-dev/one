@@ -85,7 +85,7 @@ function vibrar(duracion = 100) {
     }
 }
 
-// ✅ MEJORAR la función de verificación en tiempo real
+// ✅ AGREGAR en app.js - Función de verificación en tiempo real
 async function verificarEstadoFacturaEnTiempoReal(factura) {
     if (!factura || factura.trim() === '') {
         console.log('⚠️ Factura vacía - Considerando como pendiente');
