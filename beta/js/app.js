@@ -14,6 +14,90 @@ const dataStats = document.getElementById('data-stats');
 const offlineBanner = document.getElementById('offline-banner');
 const installBtn = document.getElementById('installBtn');
 
+
+
+
+
+
+// Función para agregar botón de carga sin factura
+function agregarBotonSinFactura() {
+    const resultsDiv = document.getElementById('results');
+    
+    // Crear botón si no existe
+    if (!document.getElementById('btnCargarSinFactura')) {
+        const botonHTML = `
+            <div class="result-item" style="text-align: center;">
+                <button id="btnCargarSinFactura" class="btn btn-warning" onclick="cargarDatosSinFactura()">
+                    <i class="fas fa-truck-loading"></i> CARGAR ENTREGAS SIN FACTURA
+                </button>
+                <div id="statusSinFactura" style="margin-top: 10px; display: none;"></div>
+            </div>
+        `;
+        
+        // Insertar al principio de los resultados
+        if (resultsDiv.firstChild) {
+            resultsDiv.insertBefore(createElementFromHTML(botonHTML), resultsDiv.firstChild);
+        } else {
+            resultsDiv.innerHTML = botonHTML;
+        }
+    }
+}
+
+// Función auxiliar para crear elemento desde HTML
+function createElementFromHTML(htmlString) {
+    const div = document.createElement('div');
+    div.innerHTML = htmlString.trim();
+    return div.firstChild;
+}
+
+// Función para cargar datos sin factura
+async function cargarDatosSinFactura() {
+    const btn = document.getElementById('btnCargarSinFactura');
+    const statusDiv = document.getElementById('statusSinFactura');
+    
+    if (!btn || !statusDiv) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> CARGANDO...';
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> Cargando entregas sin factura...';
+    statusDiv.className = 'loading';
+    
+    try {
+        const resultado = await sheetsSinFactura.obtenerDatosSinFactura();
+        
+        if (resultado.success) {
+            // Combinar con los datos existentes
+            database = [...database, ...resultado.data];
+            cacheData(database);
+            
+            statusDiv.className = 'ready';
+            statusDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${resultado.data.length} entregas sin factura cargadas`;
+            btn.innerHTML = '<i class="fas fa-check"></i> ENTREGAS SIN FACTURA CARGADAS';
+            
+            // Mostrar mensaje de éxito
+            mostrarNotificacion('success', 'Entregas sin factura', `${resultado.data.length} registros cargados correctamente`);
+            
+        } else {
+            throw new Error(resultado.error);
+        }
+    } catch (error) {
+        console.error('Error cargando datos sin factura:', error);
+        statusDiv.className = 'error';
+        statusDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${error.message}`;
+        btn.innerHTML = '<i class="fas fa-redo"></i> REINTENTAR CARGA';
+        btn.disabled = false;
+    }
+}
+
+
+
+
+
+
+
+
+
 // Función para procesar entregas
 function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
   // Verificar si la entrega no tiene factura y manejarlo apropiadamente
@@ -444,6 +528,12 @@ function handleDataLoadSuccess(serverData) {
   } else {
     handleDataLoadError(new Error('Formato de datos incorrecto'));
   }
+
+      // Agregar botón para cargar datos sin factura
+    setTimeout(() => {
+        agregarBotonSinFactura();
+    }, 1000);
+  
 }
 
 function handleDataLoadError(error) {
