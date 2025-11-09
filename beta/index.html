@@ -42,25 +42,20 @@
       <i class="fas fa-wifi-slash"></i> No hay conexión a internet
     </div>
 
+    <!-- BOTÓN PARA CARGAR SIN FACTURA -->
+    <div class="result-item" style="text-align: center; margin: 10px 15px; padding: 15px;">
+        <button id="btnCargarSinFactura" class="btn btn-warning btn-block" 
+                onclick="cargarDatosSinFactura()" 
+                style="padding: 12px 20px; font-size: 14px; font-weight: 600;">
+            <i class="fas fa-truck-loading"></i> CARGAR ENTREGAS SIN FACTURA
+        </button>
+        <div id="statusSinFactura" style="margin-top: 10px; display: none; font-size: 13px;"></div>
+    </div>
+    
+
     <div class="barcode-input-container">
       <i class="fa-solid fa-qrcode"></i>
       <input type="text" id="barcode" autofocus placeholder="Escanea un código QR">
-    </div>
-
-    <!-- BOTÓN PARA CARGAR ENTREGAS SIN FACTURA -->
-    <div class="result-item" style="text-align: center; background: linear-gradient(135deg, #f8961e, #e6870d); color: white; margin: 15px;">
-        <h3 style="margin-bottom: 15px; color: white;">
-            <i class="fas fa-truck"></i> ENTREGAS SIN FACTURA
-        </h3>
-        <p style="margin-bottom: 15px; font-size: 14px; opacity: 0.9;">
-            Carga adicional de entregas que no tienen factura asociada
-        </p>
-        <button id="btnCargarSinFactura" class="btn" 
-                style="background: white; color: #f8961e; border: none; font-weight: bold; padding: 12px 24px;"
-                onclick="cargarDatosSinFactura()">
-            <i class="fas fa-truck-loading"></i> CARGAR ENTREGAS SIN FACTURA
-        </button>
-        <div id="statusSinFactura" style="margin-top: 10px; font-size: 14px; display: none;"></div>
     </div>
 
     <div id="status">Iniciando Sistema...</div>
