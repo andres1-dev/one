@@ -32,6 +32,10 @@ class SheetsAPI {
         }
     }
 
+    async consultarFacturaEnTiempoReal(factura) {
+        return await consultarFacturaEnTiempoReal.call(this, factura);
+    }
+
     // Obtener SOLO datos con facturas
     async obtenerDatosCombinados() {
         try {
@@ -394,6 +398,46 @@ class SheetsAPI {
 
     clearCache() {
         this.cache.clear();
+    }
+}
+
+// ✅ AGREGAR en sheets-api.js - Consulta rápida de facturas
+async function consultarFacturaEnTiempoReal(factura) {
+    try {
+        console.log(`🔍 Consultando factura en tiempo real: ${factura}`);
+        
+        // Consultar directamente la hoja SOPORTES columna F (facturas)
+        const values = await this.fetchSheetData(SPREADSHEET_IDS.SOPORTES, 'SOPORTES!F:F');
+        
+        if (!values || values.length === 0) {
+            return { existe: false, confirmado: false };
+        }
+        
+        // Buscar la factura en la columna F (índice 0 porque F es la primera columna en el rango F:F)
+        const facturaExiste = values.some(row => {
+            if (row.length > 0) {
+                const facturaEnFila = String(row[0] || '').trim();
+                return facturaEnFila === String(factura).trim();
+            }
+            return false;
+        });
+        
+        console.log(`📋 Factura ${factura} ${facturaExiste ? 'ENCONTRADA' : 'NO encontrada'} en SOPORTES`);
+        
+        return {
+            existe: facturaExiste,
+            confirmado: facturaExiste, // Si existe en SOPORTES, está confirmada
+            timestamp: new Date().toISOString()
+        };
+        
+    } catch (error) {
+        console.error('❌ Error consultando factura en tiempo real:', error);
+        return {
+            existe: false,
+            confirmado: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        };
     }
 }
 
