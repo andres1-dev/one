@@ -863,3 +863,191 @@ h1 {
   font-style: italic;
   padding: 10px;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Panel de configuración */
+#configPanel {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 300px;
+    max-height: 400px;
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 15px;
+    overflow-y: auto;
+    z-index: 1001;
+    display: none;
+    font-size: 14px;
+}
+
+#configPanel h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--primary);
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+#configPanel h3 i {
+    cursor: pointer;
+    color: var(--gray);
+}
+
+.config-section {
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+}
+
+.config-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.config-section h4 {
+    margin: 0 0 10px 0;
+    color: var(--primary-dark);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-item {
+    margin-bottom: 10px;
+}
+
+.config-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Switches de configuración */
+.config-switch {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 10px;
+}
+
+.config-switch input {
+    display: none;
+}
+
+.config-slider {
+    width: 40px;
+    height: 20px;
+    background-color: var(--gray-light);
+    border-radius: 20px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.config-slider:before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: white;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.config-switch input:checked + .config-slider {
+    background-color: var(--success);
+}
+
+.config-switch input:checked + .config-slider:before {
+    transform: translateX(20px);
+}
+
+.config-label {
+    font-size: 13px;
+    color: var(--dark);
+    font-weight: 500;
+}
+
+/* Estados del contador con ícono de configuración */
+#queueCounter {
+    position: fixed;
+    top: 25px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+#queueCounter:hover {
+    transform: scale(1.1);
+}
+
+#queueCounter.empty {
+    background-color: var(--gray);
+}
+
+#queueCounter.processing {
+    background-color: var(--warning);
+    animation: pulse 1.5s infinite;
+}
+
+#queueCounter i {
+    font-size: 18px;
+}
+
+/* Botones en configuración */
+#configPanel .btn {
+    font-size: 12px;
+    padding: 8px 12px;
+}
+
+#statusConfigSinFactura {
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 11px;
+    text-align: center;
+}
+
+#statusConfigSinFactura.loading {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+}
+
+#statusConfigSinFactura.ready {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+#statusConfigSinFactura.error {
+    background-color: rgba(247, 37, 133, 0.1);
+    color: #f72585;
+}
