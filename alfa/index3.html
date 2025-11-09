@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="PandaDash" />
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <title>PandaDash</title>
+  
+  <style>
+    /* ✅ Dynamic Island Styles */
+    :root {
+      --island-bg: linear-gradient(180deg, #4361ee, #3a56d4);
+      --island-color: #ffffff;
+      --island-shadow: 0 8px 32px rgba(67, 97, 238, 0.3);
+      --transition: cubic-bezier(0.4, 0.9, 0.4, 1);
+    }
+
+    .dynamic-island {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--island-bg);
+      color: var(--island-color);
+      border-radius: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px;
+      transition: all 0.4s var(--transition);
+      height: 44px;
+      min-width: 280px;
+      max-width: 720px;
+      z-index: 1000;
+      box-shadow: var(--island-shadow);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .dynamic-island.focused {
+      background: linear-gradient(180deg, #4cc9f0, #3ab7dc);
+      padding: 14px 28px;
+      transform: translateX(-50%) scale(1.05);
+      box-shadow: 0 12px 50px rgba(76, 201, 240, 0.4);
+    }
+
+    .dynamic-island.scanning {
+      background: linear-gradient(180deg, #f8961e, #e6870d);
+      animation: pulse-scanning 2s infinite;
+    }
+
+    @keyframes pulse-scanning {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.03); }
+    }
+
+    .island-input {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .island-input input {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      width: 100%;
+      min-width: 160px;
+      transition: all 0.3s var(--transition);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .island-input input::placeholder {
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 500;
+    }
+
+    .island-btn {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.2s var(--transition);
+      z-index: 2;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .island-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(1.1);
+    }
+
+    .island-btn:active {
+      transform: scale(0.95);
+    }
+
+    .island-btn.scanner-active {
+      color: #4cc9f0;
+      animation: pulse-icon 2s infinite;
+    }
+
+    @keyframes pulse-icon {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    #qrBtn { 
+      margin-right: 12px; 
+    }
+    
+    #settingsBtn { 
+      margin-left: 12px; 
+    }
+
+    /* Brillo efecto */
+    .dynamic-island::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 48px;
+      background: radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.15), transparent 70%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    
+    .dynamic-island.focused::after {
+      opacity: 1;
+    }
+
+    /* Ajustar espacio para el Dynamic Island */
+    #scanner {
+      padding-top: 80px;
+    }
+
+    /* Modal QR mejorado */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      flex-direction: column;
+    }
+    
+    .modal.show { 
+      display: flex; 
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      animation: fadeIn 0.3s var(--transition);
+    }
+    
+    @keyframes fadeIn { 
+      from { opacity: 0; transform: scale(0.95); } 
+      to { opacity: 1; transform: scale(1); } 
+    }
+    
+    .modal-content h2 { 
+      margin: 0 0 16px; 
+      color: var(--primary-dark);
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .modal-content p {
+      color: var(--gray);
+      margin-bottom: 20px;
+    }
+    
+    .modal-content button {
+      background: var(--primary);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s var(--transition);
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .modal-content button:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <!-- Pantalla de carga -->
+  <div id="loadingScreen">
+    <div style="text-align: center;">
+      <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+    </div>
+    <div class="triple-pulse">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <h1>PandaDash</h1>
+    <div class="name">Build 4.0.0</div>
+    
+    <button id="installBtn" class="btn-panda-fill" style="display: none;">
+        <i class="fas fa-rocket icon"></i> Instalar App
+    </button>
+  </div>
+
+  <!-- ✅ NUEVO Dynamic Island Input -->
+  <div class="dynamic-island" id="dynamicIsland">
+    <button id="qrBtn" class="island-btn" title="Escáner de Cámara">
+      <i class="fa-solid fa-camera"></i>
+    </button>
+    <div class="island-input">
+      <input 
+        id="barcode" 
+        type="text" 
+        placeholder="Escanea un código QR" 
+        value="" 
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
+    </div>
+    <button id="settingsBtn" class="island-btn" title="Configuración">
+      <i class="fa-solid fa-gear"></i>
+    </button>
+  </div>
+
+  <!-- Contenido principal -->
+  <div id="scanner" style="display: none;">
+    <div id="offline-banner" class="offline-banner" style="display: none;">
+      <i class="fas fa-wifi-slash"></i> No hay conexión a internet
+    </div>
+
+    <div id="status">Iniciando Sistema...</div>
+    <div class="data-stats" id="data-stats">Cargando datos...</div>
+    <div id="results"></div>
+
+    <footer>
+        <div class="footer-content">
+            <p></p>
+            <p></p>
+            <p></p>
+        </div>
+    </footer>
+  </div>
+
+  <!-- Modal de cámara -->
+  <div id="cameraModal" class="camera-modal">
+    <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
+    <canvas id="photoCanvas" style="display: none;"></canvas>
+    <img id="photoPreview" alt="Vista previa de la foto">
+    <div class="camera-actions">
+      <button id="takePhotoBtn" class="btn btn-primary">
+        <i class="fas fa-camera"></i> Tomar Foto
+      </button>
+      <button id="cancelCaptureBtn" class="btn btn-danger">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+    </div>
+    <div id="uploadStatus" class="uploading-status">
+      <i class="fas fa-spinner fa-pulse"></i> Subiendo foto...
+    </div>
+    <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
+  </div>
+
+  <!-- Modal de escáner de cámara -->
+  <div id="cameraScannerModal" class="camera-modal" style="display: none;">
+    <!-- ... contenido existente ... -->
+  </div>
+
+  <!-- Modal QR -->
+  <div class="modal" id="modalQR">
+    <div class="modal-content">
+      <h2>Escáner de Cámara</h2>
+      <p>Activa el escáner de cámara para leer códigos QR automáticamente.</p>
+      <button id="toggleScannerBtn">
+        <i class="fas fa-camera"></i> Activar Escáner
+      </button>
+      <button id="closeQR" style="background: var(--gray); margin-top: 10px;">
+        <i class="fas fa-times"></i> Cerrar
+      </button>
+    </div>
+  </div>
+
+  <!-- Contador de cola y panel de detalles -->
+  <div id="queueCounter" class="empty" title="No hay elementos en cola">0</div>
+  <div id="queueDetails">
+    <h3>Elementos en cola <i class="fas fa-times" id="closeQueueDetails"></i></h3>
+    <div id="queueItemsList">
+      <div class="queue-no-items">No hay elementos pendientes</div>
+    </div>
+  </div>
+
+  <!-- Panel de configuración mejorado -->
+  <div id="configPanel">
+    <!-- ... contenido existente ... -->
+  </div>
+
+  <!-- Scripts en el orden correcto -->
+  <script src="https://cdn.jsdelivr.net/npm/quagga2@0.12.2/dist/quagga.min.js"></script>
+  <script src="./js/sheets-api.js"></script>
+  <script src="./js/sheets-sin-factura.js"></script>
+  <script src="./js/upload-queue.js"></script>
+  <script src="./js/camera.js"></script>
+  <script src="./js/camera-scanner.js"></script>
+  <script src="./js/app.js"></script>
+  
+  <script>
+    // ✅ Dynamic Island Functionality
+    const dynamicIsland = document.getElementById('dynamicIsland');
+    const barcodeInput = document.getElementById('barcode');
+    const qrBtn = document.getElementById('qrBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const modalQR = document.getElementById('modalQR');
+    const closeQR = document.getElementById('closeQR');
+    const toggleScannerBtn = document.getElementById('toggleScannerBtn');
+
+    let expanded = false;
+
+    // Animación de expansión/contracción
+    function expandIsland() {
+      if (expanded) return;
+      expanded = true;
+      dynamicIsland.classList.add('focused');
+    }
+
+    function shrinkIsland() {
+      expanded = false;
+      dynamicIsland.classList.remove('focused');
+    }
+
+    // Adaptar ancho según texto
+    barcodeInput.addEventListener('input', () => {
+      const len = barcodeInput.value.length;
+      const base = 280;
+      const extra = Math.min(520, base + len * 10);
+      dynamicIsland.style.minWidth = `${extra}px`;
+      
+      // Procesar código QR si es largo (similar al input original)
+      const code = barcodeInput.value.trim();
+      if (code.length >= 5) {
+        // Simular el evento de entrada del sistema original
+        const inputEvent = new Event('input', { bubbles: true });
+        barcodeInput.dispatchEvent(inputEvent);
+      }
+    });
+
+    // Eventos de foco
+    barcodeInput.addEventListener('focus', expandIsland);
+    barcodeInput.addEventListener('blur', shrinkIsland);
+
+    // Botones funcionales
+    qrBtn.addEventListener('click', () => {
+      modalQR.classList.add('show');
+    });
+
+    settingsBtn.addEventListener('click', () => {
+      toggleConfigPanel();
+    });
+
+    closeQR.addEventListener('click', () => {
+      modalQR.classList.remove('show');
+    });
+
+    toggleScannerBtn.addEventListener('click', () => {
+      if (typeof window.cameraScanner !== 'undefined') {
+        const isActive = !window.cameraScanner.isActive;
+        window.cameraScanner.setScannerActive(isActive);
+        
+        // Actualizar UI
+        if (isActive) {
+          qrBtn.classList.add('scanner-active');
+          dynamicIsland.classList.add('scanning');
+          toggleScannerBtn.innerHTML = '<i class="fas fa-camera-slash"></i> Desactivar Escáner';
+        } else {
+          qrBtn.classList.remove('scanner-active');
+          dynamicIsland.classList.remove('scanning');
+          toggleScannerBtn.innerHTML = '<i class="fas fa-camera"></i> Activar Escáner';
+        }
+        
+        modalQR.classList.remove('show');
+      }
+    });
+
+    // Cerrar modal al hacer clic fuera
+    modalQR.addEventListener('click', (e) => {
+      if (e.target === modalQR) {
+        modalQR.classList.remove('show');
+      }
+    });
+
+    // Inicializar tamaño al cargar
+    window.addEventListener('load', () => {
+      const len = barcodeInput.value.length;
+      const base = 280;
+      const extra = Math.min(520, base + len * 10);
+      dynamicIsland.style.minWidth = `${extra}px';
+      
+      // Enfocar el input automáticamente
+      setTimeout(() => {
+        barcodeInput.focus();
+      }, 1000);
+    });
+
+    // Sincronizar con el estado del escáner de cámara existente
+    if (typeof window.cameraScanner !== 'undefined') {
+      // Observar cambios en el estado del escáner
+      const originalSetScannerActive = window.cameraScanner.setScannerActive;
+      window.cameraScanner.setScannerActive = function(active) {
+        originalSetScannerActive.call(this, active);
+        
+        // Actualizar UI del Dynamic Island
+        if (active) {
+          qrBtn.classList.add('scanner-active');
+          dynamicIsland.classList.add('scanning');
+        } else {
+          qrBtn.classList.remove('scanner-active');
+          dynamicIsland.classList.remove('scanning');
+        }
+      };
+    }
+  </script>
+</body>
+</html>
