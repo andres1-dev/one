@@ -114,7 +114,8 @@ class UploadQueue {
     }
   }
   
-  // En la función updateQueueItemsList, reemplaza los eventos:
+// En la función updateQueueItemsList, reemplaza los eventos:
+// En la función updateQueueItemsList, modifica la sección de miniaturas:
 updateQueueItemsList() {
     const queueItemsList = document.getElementById('queueItemsList');
     
@@ -136,9 +137,20 @@ updateQueueItemsList() {
         
         if (item.type === 'photo') {
             previewContent = `Factura: ${item.factura || 'N/A'}`;
+            
+            // ✅ CORRECCIÓN: Mostrar miniatura SIEMPRE si hay base64
             if (item.data.fotoBase64) {
-                // ✅ CORRECCIÓN: Mostrar miniatura siempre que haya imagen
-                thumbnail = `<img src="data:image/jpeg;base64,${item.data.fotoBase64}" class="queue-thumbnail" style="display: block;">`;
+                thumbnail = `
+                    <div class="thumbnail-container">
+                        <img src="data:image/jpeg;base64,${item.data.fotoBase64}" 
+                             class="queue-thumbnail" 
+                             alt="Miniatura de factura ${item.factura}">
+                        <div class="thumbnail-overlay">Toca para ocultar/mostrar</div>
+                    </div>
+                `;
+            } else {
+                // Si no hay base64, mostrar mensaje
+                thumbnail = `<div class="no-thumbnail">📷 Imagen no disponible</div>`;
             }
         } else if (item.type === 'data') {
             previewContent = `Datos: ${JSON.stringify(item.data).substring(0, 50)}...`;
@@ -155,7 +167,7 @@ updateQueueItemsList() {
         
         itemElement.innerHTML = `
             <div class="queue-item-header">
-                <span>${item.type === 'photo' ? 'Foto' : 'Datos'}</span>
+                <span>${item.type === 'photo' ? '📷 Foto' : '📊 Datos'}</span>
                 <span class="queue-item-type">${new Date(item.timestamp).toLocaleTimeString()}</span>
             </div>
             <div class="queue-item-preview">${previewContent}</div>
@@ -163,29 +175,34 @@ updateQueueItemsList() {
             ${statusInfo}
         `;
         
-        // ✅ CORRECCIÓN: Mostrar/ocultar miniatura al tocar en móvil
-        if (item.data.fotoBase64) {
-            let isThumbnailVisible = true;
+        // ✅ CORRECCIÓN: Manejar clics/touch para mostrar/ocultar miniatura
+        const thumbnailImg = itemElement.querySelector('.queue-thumbnail');
+        if (thumbnailImg) {
+            let isVisible = true;
             
-            // Evento para touch (móvil)
-            itemElement.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                const thumbnail = itemElement.querySelector('.queue-thumbnail');
-                if (thumbnail) {
-                    isThumbnailVisible = !isThumbnailVisible;
-                    thumbnail.style.display = isThumbnailVisible ? 'block' : 'none';
+            itemElement.addEventListener('click', (e) => {
+                // Solo toggle si se hace clic en la tarjeta, no en otros elementos
+                if (e.target === itemElement || e.target.classList.contains('queue-thumbnail') || e.target.classList.contains('thumbnail-container')) {
+                    isVisible = !isVisible;
+                    thumbnailImg.style.display = isVisible ? 'block' : 'none';
+                    
+                    // También mostrar/ocultar el overlay
+                    const overlay = itemElement.querySelector('.thumbnail-overlay');
+                    if (overlay) {
+                        overlay.style.display = isVisible ? 'block' : 'none';
+                    }
                 }
             });
             
-            // Evento para click (escritorio)
-            itemElement.addEventListener('click', (e) => {
-                // Solo manejar clicks si no es un botón o enlace
-                if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
-                    const thumbnail = itemElement.querySelector('.queue-thumbnail');
-                    if (thumbnail) {
-                        isThumbnailVisible = !isThumbnailVisible;
-                        thumbnail.style.display = isThumbnailVisible ? 'block' : 'none';
-                    }
+            // Para touch devices
+            itemElement.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                isVisible = !isVisible;
+                thumbnailImg.style.display = isVisible ? 'block' : 'none';
+                
+                const overlay = itemElement.querySelector('.thumbnail-overlay');
+                if (overlay) {
+                    overlay.style.display = isVisible ? 'block' : 'none';
                 }
             });
         }
