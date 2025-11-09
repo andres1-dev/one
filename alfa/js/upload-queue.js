@@ -114,67 +114,85 @@ class UploadQueue {
     }
   }
   
-  updateQueueItemsList() {
+  // En la función updateQueueItemsList, reemplaza los eventos:
+updateQueueItemsList() {
     const queueItemsList = document.getElementById('queueItemsList');
     
     if (!queueItemsList) return;
     
     if (this.queue.length === 0) {
-      queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
-      return;
+        queueItemsList.innerHTML = '<div class="queue-no-items">No hay elementos pendientes</div>';
+        return;
     }
     
     queueItemsList.innerHTML = '';
     
     this.queue.forEach((item, index) => {
-      const itemElement = document.createElement('div');
-      itemElement.className = `queue-item-card ${item.status === 'retrying' ? 'retrying' : ''} ${CONFIG.MAX_RETRIES > 0 && item.retries >= CONFIG.MAX_RETRIES ? 'error' : ''}`;
-      
-      let previewContent = '';
-      let thumbnail = '';
-      
-      if (item.type === 'photo') {
-        previewContent = `Factura: ${item.factura || 'N/A'}`;
-        if (item.data.fotoBase64) {
-          thumbnail = `<img src="data:image/jpeg;base64,${item.data.fotoBase64}" class="queue-thumbnail">`;
+        const itemElement = document.createElement('div');
+        itemElement.className = `queue-item-card ${item.status === 'retrying' ? 'retrying' : ''} ${CONFIG.MAX_RETRIES > 0 && item.retries >= CONFIG.MAX_RETRIES ? 'error' : ''}`;
+        
+        let previewContent = '';
+        let thumbnail = '';
+        
+        if (item.type === 'photo') {
+            previewContent = `Factura: ${item.factura || 'N/A'}`;
+            if (item.data.fotoBase64) {
+                // ✅ CORRECCIÓN: Mostrar miniatura siempre que haya imagen
+                thumbnail = `<img src="data:image/jpeg;base64,${item.data.fotoBase64}" class="queue-thumbnail" style="display: block;">`;
+            }
+        } else if (item.type === 'data') {
+            previewContent = `Datos: ${JSON.stringify(item.data).substring(0, 50)}...`;
         }
-      } else if (item.type === 'data') {
-        previewContent = `Datos: ${JSON.stringify(item.data).substring(0, 50)}...`;
-      }
-      
-      let statusInfo = '';
-      if (item.status === 'retrying') {
-        statusInfo = `<div class="queue-item-status retrying">Reintentando (${item.retries}${CONFIG.MAX_RETRIES > 0 ? `/${CONFIG.MAX_RETRIES}` : ''})</div>`;
-      } else if (CONFIG.MAX_RETRIES > 0 && item.retries >= CONFIG.MAX_RETRIES) {
-        statusInfo = `<div class="queue-item-status error">Error: ${item.lastError || 'Error desconocido'}</div>`;
-      } else {
-        statusInfo = `<div class="queue-item-status">En espera</div>`;
-      }
-      
-      itemElement.innerHTML = `
-        <div class="queue-item-header">
-          <span>${item.type === 'photo' ? 'Foto' : 'Datos'}</span>
-          <span class="queue-item-type">${new Date(item.timestamp).toLocaleTimeString()}</span>
-        </div>
-        <div class="queue-item-preview">${previewContent}</div>
-        ${thumbnail}
-        ${statusInfo}
-      `;
-      
-      // Mostrar miniaturas al pasar el ratón
-      itemElement.addEventListener('mouseenter', () => {
-        const thumbnail = itemElement.querySelector('.queue-thumbnail');
-        if (thumbnail) thumbnail.style.display = 'block';
-      });
-      
-      itemElement.addEventListener('mouseleave', () => {
-        const thumbnail = itemElement.querySelector('.queue-thumbnail');
-        if (thumbnail) thumbnail.style.display = 'none';
-      });
-      
-      queueItemsList.appendChild(itemElement);
+        
+        let statusInfo = '';
+        if (item.status === 'retrying') {
+            statusInfo = `<div class="queue-item-status retrying">Reintentando (${item.retries}${CONFIG.MAX_RETRIES > 0 ? `/${CONFIG.MAX_RETRIES}` : ''})</div>`;
+        } else if (CONFIG.MAX_RETRIES > 0 && item.retries >= CONFIG.MAX_RETRIES) {
+            statusInfo = `<div class="queue-item-status error">Error: ${item.lastError || 'Error desconocido'}</div>`;
+        } else {
+            statusInfo = `<div class="queue-item-status">En espera</div>`;
+        }
+        
+        itemElement.innerHTML = `
+            <div class="queue-item-header">
+                <span>${item.type === 'photo' ? 'Foto' : 'Datos'}</span>
+                <span class="queue-item-type">${new Date(item.timestamp).toLocaleTimeString()}</span>
+            </div>
+            <div class="queue-item-preview">${previewContent}</div>
+            ${thumbnail}
+            ${statusInfo}
+        `;
+        
+        // ✅ CORRECCIÓN: Mostrar/ocultar miniatura al tocar en móvil
+        if (item.data.fotoBase64) {
+            let isThumbnailVisible = true;
+            
+            // Evento para touch (móvil)
+            itemElement.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const thumbnail = itemElement.querySelector('.queue-thumbnail');
+                if (thumbnail) {
+                    isThumbnailVisible = !isThumbnailVisible;
+                    thumbnail.style.display = isThumbnailVisible ? 'block' : 'none';
+                }
+            });
+            
+            // Evento para click (escritorio)
+            itemElement.addEventListener('click', (e) => {
+                // Solo manejar clicks si no es un botón o enlace
+                if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+                    const thumbnail = itemElement.querySelector('.queue-thumbnail');
+                    if (thumbnail) {
+                        isThumbnailVisible = !isThumbnailVisible;
+                        thumbnail.style.display = isThumbnailVisible ? 'block' : 'none';
+                    }
+                }
+            });
+        }
+        
+        queueItemsList.appendChild(itemElement);
     });
-  }
+}
   
   toggleQueueDetails() {
     const details = document.getElementById('queueDetails');
