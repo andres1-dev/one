@@ -1,4 +1,4 @@
-// Función para descargar datos en formato CSV
+// Función para descargar datos básicos en CSV con separador ;
 function descargarDatosCSV() {
     if (!database || database.length === 0) {
         mostrarNotificacion('error', 'Sin datos', 'No hay datos disponibles para exportar');
@@ -9,7 +9,7 @@ function descargarDatosCSV() {
         // Crear array para almacenar todas las filas CSV
         let csvData = [];
         
-        // Encabezados del CSV
+        // Encabezados del CSV con separador ;
         const headers = [
             'Documento',
             'Referencia', 
@@ -24,7 +24,7 @@ function descargarDatosCSV() {
             'NIT',
             'Confirmación'
         ];
-        csvData.push(headers.join(','));
+        csvData.push(headers.join(';'));
 
         // Procesar cada registro
         database.forEach(item => {
@@ -44,7 +44,7 @@ function descargarDatosCSV() {
                         `"${siesa.nit || ''}"`,
                         `"${siesa.confirmacion || ''}"`
                     ];
-                    csvData.push(row.join(','));
+                    csvData.push(row.join(';'));
                 });
             }
         });
@@ -67,7 +67,7 @@ function descargarDatosCSV() {
         }).replace(/:/g, '-');
         
         link.href = url;
-        link.setAttribute('download', `pandadash-datos-${fecha}_${hora}.csv`);
+        link.setAttribute('download', `pandadash-datos-basicos-${fecha}_${hora}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -78,21 +78,17 @@ function descargarDatosCSV() {
             total + (item.datosSiesa ? item.datosSiesa.length : 0), 0
         );
         
-        mostrarNotificacion('success', 'CSV Exportado', 
+        mostrarNotificacion('success', 'CSV Básico Exportado', 
             `${totalRegistros} registros exportados correctamente`);
 
     } catch (error) {
-        console.error('Error al exportar CSV:', error);
+        console.error('Error al exportar CSV básico:', error);
         mostrarNotificacion('error', 'Error CSV', 
             'No se pudo exportar los datos: ' + error.message);
     }
 }
 
-// Hacer disponible globalmente
-window.descargarDatosCSV = descargarDatosCSV;
-
-
-// Función mejorada para descargar datos en CSV (incluye sin factura)
+// Función para descargar datos completos en CSV con separador ;
 function descargarDatosCSVCompleto() {
     if (!database || database.length === 0) {
         mostrarNotificacion('error', 'Sin datos', 'No hay datos disponibles para exportar');
@@ -102,35 +98,48 @@ function descargarDatosCSVCompleto() {
     try {
         let csvData = [];
         
-        // Encabezados más completos
+        // Encabezados más completos con separador ;
         const headers = [
-            'Tipo',
+            'Tipo_Dato',
             'Documento',
             'Referencia', 
             'Lote',
             'Estado',
             'Factura',
-            'Fecha',
+            'Fecha_Factura',
             'Proveedor',
             'Cliente',
-            'Valor Bruto',
+            'Valor_Bruto',
             'Cantidad',
-            'NIT',
+            'NIT_Cliente',
             'Confirmación',
-            'Timestamp'
+            'Tiene_Factura',
+            'Fecha_Exportacion',
+            'Hora_Exportacion'
         ];
-        csvData.push(headers.join(','));
+        csvData.push(headers.join(';'));
 
         // Procesar cada registro
         database.forEach(item => {
-            const tipo = item.datosSiesa && item.datosSiesa.length > 0 ? 
-                (item.datosSiesa[0].factura && item.datosSiesa[0].factura.trim() !== '' ? 
-                 'CON_FACTURA' : 'SIN_FACTURA') : 'SIN_DATOS';
-
             if (item.datosSiesa && Array.isArray(item.datosSiesa)) {
                 item.datosSiesa.forEach(siesa => {
+                    // Determinar tipo de dato
+                    const tieneFactura = siesa.factura && siesa.factura.trim() !== '';
+                    const tipoDato = tieneFactura ? 'CON_FACTURA' : 'SIN_FACTURA';
+                    
+                    // Formatear valores numéricos
+                    const valorBruto = siesa.valorBruto ? 
+                        String(siesa.valorBruto).replace('.', ',') : '';
+                    const cantidad = siesa.cantidad ? 
+                        String(siesa.cantidad).replace('.', ',') : '';
+                    
+                    // Fechas para exportación
+                    const ahora = new Date();
+                    const fechaExportacion = ahora.toLocaleDateString('es-CO');
+                    const horaExportacion = ahora.toLocaleTimeString('es-CO');
+
                     const row = [
-                        `"${tipo}"`,
+                        `"${tipoDato}"`,
                         `"${item.documento || ''}"`,
                         `"${item.referencia || ''}"`,
                         `"${item.lote || ''}"`,
@@ -139,25 +148,33 @@ function descargarDatosCSVCompleto() {
                         `"${siesa.fecha || ''}"`,
                         `"${siesa.proovedor || ''}"`,
                         `"${siesa.cliente || ''}"`,
-                        `"${siesa.valorBruto || ''}"`,
-                        `"${siesa.cantidad || ''}"`,
+                        `"${valorBruto}"`,
+                        `"${cantidad}"`,
                         `"${siesa.nit || ''}"`,
                         `"${siesa.confirmacion || ''}"`,
-                        `"${new Date().toISOString()}"`
+                        `"${tieneFactura ? 'SI' : 'NO'}"`,
+                        `"${fechaExportacion}"`,
+                        `"${horaExportacion}"`
                     ];
-                    csvData.push(row.join(','));
+                    csvData.push(row.join(';'));
                 });
             } else {
                 // Incluir registros sin datosSiesa
+                const ahora = new Date();
+                const fechaExportacion = ahora.toLocaleDateString('es-CO');
+                const horaExportacion = ahora.toLocaleTimeString('es-CO');
+
                 const row = [
-                    `"SIN_DETALLES"`,
+                    '"SIN_DETALLES"',
                     `"${item.documento || ''}"`,
                     `"${item.referencia || ''}"`,
                     `"${item.lote || ''}"`,
                     '""', '""', '""', '""', '""', '""', '""', '""', '""',
-                    `"${new Date().toISOString()}"`
+                    '"NO"',
+                    `"${fechaExportacion}"`,
+                    `"${horaExportacion}"`
                 ];
-                csvData.push(row.join(','));
+                csvData.push(row.join(';'));
             }
         });
 
@@ -187,14 +204,22 @@ function descargarDatosCSVCompleto() {
             total + (item.datosSiesa ? item.datosSiesa.length : 1), 0
         );
         
-        mostrarNotificacion('success', 'CSV Exportado', 
-            `${totalRegistros} registros exportados`);
+        const conFactura = database.reduce((total, item) => 
+            total + (item.datosSiesa ? 
+                item.datosSiesa.filter(s => s.factura && s.factura.trim() !== '').length : 0), 0
+        );
+        
+        const sinFactura = totalRegistros - conFactura;
+        
+        mostrarNotificacion('success', 'CSV Completo Exportado', 
+            `${totalRegistros} registros (${conFactura} con factura, ${sinFactura} sin factura)`);
 
     } catch (error) {
-        console.error('Error al exportar CSV:', error);
+        console.error('Error al exportar CSV completo:', error);
         mostrarNotificacion('error', 'Error CSV', 'Error: ' + error.message);
     }
 }
 
-// Hacer disponible globalmente
-window.descargarDatosCSV_2 = descargarDatosCSVCompleto;
+// Hacer disponibles globalmente
+window.descargarDatosCSV = descargarDatosCSV;
+window.descargarDatosCSVCompleto = descargarDatosCSVCompleto;
