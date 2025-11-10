@@ -1,0 +1,25 @@
+{
+  "name": "Notificaciones Push",
+  "short_name": "Notificaciones",
+  "description": "Aplicación para enviar notificaciones push a dispositivos móviles",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#6a11cb",
+  "theme_color": "#2575fc",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTEwMy41IDc4SDEwNFYxMThIMTA2SDE1MEgxNDhIMTAzLjVWNzhaIiBmaWxsPSJ3aGl0ZSIvPgo8Y2lyY2xlIGN4PSIxMjAiIGN5PSI2NiIgcj0iMTIiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iNjQiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTI3NS41IDIwNkgyNzJWMzA4SDI3NEgzOThIMzk0SDI3NS41VjIwNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjMyMCIgY3k9IjE3NCIgcj0iMzIiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["utilities", "productivity"]
+}
