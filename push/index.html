@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificaciones Push</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2575fc">
+    <style>
+        /* (Los estilos se mantienen igual que antes) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+        }
+        
+        .description {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .card {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        h2 i {
+            margin-right: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        button {
+            background-color: #FF4081;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #F50057;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background-color: #9E9E9E;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .notification-preview {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .notification-preview h3 {
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+        
+        .notification-preview p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .success {
+            background-color: rgba(76, 175, 80, 0.3);
+        }
+        
+        .error {
+            background-color: rgba(244, 67, 54, 0.3);
+        }
+        
+        .info {
+            background-color: rgba(33, 150, 243, 0.3);
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            text-align: center;
+        }
+        
+        .icon {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Notificaciones Push</h1>
+        <p class="description">Envía notificaciones a dispositivos móviles como si fuera una aplicación nativa. Esta es una aplicación web progresiva (PWA) que simula el comportamiento de una app instalada.</p>
+        
+        <div class="card">
+            <h2><span class="icon">📱</span> Configuración de Notificaciones</h2>
+            
+            <div class="form-group">
+                <label for="notification-title">Título de la notificación:</label>
+                <input type="text" id="notification-title" placeholder="Ej: Recordatorio importante" value="¡Hola desde la web!">
+            </div>
+            
+            <div class="form-group">
+                <label for="notification-message">Mensaje:</label>
+                <textarea id="notification-message" rows="3" placeholder="Ej: No olvides completar tu perfil">Esta notificación fue enviada desde una aplicación web progresiva que simula el comportamiento de una app nativa.</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="notification-icon">Icono:</label>
+                <select id="notification-icon">
+                    <option value="🔔">🔔 Notificación</option>
+                    <option value="📱">📱 Dispositivo</option>
+                    <option value="📧">📧 Mensaje</option>
+                    <option value="🔔">🔔 Alerta</option>
+                    <option value="🎉">🎉 Celebración</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="notification-delay">Retraso (segundos):</label>
+                <input type="number" id="notification-delay" min="1" max="60" value="5">
+            </div>
+            
+            <button id="request-permission">Solicitar Permisos</button>
+            <button id="schedule-notification">Programar Notificación</button>
+            <button id="send-notification">Enviar Notificación Inmediata</button>
+            <button id="test-push">Probar Notificación Push (Service Worker)</button>
+            
+            <div class="notification-preview" id="notification-preview">
+                <h3 id="preview-title">Título de la notificación</h3>
+                <p id="preview-message">Mensaje de la notificación</p>
+            </div>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <p class="instructions">Para una experiencia completa, instala esta aplicación en tu dispositivo: en Chrome, ve a "Agregar a pantalla de inicio" o en Safari, toca el ícono de compartir y luego "Agregar a pantalla de inicio".</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const requestPermissionBtn = document.getElementById('request-permission');
+            const scheduleNotificationBtn = document.getElementById('schedule-notification');
+            const sendNotificationBtn = document.getElementById('send-notification');
+            const testPushBtn = document.getElementById('test-push');
+            const notificationTitle = document.getElementById('notification-title');
+            const notificationMessage = document.getElementById('notification-message');
+            const notificationIcon = document.getElementById('notification-icon');
+            const notificationDelay = document.getElementById('notification-delay');
+            const notificationPreview = document.getElementById('notification-preview');
+            const previewTitle = document.getElementById('preview-title');
+            const previewMessage = document.getElementById('preview-message');
+            const status = document.getElementById('status');
+            
+            let swRegistration = null;
+            
+            // Registrar Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registrado con éxito:', registration);
+                        swRegistration = registration;
+                        showStatus('Service Worker registrado correctamente', 'success');
+                    })
+                    .catch(function(error) {
+                        console.log('Error al registrar el Service Worker:', error);
+                        showStatus('Error al registrar Service Worker', 'error');
+                    });
+            }
+            
+            // Actualizar vista previa cuando cambian los campos
+            notificationTitle.addEventListener('input', updatePreview);
+            notificationMessage.addEventListener('input', updatePreview);
+            notificationIcon.addEventListener('change', updatePreview);
+            
+            function updatePreview() {
+                previewTitle.textContent = notificationIcon.value + ' ' + notificationTitle.value;
+                previewMessage.textContent = notificationMessage.value;
+                notificationPreview.style.display = 'block';
+            }
+            
+            // Solicitar permisos para notificaciones
+            requestPermissionBtn.addEventListener('click', function() {
+                if (!('Notification' in window)) {
+                    showStatus('Tu navegador no soporta notificaciones', 'error');
+                    return;
+                }
+                
+                if (Notification.permission === 'granted') {
+                    showStatus('Ya tienes permisos para notificaciones', 'success');
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(function(permission) {
+                        if (permission === 'granted') {
+                            showStatus('Permisos concedidos para notificaciones', 'success');
+                        } else {
+                            showStatus('Permisos denegados para notificaciones', 'error');
+                        }
+                    });
+                } else {
+                    showStatus('Los permisos para notificaciones fueron denegados. Debes habilitarlos manualmente en la configuración de tu navegador.', 'error');
+                }
+            });
+            
+            // Enviar notificación inmediata
+            sendNotificationBtn.addEventListener('click', function() {
+                if (Notification.permission !== 'granted') {
+                    showStatus('Primero debes conceder permisos para notificaciones', 'error');
+                    return;
+                }
+                
+                const title = notificationTitle.value;
+                const message = notificationMessage.value;
+                const icon = notificationIcon.value;
+                
+                if (!title || !message) {
+                    showStatus('Por favor, completa el título y el mensaje', 'error');
+                    return;
+                }
+                
+                // Enviar notificación
+                const notification = new Notification(icon + ' ' + title, {
+                    body: message,
+                    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTM0LjUgMjZIMzJWMzZIMzRINTBWMzRIMzQuNVYyNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjQwIiBjeT0iMjIiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+                    badge: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNGRjQwODEiLz4KPC9zdmc+Cg=='
+                });
+                
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+                
+                showStatus('Notificación enviada correctamente', 'success');
+            });
+            
+            // Programar notificación
+            scheduleNotificationBtn.addEventListener('click', function() {
+                if (Notification.permission !== 'granted') {
+                    showStatus('Primero debes conceder permisos para notificaciones', 'error');
+                    return;
+                }
+                
+                const title = notificationTitle.value;
+                const message = notificationMessage.value;
+                const icon = notificationIcon.value;
+                const delay = parseInt(notificationDelay.value) * 1000;
+                
+                if (!title || !message) {
+                    showStatus('Por favor, completa el título y el mensaje', 'error');
+                    return;
+                }
+                
+                if (isNaN(delay) || delay < 1000) {
+                    showStatus('Por favor, introduce un retraso válido', 'error');
+                    return;
+                }
+                
+                showStatus(`Notificación programada para ${notificationDelay.value} segundos`, 'info');
+                
+                setTimeout(function() {
+                    const notification = new Notification(icon + ' ' + title, {
+                        body: message,
+                        icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTM0LjUgMjZIMzJWMzZIMzRINTBWMzRIMzQuNVYyNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjQwIiBjeT0iMjIiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+                        badge: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNGRjQwODEiLz4KPC9zdmc+Cg=='
+                    });
+                    
+                    notification.onclick = function() {
+                        window.focus();
+                        notification.close();
+                    };
+                    
+                    showStatus('Notificación programada enviada', 'success');
+                }, delay);
+            });
+            
+            // Probar notificación push desde Service Worker
+            testPushBtn.addEventListener('click', function() {
+                if (!swRegistration) {
+                    showStatus('El Service Worker no está registrado', 'error');
+                    return;
+                }
+                
+                const title = notificationTitle.value;
+                const message = notificationMessage.value;
+                
+                // Simular una notificación push
+                swRegistration.showNotification(title || 'Notificación Push', {
+                    body: message || '¡Esta es una notificación push del Service Worker!',
+                    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTM0LjUgMjZIMzJWMzZIMzRINTBWMzRIMzQuNVYyNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjQwIiBjeT0iMjIiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+                    badge: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNGRjQwODEiLz4KPC9zdmc+Cg==',
+                    vibrate: [200, 100, 200]
+                });
+                
+                showStatus('Notificación push enviada desde Service Worker', 'success');
+            });
+            
+            // Mostrar estado
+            function showStatus(message, type) {
+                status.textContent = message;
+                status.className = 'status ' + type;
+                status.style.display = 'block';
+                
+                setTimeout(function() {
+                    status.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Verificar si ya tenemos permisos
+            if (Notification.permission === 'granted') {
+                showStatus('Ya tienes permisos para notificaciones', 'success');
+            }
+            
+            // Inicializar vista previa
+            updatePreview();
+        });
+    </script>
+</body>
+</html>
