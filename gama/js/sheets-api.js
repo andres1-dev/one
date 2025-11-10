@@ -705,7 +705,7 @@ class SheetsAPI {
         
         const obtenerNitDeCliente = (nombreNormalizado) => {
             const clienteEncontrado = clientesEspecificos.find(
-                cliente => normalizarCliente(cliente.nombre) === nombreNormalized
+                cliente => normalizarCliente(cliente.nombre) === nombreNormalizado
             );
             return clienteEncontrado ? clienteEncontrado.nit : '';
         };
