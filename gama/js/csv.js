@@ -138,8 +138,8 @@ function descargarDatosCSV() {
 
 window.descargarDatosCSV = descargarDatosCSV;
 
-// Función para cruzar datos con main.js y obtener información adicional
-function obtenerDatosCompletos(documento, referencia, lote) {
+// Función para cruzar datos con main.js usando solo el documento
+function obtenerDatosCompletos(documento) {
     try {
         // Verificar si main.js está cargado y tiene los datos globales
         if (typeof datosGlobales === 'undefined' || !Array.isArray(datosGlobales)) {
@@ -147,19 +147,24 @@ function obtenerDatosCompletos(documento, referencia, lote) {
             return null;
         }
 
-        // Buscar coincidencia por documento, referencia y lote
+        // Normalizar el documento (remover "REC" si existe)
+        const docNormalizado = String(documento).replace(/^REC/i, '').trim();
+        
+        console.log('Buscando documento en main.js:', docNormalizado);
+        console.log('Total de registros en datosGlobales:', datosGlobales.length);
+
+        // Buscar coincidencia por documento (usando DOCUMENTO normalizado)
         const coincidencia = datosGlobales.find(item => {
-            const docMatch = item.DOCUMENTO && String(item.DOCUMENTO).trim() === String(documento).trim();
-            const refMatch = item.REFERENCIA && String(item.REFERENCIA).trim() === String(referencia).trim();
-            const loteMatch = item.LOTE && String(item.LOTE).trim() === String(lote).trim();
-            
-            return docMatch && refMatch && loteMatch;
+            const itemDoc = String(item.DOCUMENTO || '').trim();
+            return itemDoc === docNormalizado;
         });
 
         if (!coincidencia) {
-            console.log('No se encontró coincidencia para:', { documento, referencia, lote });
+            console.log('No se encontró coincidencia en main.js para documento:', docNormalizado);
             return null;
         }
+
+        console.log('Coincidencia encontrada en main.js:', coincidencia);
 
         // Extraer los campos necesarios
         return {
@@ -169,7 +174,7 @@ function obtenerDatosCompletos(documento, referencia, lote) {
             PVP: coincidencia.PVP || '',
             PRENDA: coincidencia.PRENDA || '',
             GENERO: coincidencia.GENERO || '',
-            CLASE: coincidencia.CLASE || ''
+            CLASE: coincidencia.CLASE || determinarClasePorPVP(coincidencia.PVP || '')
         };
     } catch (error) {
         console.error('Error al cruzar datos con main.js:', error);
@@ -182,8 +187,16 @@ function determinarClasePorPVP(pvp) {
     if (!pvp || pvp.trim() === '') return 'NO DEFINIDO';
     
     try {
-        const valorNumerico = parseFloat(pvp.replace(/[^\d.,]/g, '').replace(',', '.'));
-        if (isNaN(valorNumerico)) return 'NO DEFINIDO';
+        // Limpiar el PVP (remover símbolos de moneda, espacios, etc.)
+        const pvpLimpio = pvp.toString().replace(/[^\d.,]/g, '').replace(',', '.');
+        const valorNumerico = parseFloat(pvpLimpio);
+        
+        if (isNaN(valorNumerico)) {
+            console.log('PVP no numérico:', pvp);
+            return 'NO DEFINIDO';
+        }
+        
+        console.log('Calculando CLASE para PVP:', valorNumerico);
         
         if (valorNumerico <= 39900) return 'LINEA';
         if (valorNumerico <= 69900) return 'MODA';
