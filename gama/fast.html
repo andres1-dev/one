@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner QR PDA - FAST</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+        
+        .description {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .scanner-section {
+            margin-bottom: 20px;
+        }
+        
+        .scanner-input {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+        }
+        
+        .scanner-input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .data-section {
+            margin-top: 20px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .card-badge {
+            background-color: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .card-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .data-field {
+            margin-bottom: 10px;
+        }
+        
+        .data-label {
+            font-weight: 600;
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .data-value {
+            font-size: 16px;
+            color: #2c3e50;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+        
+        .scan-indicator {
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 2px dashed #3498db;
+        }
+        
+        .scan-icon {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .card-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Escáner QR PDA - FAST</h1>
+            <p class="description">Escanea códigos QR con el lector láser del PDA</p>
+        </header>
+        
+        <section class="scanner-section">
+            <div class="scan-indicator">
+                <div class="scan-icon">📱</div>
+                <p>Listo para escanear - Apunte con el láser</p>
+            </div>
+            <input type="text" id="qrInput" class="scanner-input" placeholder="" autocomplete="off" autofocus>
+        </section>
+        
+        <div id="status" class="status info">
+            Escanee un código QR para mostrar los datos
+        </div>
+        
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Consultando datos en Google Sheets...</p>
+        </div>
+        
+        <section class="data-section">
+            <div id="dataCardContainer"></div>
+        </section>
+        
+        <footer>
+            <p>Conectado a Google Sheets | Hoja: FAST | Rango: A2:K</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos DOM
+            const qrInput = document.getElementById('qrInput');
+            const statusDiv = document.getElementById('status');
+            const loadingDiv = document.getElementById('loading');
+            const dataCardContainer = document.getElementById('dataCardContainer');
+            
+            // Configuración de Google Sheets
+            const spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
+            const sheetName = 'FAST';
+            const range = 'A2:K';
+            const apiKey = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+            
+            // Variable para controlar escaneos rápidos
+            let isProcessing = false;
+            let lastScannedCode = '';
+            
+            // Función para mostrar estado
+            function showStatus(message, type) {
+                statusDiv.textContent = message;
+                statusDiv.className = 'status ' + type;
+            }
+            
+            // Función para buscar datos en Google Sheets
+            async function searchInSheets(searchValue) {
+                if (isProcessing || searchValue === lastScannedCode) return;
+                
+                isProcessing = true;
+                lastScannedCode = searchValue;
+                
+                showStatus('Buscando en Google Sheets...', 'info');
+                loadingDiv.classList.remove('hidden');
+                
+                try {
+                    // Construir URL para la API de Google Sheets
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`;
+                    
+                    // Hacer la solicitud a la API
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Error en la respuesta: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (!data.values) {
+                        throw new Error('No se encontraron datos en la hoja');
+                    }
+                    
+                    // Buscar el valor en la columna A
+                    const foundRow = data.values.find(row => row[0] === searchValue);
+                    
+                    if (foundRow) {
+                        // Mostrar los datos encontrados en formato tarjeta
+                        displayDataCard(foundRow);
+                        showStatus(`Datos actualizados para: ${searchValue}`, 'success');
+                    } else {
+                        showStatus(`No se encontraron datos para: ${searchValue}`, 'error');
+                        dataCardContainer.innerHTML = '<div class="card"><p>No se encontraron datos para el código QR escaneado.</p></div>';
+                    }
+                    
+                } catch (error) {
+                    console.error('Error al consultar Google Sheets:', error);
+                    showStatus(`Error al consultar Google Sheets: ${error.message}`, 'error');
+                } finally {
+                    loadingDiv.classList.add('hidden');
+                    isProcessing = false;
+                    
+                    // Limpiar el campo de entrada inmediatamente después del procesamiento
+                    setTimeout(() => {
+                        qrInput.value = '';
+                    }, 100);
+                }
+            }
+            
+            // Función para mostrar los datos en formato tarjeta
+            function displayDataCard(rowData) {
+                // Crear tarjeta
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Encabezado de la tarjeta
+                const cardHeader = document.createElement('div');
+                cardHeader.className = 'card-header';
+                
+                const cardTitle = document.createElement('div');
+                cardTitle.className = 'card-title';
+                cardTitle.textContent = `ID: ${rowData[0]}`;
+                
+                const cardBadge = document.createElement('div');
+                cardBadge.className = 'card-badge';
+                cardBadge.textContent = 'VÁLIDO';
+                
+                cardHeader.appendChild(cardTitle);
+                cardHeader.appendChild(cardBadge);
+                card.appendChild(cardHeader);
+                
+                // Contenido de la tarjeta
+                const cardContent = document.createElement('div');
+                cardContent.className = 'card-content';
+                
+                // Etiquetas para las columnas (puedes personalizar según tus necesidades)
+                const labels = [
+                    'ID', 'Nombre', 'Categoría', 'Precio', 'Stock', 
+                    'Proveedor', 'Ubicación', 'Fecha', 'Estado', 'Notas', 'Extra'
+                ];
+                
+                // Crear campos de datos
+                for (let i = 0; i < rowData.length; i++) {
+                    if (i > 0 && rowData[i]) { // Omitir la columna A (ID) y campos vacíos
+                        const dataField = document.createElement('div');
+                        dataField.className = 'data-field';
+                        
+                        const dataLabel = document.createElement('div');
+                        dataLabel.className = 'data-label';
+                        dataLabel.textContent = labels[i] || `Campo ${i+1}`;
+                        
+                        const dataValue = document.createElement('div');
+                        dataValue.className = 'data-value';
+                        dataValue.textContent = rowData[i];
+                        
+                        dataField.appendChild(dataLabel);
+                        dataField.appendChild(dataValue);
+                        cardContent.appendChild(dataField);
+                    }
+                }
+                
+                card.appendChild(cardContent);
+                
+                // Agregar tarjeta al contenedor
+                dataCardContainer.innerHTML = '';
+                dataCardContainer.appendChild(card);
+            }
+            
+            // Evento para cuando se escanea un código QR
+            qrInput.addEventListener('input', function() {
+                const searchValue = qrInput.value.trim();
+                if (searchValue && !isProcessing) {
+                    searchInSheets(searchValue);
+                }
+            });
+            
+            // Enfocar el campo de entrada al cargar la página (oculto pero funcional)
+            qrInput.focus();
+            
+            // Mantener el foco en el campo de entrada
+            document.addEventListener('click', function() {
+                qrInput.focus();
+            });
+            
+            // Instrucciones para el uso con lector láser
+            console.log("Aplicación lista para escaneo inmediato:");
+            console.log("- El campo de entrada está oculto pero activo");
+            console.log("- Los códigos QR se procesan automáticamente");
+            console.log("- El campo se limpia después de cada escaneo");
+            console.log("- Los datos se actualizan inmediatamente");
+        });
+    </script>
+</body>
+</html>
