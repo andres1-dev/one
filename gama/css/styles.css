@@ -1375,3 +1375,131 @@ h1 {
   background-color: var(--gray);
   color: white;
 }
+
+
+
+
+/* Estilos para fila de botones en configuración */
+.config-buttons-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.config-btn {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.config-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Tooltips para botones */
+.config-btn {
+    position: relative;
+}
+
+.config-btn:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 5px;
+}
+
+.config-btn:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.8);
+    margin-bottom: -5px;
+}
+
+/* Ajustes específicos para botones outline */
+.btn-outline-secondary.config-btn:hover::after {
+    background: rgba(108, 117, 125, 0.9);
+}
+
+.btn-outline-secondary.config-btn:hover::before {
+    border-top-color: rgba(108, 117, 125, 0.9);
+}
+
+.btn-outline-danger.config-btn:hover::after {
+    background: rgba(247, 37, 133, 0.9);
+}
+
+.btn-outline-danger.config-btn:hover::before {
+    border-top-color: rgba(247, 37, 133, 0.9);
+}
+
+.btn-warning.config-btn:hover::after {
+    background: rgba(248, 150, 30, 0.9);
+}
+
+.btn-warning.config-btn:hover::before {
+    border-top-color: rgba(248, 150, 30, 0.9);
+}
+
+/* Ajustes responsivos para botones */
+@media (max-width: 380px) {
+    .config-buttons-row {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .config-btn {
+        flex: none;
+    }
+}
+
+/* Mejorar el botón de carga manual */
+#btnForzarCargaSinFactura {
+    position: relative;
+    overflow: hidden;
+}
+
+#btnForzarCargaSinFactura:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+#btnForzarCargaSinFactura .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* En la sección de datos, actualiza este estilo */
+.config-item .btn {
+    margin-top: 5px;
+}
+
+/* Remover las descripciones que ya no queremos mostrar */
+.config-section .config-description {
+    display: none;
+}
+
+/* Pero mantenerlas solo para los switches */
+.config-switch + .config-description {
+    display: block;
+}
