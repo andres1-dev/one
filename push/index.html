@@ -7,6 +7,9 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#2575fc">
     
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- iOS Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -48,6 +51,10 @@
             font-size: 2.5rem;
         }
         
+        h1 i {
+            margin-right: 15px;
+        }
+        
         .description {
             text-align: center;
             margin-bottom: 30px;
@@ -58,23 +65,40 @@
         .card {
             background-color: rgba(255, 255, 255, 0.15);
             border-radius: 15px;
-            padding: 20px;
+            padding: 25px;
             margin-bottom: 20px;
         }
         
         h2 {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        h2 i {
+            margin-right: 10px;
+            width: 25px;
+            text-align: center;
         }
         
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         
         label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        label i {
+            margin-right: 8px;
+            width: 20px;
+            text-align: center;
+            opacity: 0.9;
         }
         
         input, textarea, select {
@@ -85,128 +109,337 @@
             background-color: rgba(255, 255, 255, 0.2);
             color: white;
             font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
         }
         
         input::placeholder, textarea::placeholder {
             color: rgba(255, 255, 255, 0.7);
         }
         
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .time-inputs input {
+            text-align: center;
+        }
+        
         button {
             background-color: #FF4081;
             color: white;
             border: none;
-            padding: 12px 25px;
+            padding: 15px 25px;
             border-radius: 10px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
         
         button:hover {
             background-color: #F50057;
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:disabled {
+            background-color: #9E9E9E;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
         .btn-install {
             background: linear-gradient(135deg, #4CAF50, #45a049);
             font-size: 1.1rem;
-            padding: 15px 25px;
+            padding: 18px 25px;
         }
         
         .btn-install:hover {
             background: linear-gradient(135deg, #45a049, #4CAF50);
         }
         
+        .btn-secondary {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #1976D2, #1565C0);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #F57C00, #EF6C00);
+        }
+        
         .status {
             text-align: center;
-            padding: 10px;
+            padding: 15px;
             border-radius: 10px;
-            margin: 10px 0;
+            margin: 15px 0;
             display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
         
         .success {
             background-color: rgba(76, 175, 80, 0.3);
+            border-left: 4px solid #4CAF50;
         }
         
         .error {
             background-color: rgba(244, 67, 54, 0.3);
+            border-left: 4px solid #F44336;
         }
         
         .info {
             background-color: rgba(33, 150, 243, 0.3);
+            border-left: 4px solid #2196F3;
+        }
+        
+        .warning {
+            background-color: rgba(255, 152, 0, 0.3);
+            border-left: 4px solid #FF9800;
         }
         
         .install-section {
             text-align: center;
             margin-bottom: 25px;
-            padding: 20px;
+            padding: 25px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
+        }
+        
+        .scheduled-list {
+            margin-top: 20px;
+        }
+        
+        .scheduled-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+        
+        .scheduled-info {
+            flex: 1;
+        }
+        
+        .scheduled-time {
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .cancel-btn {
+            background: #f44336;
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            width: auto;
+            margin: 0;
+        }
+        
+        .cancel-btn:hover {
+            background: #d32f2f;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .feature i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .time-inputs {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔔 Notificaciones Push PWA</h1>
-        <p class="description">Aplicación web progresiva - Funciona offline</p>
+        <h1><i class="fas fa-bell"></i>Notificaciones Push PWA</h1>
+        <p class="description">Aplicación web progresiva con programación de notificaciones</p>
         
         <div class="install-section">
-            <h2>📲 Instalar App</h2>
+            <h2><i class="fas fa-download"></i>Instalar App</h2>
             <button id="install-btn" class="btn-install" style="display: none;">
-                ⬇️ Instalar Aplicación
+                <i class="fas fa-download"></i>Instalar Aplicación
             </button>
             <div id="install-status" class="status"></div>
-            <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
-                Para instalar: Chrome → Menú → "Instalar app" o "Agregar a pantalla de inicio"
+            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                <i class="fas fa-info-circle"></i>Para instalar: Chrome → Menú → "Instalar app"
             </p>
         </div>
 
         <div id="sw-status" class="status info">
-            🔄 Registrando Service Worker...
+            <i class="fas fa-sync fa-spin"></i>Registrando Service Worker...
         </div>
         
         <div class="card">
-            <h2>⚙️ Configurar Notificación</h2>
+            <h2><i class="fas fa-cog"></i>Configurar Notificación</h2>
             
             <div class="form-group">
-                <label for="notification-title">Título:</label>
-                <input type="text" id="notification-title" value="¡Hola desde PWA!">
+                <label for="notification-title"><i class="fas fa-heading"></i>Título:</label>
+                <input type="text" id="notification-title" placeholder="Ingresa el título" value="¡Recordatorio importante!">
             </div>
             
             <div class="form-group">
-                <label for="notification-message">Mensaje:</label>
-                <textarea id="notification-message" rows="3">Esta notificación viene de una PWA instalada</textarea>
+                <label for="notification-message"><i class="fas fa-comment"></i>Mensaje:</label>
+                <textarea id="notification-message" rows="3" placeholder="Ingresa el mensaje de la notificación">Esta es una notificación programada desde tu PWA.</textarea>
             </div>
             
-            <button id="request-permission">1. Solicitar Permisos</button>
-            <button id="send-notification">2. Enviar Notificación</button>
-            <button id="test-push">3. Notificación Push (SW)</button>
+            <div class="form-group">
+                <label for="notification-icon"><i class="fas fa-icons"></i>Icono:</label>
+                <select id="notification-icon">
+                    <option value="fas fa-bell">🔔 Notificación</option>
+                    <option value="fas fa-mobile-alt">📱 Dispositivo</option>
+                    <option value="fas fa-envelope">📧 Mensaje</option>
+                    <option value="fas fa-calendar-check">📅 Recordatorio</option>
+                    <option value="fas fa-exclamation-triangle">⚠️ Alerta</option>
+                    <option value="fas fa-party-horn">🎉 Celebración</option>
+                </select>
+            </div>
+            
+            <button id="request-permission" class="btn-secondary">
+                <i class="fas fa-shield-alt"></i>Solicitar Permisos
+            </button>
+            
+            <button id="send-notification" class="btn-secondary">
+                <i class="fas fa-paper-plane"></i>Envío Inmediato
+            </button>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-clock"></i>Programar Notificación</h2>
+            
+            <div class="form-group">
+                <label><i class="fas fa-calendar-plus"></i>Tiempo de Programación:</label>
+                <div class="time-inputs">
+                    <div>
+                        <label><i class="fas fa-clock"></i>Horas:</label>
+                        <input type="number" id="schedule-hours" min="0" max="23" value="0" placeholder="0">
+                    </div>
+                    <div>
+                        <label><i class="fas fa-clock"></i>Minutos:</label>
+                        <input type="number" id="schedule-minutes" min="0" max="59" value="1" placeholder="1">
+                    </div>
+                    <div>
+                        <label><i class="fas fa-clock"></i>Segundos:</label>
+                        <input type="number" id="schedule-seconds" min="0" max="59" value="0" placeholder="0">
+                    </div>
+                </div>
+            </div>
+            
+            <button id="schedule-notification" class="btn-warning">
+                <i class="fas fa-plus-circle"></i>Programar Notificación
+            </button>
+            
+            <div class="scheduled-list" id="scheduled-list">
+                <!-- Las notificaciones programadas aparecerán aquí -->
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i class="fas fa-bell-slash"></i>Notificaciones Programadas</h2>
+            <div id="scheduled-notifications">
+                <p style="text-align: center; opacity: 0.7; padding: 20px;">
+                    <i class="fas fa-clock"></i><br>
+                    No hay notificaciones programadas
+                </p>
+            </div>
         </div>
         
         <div id="status" class="status"></div>
         
-        <div style="text-align: center; margin-top: 20px; font-size: 0.9em; opacity: 0.7;">
-            <p>✅ Service Worker ✅ Manifest ✅ Instalable</p>
-            <p>Esta PWA funciona completamente offline después de la instalación</p>
+        <div class="feature-grid">
+            <div class="feature">
+                <i class="fas fa-bolt"></i>
+                <h4>Rápida</h4>
+                <p>Carga instantánea</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-mobile-alt"></i>
+                <h4>Nativa</h4>
+                <p>Como app instalada</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-bell"></i>
+                <h4>Notificaciones</h4>
+                <p>Push y programadas</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-wifi-slash"></i>
+                <h4>Offline</h4>
+                <p>Funciona sin internet</p>
+            </div>
         </div>
     </div>
 
     <script>
         let deferredPrompt;
         let swRegistration;
+        let scheduledNotifications = [];
+        let notificationCounter = 0;
 
         // Registrar Service Worker
         async function registerSW() {
             try {
                 swRegistration = await navigator.serviceWorker.register('./sw.js');
-                showSWStatus('✅ Service Worker registrado');
+                showSWStatus('<i class="fas fa-check-circle"></i>Service Worker registrado correctamente');
                 console.log('SW registrado:', swRegistration);
             } catch (error) {
-                showSWStatus('❌ Error en Service Worker: ' + error.message);
+                showSWStatus('<i class="fas fa-exclamation-circle"></i>Error en Service Worker: ' + error.message);
             }
         }
 
@@ -215,7 +448,7 @@
             e.preventDefault();
             deferredPrompt = e;
             document.getElementById('install-btn').style.display = 'block';
-            showInstallStatus('✅ App lista para instalar');
+            showInstallStatus('<i class="fas fa-check-circle"></i>App lista para instalar');
         });
 
         document.getElementById('install-btn').addEventListener('click', async () => {
@@ -225,33 +458,36 @@
             const { outcome } = await deferredPrompt.userChoice;
             
             if (outcome === 'accepted') {
-                showInstallStatus('🎉 ¡App instalada!');
+                showInstallStatus('<i class="fas fa-check-circle"></i>¡App instalada correctamente!');
                 document.getElementById('install-btn').style.display = 'none';
             } else {
-                showInstallStatus('Instalación cancelada');
+                showInstallStatus('<i class="fas fa-times-circle"></i>Instalación cancelada');
             }
             deferredPrompt = null;
         });
 
         window.addEventListener('appinstalled', () => {
-            showStatus('¡Aplicación instalada correctamente!', 'success');
+            showStatus('<i class="fas fa-check-circle"></i>¡Aplicación instalada correctamente!', 'success');
             document.getElementById('install-btn').style.display = 'none';
         });
 
         // Notificaciones
         document.getElementById('request-permission').addEventListener('click', async () => {
             const permission = await Notification.requestPermission();
-            showStatus(`Permisos: ${permission}`, permission === 'granted' ? 'success' : 'error');
+            const status = permission === 'granted' ? 
+                '<i class="fas fa-check-circle"></i>Permisos concedidos para notificaciones' : 
+                '<i class="fas fa-times-circle"></i>Permisos denegados para notificaciones';
+            showStatus(status, permission === 'granted' ? 'success' : 'error');
         });
 
         document.getElementById('send-notification').addEventListener('click', () => {
             if (Notification.permission !== 'granted') {
-                showStatus('Primero solicita permisos', 'error');
+                showStatus('<i class="fas fa-exclamation-circle"></i>Primero solicita permisos para notificaciones', 'error');
                 return;
             }
 
-            const title = document.getElementById('notification-title').value;
-            const body = document.getElementById('notification-message').value;
+            const title = document.getElementById('notification-title').value || 'Notificación';
+            const body = document.getElementById('notification-message').value || 'Mensaje de notificación';
 
             new Notification(title, { 
                 body, 
@@ -259,46 +495,158 @@
                 badge: './icon-192.png'
             });
             
-            showStatus('Notificación enviada', 'success');
+            showStatus('<i class="fas fa-check-circle"></i>Notificación enviada inmediatamente', 'success');
         });
 
-        document.getElementById('test-push').addEventListener('click', async () => {
-            if (!swRegistration) {
-                showStatus('SW no registrado', 'error');
+        // Programar notificación
+        document.getElementById('schedule-notification').addEventListener('click', () => {
+            if (Notification.permission !== 'granted') {
+                showStatus('<i class="fas fa-exclamation-circle"></i>Primero solicita permisos para notificaciones', 'error');
                 return;
             }
 
-            const title = document.getElementById('notification-title').value;
-            const body = document.getElementById('notification-message').value;
+            const hours = parseInt(document.getElementById('schedule-hours').value) || 0;
+            const minutes = parseInt(document.getElementById('schedule-minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('schedule-seconds').value) || 0;
 
-            await swRegistration.showNotification(title, {
-                body,
-                icon: './icon-192.png',
-                badge: './icon-192.png',
-                vibrate: [200, 100, 200]
-            });
+            const totalMilliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000;
 
-            showStatus('Notificación Push enviada', 'success');
+            if (totalMilliseconds <= 0) {
+                showStatus('<i class="fas fa-exclamation-circle"></i>El tiempo debe ser mayor a 0', 'error');
+                return;
+            }
+
+            const title = document.getElementById('notification-title').value || 'Notificación Programada';
+            const body = document.getElementById('notification-message').value || 'Mensaje programado';
+            const icon = document.getElementById('notification-icon').value;
+
+            scheduleNotification(title, body, icon, totalMilliseconds);
         });
+
+        function scheduleNotification(title, body, icon, delay) {
+            notificationCounter++;
+            const notificationId = notificationCounter;
+            const scheduledTime = new Date(Date.now() + delay);
+
+            const notificationData = {
+                id: notificationId,
+                title: title,
+                body: body,
+                icon: icon,
+                scheduledTime: scheduledTime,
+                timeoutId: null
+            };
+
+            // Programar la notificación
+            notificationData.timeoutId = setTimeout(() => {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, { 
+                        body: body + ' (Programada)',
+                        icon: './icon-192.png',
+                        badge: './icon-192.png'
+                    });
+                }
+                
+                // Eliminar de la lista
+                removeScheduledNotification(notificationId);
+            }, delay);
+
+            scheduledNotifications.push(notificationData);
+            updateScheduledList();
+            
+            const timeString = formatTime(delay);
+            showStatus(`<i class="fas fa-check-circle"></i>Notificación programada para ${timeString}`, 'success');
+        }
+
+        function removeScheduledNotification(id) {
+            const index = scheduledNotifications.findIndex(n => n.id === id);
+            if (index !== -1) {
+                clearTimeout(scheduledNotifications[index].timeoutId);
+                scheduledNotifications.splice(index, 1);
+                updateScheduledList();
+            }
+        }
+
+        function updateScheduledList() {
+            const container = document.getElementById('scheduled-notifications');
+            
+            if (scheduledNotifications.length === 0) {
+                container.innerHTML = `
+                    <p style="text-align: center; opacity: 0.7; padding: 20px;">
+                        <i class="fas fa-clock"></i><br>
+                        No hay notificaciones programadas
+                    </p>
+                `;
+                return;
+            }
+
+            container.innerHTML = scheduledNotifications.map(notification => {
+                const timeLeft = notification.scheduledTime - Date.now();
+                const timeString = formatTime(timeLeft);
+                
+                return `
+                    <div class="scheduled-item">
+                        <div class="scheduled-info">
+                            <div><strong>${notification.title}</strong></div>
+                            <div style="opacity: 0.8; font-size: 0.9em;">${notification.body}</div>
+                            <div style="margin-top: 5px;">
+                                <i class="fas fa-clock"></i>
+                                <span class="scheduled-time">${timeString}</span>
+                                <small>${notification.scheduledTime.toLocaleTimeString()}</small>
+                            </div>
+                        </div>
+                        <button class="cancel-btn" onclick="cancelScheduledNotification(${notification.id})">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatTime(milliseconds) {
+            const seconds = Math.floor(milliseconds / 1000);
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${secs}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+
+        // Hacer la función global para los botones
+        window.cancelScheduledNotification = function(id) {
+            removeScheduledNotification(id);
+            showStatus('<i class="fas fa-info-circle"></i>Notificación cancelada', 'info');
+        };
+
+        // Actualizar la lista cada segundo
+        setInterval(updateScheduledList, 1000);
 
         // Helpers
         function showStatus(msg, type) {
             const el = document.getElementById('status');
-            el.textContent = msg;
+            el.innerHTML = msg;
             el.className = `status ${type}`;
-            el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 4000);
+            el.style.display = 'flex';
+            setTimeout(() => el.style.display = 'none', 5000);
         }
 
         function showSWStatus(msg) {
-            document.getElementById('sw-status').textContent = msg;
+            const el = document.getElementById('sw-status');
+            el.innerHTML = msg;
+            el.style.display = 'flex';
         }
 
         function showInstallStatus(msg) {
             const el = document.getElementById('install-status');
-            el.textContent = msg;
+            el.innerHTML = msg;
             el.className = 'status info';
-            el.style.display = 'block';
+            el.style.display = 'flex';
         }
 
         // Inicializar
@@ -309,8 +657,11 @@
         // Verificar si ya está instalada
         if (window.matchMedia('(display-mode: standalone)').matches) {
             document.getElementById('install-btn').style.display = 'none';
-            showInstallStatus('✅ App instalada y ejecutándose');
+            showInstallStatus('<i class="fas fa-check-circle"></i>App instalada y ejecutándose');
         }
+
+        // Inicializar lista de programadas
+        updateScheduledList();
     </script>
 </body>
 </html>
