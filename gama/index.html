@@ -206,30 +206,33 @@
     </div>
 
     <div class="config-section">
-      <h4><i class="fas fa-broom"></i> Sistema</h4>
+    <h4><i class="fas fa-broom"></i> Sistema</h4>
 
-  <!-- BOTÓN PARA DESCARGAR CSV CON FACTURAS -->
-  <div class="config-item">
-    <button class="btn btn-outline-secondary btn-sm btn-bloc" onclick="descargarDatosCSV()">
-      <i class="fas fa-file-csv"></i> Descargar Datos con Factura (CSV)
-    </button>
-    <div class="config-description">Exportar solo datos con factura a formato CSV</div>
-  </div>
-      
-      <div class="config-item">
-        <button id="btnLimpiarCache" class="btn btn-outline-danger btn-sm btn-block" 
-                onclick="limpiarCacheYRecargar()">
-          <i class="fas fa-trash-alt"></i> Limpiar Cache y Recargar
+    <!-- Botones en línea sin descripciones debajo -->
+    <div class="config-buttons-row">
+        <button class="btn btn-outline-secondary btn-sm config-btn" onclick="descargarDatosCSV()" title="Exportar solo datos con factura a formato CSV">
+            <i class="fas fa-file-csv"></i> CSV Facturas
         </button>
-        <div class="config-description">Eliminar datos temporales y recargar la aplicación</div>
-      </div>
-      
-      <div class="config-item">
-        <button class="btn btn-outline-secondary btn-sm btn-block" onclick="exportarConfiguracion()">
-          <i class="fas fa-download"></i> Exportar Configuración
+        
+        <button class="btn btn-outline-secondary btn-sm config-btn" onclick="exportarConfiguracion()" title="Descargar configuración actual en formato JSON">
+            <i class="fas fa-download"></i> Exportar Config
         </button>
-      </div>
+        
+        <button id="btnLimpiarCache" class="btn btn-outline-danger btn-sm config-btn" 
+                onclick="limpiarCacheYRecargar()" title="Eliminar datos temporales y recargar la aplicación">
+            <i class="fas fa-trash-alt"></i> Limpiar Cache
+        </button>
     </div>
+
+    <!-- Botón de carga manual en su propia fila -->
+    <div class="config-item" style="margin-top: 15px;">
+        <button id="btnForzarCargaSinFactura" class="btn btn-warning btn-sm btn-block config-btn" 
+                onclick="forzarCargaDatosSinFactura()" title="Cargar entregas sin factura manualmente">
+            <i class="fas fa-sync"></i> Cargar Entregas Sin Factura
+        </button>
+        <div id="statusCargaSinFactura" style="display: none; font-size: 11px; margin-top: 5px;"></div>
+    </div>
+</div>
 
     <div class="config-footer">
       <small class="text-muted">PandaDash v4.0 • Build 4.0.0</small>
