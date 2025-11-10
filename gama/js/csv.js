@@ -102,3 +102,62 @@ function descargarDatosCSV() {
 }
 
 window.descargarDatosCSV = descargarDatosCSV;
+
+
+// Función para cruzar datos con main.js y obtener información adicional
+function obtenerDatosCompletos(documento, referencia, lote) {
+    try {
+        // Verificar si main.js está cargado y tiene los datos globales
+        if (typeof datosGlobales === 'undefined' || !Array.isArray(datosGlobales)) {
+            console.warn('datosGlobales no está disponible');
+            return null;
+        }
+
+        // Buscar coincidencia por documento, referencia y lote
+        const coincidencia = datosGlobales.find(item => {
+            const docMatch = item.DOCUMENTO && String(item.DOCUMENTO).trim() === String(documento).trim();
+            const refMatch = item.REFERENCIA && String(item.REFERENCIA).trim() === String(referencia).trim();
+            const loteMatch = item.LOTE && String(item.LOTE).trim() === String(lote).trim();
+            
+            return docMatch && refMatch && loteMatch;
+        });
+
+        if (!coincidencia) {
+            console.log('No se encontró coincidencia para:', { documento, referencia, lote });
+            return null;
+        }
+
+        // Extraer los campos necesarios
+        return {
+            REFERENCIA: coincidencia.REFERENCIA || '',
+            REFPROV: coincidencia.REFPROV || '',
+            DESCRIPCION: coincidencia.DESCRIPCIÓN || coincidencia.DESCRIPCION || '',
+            PVP: coincidencia.PVP || '',
+            PRENDA: coincidencia.PRENDA || '',
+            GENERO: coincidencia.GENERO || '',
+            CLASE: coincidencia.CLASE || ''
+        };
+    } catch (error) {
+        console.error('Error al cruzar datos con main.js:', error);
+        return null;
+    }
+}
+
+// Función para determinar la CLASE basada en el PVP
+function determinarClasePorPVP(pvp) {
+    if (!pvp || pvp.trim() === '') return 'NO DEFINIDO';
+    
+    try {
+        const valorNumerico = parseFloat(pvp.replace(/[^\d.,]/g, '').replace(',', '.'));
+        if (isNaN(valorNumerico)) return 'NO DEFINIDO';
+        
+        if (valorNumerico <= 39900) return 'LINEA';
+        if (valorNumerico <= 69900) return 'MODA';
+        if (valorNumerico > 69900) return 'PRONTAMODA';
+        
+        return 'NO DEFINIDO';
+    } catch (error) {
+        console.error('Error al parsear PVP:', pvp, error);
+        return 'NO DEFINIDO';
+    }
+}
