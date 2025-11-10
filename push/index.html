@@ -7,7 +7,6 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2575fc">
     <style>
-        /* (Los estilos se mantienen igual que antes) */
         * {
             margin: 0;
             padding: 0;
@@ -63,10 +62,6 @@
             align-items: center;
         }
         
-        h2 i {
-            margin-right: 10px;
-        }
-        
         .form-group {
             margin-bottom: 15px;
         }
@@ -116,6 +111,19 @@
             transform: none;
         }
         
+        .btn-install {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            font-size: 1.1rem;
+            padding: 15px 25px;
+            margin-bottom: 15px;
+        }
+        
+        .btn-install:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
         .notification-preview {
             background-color: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
@@ -161,12 +169,44 @@
             text-align: center;
         }
         
-        .icon {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            margin-right: 10px;
-            vertical-align: middle;
+        .sw-status {
+            background-color: rgba(255, 193, 7, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .install-section {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+        
+        .install-section h3 {
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
         }
         
         @media (max-width: 600px) {
@@ -177,25 +217,65 @@
             h1 {
                 font-size: 2rem;
             }
+            
+            .feature-list {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔔 Notificaciones Push</h1>
-        <p class="description">Envía notificaciones a dispositivos móviles como si fuera una aplicación nativa. Esta es una aplicación web progresiva (PWA) que simula el comportamiento de una app instalada.</p>
+        <h1>🔔 Notificaciones Push PWA</h1>
+        <p class="description">Aplicación web progresiva que se comporta como una app nativa</p>
+        
+        <!-- Sección de instalación -->
+        <div class="install-section">
+            <h3>📲 Instalar la App</h3>
+            <button id="install-btn" class="btn-install" style="display: none;">
+                ⬇️ Instalar Aplicación
+            </button>
+            <div id="install-status"></div>
+            
+            <div class="feature-list">
+                <div class="feature">
+                    <div class="feature-icon">🚀</div>
+                    <h4>Rápida</h4>
+                    <p>Carga instantánea</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📱</div>
+                    <h4>Nativa</h4>
+                    <p>Como una app instalada</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔔</div>
+                    <h4>Notificaciones</h4>
+                    <p>Push nativas</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <h4>Offline</h4>
+                    <p>Funciona sin internet</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sw-status" id="sw-status">
+            Registrando Service Worker...
+        </div>
         
         <div class="card">
-            <h2><span class="icon">📱</span> Configuración de Notificaciones</h2>
+            <h2>⚙️ Configuración de Notificaciones</h2>
             
             <div class="form-group">
-                <label for="notification-title">Título de la notificación:</label>
-                <input type="text" id="notification-title" placeholder="Ej: Recordatorio importante" value="¡Hola desde la web!">
+                <label for="notification-title">Título:</label>
+                <input type="text" id="notification-title" placeholder="Ej: Recordatorio importante" value="¡Notificación PWA!">
             </div>
             
             <div class="form-group">
                 <label for="notification-message">Mensaje:</label>
-                <textarea id="notification-message" rows="3" placeholder="Ej: No olvides completar tu perfil">Esta notificación fue enviada desde una aplicación web progresiva que simula el comportamiento de una app nativa.</textarea>
+                <textarea id="notification-message" rows="3" placeholder="Ej: No olvides completar tu perfil">Esta es una notificación desde una PWA que simula una app nativa.</textarea>
             </div>
             
             <div class="form-group">
@@ -204,20 +284,19 @@
                     <option value="🔔">🔔 Notificación</option>
                     <option value="📱">📱 Dispositivo</option>
                     <option value="📧">📧 Mensaje</option>
-                    <option value="🔔">🔔 Alerta</option>
                     <option value="🎉">🎉 Celebración</option>
                 </select>
             </div>
             
             <div class="form-group">
                 <label for="notification-delay">Retraso (segundos):</label>
-                <input type="number" id="notification-delay" min="1" max="60" value="5">
+                <input type="number" id="notification-delay" min="1" max="60" value="3">
             </div>
             
-            <button id="request-permission">Solicitar Permisos</button>
-            <button id="schedule-notification">Programar Notificación</button>
-            <button id="send-notification">Enviar Notificación Inmediata</button>
-            <button id="test-push">Probar Notificación Push (Service Worker)</button>
+            <button id="request-permission">1. Solicitar Permisos</button>
+            <button id="send-notification">2. Notificación Normal</button>
+            <button id="schedule-notification">3. Notificación Programada</button>
+            <button id="test-push">4. Notificación Push (SW)</button>
             
             <div class="notification-preview" id="notification-preview">
                 <h3 id="preview-title">Título de la notificación</h3>
@@ -227,11 +306,128 @@
         
         <div class="status" id="status"></div>
         
-        <p class="instructions">Para una experiencia completa, instala esta aplicación en tu dispositivo: en Chrome, ve a "Agregar a pantalla de inicio" o en Safari, toca el ícono de compartir y luego "Agregar a pantalla de inicio".</p>
+        <p class="instructions">
+            <strong>Instrucciones:</strong><br>
+            1. Instala la app usando el botón "Instalar Aplicación"<br>
+            2. Solicita permisos para notificaciones<br>
+            3. Prueba los diferentes tipos de notificaciones<br>
+            4. ¡Disfruta de tu app como si fuera nativa!
+        </p>
     </div>
 
     <script>
+        // Variables globales
+        let swRegistration = null;
+        let deferredPrompt = null;
+
+        // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            // Registrar Service Worker
+            await registerServiceWorker();
+            
+            // Configurar el evento de instalación
+            setupInstallPrompt();
+            
+            // Configurar event listeners
+            setupEventListeners();
+            
+            // Actualizar vista previa
+            updatePreview();
+        }
+
+        // Registrar Service Worker
+        async function registerServiceWorker() {
+            if (!('serviceWorker' in navigator)) {
+                showSWStatus('Service Worker no soportado en este navegador', 'error');
+                return;
+            }
+
+            try {
+                swRegistration = await navigator.serviceWorker.register('sw.js');
+                showSWStatus('✅ Service Worker registrado correctamente', 'success');
+                console.log('Service Worker registrado:', swRegistration);
+
+            } catch (error) {
+                console.error('Error registrando Service Worker:', error);
+                showSWStatus('❌ Error registrando Service Worker', 'error');
+            }
+        }
+
+        // Configurar el prompt de instalación
+        function setupInstallPrompt() {
+            // Evento que se dispara cuando el navegador quiere mostrar el prompt de instalación
+            window.addEventListener('beforeinstallprompt', (e) => {
+                console.log('beforeinstallprompt event fired');
+                
+                // Prevenir que el navegador muestre el prompt automáticamente
+                e.preventDefault();
+                
+                // Guardar el evento para usarlo después
+                deferredPrompt = e;
+                
+                // Mostrar el botón de instalación
+                const installBtn = document.getElementById('install-btn');
+                installBtn.style.display = 'block';
+                
+                showInstallStatus('✅ La aplicación se puede instalar', 'success');
+            });
+
+            // Evento que se dispara cuando la app se instala correctamente
+            window.addEventListener('appinstalled', (e) => {
+                console.log('App instalada correctamente');
+                deferredPrompt = null;
+                
+                // Ocultar el botón de instalación
+                const installBtn = document.getElementById('install-btn');
+                installBtn.style.display = 'none';
+                
+                showInstallStatus('🎉 ¡Aplicación instalada correctamente!', 'success');
+                
+                // Mostrar mensaje de éxito
+                showStatus('¡App instalada! Ahora puedes usarla como una aplicación nativa.', 'success');
+            });
+
+            // Manejar clic en el botón de instalación
+            document.getElementById('install-btn').addEventListener('click', installApp);
+        }
+
+        // Instalar la aplicación
+        async function installApp() {
+            if (!deferredPrompt) {
+                showInstallStatus('La aplicación ya está instalada o no se puede instalar', 'error');
+                return;
+            }
+
+            try {
+                // Mostrar el prompt de instalación
+                deferredPrompt.prompt();
+                
+                // Esperar a que el usuario responda
+                const { outcome } = await deferredPrompt.userChoice;
+                
+                console.log(`User response to the install prompt: ${outcome}`);
+                
+                if (outcome === 'accepted') {
+                    showInstallStatus('✅ Instalación en progreso...', 'success');
+                } else {
+                    showInstallStatus('❌ El usuario canceló la instalación', 'error');
+                }
+                
+                // Limpiar la referencia
+                deferredPrompt = null;
+                
+            } catch (error) {
+                console.error('Error durante la instalación:', error);
+                showInstallStatus('❌ Error durante la instalación', 'error');
+            }
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
             const requestPermissionBtn = document.getElementById('request-permission');
             const scheduleNotificationBtn = document.getElementById('schedule-notification');
             const sendNotificationBtn = document.getElementById('send-notification');
@@ -239,172 +435,191 @@
             const notificationTitle = document.getElementById('notification-title');
             const notificationMessage = document.getElementById('notification-message');
             const notificationIcon = document.getElementById('notification-icon');
-            const notificationDelay = document.getElementById('notification-delay');
-            const notificationPreview = document.getElementById('notification-preview');
-            const previewTitle = document.getElementById('preview-title');
-            const previewMessage = document.getElementById('preview-message');
-            const status = document.getElementById('status');
-            
-            let swRegistration = null;
-            
-            // Registrar Service Worker
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js')
-                    .then(function(registration) {
-                        console.log('Service Worker registrado con éxito:', registration);
-                        swRegistration = registration;
-                        showStatus('Service Worker registrado correctamente', 'success');
-                    })
-                    .catch(function(error) {
-                        console.log('Error al registrar el Service Worker:', error);
-                        showStatus('Error al registrar Service Worker', 'error');
-                    });
-            }
-            
-            // Actualizar vista previa cuando cambian los campos
+
+            // Actualizar vista previa
             notificationTitle.addEventListener('input', updatePreview);
             notificationMessage.addEventListener('input', updatePreview);
             notificationIcon.addEventListener('change', updatePreview);
-            
-            function updatePreview() {
-                previewTitle.textContent = notificationIcon.value + ' ' + notificationTitle.value;
-                previewMessage.textContent = notificationMessage.value;
-                notificationPreview.style.display = 'block';
+
+            // Solicitar permisos
+            requestPermissionBtn.addEventListener('click', requestNotificationPermission);
+
+            // Enviar notificación normal
+            sendNotificationBtn.addEventListener('click', sendNormalNotification);
+
+            // Programar notificación
+            scheduleNotificationBtn.addEventListener('click', scheduleNotification);
+
+            // Probar notificación push
+            testPushBtn.addEventListener('click', testPushNotification);
+        }
+
+        // Solicitar permisos para notificaciones
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                showStatus('Tu navegador no soporta notificaciones', 'error');
+                return;
             }
-            
-            // Solicitar permisos para notificaciones
-            requestPermissionBtn.addEventListener('click', function() {
-                if (!('Notification' in window)) {
-                    showStatus('Tu navegador no soporta notificaciones', 'error');
-                    return;
-                }
+
+            try {
+                const permission = await Notification.requestPermission();
                 
-                if (Notification.permission === 'granted') {
-                    showStatus('Ya tienes permisos para notificaciones', 'success');
-                } else if (Notification.permission !== 'denied') {
-                    Notification.requestPermission().then(function(permission) {
-                        if (permission === 'granted') {
-                            showStatus('Permisos concedidos para notificaciones', 'success');
-                        } else {
-                            showStatus('Permisos denegados para notificaciones', 'error');
-                        }
-                    });
+                if (permission === 'granted') {
+                    showStatus('✅ Permisos concedidos para notificaciones', 'success');
                 } else {
-                    showStatus('Los permisos para notificaciones fueron denegados. Debes habilitarlos manualmente en la configuración de tu navegador.', 'error');
+                    showStatus('❌ Permisos denegados para notificaciones', 'error');
                 }
-            });
-            
-            // Enviar notificación inmediata
-            sendNotificationBtn.addEventListener('click', function() {
-                if (Notification.permission !== 'granted') {
-                    showStatus('Primero debes conceder permisos para notificaciones', 'error');
-                    return;
-                }
-                
-                const title = notificationTitle.value;
-                const message = notificationMessage.value;
-                const icon = notificationIcon.value;
-                
-                if (!title || !message) {
-                    showStatus('Por favor, completa el título y el mensaje', 'error');
-                    return;
-                }
-                
-                // Enviar notificación
+            } catch (error) {
+                showStatus('Error solicitando permisos: ' + error.message, 'error');
+            }
+        }
+
+        // Enviar notificación normal
+        function sendNormalNotification() {
+            if (Notification.permission !== 'granted') {
+                showStatus('Primero debes conceder permisos para notificaciones', 'error');
+                return;
+            }
+
+            const title = document.getElementById('notification-title').value;
+            const message = document.getElementById('notification-message').value;
+            const icon = document.getElementById('notification-icon').value;
+
+            if (!title || !message) {
+                showStatus('Por favor, completa el título y el mensaje', 'error');
+                return;
+            }
+
+            try {
                 const notification = new Notification(icon + ' ' + title, {
                     body: message,
                     icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTM0LjUgMjZIMzJWMzZIMzRINTBWMzRIMzQuNVYyNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjQwIiBjeT0iMjIiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
                     badge: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNGRjQwODEiLz4KPC9zdmc+Cg=='
                 });
-                
+
                 notification.onclick = function() {
                     window.focus();
                     notification.close();
                 };
-                
-                showStatus('Notificación enviada correctamente', 'success');
-            });
-            
-            // Programar notificación
-            scheduleNotificationBtn.addEventListener('click', function() {
-                if (Notification.permission !== 'granted') {
-                    showStatus('Primero debes conceder permisos para notificaciones', 'error');
-                    return;
-                }
-                
-                const title = notificationTitle.value;
-                const message = notificationMessage.value;
-                const icon = notificationIcon.value;
-                const delay = parseInt(notificationDelay.value) * 1000;
-                
-                if (!title || !message) {
-                    showStatus('Por favor, completa el título y el mensaje', 'error');
-                    return;
-                }
-                
-                if (isNaN(delay) || delay < 1000) {
-                    showStatus('Por favor, introduce un retraso válido', 'error');
-                    return;
-                }
-                
-                showStatus(`Notificación programada para ${notificationDelay.value} segundos`, 'info');
-                
-                setTimeout(function() {
+
+                showStatus('✅ Notificación normal enviada', 'success');
+            } catch (error) {
+                showStatus('Error enviando notificación: ' + error.message, 'error');
+            }
+        }
+
+        // Programar notificación
+        function scheduleNotification() {
+            if (Notification.permission !== 'granted') {
+                showStatus('Primero debes conceder permisos para notificaciones', 'error');
+                return;
+            }
+
+            const title = document.getElementById('notification-title').value;
+            const message = document.getElementById('notification-message').value;
+            const icon = document.getElementById('notification-icon').value;
+            const delay = parseInt(document.getElementById('notification-delay').value) * 1000;
+
+            if (!title || !message) {
+                showStatus('Por favor, completa el título y el mensaje', 'error');
+                return;
+            }
+
+            showStatus(`⏰ Notificación programada para ${delay/1000} segundos`, 'info');
+
+            setTimeout(() => {
+                try {
                     const notification = new Notification(icon + ' ' + title, {
                         body: message,
-                        icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTM0LjUgMjZIMzJWMzZIMzRINTBWMzRIMzQuNVYyNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjQwIiBjeT0iMjIiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
-                        badge: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNGRjQwODEiLz4KPC9zdmc+Cg=='
+                        icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTM0LjUgMjZIMzJWMzZIMzRINTBWMzRIMzQuNVYyNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjQwIiBjeT0iMjIiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='
                     });
-                    
+
                     notification.onclick = function() {
                         window.focus();
                         notification.close();
                     };
-                    
-                    showStatus('Notificación programada enviada', 'success');
-                }, delay);
-            });
-            
-            // Probar notificación push desde Service Worker
-            testPushBtn.addEventListener('click', function() {
-                if (!swRegistration) {
-                    showStatus('El Service Worker no está registrado', 'error');
-                    return;
+
+                    showStatus('✅ Notificación programada enviada', 'success');
+                } catch (error) {
+                    showStatus('Error enviando notificación programada: ' + error.message, 'error');
                 }
-                
-                const title = notificationTitle.value;
-                const message = notificationMessage.value;
-                
-                // Simular una notificación push
-                swRegistration.showNotification(title || 'Notificación Push', {
-                    body: message || '¡Esta es una notificación push del Service Worker!',
+            }, delay);
+        }
+
+        // Probar notificación push desde Service Worker
+        async function testPushNotification() {
+            if (!swRegistration) {
+                showStatus('Service Worker no está registrado', 'error');
+                return;
+            }
+
+            const title = document.getElementById('notification-title').value || 'Notificación Push';
+            const message = document.getElementById('notification-message').value || '¡Esta es una notificación push del Service Worker!';
+
+            try {
+                await swRegistration.showNotification(title, {
+                    body: message,
                     icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2YTExY2IiLz4KPHBhdGggZD0iTTM0LjUgMjZIMzJWMzZIMzRINTBWMzRIMzQuNVYyNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjQwIiBjeT0iMjIiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
-                    badge: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNGRjQwODEiLz4KPC9zdmc+Cg==',
+                    badge: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZCBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNGRjQwODEiLz4KPC9zdmc+Cg==',
                     vibrate: [200, 100, 200]
                 });
-                
-                showStatus('Notificación push enviada desde Service Worker', 'success');
-            });
-            
-            // Mostrar estado
-            function showStatus(message, type) {
-                status.textContent = message;
-                status.className = 'status ' + type;
-                status.style.display = 'block';
-                
-                setTimeout(function() {
-                    status.style.display = 'none';
-                }, 5000);
+
+                showStatus('✅ Notificación push enviada desde Service Worker', 'success');
+            } catch (error) {
+                showStatus('Error enviando notificación push: ' + error.message, 'error');
             }
-            
-            // Verificar si ya tenemos permisos
-            if (Notification.permission === 'granted') {
-                showStatus('Ya tienes permisos para notificaciones', 'success');
-            }
-            
-            // Inicializar vista previa
-            updatePreview();
-        });
+        }
+
+        // Actualizar vista previa
+        function updatePreview() {
+            const title = document.getElementById('notification-title').value;
+            const message = document.getElementById('notification-message').value;
+            const icon = document.getElementById('notification-icon').value;
+            const preview = document.getElementById('notification-preview');
+
+            document.getElementById('preview-title').textContent = icon + ' ' + title;
+            document.getElementById('preview-message').textContent = message;
+            preview.style.display = 'block';
+        }
+
+        // Mostrar estado del Service Worker
+        function showSWStatus(message, type) {
+            const statusElement = document.getElementById('sw-status');
+            statusElement.textContent = message;
+            statusElement.className = `sw-status ${type}`;
+        }
+
+        // Mostrar estado de instalación
+        function showInstallStatus(message, type) {
+            const statusElement = document.getElementById('install-status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'block';
+        }
+
+        // Mostrar estado general
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'block';
+
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Verificar si la app ya está instalada
+        function isAppInstalled() {
+            return window.matchMedia('(display-mode: standalone)').matches || 
+                   window.navigator.standalone === true;
+        }
+
+        // Si la app ya está instalada, ocultar el botón
+        if (isAppInstalled()) {
+            document.getElementById('install-btn').style.display = 'none';
+            showInstallStatus('✅ La aplicación está instalada', 'success');
+        }
     </script>
 </body>
 </html>
