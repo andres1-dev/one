@@ -73,74 +73,8 @@ class SheetsAPI {
         }
     }
 
-
-    // Combinar SOLO datos que tienen facturas - SIMPLIFICADO
-combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
-    const datosCombinados = [];
-    
-    // Procesar directamente los datos de SIESA que tienen facturas
-    datosSiesa.forEach(filaSiesa => {
-        const factura = filaSiesa[1];
-        const loteSiesa = filaSiesa[3];
-        
-        // Solo procesar si tiene factura válida
-        if (factura && factura.trim() !== '') {
-            const codProveedor = Number(filaSiesa[4]);
-            let nombreProveedor = filaSiesa[4];
-            
-            if (codProveedor === 5) {
-                nombreProveedor = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
-            } else if (codProveedor === 3) {
-                nombreProveedor = "TEXTILES Y CREACIONES LOS ANGELES SAS";
-            }
-
-            const nitCliente = filaSiesa[9] || '';
-            const referenciaItem = filaSiesa[7] || '';
-            const cantidadItem = String(filaSiesa[8] || '');
-            
-            // Buscar documento correspondiente en DATA2 por lote
-            const itemData2 = datosData2.find(item => 
-                String(item.lote).trim() === String(loteSiesa).trim()
-            );
-            
-            const documento = itemData2 ? "REC" + itemData2.documento : "SIN_DOCUMENTO";
-            const referencia = itemData2 ? itemData2.referencia : referenciaItem;
-            
-            const confirmacion = this.obtenerConfirmacion(
-                datosSoportes, 
-                documento, 
-                loteSiesa, 
-                referenciaItem, 
-                cantidadItem, 
-                nitCliente
-            );
-            
-            datosCombinados.push({
-                documento: documento,
-                referencia: referencia,
-                lote: loteSiesa,
-                datosSiesa: [{
-                    estado: filaSiesa[0],
-                    factura: factura,
-                    fecha: filaSiesa[2],
-                    lote: loteSiesa,
-                    proovedor: nombreProveedor,
-                    cliente: filaSiesa[5],
-                    valorBruto: filaSiesa[6],
-                    referencia: referenciaItem,
-                    cantidad: cantidadItem,
-                    nit: nitCliente,
-                    confirmacion: confirmacion
-                }]
-            });
-        }
-    });
-
-    return datosCombinados;
-}
-    
     // Combinar SOLO datos que tienen facturas
-    /*combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
+    combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
         const datosCombinados = [];
         
         console.log('🔄 Combinando datos con facturas...');
@@ -200,7 +134,7 @@ combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
 
         console.log(`📊 Registros con facturas: ${datosCombinados.length}`);
         return datosCombinados;
-    }*/
+    }
 
     async obtenerDatosDeData2() {
         const values = await this.fetchSheetData(SPREADSHEET_IDS.DATA2, 'DATA2!S:S');
