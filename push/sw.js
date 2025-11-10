@@ -1,124 +1,90 @@
-const CACHE_NAME = 'notifications-pwa-v3';
-const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
-];
-
-// Almacén para notificaciones programadas
+const CACHE_NAME = 'notifications-pwa-v4';
 const SCHEDULED_NOTIFICATIONS_KEY = 'scheduledNotifications';
 
 // Instalación
 self.addEventListener('install', function(event) {
   console.log('Service Worker instalando...');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function(cache) {
-        console.log('Cache abierto');
-        return cache.addAll(urlsToCache);
-      })
-  );
   self.skipWaiting();
 });
 
 // Activación
 self.addEventListener('activate', function(event) {
   console.log('Service Worker activado');
-  event.waitUntil(
-    caches.keys().then(function(cacheNames) {
-      return Promise.all(
-        cacheNames.map(function(cacheName) {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Eliminando cache viejo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      // Verificar notificaciones programadas al activar
-      checkScheduledNotifications();
-    })
-  );
-  self.clients.claim();
+  event.waitUntil(self.clients.claim());
+  
+  // Verificar notificaciones pendientes inmediatamente
+  checkScheduledNotifications();
 });
 
-// Fetch
-self.addEventListener('fetch', function(event) {
-  event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
-  );
-});
-
-// Background Sync para notificaciones programadas
-self.addEventListener('sync', function(event) {
-  console.log('Background sync:', event.tag);
-  if (event.tag === 'scheduled-notifications') {
-    event.waitUntil(checkScheduledNotifications());
+// Almacenamiento mejorado
+async function getScheduledNotifications() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const response = await cache.match(SCHEDULED_NOTIFICATIONS_KEY);
+    return response ? await response.json() : [];
+  } catch (error) {
+    console.error('Error obteniendo notificaciones:', error);
+    return [];
   }
-});
+}
 
-// Periodic Sync (para verificar cada cierto tiempo)
-self.addEventListener('periodicsync', function(event) {
-  if (event.tag === 'check-notifications') {
-    console.log('Periodic sync para notificaciones');
-    event.waitUntil(checkScheduledNotifications());
+async function saveScheduledNotifications(notifications) {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const response = new Response(JSON.stringify(notifications));
+    await cache.put(SCHEDULED_NOTIFICATIONS_KEY, response);
+  } catch (error) {
+    console.error('Error guardando notificaciones:', error);
   }
-});
+}
 
-// Función para verificar notificaciones programadas
+// Verificar notificaciones programadas
 async function checkScheduledNotifications() {
   try {
-    const result = await getScheduledNotifications();
+    const notifications = await getScheduledNotifications();
     const now = Date.now();
-    const notificationsToSend = [];
-    const notificationsToKeep = [];
+    const pending = [];
+    const toSend = [];
 
-    // Verificar cada notificación programada
-    for (const notification of result) {
+    for (const notification of notifications) {
       if (notification.scheduledTime <= now) {
-        // Es hora de enviar la notificación
-        notificationsToSend.push(notification);
+        toSend.push(notification);
       } else {
-        // Mantener la notificación para el futuro
-        notificationsToKeep.push(notification);
+        pending.push(notification);
       }
     }
 
     // Enviar notificaciones pendientes
-    for (const notification of notificationsToSend) {
-      await sendScheduledNotification(notification);
+    for (const notification of toSend) {
+      await sendNotification(notification);
     }
 
-    // Actualizar el almacenamiento
-    if (notificationsToSend.length > 0) {
-      await saveScheduledNotifications(notificationsToKeep);
+    // Guardar las que quedan pendientes
+    if (toSend.length > 0) {
+      await saveScheduledNotifications(pending);
     }
 
-    console.log(`Enviadas ${notificationsToSend.length} notificaciones programadas`);
-
+    console.log(`Enviadas ${toSend.length} notificaciones programadas`);
+    
+    // Programar siguiente verificación si hay notificaciones pendientes
+    if (pending.length > 0) {
+      const nextCheck = Math.min(...pending.map(n => n.scheduledTime)) - Date.now();
+      setTimeout(checkScheduledNotifications, Math.max(nextCheck, 1000));
+    }
   } catch (error) {
-    console.error('Error verificando notificaciones programadas:', error);
+    console.error('Error en checkScheduledNotifications:', error);
   }
 }
 
-// Función para enviar notificación programada
-async function sendScheduledNotification(notification) {
+// Enviar notificación
+async function sendNotification(notification) {
   const options = {
-    body: notification.body + ' (Programada)',
+    body: notification.body,
     icon: './icon-192.png',
     badge: './icon-192.png',
     vibrate: [200, 100, 200],
     tag: `scheduled-${notification.id}`,
-    requireInteraction: true,
+    requireInteraction: false,
     data: {
       url: './',
       scheduled: true,
@@ -127,116 +93,28 @@ async function sendScheduledNotification(notification) {
   };
 
   await self.registration.showNotification(notification.title, options);
-  console.log('Notificación programada enviada:', notification.title);
+  console.log('Notificación enviada:', notification.title);
 }
 
-// Almacenar notificaciones programadas
-async function saveScheduledNotifications(notifications) {
-  const data = {
-    notifications: notifications,
-    lastUpdated: Date.now()
-  };
-  
-  const cache = await caches.open(CACHE_NAME);
-  const response = new Response(JSON.stringify(data));
-  await cache.put(SCHEDULED_NOTIFICATIONS_KEY, response);
-}
-
-// Obtener notificaciones programadas
-async function getScheduledNotifications() {
-  try {
-    const cache = await caches.open(CACHE_NAME);
-    const response = await cache.match(SCHEDULED_NOTIFICATIONS_KEY);
-    
-    if (!response) {
-      return [];
-    }
-    
-    const data = await response.json();
-    return data.notifications || [];
-  } catch (error) {
-    console.error('Error obteniendo notificaciones programadas:', error);
-    return [];
+// Background Sync para notificaciones
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'check-notifications') {
+    console.log('Background Sync ejecutado');
+    event.waitUntil(checkScheduledNotifications());
   }
-}
-
-// Agregar notificación programada (llamado desde el cliente)
-async function addScheduledNotification(notification) {
-  const existing = await getScheduledNotifications();
-  existing.push(notification);
-  await saveScheduledNotifications(existing);
-  
-  // Programar sync para el momento de la notificación
-  const delay = notification.scheduledTime - Date.now();
-  if (delay > 0) {
-    setTimeout(() => {
-      self.registration.sync.register('scheduled-notifications');
-    }, Math.min(delay, 24 * 60 * 60 * 1000)); // Máximo 24 horas
-  }
-}
-
-// Eliminar notificación programada
-async function removeScheduledNotification(id) {
-  const existing = await getScheduledNotifications();
-  const filtered = existing.filter(n => n.id !== id);
-  await saveScheduledNotifications(filtered);
-}
-
-// Push notifications
-self.addEventListener('push', function(event) {
-  console.log('Push event recibido');
-  
-  let data = {
-    title: 'Notificación Push',
-    body: '¡Tienes una nueva notificación!',
-    icon: './icon-192.png'
-  };
-  
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      data.body = event.data.text();
-    }
-  }
-
-  const options = {
-    body: data.body,
-    icon: data.icon || './icon-192.png',
-    badge: './icon-192.png',
-    vibrate: [100, 50, 100],
-    data: {
-      url: data.url || './'
-    }
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
 });
 
-// Notification click
-self.addEventListener('notificationclick', function(event) {
-  console.log('Notification click recibido');
-  event.notification.close();
-
-  event.waitUntil(
-    clients.matchAll({type: 'window'}).then(function(clientList) {
-      for (const client of clientList) {
-        if (client.url.includes('./') && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow('./');
-      }
-    })
-  );
+// Periodic Sync (cada 30 segundos como fallback)
+self.addEventListener('periodicsync', function(event) {
+  if (event.tag === 'periodic-notification-check') {
+    console.log('Periodic Sync ejecutado');
+    event.waitUntil(checkScheduledNotifications());
+  }
 });
 
 // Mensajes desde el cliente
 self.addEventListener('message', function(event) {
-  console.log('Mensaje recibido en SW:', event.data);
+  console.log('Mensaje del cliente:', event.data);
   
   switch (event.data.type) {
     case 'ADD_SCHEDULED_NOTIFICATION':
@@ -253,10 +131,74 @@ self.addEventListener('message', function(event) {
         notifications: getScheduledNotifications()
       });
       break;
+      
+    case 'CHECK_NOW':
+      checkScheduledNotifications();
+      break;
   }
 });
 
-// Verificar notificaciones cada minuto (fallback)
+// Agregar notificación programada
+async function addScheduledNotification(notification) {
+  const notifications = await getScheduledNotifications();
+  notifications.push(notification);
+  await saveScheduledNotifications(notifications);
+  
+  // Programar verificación para el momento exacto
+  const delay = notification.scheduledTime - Date.now();
+  if (delay > 0) {
+    setTimeout(() => {
+      checkScheduledNotifications();
+    }, delay);
+  }
+  
+  // Registrar sync para background
+  if ('sync' in self.registration) {
+    self.registration.sync.register('check-notifications');
+  }
+}
+
+// Eliminar notificación programada
+async function removeScheduledNotification(id) {
+  const notifications = await getScheduledNotifications();
+  const filtered = notifications.filter(n => n.id !== id);
+  await saveScheduledNotifications(filtered);
+}
+
+// Push notifications
+self.addEventListener('push', function(event) {
+  const data = event.data ? event.data.json() : {
+    title: 'Notificación Push',
+    body: '¡Tienes una nueva notificación!'
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: './icon-192.png',
+      badge: './icon-192.png'
+    })
+  );
+});
+
+// Notification click
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({type: 'window'}).then(function(clientList) {
+      for (const client of clientList) {
+        if (client.url.includes('./') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
+    })
+  );
+});
+
+// Verificación cada 10 segundos (fallback robusto)
 setInterval(() => {
   checkScheduledNotifications();
-}, 60000);
+}, 10000);
