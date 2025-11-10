@@ -285,3 +285,48 @@ async function cargarScriptMainJS() {
 // Hacer disponibles globalmente
 window.descargarDatosCSV = descargarDatosCSV;
 window.descargarDatosCSVCompleto = descargarDatosCSVCompleto;
+
+// Función para debug - ver qué datos se están encontrando
+function debugBusquedaDocumento(documento) {
+    if (typeof window.datosGlobales !== 'undefined' && Array.isArray(window.datosGlobales)) {
+        const documentoNormalizado = normalizarDocumento(documento);
+        console.log('Buscando documento:', documento, 'Normalizado:', documentoNormalizado);
+        
+        const encontrados = window.datosGlobales.filter(item => {
+            const itemDoc = normalizarDocumento(item.DOCUMENTO || item.REC || '');
+            return itemDoc === documentoNormalizado;
+        });
+        
+        console.log('Resultados encontrados:', encontrados.length);
+        if (encontrados.length > 0) {
+            console.log('Primer resultado:', encontrados[0]);
+        }
+        
+        return encontrados;
+    }
+    return [];
+}
+
+// Hacer disponible para debug en consola
+window.debugBusqueda = debugBusquedaDocumento;
+
+
+// Función wrapper con manejo de estado UI
+async function iniciarDescargaCSV() {
+    const btn = document.getElementById('btnDescargarCSV');
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparando datos...';
+        btn.disabled = true;
+        
+        await descargarDatosCSV();
+        
+    } catch (error) {
+        console.error('Error en descarga CSV:', error);
+        mostrarNotificacion('error', 'Error', 'No se pudo completar la descarga');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
