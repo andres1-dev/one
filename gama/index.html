@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="PandaDash" />
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <title>PandaDash</title>
+</head>
+<body>
+  <!-- Pantalla de carga -->
+  <div id="loadingScreen">
+    <div style="text-align: center;">
+      <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+    </div>
+    <div class="triple-pulse">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <h1>PandaDash</h1>
+    <div class="name">Build 4.0.0</div>
+    
+    <!-- Botón PWA PandaDash - Efecto de llenado con gradiente -->
+    <button id="installBtn" class="btn-panda-fill" style="display: none;">
+        <i class="fas fa-rocket icon"></i> Instalar App
+    </button>
+  </div>
+
+  <!-- Contenido principal -->
+  <div id="scanner" style="display: none;">
+    <div id="offline-banner" class="offline-banner" style="display: none;">
+      <i class="fas fa-wifi-slash"></i> No hay conexión a internet
+    </div>
+    
+    <div class="barcode-input-container">
+      <i class="fa-solid fa-qrcode"></i>
+      <input type="text" id="barcode" autofocus placeholder="Escanea un código QR">
+    </div>
+
+    <div id="status">Iniciando Sistema...</div>
+    <div class="data-stats" id="data-stats">Cargando datos...</div>
+    <div id="results"></div>
+
+    <footer>
+        <div class="footer-content">
+            <p></p>
+            <p></p>
+            <p></p>
+        </div>
+    </footer>
+  </div>
+
+  <!-- Modal de cámara -->
+  <div id="cameraModal" class="camera-modal">
+    <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
+    <canvas id="photoCanvas" style="display: none;"></canvas>
+    <img id="photoPreview" alt="Vista previa de la foto">
+    <div class="camera-actions">
+      <button id="takePhotoBtn" class="btn btn-primary">
+        <i class="fas fa-camera"></i> Tomar Foto
+      </button>
+      <button id="cancelCaptureBtn" class="btn btn-danger">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+    </div>
+    <div id="uploadStatus" class="uploading-status">
+      <i class="fas fa-spinner fa-pulse"></i> Subiendo foto...
+    </div>
+    <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
+  </div>
+
+  <!-- Modal de escáner de cámara -->
+  <div id="cameraScannerModal" class="camera-modal" style="display: none;">
+    <div class="camera-scanner-header">
+      <h3><i class="fas fa-camera"></i> Escáner de Códigos</h3>
+      <button class="btn btn-danger btn-sm" onclick="window.cameraScanner.stopScanner()">
+        <i class="fas fa-times"></i> Cerrar
+      </button>
+    </div>
+    
+    <div class="camera-scanner-view">
+      <div id="cameraScannerView"></div>
+      <div class="camera-overlay">
+        <div class="scan-line"></div>
+      </div>
+    </div>
+    
+    <div class="camera-scanner-status">
+      <div class="scanner-status idle">Listo para escanear</div>
+      <div class="scanner-stats">Escaneos: <span id="scanCount">0</span></div>
+    </div>
+    
+    <div class="scan-instruction">
+      <i class="fas fa-expand-arrows-alt"></i>
+      <p>Enfoca el código QR o de barras dentro del área de escaneo</p>
+    </div>
+    
+    <div class="camera-scanner-actions">
+      <button class="btn btn-warning btn-sm" onclick="window.cameraScanner.toggleTorch()">
+        <i class="fas fa-lightbulb"></i> Flash
+      </button>
+    </div>
+  </div>
+
+  <!-- Contador de cola y panel de detalles -->
+  <div id="queueCounter" class="empty" title="No hay elementos en cola">0</div>
+  <div id="queueDetails">
+    <h3>Elementos en cola <i class="fas fa-times" id="closeQueueDetails"></i></h3>
+    <div id="queueItemsList">
+      <div class="queue-no-items">No hay elementos pendientes</div>
+    </div>
+  </div>
+
+  <!-- Panel de configuración mejorado -->
+  <div id="configPanel">
+    <h3>
+      <i class="fas fa-cog"></i> Configuración 
+      <i class="fas fa-times" id="closeConfigPanel"></i>
+    </h3>
+    
+    <!-- Sección de Cola (solo visible cuando hay elementos) -->
+    <div id="configColaSection" class="config-section" style="display: none;">
+      <h4><i class="fas fa-list-ol"></i> Cola de Subida</h4>
+      <div id="configQueueItemsList" class="config-queue-items">
+        <!-- Los elementos de cola aparecerán aquí -->
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h4><i class="fas fa-database"></i> Datos</h4>
+      <div class="config-item">
+        <label class="config-switch">
+          <input type="checkbox" id="toggleDatosSinFactura">
+          <span class="config-slider"></span>
+          <span class="config-label">Carga automática de entregas sin factura</span>
+        </label>
+        <div class="config-description">Cargar entregas sin factura al iniciar la aplicación</div>
+      </div>
+      
+      <div class="config-item">
+        <button id="btnForzarCargaSinFactura" class="btn btn-warning btn-sm btn-block" 
+                onclick="forzarCargaDatosSinFactura()">
+          <i class="fas fa-sync"></i> Cargar Ahora Entregas Sin Factura
+        </button>
+        <div id="statusCargaSinFactura" style="display: none; font-size: 11px; margin-top: 5px;"></div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h4><i class="fas fa-camera"></i> Cámara</h4>
+      
+      <!-- NUEVO TOGGLE PARA ESCÁNER DE CÁMARA -->
+      <div class="config-item">
+        <label class="config-switch">
+          <input type="checkbox" id="toggleCamaraScanner">
+          <span class="config-slider"></span>
+          <span class="config-label">Escáner por cámara</span>
+        </label>
+        <div class="config-description">Usar la cámara para escanear códigos QR y de barras</div>
+      </div>
+      
+      <div class="config-item">
+        <label class="config-switch">
+          <input type="checkbox" id="toggleCamaraAuto" checked>
+          <span class="config-slider"></span>
+          <span class="config-label">Cámara automática</span>
+        </label>
+        <div class="config-description">Abrir cámara automáticamente al confirmar entrega</div>
+      </div>
+      
+      <div class="config-item">
+        <label class="config-switch">
+          <input type="checkbox" id="toggleMarcaAgua" checked>
+          <span class="config-slider"></span>
+          <span class="config-label">Marca de agua en fotos</span>
+        </label>
+        <div class="config-description">Agregar información y logo en las fotos</div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h4><i class="fas fa-volume-up"></i> Sonido & Vibración</h4>
+      <div class="config-item">
+        <label class="config-switch">
+          <input type="checkbox" id="toggleSonido" checked>
+          <span class="config-slider"></span>
+          <span class="config-label">Efectos de sonido</span>
+        </label>
+      </div>
+      
+      <div class="config-item">
+        <label class="config-switch">
+          <input type="checkbox" id="toggleVibracion">
+          <span class="config-slider"></span>
+          <span class="config-label">Vibración al confirmar</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h4><i class="fas fa-broom"></i> Sistema</h4>
+      <div class="config-item">
+        <button id="btnLimpiarCache" class="btn btn-outline-danger btn-sm btn-block" 
+                onclick="limpiarCacheYRecargar()">
+          <i class="fas fa-trash-alt"></i> Limpiar Cache y Recargar
+        </button>
+        <div class="config-description">Eliminar datos temporales y recargar la aplicación</div>
+      </div>
+      
+      <div class="config-item">
+        <button class="btn btn-outline-secondary btn-sm btn-block" onclick="exportarConfiguracion()">
+          <i class="fas fa-download"></i> Exportar Configuración
+        </button>
+      </div>
+    </div>
+
+    <div class="config-footer">
+      <small class="text-muted">PandaDash v4.0 • Build 4.0.0</small>
+    </div>
+  </div>
+
+
+  <!-- Scripts en el orden correcto -->
+  <script src="https://cdn.jsdelivr.net/npm/quagga2@0.12.2/dist/quagga.min.js"></script>
+  <script src="./js/sheets-api.js"></script>
+  <script src="./js/sheets-sin-factura.js"></script>
+  <script src="./js/upload-queue.js"></script>  <!-- Debe cargarse ANTES de app.js -->
+  <script src="./js/camera.js"></script>
+  <script src="./js/camera-scanner.js"></script>
+  <script src="./js/app.js"></script>  <!-- Debe cargarse DESPUÉS de upload-queue.js -->
+</body>
+</html>
