@@ -208,13 +208,13 @@
     <div class="config-section">
       <h4><i class="fas fa-broom"></i> Sistema</h4>
 
-      <!-- BOTÓN PARA DESCARGAR CSV COMPLETO -->
-      <div class="config-item">
-        <button class="btn btn-outline-info btn-sm btn-block" onclick="descargarDatosCSVCompleto()">
-          <i class="fas fa-file-excel"></i> Descargar CSV Completo
-        </button>
-        <div class="config-description">Exportar todos los datos con información extendida</div>
-      </div>
+<!-- BOTÓN PARA DESCARGAR CSV CON FACTURAS -->
+<div class="config-item">
+    <button class="btn btn-outline-success btn-sm btn-block" onclick="iniciarDescargaCSV()" id="btnDescargarCSV">
+        <i class="fas fa-file-csv"></i> Descargar Facturas CSV
+    </button>
+    <div class="config-description">Exportar datos CON FACTURA con información completa de referencia</div>
+</div>
       
       <div class="config-item">
         <button id="btnLimpiarCache" class="btn btn-outline-danger btn-sm btn-block" 
@@ -254,5 +254,6 @@
   <script src="./js/camera-scanner.js"></script>
   <script src="./js/app.js"></script>  <!-- Debe cargarse DESPUÉS de upload-queue.js -->
   <script src="./js/csv.js"></script>
+  <script src="./js/main.js"></script>
 </body>
 </html>
