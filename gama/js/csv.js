@@ -1,4 +1,4 @@
-// Función optimizada para Excel español
+// Función optimizada para Excel español con datos completos
 function descargarDatosCSV() {
     if (!database || database.length === 0) {
         mostrarNotificacion('error', 'Sin datos', 'No hay datos disponibles para exportar');
@@ -9,11 +9,11 @@ function descargarDatosCSV() {
         let csvData = [];
         let registrosConFactura = 0;
 
-        // Encabezados en español
+        // Encabezados en español con las nuevas columnas
         const headers = [
             'Documento',
             'Referencia',
-            'Lote',
+            'Lote', 
             'Estado',
             'Factura',
             'Fecha_Factura',
@@ -22,7 +22,14 @@ function descargarDatosCSV() {
             'Valor_Bruto',
             'Cantidad',
             'NIT_Cliente',
-            'Confirmación'
+            'Confirmación',
+            'REFERENCIA',      // Nueva columna
+            'REFPROV',         // Nueva columna  
+            'DESCRIPCION',     // Nueva columna
+            'PVP',             // Nueva columna
+            'PRENDA',          // Nueva columna
+            'GENERO',          // Nueva columna
+            'CLASE'            // Nueva columna
         ];
         csvData.push(headers.join(';'));
 
@@ -32,6 +39,13 @@ function descargarDatosCSV() {
                 item.datosSiesa.forEach(siesa => {
                     // Filtrar por factura no vacía
                     if (siesa.factura && siesa.factura.trim() !== '') {
+                        // Obtener datos adicionales de main.js
+                        const datosAdicionales = obtenerDatosCompletos(
+                            item.documento?.replace(/^REC/i, '') || item.documento,
+                            item.referencia, 
+                            item.lote
+                        );
+
                         // Formatear valores para CSV
                         const documento = item.documento || '';
                         const referencia = item.referencia || '';
@@ -46,6 +60,20 @@ function descargarDatosCSV() {
                         const nit = siesa.nit || '';
                         const confirmacion = siesa.confirmacion || '';
 
+                        // Datos adicionales (usar datos de main.js o calcular)
+                        const refAdicional = datosAdicionales?.REFERENCIA || referencia;
+                        const refProv = datosAdicionales?.REFPROV || '';
+                        const descripcion = datosAdicionales?.DESCRIPCION || '';
+                        const pvp = datosAdicionales?.PVP || '';
+                        const prenda = datosAdicionales?.PRENDA || '';
+                        const genero = datosAdicionales?.GENERO || '';
+                        
+                        // Determinar CLASE (usar datos de main.js o calcular desde PVP)
+                        let clase = datosAdicionales?.CLASE || '';
+                        if (!clase && pvp) {
+                            clase = determinarClasePorPVP(pvp);
+                        }
+
                         const row = [
                             `"${documento}"`,
                             `"${referencia}"`,
@@ -58,7 +86,14 @@ function descargarDatosCSV() {
                             `"${valorBruto}"`,
                             `"${cantidad}"`,
                             `"${nit}"`,
-                            `"${confirmacion}"`
+                            `"${confirmacion}"`,
+                            `"${refAdicional}"`,
+                            `"${refProv}"`,
+                            `"${descripcion}"`,
+                            `"${pvp}"`,
+                            `"${prenda}"`,
+                            `"${genero}"`,
+                            `"${clase}"`
                         ];
                         csvData.push(row.join(';'));
                         registrosConFactura++;
@@ -86,14 +121,14 @@ function descargarDatosCSV() {
         
         const fecha = new Date().toISOString().split('T')[0];
         link.href = url;
-        link.setAttribute('download', `Facturas_PandaDash_${fecha}.csv`);
+        link.setAttribute('download', `Facturas_PandaDash_Completo_${fecha}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
         mostrarNotificacion('success', 'CSV Exportado', 
-            `${registrosConFactura} facturas exportadas`);
+            `${registrosConFactura} facturas exportadas con datos completos`);
 
     } catch (error) {
         console.error('Error al exportar CSV:', error);
@@ -102,7 +137,6 @@ function descargarDatosCSV() {
 }
 
 window.descargarDatosCSV = descargarDatosCSV;
-
 
 // Función para cruzar datos con main.js y obtener información adicional
 function obtenerDatosCompletos(documento, referencia, lote) {
