@@ -1,6 +1,10 @@
-// Función optimizada para Excel español - VERSIÓN CORREGIDA
+// Función optimizada para Excel español - VERSIÓN CORREGIDA SIN BUCLE
 function descargarDatosCSV() {
-    if ((!database || database.length === 0) && (!window.datosGlobalesCompletos || window.datosGlobalesCompletos.length === 0)) {
+    // Verificar si tenemos datos
+    const tieneDatosSISPRO = database && database.length > 0;
+    const tieneDatosGLOBAL = window.datosGlobalesCompletos && window.datosGlobalesCompletos.length > 0;
+    
+    if (!tieneDatosSISPRO && !tieneDatosGLOBAL) {
         mostrarNotificacion('error', 'Sin datos', 'No hay datos disponibles para exportar');
         return;
     }
@@ -29,7 +33,8 @@ function descargarDatosCSV() {
 
         // Procesar SOLO registros con factura de AMBAS fuentes
         console.log('📊 Procesando datos SISPRO...');
-        if (database && database.length > 0) {
+        let facturasSISPRO = 0;
+        if (tieneDatosSISPRO) {
             database.forEach(item => {
                 if (item.datosSiesa && Array.isArray(item.datosSiesa)) {
                     item.datosSiesa.forEach(siesa => {
@@ -65,7 +70,7 @@ function descargarDatosCSV() {
                             ];
                             csvData.push(row.join(';'));
                             registrosConFactura++;
-                            console.log(`✅ Factura SISPRO: ${factura} - ${cliente}`);
+                            facturasSISPRO++;
                         }
                     });
                 }
@@ -74,7 +79,8 @@ function descargarDatosCSV() {
 
         // Procesar datos GLOBALES con facturas
         console.log('📊 Procesando datos GLOBALES...');
-        if (window.datosGlobalesCompletos && window.datosGlobalesCompletos.length > 0) {
+        let facturasGLOBAL = 0;
+        if (tieneDatosGLOBAL) {
             window.datosGlobalesCompletos.forEach(item => {
                 if (item.datosSiesa && Array.isArray(item.datosSiesa)) {
                     item.datosSiesa.forEach(siesa => {
@@ -110,7 +116,7 @@ function descargarDatosCSV() {
                             ];
                             csvData.push(row.join(';'));
                             registrosConFactura++;
-                            console.log(`✅ Factura GLOBAL: ${factura} - ${cliente}`);
+                            facturasGLOBAL++;
                         }
                     });
                 }
@@ -143,7 +149,7 @@ function descargarDatosCSV() {
         URL.revokeObjectURL(url);
 
         mostrarNotificacion('success', 'CSV Exportado', 
-            `${registrosConFactura} facturas exportadas (SISPRO: ${database ? database.length : 0} + GLOBAL: ${window.datosGlobalesCompletos ? window.datosGlobalesCompletos.length : 0})`);
+            `${registrosConFactura} facturas exportadas (SISPRO: ${facturasSISPRO} + GLOBAL: ${facturasGLOBAL})`);
 
     } catch (error) {
         console.error('Error al exportar CSV:', error);
@@ -183,17 +189,18 @@ async function descargarDatosCSVCompleto() {
     try {
         // Mostrar estado de carga
         statusDiv.className = 'loading';
-        statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS GLOBALES...';
+        statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> PREPARANDO EXPORTACIÓN...';
         
-        // Cargar datos globales si no están disponibles
+        // Verificar si tenemos datos globales, si no, cargarlos
         if (!window.datosGlobalesCompletos || window.datosGlobalesCompletos.length === 0) {
+            statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS GLOBALES...';
             window.datosGlobalesCompletos = await cargarDatosGlobalesParaCSV();
         }
         
         // Esperar un momento para que la UI se actualice
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Llamar a la función original de descarga
+        // Llamar a la función de descarga PRINCIPAL (no recursiva)
         descargarDatosCSV();
         
     } catch (error) {
@@ -201,10 +208,17 @@ async function descargarDatosCSVCompleto() {
         mostrarNotificacion('error', 'Error', 'No se pudieron cargar todos los datos: ' + error.message);
     } finally {
         // Restaurar estado original
-        statusDiv.className = 'ready';
-        statusDiv.innerHTML = originalStatus;
+        setTimeout(() => {
+            statusDiv.className = 'ready';
+            statusDiv.innerHTML = originalStatus;
+        }, 2000);
     }
 }
 
 // Reemplazar la función original con la versión mejorada
 window.descargarDatosCSV = descargarDatosCSVCompleto;
+
+// También mantener disponible la función original por si acaso
+window.descargarDatosCSVDirecto = function() {
+    descargarDatosCSV();
+};
