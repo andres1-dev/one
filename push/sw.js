@@ -1,204 +1,415 @@
-const CACHE_NAME = 'notifications-pwa-v4';
+const CACHE_NAME = 'notifications-realtime-v1';
 const SCHEDULED_NOTIFICATIONS_KEY = 'scheduledNotifications';
+const HEARTBEAT_INTERVAL = 5000; // 5 segundos
 
-// Instalación
-self.addEventListener('install', function(event) {
-  console.log('Service Worker instalando...');
-  self.skipWaiting();
+// Instalación - Más agresiva
+self.addEventListener('install', (event) => {
+  console.log('🔄 Service Worker instalando...');
+  self.skipWaiting(); // Activar inmediatamente
+  event.waitUntil(self.skipWaiting());
 });
 
-// Activación
-self.addEventListener('activate', function(event) {
-  console.log('Service Worker activado');
-  event.waitUntil(self.clients.claim());
+// Activación - Tomar control inmediato
+self.addEventListener('activate', (event) => {
+  console.log('✅ Service Worker activado - Tomando control');
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(), // Controlar clientes inmediatamente
+      clearOldCaches(),
+      initializeBackgroundSync()
+    ])
+  );
   
-  // Verificar notificaciones pendientes inmediatamente
-  checkScheduledNotifications();
+  // Iniciar procesos en background
+  startBackgroundProcesses();
 });
 
-// Almacenamiento mejorado
+// Limpiar caches viejos
+async function clearOldCaches() {
+  const keys = await caches.keys();
+  return Promise.all(
+    keys.map(key => {
+      if (key !== CACHE_NAME) {
+        console.log('🗑️ Eliminando cache viejo:', key);
+        return caches.delete(key);
+      }
+    })
+  );
+}
+
+// Inicializar Background Sync
+async function initializeBackgroundSync() {
+  if ('periodicSync' in self.registration) {
+    try {
+      await self.registration.periodicSync.register('heartbeat', {
+        minInterval: HEARTBEAT_INTERVAL
+      });
+      console.log('🫀 Periodic Sync registrado');
+    } catch (error) {
+      console.log('⚠️ Periodic Sync no disponible:', error);
+    }
+  }
+}
+
+// Procesos en background
+function startBackgroundProcesses() {
+  // Verificar notificaciones inmediatamente
+  checkScheduledNotifications();
+  
+  // Heartbeat cada 5 segundos
+  setInterval(() => {
+    checkScheduledNotifications();
+    cleanupExpiredNotifications();
+  }, HEARTBEAT_INTERVAL);
+  
+  // Verificación agresiva cada 1 segundo por 30 segundos después de activar
+  let aggressiveChecks = 0;
+  const aggressiveInterval = setInterval(() => {
+    checkScheduledNotifications();
+    aggressiveChecks++;
+    if (aggressiveChecks >= 30) {
+      clearInterval(aggressiveInterval);
+      console.log('🔚 Verificación agresiva completada');
+    }
+  }, 1000);
+}
+
+// Almacenamiento robusto
 async function getScheduledNotifications() {
   try {
+    // Primero intentar con IndexedDB para mejor performance
+    const dbResult = await getFromIndexedDB();
+    if (dbResult.length > 0) return dbResult;
+    
+    // Fallback a Cache API
     const cache = await caches.open(CACHE_NAME);
     const response = await cache.match(SCHEDULED_NOTIFICATIONS_KEY);
-    return response ? await response.json() : [];
+    if (response) {
+      const data = await response.json();
+      await saveToIndexedDB(data); // Migrar a IndexedDB
+      return data;
+    }
+    return [];
   } catch (error) {
-    console.error('Error obteniendo notificaciones:', error);
+    console.error('❌ Error obteniendo notificaciones:', error);
     return [];
   }
 }
 
 async function saveScheduledNotifications(notifications) {
   try {
+    // Guardar en ambos almacenamientos
+    await saveToIndexedDB(notifications);
+    
     const cache = await caches.open(CACHE_NAME);
     const response = new Response(JSON.stringify(notifications));
     await cache.put(SCHEDULED_NOTIFICATIONS_KEY, response);
+    
+    console.log('💾 Notificaciones guardadas:', notifications.length);
   } catch (error) {
-    console.error('Error guardando notificaciones:', error);
+    console.error('❌ Error guardando notificaciones:', error);
   }
 }
 
-// Verificar notificaciones programadas
+// IndexedDB para mejor performance
+function getFromIndexedDB() {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('NotificationsDB', 1);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('notifications')) {
+        db.createObjectStore('notifications', { keyPath: 'id' });
+      }
+    };
+    
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      const transaction = db.transaction(['notifications'], 'readonly');
+      const store = transaction.objectStore('notifications');
+      const getAll = store.getAll();
+      
+      getAll.onsuccess = () => resolve(getAll.result || []);
+      getAll.onerror = () => resolve([]);
+    };
+    
+    request.onerror = () => resolve([]);
+  });
+}
+
+function saveToIndexedDB(notifications) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('NotificationsDB', 1);
+    
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      const transaction = db.transaction(['notifications'], 'readwrite');
+      const store = transaction.objectStore('notifications');
+      
+      // Limpiar y volver a agregar
+      store.clear();
+      notifications.forEach(notification => {
+        store.add(notification);
+      });
+      
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => resolve();
+    };
+    
+    request.onerror = () => resolve();
+  });
+}
+
+// Verificación principal de notificaciones
 async function checkScheduledNotifications() {
   try {
-    const notifications = await getScheduledNotifications();
     const now = Date.now();
+    const notifications = await getScheduledNotifications();
     const pending = [];
     const toSend = [];
 
-    for (const notification of notifications) {
+    // Separar notificaciones pendientes y listas para enviar
+    notifications.forEach(notification => {
       if (notification.scheduledTime <= now) {
         toSend.push(notification);
       } else {
         pending.push(notification);
       }
-    }
+    });
 
-    // Enviar notificaciones pendientes
-    for (const notification of toSend) {
-      await sendNotification(notification);
-    }
-
-    // Guardar las que quedan pendientes
+    // Enviar notificaciones listas
     if (toSend.length > 0) {
+      console.log(`🚀 Enviando ${toSend.length} notificaciones`);
+      
+      for (const notification of toSend) {
+        await sendNotificationImmediately(notification);
+      }
+      
+      // Actualizar almacenamiento
       await saveScheduledNotifications(pending);
+      
+      // Notificar a todos los clientes
+      notifyClients('NOTIFICATIONS_SENT', { count: toSend.length });
     }
 
-    console.log(`Enviadas ${toSend.length} notificaciones programadas`);
-    
-    // Programar siguiente verificación si hay notificaciones pendientes
+    // Programar siguiente verificación si hay pendientes
     if (pending.length > 0) {
-      const nextCheck = Math.min(...pending.map(n => n.scheduledTime)) - Date.now();
-      setTimeout(checkScheduledNotifications, Math.max(nextCheck, 1000));
+      const nextCheck = Math.min(...pending.map(n => n.scheduledTime)) - now;
+      if (nextCheck > 0 && nextCheck < HEARTBEAT_INTERVAL) {
+        setTimeout(checkScheduledNotifications, nextCheck);
+      }
     }
+    
+    return toSend.length;
   } catch (error) {
-    console.error('Error en checkScheduledNotifications:', error);
+    console.error('❌ Error en checkScheduledNotifications:', error);
+    return 0;
   }
 }
 
-// Enviar notificación
-async function sendNotification(notification) {
+// Envío inmediato de notificación
+async function sendNotificationImmediately(notification) {
   const options = {
     body: notification.body,
     icon: './icon-192.png',
     badge: './icon-192.png',
-    vibrate: [200, 100, 200],
-    tag: `scheduled-${notification.id}`,
-    requireInteraction: false,
+    vibrate: [200, 100, 200, 100, 200],
+    tag: `ntf-${notification.id}`,
+    requireInteraction: true,
+    actions: [
+      {
+        action: 'open',
+        title: '📱 Abrir App'
+      },
+      {
+        action: 'close',
+        title: '❌ Cerrar'
+      }
+    ],
     data: {
-      url: './',
-      scheduled: true,
-      id: notification.id
+      id: notification.id,
+      type: 'scheduled',
+      timestamp: Date.now(),
+      originalTime: notification.scheduledTime
     }
   };
 
   await self.registration.showNotification(notification.title, options);
-  console.log('Notificación enviada:', notification.title);
+  console.log('📨 Notificación enviada:', notification.title);
 }
 
-// Background Sync para notificaciones
-self.addEventListener('sync', function(event) {
-  if (event.tag === 'check-notifications') {
-    console.log('Background Sync ejecutado');
+// Limpiar notificaciones expiradas
+async function cleanupExpiredNotifications() {
+  const now = Date.now();
+  const hourAgo = now - (60 * 60 * 1000);
+  const notifications = await getScheduledNotifications();
+  const validNotifications = notifications.filter(n => n.scheduledTime > hourAgo);
+  
+  if (validNotifications.length !== notifications.length) {
+    await saveScheduledNotifications(validNotifications);
+    console.log('🧹 Notificaciones expiradas limpiadas');
+  }
+}
+
+// Notificar a todos los clientes conectados
+async function notifyClients(type, data) {
+  const clients = await self.clients.matchAll();
+  clients.forEach(client => {
+    client.postMessage({
+      type: type,
+      data: data,
+      timestamp: Date.now()
+    });
+  });
+}
+
+// Background Sync
+self.addEventListener('sync', (event) => {
+  console.log('🔄 Background Sync:', event.tag);
+  
+  if (event.tag.startsWith('notification-')) {
     event.waitUntil(checkScheduledNotifications());
   }
 });
 
-// Periodic Sync (cada 30 segundos como fallback)
-self.addEventListener('periodicsync', function(event) {
-  if (event.tag === 'periodic-notification-check') {
-    console.log('Periodic Sync ejecutado');
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'heartbeat') {
     event.waitUntil(checkScheduledNotifications());
   }
 });
 
 // Mensajes desde el cliente
-self.addEventListener('message', function(event) {
-  console.log('Mensaje del cliente:', event.data);
+self.addEventListener('message', (event) => {
+  const { type, data } = event.data;
+  console.log('📨 Mensaje del cliente:', type);
   
-  switch (event.data.type) {
+  switch (type) {
     case 'ADD_SCHEDULED_NOTIFICATION':
-      addScheduledNotification(event.data.notification);
+      addScheduledNotification(data);
       break;
       
     case 'REMOVE_SCHEDULED_NOTIFICATION':
-      removeScheduledNotification(event.data.id);
+      removeScheduledNotification(data.id);
       break;
       
     case 'GET_SCHEDULED_NOTIFICATIONS':
-      event.ports[0].postMessage({
+      event.ports[0]?.postMessage({
         type: 'SCHEDULED_NOTIFICATIONS',
         notifications: getScheduledNotifications()
       });
       break;
       
-    case 'CHECK_NOW':
-      checkScheduledNotifications();
+    case 'PING':
+      event.ports[0]?.postMessage({
+        type: 'PONG',
+        timestamp: Date.now(),
+        swVersion: 'realtime-v1'
+      });
+      break;
+      
+    case 'FORCE_CHECK':
+      checkScheduledNotifications().then(count => {
+        event.ports[0]?.postMessage({
+          type: 'CHECK_COMPLETED',
+          notificationsSent: count
+        });
+      });
       break;
   }
 });
 
-// Agregar notificación programada
+// Agregar notificación
 async function addScheduledNotification(notification) {
   const notifications = await getScheduledNotifications();
-  notifications.push(notification);
-  await saveScheduledNotifications(notifications);
   
-  // Programar verificación para el momento exacto
-  const delay = notification.scheduledTime - Date.now();
-  if (delay > 0) {
-    setTimeout(() => {
-      checkScheduledNotifications();
-    }, delay);
-  }
-  
-  // Registrar sync para background
-  if ('sync' in self.registration) {
-    self.registration.sync.register('check-notifications');
+  // Evitar duplicados
+  if (!notifications.find(n => n.id === notification.id)) {
+    notifications.push(notification);
+    await saveScheduledNotifications(notifications);
+    
+    // Programar verificación exacta
+    const delay = notification.scheduledTime - Date.now();
+    if (delay > 0 && delay <= 60000) { // Máximo 1 minuto para setTimeout
+      setTimeout(() => {
+        checkScheduledNotifications();
+      }, delay);
+    }
+    
+    // Registrar sync
+    if ('sync' in self.registration) {
+      self.registration.sync.register(`notification-${notification.id}`);
+    }
+    
+    console.log('✅ Notificación programada:', notification.title);
   }
 }
 
-// Eliminar notificación programada
+// Eliminar notificación
 async function removeScheduledNotification(id) {
   const notifications = await getScheduledNotifications();
   const filtered = notifications.filter(n => n.id !== id);
   await saveScheduledNotifications(filtered);
+  console.log('🗑️ Notificación eliminada:', id);
 }
 
-// Push notifications
-self.addEventListener('push', function(event) {
-  const data = event.data ? event.data.json() : {
-    title: 'Notificación Push',
-    body: '¡Tienes una nueva notificación!'
-  };
+// Push notifications (para notificaciones entre usuarios)
+self.addEventListener('push', (event) => {
+  console.log('📲 Push recibido:', event);
+  
+  let data;
+  try {
+    data = event.data?.json() || {
+      title: 'Notificación del Sistema',
+      body: 'Nueva actualización disponible',
+      timestamp: Date.now()
+    };
+  } catch (e) {
+    data = {
+      title: 'Notificación',
+      body: event.data?.text() || 'Mensaje importante',
+      timestamp: Date.now()
+    };
+  }
 
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: './icon-192.png',
-      badge: './icon-192.png'
+      badge: './icon-192.png',
+      tag: `push-${Date.now()}`,
+      data: data
     })
   );
 });
 
-// Notification click
-self.addEventListener('notificationclick', function(event) {
+// Clic en notificación
+self.addEventListener('notificationclick', (event) => {
+  console.log('👆 Notification click:', event.notification.tag);
   event.notification.close();
-  event.waitUntil(
-    clients.matchAll({type: 'window'}).then(function(clientList) {
-      for (const client of clientList) {
-        if (client.url.includes('./') && 'focus' in client) {
-          return client.focus();
+
+  const action = event.action;
+  const notificationData = event.notification.data;
+
+  if (action === 'open' || action === '') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window' }).then((clients) => {
+        // Buscar cliente existente
+        for (const client of clients) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            return client.focus();
+          }
         }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow('./');
-      }
-    })
-  );
+        // Abrir nueva ventana
+        if (self.clients.openWindow) {
+          return self.clients.openWindow('./');
+        }
+      })
+    );
+  }
 });
 
-// Verificación cada 10 segundos (fallback robusto)
+// Heartbeat para mantener activo el Service Worker
 setInterval(() => {
-  checkScheduledNotifications();
-}, 10000);
+  // Actividad mínima para mantener vivo el SW
+  console.log('🫀 Service Worker activo');
+}, 30000);
