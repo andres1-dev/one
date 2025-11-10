@@ -215,6 +215,10 @@
         <div class="config-description">Exportar todos los datos actuales a formato CSV</div>
       </div>
 
+      <button class="btn btn-outline-success btn-sm btn-block" onclick="descargarDatosCSV_2()">
+          <i class="fas fa-file-csv"></i> Descargar Datos Completos CSV
+      </button>
+
       <div class="config-item">
         <button id="btnLimpiarCache" class="btn btn-outline-danger btn-sm btn-block" 
                 onclick="limpiarCacheYRecargar()">
@@ -244,5 +248,6 @@
   <script src="./js/camera.js"></script>
   <script src="./js/camera-scanner.js"></script>
   <script src="./js/app.js"></script>  <!-- Debe cargarse DESPUÉS de upload-queue.js -->
+  <script src="./js/csv.js"></script>
 </body>
 </html>
