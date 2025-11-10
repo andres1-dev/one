@@ -73,45 +73,28 @@ class SheetsAPI {
         }
     }
 
-    // Combinar SOLO datos que tienen facturas - CORREGIDA
+// Combinar SOLO datos que tienen facturas - CORREGIDA Y SIMPLIFICADA
 combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
     const datosCombinados = [];
     
-    console.log('🔄 Combinando datos con facturas...');
-    console.log(`📊 Datos DATA2: ${datosData2.length} registros`);
-    console.log(`📊 Datos SIESA: ${datosSiesa.length} registros`);
-    
-    // Crear mapa de SIESA por lote para búsqueda más eficiente
-    const siesaMap = new Map();
-    datosSiesa.forEach(fila => {
-        if (fila[3]) { // Lote está en posición 3
-            const loteKey = String(fila[3]).trim();
-            if (!siesaMap.has(loteKey)) {
-                siesaMap.set(loteKey, []);
-            }
-            siesaMap.get(loteKey).push(fila);
-        }
-    });
-    
-    console.log(`🗺️ Mapa SIESA creado: ${siesaMap.size} lotes únicos`);
-    
-    let coincidenciasEncontradas = 0;
-    
-    // Procesar solo datosData2 que tienen coincidencias en SIESA (facturas)
-    datosData2.forEach(itemData2 => {
-        const documento = "REC" + itemData2.documento;
-        const referencia = itemData2.referencia;
-        const lote = String(itemData2.lote).trim();
+    // Procesar todos los datos de SIESA que tienen facturas
+    datosSiesa.forEach(filaSiesa => {
+        const factura = filaSiesa[1];
+        const loteSiesa = filaSiesa[3];
         
-        // Buscar coincidencias en SIESA usando el mapa
-        const coincidenciasSiesa = siesaMap.get(lote) || [];
-        
-        // SOLO incluir si tiene facturas en SIESA
-        if (coincidenciasSiesa.length > 0) {
-            coincidenciasEncontradas++;
-            const datosRelacionados = coincidenciasSiesa.map(fila => {
-                const codProveedor = Number(fila[4]);
-                let nombreProveedor = fila[4];
+        // Solo procesar si tiene factura y lote
+        if (factura && factura.trim() !== '' && loteSiesa) {
+            const loteBuscado = String(loteSiesa).trim();
+            
+            // Buscar en DATA2 por lote
+            const itemData2 = datosData2.find(item => 
+                String(item.lote).trim() === loteBuscado
+            );
+            
+            if (itemData2) {
+                const documento = "REC" + itemData2.documento;
+                const codProveedor = Number(filaSiesa[4]);
+                let nombreProveedor = filaSiesa[4];
                 
                 if (codProveedor === 5) {
                     nombreProveedor = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
@@ -119,50 +102,56 @@ combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
                     nombreProveedor = "TEXTILES Y CREACIONES LOS ANGELES SAS";
                 }
 
-                const nitCliente = fila[9] || '';
-                const referenciaItem = fila[7] || '';
-                const cantidadItem = String(fila[8] || '');
-                const confirmacion = this.obtenerConfirmacion(datosSoportes, documento, lote, referenciaItem, cantidadItem, nitCliente);
+                const nitCliente = filaSiesa[9] || '';
+                const referenciaItem = filaSiesa[7] || '';
+                const cantidadItem = String(filaSiesa[8] || '');
+                const confirmacion = this.obtenerConfirmacion(datosSoportes, documento, loteBuscado, referenciaItem, cantidadItem, nitCliente);
                 
-                return {
-                    estado: fila[0],
-                    factura: fila[1],
-                    fecha: fila[2],
-                    lote: fila[3],
-                    proovedor: nombreProveedor,
-                    cliente: fila[5],
-                    valorBruto: fila[6],
-                    referencia: fila[7],
-                    cantidad: fila[8],
-                    nit: fila[9],
-                    confirmacion: confirmacion
-                };
-            });
-            
-            datosCombinados.push({
-                documento: documento,
-                referencia: referencia,
-                lote: lote,
-                datosSiesa: datosRelacionados
-            });
+                // Buscar si ya existe este documento en datosCombinados
+                const existente = datosCombinados.find(item => 
+                    item.documento === documento && item.lote === loteBuscado
+                );
+                
+                if (existente) {
+                    // Agregar a los datos SIESA existentes
+                    existente.datosSiesa.push({
+                        estado: filaSiesa[0],
+                        factura: factura,
+                        fecha: filaSiesa[2],
+                        lote: loteBuscado,
+                        proovedor: nombreProveedor,
+                        cliente: filaSiesa[5],
+                        valorBruto: filaSiesa[6],
+                        referencia: referenciaItem,
+                        cantidad: cantidadItem,
+                        nit: nitCliente,
+                        confirmacion: confirmacion
+                    });
+                } else {
+                    // Crear nuevo registro
+                    datosCombinados.push({
+                        documento: documento,
+                        referencia: itemData2.referencia,
+                        lote: loteBuscado,
+                        datosSiesa: [{
+                            estado: filaSiesa[0],
+                            factura: factura,
+                            fecha: filaSiesa[2],
+                            lote: loteBuscado,
+                            proovedor: nombreProveedor,
+                            cliente: filaSiesa[5],
+                            valorBruto: filaSiesa[6],
+                            referencia: referenciaItem,
+                            cantidad: cantidadItem,
+                            nit: nitCliente,
+                            confirmacion: confirmacion
+                        }]
+                    });
+                }
+            }
         }
     });
 
-    console.log(`✅ Coincidencias encontradas: ${coincidenciasEncontradas}`);
-    console.log(`📊 Registros con facturas: ${datosCombinados.length}`);
-    
-    // DEBUG: Mostrar algunos lotes que no coincidieron
-    if (coincidenciasEncontradas < datosData2.length) {
-        const lotesNoEncontrados = datosData2
-            .filter(item => !siesaMap.has(String(item.lote).trim()))
-            .slice(0, 5) // Mostrar solo los primeros 5
-            .map(item => item.lote);
-        
-        if (lotesNoEncontrados.length > 0) {
-            console.log(`🔍 Lotes no encontrados en SIESA (primeros 5):`, lotesNoEncontrados);
-        }
-    }
-    
     return datosCombinados;
 }
     
