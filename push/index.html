@@ -17,6 +17,7 @@
     <link rel="apple-touch-icon" href="./icon-192.png">
     
     <style>
+        /* (Mantener todos los estilos anteriores) */
         * {
             margin: 0;
             padding: 0;
@@ -229,17 +230,13 @@
             border-radius: 15px;
         }
         
-        .scheduled-list {
-            margin-top: 20px;
-        }
-        
         .scheduled-item {
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 10px;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
         }
         
@@ -287,6 +284,14 @@
             display: block;
         }
         
+        .persistence-badge {
+            background: rgba(76, 175, 80, 0.3);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
         @media (max-width: 600px) {
             .container {
                 padding: 15px;
@@ -303,13 +308,23 @@
             .feature-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .scheduled-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .cancel-btn {
+                align-self: flex-end;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1><i class="fas fa-bell"></i>Notificaciones Push PWA</h1>
-        <p class="description">Aplicación web progresiva con programación de notificaciones</p>
+        <h1><i class="fas fa-bell"></i>Notificaciones Persistentes</h1>
+        <p class="description">Notificaciones que funcionan incluso con la app cerrada</p>
         
         <div class="install-section">
             <h2><i class="fas fa-download"></i>Instalar App</h2>
@@ -318,7 +333,7 @@
             </button>
             <div id="install-status" class="status"></div>
             <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
-                <i class="fas fa-info-circle"></i>Para instalar: Chrome → Menú → "Instalar app"
+                <i class="fas fa-info-circle"></i>Instala para notificaciones en segundo plano
             </p>
         </div>
 
@@ -336,19 +351,7 @@
             
             <div class="form-group">
                 <label for="notification-message"><i class="fas fa-comment"></i>Mensaje:</label>
-                <textarea id="notification-message" rows="3" placeholder="Ingresa el mensaje de la notificación">Esta es una notificación programada desde tu PWA.</textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="notification-icon"><i class="fas fa-icons"></i>Icono:</label>
-                <select id="notification-icon">
-                    <option value="fas fa-bell">🔔 Notificación</option>
-                    <option value="fas fa-mobile-alt">📱 Dispositivo</option>
-                    <option value="fas fa-envelope">📧 Mensaje</option>
-                    <option value="fas fa-calendar-check">📅 Recordatorio</option>
-                    <option value="fas fa-exclamation-triangle">⚠️ Alerta</option>
-                    <option value="fas fa-party-horn">🎉 Celebración</option>
-                </select>
+                <textarea id="notification-message" rows="3" placeholder="Ingresa el mensaje de la notificación">Esta notificación se enviará incluso con la app cerrada.</textarea>
             </div>
             
             <button id="request-permission" class="btn-secondary">
@@ -361,7 +364,10 @@
         </div>
 
         <div class="card">
-            <h2><i class="fas fa-clock"></i>Programar Notificación</h2>
+            <h2>
+                <i class="fas fa-clock"></i>Programar Notificación 
+                <span class="persistence-badge">Persistente</span>
+            </h2>
             
             <div class="form-group">
                 <label><i class="fas fa-calendar-plus"></i>Tiempo de Programación:</label>
@@ -372,7 +378,7 @@
                     </div>
                     <div>
                         <label><i class="fas fa-clock"></i>Minutos:</label>
-                        <input type="number" id="schedule-minutes" min="0" max="59" value="1" placeholder="1">
+                        <input type="number" id="schedule-minutes" min="0" max="59" value="5" placeholder="5">
                     </div>
                     <div>
                         <label><i class="fas fa-clock"></i>Segundos:</label>
@@ -382,16 +388,17 @@
             </div>
             
             <button id="schedule-notification" class="btn-warning">
-                <i class="fas fa-plus-circle"></i>Programar Notificación
+                <i class="fas fa-plus-circle"></i>Programar Notificación Persistente
             </button>
             
-            <div class="scheduled-list" id="scheduled-list">
-                <!-- Las notificaciones programadas aparecerán aquí -->
+            <div style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Función persistente:</strong> Esta notificación se enviará incluso si cierras la aplicación.
             </div>
         </div>
         
         <div class="card">
-            <h2><i class="fas fa-bell-slash"></i>Notificaciones Programadas</h2>
+            <h2><i class="fas fa-list"></i>Notificaciones Programadas</h2>
             <div id="scheduled-notifications">
                 <p style="text-align: center; opacity: 0.7; padding: 20px;">
                     <i class="fas fa-clock"></i><br>
@@ -404,24 +411,24 @@
         
         <div class="feature-grid">
             <div class="feature">
-                <i class="fas fa-bolt"></i>
-                <h4>Rápida</h4>
-                <p>Carga instantánea</p>
+                <i class="fas fa-bell"></i>
+                <h4>Persistentes</h4>
+                <p>Funcionan con app cerrada</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-database"></i>
+                <h4>Almacenadas</h4>
+                <p>Seguras en Service Worker</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-sync"></i>
+                <h4>Background Sync</h4>
+                <p>Sincronización automática</p>
             </div>
             <div class="feature">
                 <i class="fas fa-mobile-alt"></i>
-                <h4>Nativa</h4>
-                <p>Como app instalada</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-bell"></i>
-                <h4>Notificaciones</h4>
-                <p>Push y programadas</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-wifi-slash"></i>
-                <h4>Offline</h4>
-                <p>Funciona sin internet</p>
+                <h4>Multi-dispositivo</h4>
+                <p>Funciona en todos lados</p>
             </div>
         </div>
     </div>
@@ -436,11 +443,57 @@
         async function registerSW() {
             try {
                 swRegistration = await navigator.serviceWorker.register('./sw.js');
-                showSWStatus('<i class="fas fa-check-circle"></i>Service Worker registrado correctamente');
-                console.log('SW registrado:', swRegistration);
+                showSWStatus('<i class="fas fa-check-circle"></i>Service Worker registrado - Notificaciones persistentes activas');
+                
+                // Cargar notificaciones existentes del Service Worker
+                await loadScheduledNotifications();
+                
+                // Configurar comunicación con el Service Worker
+                setupServiceWorkerCommunication();
+                
             } catch (error) {
                 showSWStatus('<i class="fas fa-exclamation-circle"></i>Error en Service Worker: ' + error.message);
             }
+        }
+
+        // Configurar comunicación con Service Worker
+        function setupServiceWorkerCommunication() {
+            if (swRegistration && swRegistration.active) {
+                swRegistration.active.postMessage({
+                    type: 'GET_SCHEDULED_NOTIFICATIONS'
+                });
+            }
+            
+            // Escuchar mensajes del Service Worker
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data.type === 'SCHEDULED_NOTIFICATIONS') {
+                    scheduledNotifications = event.data.notifications || [];
+                    updateScheduledList();
+                }
+            });
+        }
+
+        // Cargar notificaciones programadas
+        async function loadScheduledNotifications() {
+            return new Promise((resolve) => {
+                const channel = new MessageChannel();
+                
+                channel.port1.onmessage = event => {
+                    if (event.data.type === 'SCHEDULED_NOTIFICATIONS') {
+                        scheduledNotifications = event.data.notifications || [];
+                        updateScheduledList();
+                        resolve(scheduledNotifications);
+                    }
+                };
+
+                if (swRegistration && swRegistration.active) {
+                    swRegistration.active.postMessage({
+                        type: 'GET_SCHEDULED_NOTIFICATIONS'
+                    }, [channel.port2]);
+                } else {
+                    resolve([]);
+                }
+            });
         }
 
         // Manejar instalación
@@ -498,8 +551,8 @@
             showStatus('<i class="fas fa-check-circle"></i>Notificación enviada inmediatamente', 'success');
         });
 
-        // Programar notificación
-        document.getElementById('schedule-notification').addEventListener('click', () => {
+        // Programar notificación PERSISTENTE
+        document.getElementById('schedule-notification').addEventListener('click', async () => {
             if (Notification.permission !== 'granted') {
                 showStatus('<i class="fas fa-exclamation-circle"></i>Primero solicita permisos para notificaciones', 'error');
                 return;
@@ -518,50 +571,56 @@
 
             const title = document.getElementById('notification-title').value || 'Notificación Programada';
             const body = document.getElementById('notification-message').value || 'Mensaje programado';
-            const icon = document.getElementById('notification-icon').value;
 
-            scheduleNotification(title, body, icon, totalMilliseconds);
+            await schedulePersistentNotification(title, body, totalMilliseconds);
         });
 
-        function scheduleNotification(title, body, icon, delay) {
+        async function schedulePersistentNotification(title, body, delay) {
             notificationCounter++;
-            const notificationId = notificationCounter;
-            const scheduledTime = new Date(Date.now() + delay);
+            const notificationId = Date.now() + '_' + notificationCounter;
+            const scheduledTime = Date.now() + delay;
 
             const notificationData = {
                 id: notificationId,
                 title: title,
                 body: body,
-                icon: icon,
                 scheduledTime: scheduledTime,
-                timeoutId: null
+                createdAt: Date.now()
             };
 
-            // Programar la notificación
-            notificationData.timeoutId = setTimeout(() => {
-                if (Notification.permission === 'granted') {
-                    new Notification(title, { 
-                        body: body + ' (Programada)',
-                        icon: './icon-192.png',
-                        badge: './icon-192.png'
-                    });
-                }
-                
-                // Eliminar de la lista
-                removeScheduledNotification(notificationId);
-            }, delay);
+            // Enviar al Service Worker para almacenamiento persistente
+            if (swRegistration && swRegistration.active) {
+                swRegistration.active.postMessage({
+                    type: 'ADD_SCHEDULED_NOTIFICATION',
+                    notification: notificationData
+                });
+            }
 
+            // Agregar a la lista local
             scheduledNotifications.push(notificationData);
             updateScheduledList();
             
             const timeString = formatTime(delay);
-            showStatus(`<i class="fas fa-check-circle"></i>Notificación programada para ${timeString}`, 'success');
+            showStatus(`<i class="fas fa-check-circle"></i>Notificación PERSISTENTE programada para ${timeString}`, 'success');
+            
+            // Programar sync para el momento de la notificación
+            if ('sync' in swRegistration) {
+                swRegistration.sync.register(`scheduled-${notificationId}`);
+            }
         }
 
-        function removeScheduledNotification(id) {
+        async function cancelPersistentNotification(id) {
+            // Eliminar del Service Worker
+            if (swRegistration && swRegistration.active) {
+                swRegistration.active.postMessage({
+                    type: 'REMOVE_SCHEDULED_NOTIFICATION',
+                    id: id
+                });
+            }
+
+            // Eliminar localmente
             const index = scheduledNotifications.findIndex(n => n.id === id);
             if (index !== -1) {
-                clearTimeout(scheduledNotifications[index].timeoutId);
                 scheduledNotifications.splice(index, 1);
                 updateScheduledList();
             }
@@ -569,7 +628,13 @@
 
         function updateScheduledList() {
             const container = document.getElementById('scheduled-notifications');
+            const now = Date.now();
             
+            // Filtrar notificaciones que ya pasaron
+            scheduledNotifications = scheduledNotifications.filter(notification => {
+                return notification.scheduledTime > now;
+            });
+
             if (scheduledNotifications.length === 0) {
                 container.innerHTML = `
                     <p style="text-align: center; opacity: 0.7; padding: 20px;">
@@ -580,9 +645,13 @@
                 return;
             }
 
+            // Ordenar por tiempo
+            scheduledNotifications.sort((a, b) => a.scheduledTime - b.scheduledTime);
+
             container.innerHTML = scheduledNotifications.map(notification => {
-                const timeLeft = notification.scheduledTime - Date.now();
+                const timeLeft = notification.scheduledTime - now;
                 const timeString = formatTime(timeLeft);
+                const scheduledDate = new Date(notification.scheduledTime);
                 
                 return `
                     <div class="scheduled-item">
@@ -592,10 +661,13 @@
                             <div style="margin-top: 5px;">
                                 <i class="fas fa-clock"></i>
                                 <span class="scheduled-time">${timeString}</span>
-                                <small>${notification.scheduledTime.toLocaleTimeString()}</small>
+                                <small>${scheduledDate.toLocaleTimeString()}</small>
+                                <span style="margin-left: 10px; background: rgba(76,175,80,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.8em;">
+                                    <i class="fas fa-shield-alt"></i> Persistente
+                                </span>
                             </div>
                         </div>
-                        <button class="cancel-btn" onclick="cancelScheduledNotification(${notification.id})">
+                        <button class="cancel-btn" onclick="cancelScheduledNotification('${notification.id}')">
                             <i class="fas fa-times"></i> Cancelar
                         </button>
                     </div>
@@ -620,8 +692,8 @@
 
         // Hacer la función global para los botones
         window.cancelScheduledNotification = function(id) {
-            removeScheduledNotification(id);
-            showStatus('<i class="fas fa-info-circle"></i>Notificación cancelada', 'info');
+            cancelPersistentNotification(id);
+            showStatus('<i class="fas fa-info-circle"></i>Notificación persistente cancelada', 'info');
         };
 
         // Actualizar la lista cada segundo
@@ -657,7 +729,7 @@
         // Verificar si ya está instalada
         if (window.matchMedia('(display-mode: standalone)').matches) {
             document.getElementById('install-btn').style.display = 'none';
-            showInstallStatus('<i class="fas fa-check-circle"></i>App instalada y ejecutándose');
+            showInstallStatus('<i class="fas fa-check-circle"></i>App instalada - Notificaciones persistentes activas');
         }
 
         // Inicializar lista de programadas
