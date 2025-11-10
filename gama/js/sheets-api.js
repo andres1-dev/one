@@ -73,82 +73,66 @@ class SheetsAPI {
         }
     }
 
-// Combinar SOLO datos que tienen facturas - CORREGIDA Y SIMPLIFICADA
+
+    // Combinar SOLO datos que tienen facturas - SIMPLIFICADO
 combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
     const datosCombinados = [];
     
-    // Procesar todos los datos de SIESA que tienen facturas
+    // Procesar directamente los datos de SIESA que tienen facturas
     datosSiesa.forEach(filaSiesa => {
         const factura = filaSiesa[1];
         const loteSiesa = filaSiesa[3];
         
-        // Solo procesar si tiene factura y lote
-        if (factura && factura.trim() !== '' && loteSiesa) {
-            const loteBuscado = String(loteSiesa).trim();
+        // Solo procesar si tiene factura válida
+        if (factura && factura.trim() !== '') {
+            const codProveedor = Number(filaSiesa[4]);
+            let nombreProveedor = filaSiesa[4];
             
-            // Buscar en DATA2 por lote
+            if (codProveedor === 5) {
+                nombreProveedor = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
+            } else if (codProveedor === 3) {
+                nombreProveedor = "TEXTILES Y CREACIONES LOS ANGELES SAS";
+            }
+
+            const nitCliente = filaSiesa[9] || '';
+            const referenciaItem = filaSiesa[7] || '';
+            const cantidadItem = String(filaSiesa[8] || '');
+            
+            // Buscar documento correspondiente en DATA2 por lote
             const itemData2 = datosData2.find(item => 
-                String(item.lote).trim() === loteBuscado
+                String(item.lote).trim() === String(loteSiesa).trim()
             );
             
-            if (itemData2) {
-                const documento = "REC" + itemData2.documento;
-                const codProveedor = Number(filaSiesa[4]);
-                let nombreProveedor = filaSiesa[4];
-                
-                if (codProveedor === 5) {
-                    nombreProveedor = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
-                } else if (codProveedor === 3) {
-                    nombreProveedor = "TEXTILES Y CREACIONES LOS ANGELES SAS";
-                }
-
-                const nitCliente = filaSiesa[9] || '';
-                const referenciaItem = filaSiesa[7] || '';
-                const cantidadItem = String(filaSiesa[8] || '');
-                const confirmacion = this.obtenerConfirmacion(datosSoportes, documento, loteBuscado, referenciaItem, cantidadItem, nitCliente);
-                
-                // Buscar si ya existe este documento en datosCombinados
-                const existente = datosCombinados.find(item => 
-                    item.documento === documento && item.lote === loteBuscado
-                );
-                
-                if (existente) {
-                    // Agregar a los datos SIESA existentes
-                    existente.datosSiesa.push({
-                        estado: filaSiesa[0],
-                        factura: factura,
-                        fecha: filaSiesa[2],
-                        lote: loteBuscado,
-                        proovedor: nombreProveedor,
-                        cliente: filaSiesa[5],
-                        valorBruto: filaSiesa[6],
-                        referencia: referenciaItem,
-                        cantidad: cantidadItem,
-                        nit: nitCliente,
-                        confirmacion: confirmacion
-                    });
-                } else {
-                    // Crear nuevo registro
-                    datosCombinados.push({
-                        documento: documento,
-                        referencia: itemData2.referencia,
-                        lote: loteBuscado,
-                        datosSiesa: [{
-                            estado: filaSiesa[0],
-                            factura: factura,
-                            fecha: filaSiesa[2],
-                            lote: loteBuscado,
-                            proovedor: nombreProveedor,
-                            cliente: filaSiesa[5],
-                            valorBruto: filaSiesa[6],
-                            referencia: referenciaItem,
-                            cantidad: cantidadItem,
-                            nit: nitCliente,
-                            confirmacion: confirmacion
-                        }]
-                    });
-                }
-            }
+            const documento = itemData2 ? "REC" + itemData2.documento : "SIN_DOCUMENTO";
+            const referencia = itemData2 ? itemData2.referencia : referenciaItem;
+            
+            const confirmacion = this.obtenerConfirmacion(
+                datosSoportes, 
+                documento, 
+                loteSiesa, 
+                referenciaItem, 
+                cantidadItem, 
+                nitCliente
+            );
+            
+            datosCombinados.push({
+                documento: documento,
+                referencia: referencia,
+                lote: loteSiesa,
+                datosSiesa: [{
+                    estado: filaSiesa[0],
+                    factura: factura,
+                    fecha: filaSiesa[2],
+                    lote: loteSiesa,
+                    proovedor: nombreProveedor,
+                    cliente: filaSiesa[5],
+                    valorBruto: filaSiesa[6],
+                    referencia: referenciaItem,
+                    cantidad: cantidadItem,
+                    nit: nitCliente,
+                    confirmacion: confirmacion
+                }]
+            });
         }
     });
 
