@@ -138,7 +138,8 @@ function descargarDatosCSV() {
 
 window.descargarDatosCSV = descargarDatosCSV;
 
-// Función para cruzar datos con main.js usando solo el documento
+
+// Función para cruzar datos con main.js usando el documento CON prefijo REC
 function obtenerDatosCompletos(documento) {
     try {
         // Verificar si main.js está cargado y tiene los datos globales
@@ -147,39 +148,66 @@ function obtenerDatosCompletos(documento) {
             return null;
         }
 
-        // Normalizar el documento (remover "REC" si existe)
-        const docNormalizado = String(documento).replace(/^REC/i, '').trim();
+        // Normalizar el documento - ASEGURAR que tenga prefijo REC
+        let docNormalizado = String(documento).trim();
+        
+        // Si no tiene REC, agregarlo
+        if (!docNormalizado.toUpperCase().startsWith('REC')) {
+            docNormalizado = 'REC' + docNormalizado;
+        }
+        
+        // Asegurar que esté en mayúsculas
+        docNormalizado = docNormalizado.toUpperCase();
         
         console.log('Buscando documento en main.js:', docNormalizado);
         console.log('Total de registros en datosGlobales:', datosGlobales.length);
 
-        // Buscar coincidencia por documento (usando DOCUMENTO normalizado)
+        // Buscar coincidencia por documento EXACTO (con REC)
         const coincidencia = datosGlobales.find(item => {
-            const itemDoc = String(item.DOCUMENTO || '').trim();
+            const itemDoc = String(item.DOCUMENTO || '').trim().toUpperCase();
+            console.log('Comparando:', docNormalizado, 'con', itemDoc);
             return itemDoc === docNormalizado;
         });
 
         if (!coincidencia) {
             console.log('No se encontró coincidencia en main.js para documento:', docNormalizado);
+            
+            // Intentar buscar sin REC por si acaso
+            const docSinREC = docNormalizado.replace(/^REC/i, '');
+            const coincidenciaSinREC = datosGlobales.find(item => {
+                const itemDoc = String(item.DOCUMENTO || '').trim().toUpperCase().replace(/^REC/i, '');
+                console.log('Búsqueda alternativa - Comparando:', docSinREC, 'con', itemDoc);
+                return itemDoc === docSinREC;
+            });
+            
+            if (coincidenciaSinREC) {
+                console.log('Coincidencia encontrada (sin REC):', coincidenciaSinREC);
+                return extraerDatosDeCoincidencia(coincidenciaSinREC);
+            }
+            
             return null;
         }
 
-        console.log('Coincidencia encontrada en main.js:', coincidencia);
-
-        // Extraer los campos necesarios
-        return {
-            REFERENCIA: coincidencia.REFERENCIA || '',
-            REFPROV: coincidencia.REFPROV || '',
-            DESCRIPCION: coincidencia.DESCRIPCIÓN || coincidencia.DESCRIPCION || '',
-            PVP: coincidencia.PVP || '',
-            PRENDA: coincidencia.PRENDA || '',
-            GENERO: coincidencia.GENERO || '',
-            CLASE: coincidencia.CLASE || determinarClasePorPVP(coincidencia.PVP || '')
-        };
+        console.log('Coincidencia encontrada (con REC):', coincidencia);
+        return extraerDatosDeCoincidencia(coincidencia);
+        
     } catch (error) {
         console.error('Error al cruzar datos con main.js:', error);
         return null;
     }
+}
+
+// Función auxiliar para extraer datos de la coincidencia
+function extraerDatosDeCoincidencia(coincidencia) {
+    return {
+        REFERENCIA: coincidencia.REFERENCIA || '',
+        REFPROV: coincidencia.REFPROV || '',
+        DESCRIPCION: coincidencia.DESCRIPCIÓN || coincidencia.DESCRIPCION || '',
+        PVP: coincidencia.PVP || '',
+        PRENDA: coincidencia.PRENDA || '',
+        GENERO: coincidencia.GENERO || '',
+        CLASE: coincidencia.CLASE || determinarClasePorPVP(coincidencia.PVP || '')
+    };
 }
 
 // Función para determinar la CLASE basada en el PVP
