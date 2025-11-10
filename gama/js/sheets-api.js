@@ -73,8 +73,101 @@ class SheetsAPI {
         }
     }
 
+    // Combinar SOLO datos que tienen facturas - CORREGIDA
+combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
+    const datosCombinados = [];
+    
+    console.log('🔄 Combinando datos con facturas...');
+    console.log(`📊 Datos DATA2: ${datosData2.length} registros`);
+    console.log(`📊 Datos SIESA: ${datosSiesa.length} registros`);
+    
+    // Crear mapa de SIESA por lote para búsqueda más eficiente
+    const siesaMap = new Map();
+    datosSiesa.forEach(fila => {
+        if (fila[3]) { // Lote está en posición 3
+            const loteKey = String(fila[3]).trim();
+            if (!siesaMap.has(loteKey)) {
+                siesaMap.set(loteKey, []);
+            }
+            siesaMap.get(loteKey).push(fila);
+        }
+    });
+    
+    console.log(`🗺️ Mapa SIESA creado: ${siesaMap.size} lotes únicos`);
+    
+    let coincidenciasEncontradas = 0;
+    
+    // Procesar solo datosData2 que tienen coincidencias en SIESA (facturas)
+    datosData2.forEach(itemData2 => {
+        const documento = "REC" + itemData2.documento;
+        const referencia = itemData2.referencia;
+        const lote = String(itemData2.lote).trim();
+        
+        // Buscar coincidencias en SIESA usando el mapa
+        const coincidenciasSiesa = siesaMap.get(lote) || [];
+        
+        // SOLO incluir si tiene facturas en SIESA
+        if (coincidenciasSiesa.length > 0) {
+            coincidenciasEncontradas++;
+            const datosRelacionados = coincidenciasSiesa.map(fila => {
+                const codProveedor = Number(fila[4]);
+                let nombreProveedor = fila[4];
+                
+                if (codProveedor === 5) {
+                    nombreProveedor = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
+                } else if (codProveedor === 3) {
+                    nombreProveedor = "TEXTILES Y CREACIONES LOS ANGELES SAS";
+                }
+
+                const nitCliente = fila[9] || '';
+                const referenciaItem = fila[7] || '';
+                const cantidadItem = String(fila[8] || '');
+                const confirmacion = this.obtenerConfirmacion(datosSoportes, documento, lote, referenciaItem, cantidadItem, nitCliente);
+                
+                return {
+                    estado: fila[0],
+                    factura: fila[1],
+                    fecha: fila[2],
+                    lote: fila[3],
+                    proovedor: nombreProveedor,
+                    cliente: fila[5],
+                    valorBruto: fila[6],
+                    referencia: fila[7],
+                    cantidad: fila[8],
+                    nit: fila[9],
+                    confirmacion: confirmacion
+                };
+            });
+            
+            datosCombinados.push({
+                documento: documento,
+                referencia: referencia,
+                lote: lote,
+                datosSiesa: datosRelacionados
+            });
+        }
+    });
+
+    console.log(`✅ Coincidencias encontradas: ${coincidenciasEncontradas}`);
+    console.log(`📊 Registros con facturas: ${datosCombinados.length}`);
+    
+    // DEBUG: Mostrar algunos lotes que no coincidieron
+    if (coincidenciasEncontradas < datosData2.length) {
+        const lotesNoEncontrados = datosData2
+            .filter(item => !siesaMap.has(String(item.lote).trim()))
+            .slice(0, 5) // Mostrar solo los primeros 5
+            .map(item => item.lote);
+        
+        if (lotesNoEncontrados.length > 0) {
+            console.log(`🔍 Lotes no encontrados en SIESA (primeros 5):`, lotesNoEncontrados);
+        }
+    }
+    
+    return datosCombinados;
+}
+    
     // Combinar SOLO datos que tienen facturas
-    combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
+    /*combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
         const datosCombinados = [];
         
         console.log('🔄 Combinando datos con facturas...');
@@ -134,7 +227,7 @@ class SheetsAPI {
 
         console.log(`📊 Registros con facturas: ${datosCombinados.length}`);
         return datosCombinados;
-    }
+    }*/
 
     async obtenerDatosDeData2() {
         const values = await this.fetchSheetData(SPREADSHEET_IDS.DATA2, 'DATA2!S:S');
