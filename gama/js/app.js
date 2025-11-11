@@ -711,7 +711,7 @@ function inicializarConfiguracion() {
     });
 
     // NUEVO: Event listener para el toggle del escáner de cámara
-    document.getElementById('toggleCamaraScanner').addEventListener('change', function(e) {
+    /*document.getElementById('toggleCamaraScanner').addEventListener('change', function(e) {
         config.camaraScanner = e.target.checked;
         guardarConfiguracion();
         
@@ -719,7 +719,33 @@ function inicializarConfiguracion() {
         if (typeof window.cameraScanner !== 'undefined') {
             window.cameraScanner.setScannerActive(e.target.checked);
         }
-    });
+    }); */
+
+    // NUEVO: Event listener para el toggle del escáner de cámara - CORREGIDO
+document.getElementById('toggleCamaraScanner').addEventListener('change', function(e) {
+  config.camaraScanner = e.target.checked;
+  guardarConfiguracion();
+  
+  // Activar/desactivar el escáner de cámara
+  if (typeof window.cameraScanner !== 'undefined') {
+    window.cameraScanner.setScannerActive(e.target.checked);
+    
+    // Actualizar el ícono del campo de barcode
+    const barcodeIcon = document.querySelector('.barcode-input-container i');
+    if (barcodeIcon) {
+      if (e.target.checked) {
+        barcodeIcon.classList.add('scanner-active');
+      } else {
+        barcodeIcon.classList.remove('scanner-active');
+      }
+    }
+  }
+});
+
+// Inicializar estado del escáner al cargar
+if (typeof window.cameraScanner !== 'undefined') {
+  window.cameraScanner.setScannerActive(config.camaraScanner);
+}
     
     // Evento para cerrar panel
     document.getElementById('closeConfigPanel').addEventListener('click', toggleConfigPanel);
