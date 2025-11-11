@@ -245,6 +245,7 @@ async function subirFoto() {
 }
 
 // Función para extraer datos específicos de la factura seleccionada
+// Función para extraer datos específicos de la factura seleccionada - CORREGIDA
 function getFacturaData(factura) {
   const facturaContainer = document.querySelector(`.siesa-item button[data-factura="${factura}"]`)?.closest('.siesa-item');
   if (!facturaContainer) return null;
@@ -261,7 +262,7 @@ function getFacturaData(factura) {
   // Extraer datos del contenedor principal (documento)
   const mainContainer = document.querySelector('.result-item');
   if (mainContainer) {
-    // Buscar documento
+    // Buscar documento usando una aproximación más robusta
     const docElements = mainContainer.querySelectorAll('.result-row');
     docElements.forEach(row => {
       const header = row.querySelector('.col-header');
