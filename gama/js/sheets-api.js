@@ -19,6 +19,12 @@ class SheetsAPI {
         this.concurrentRequests = 3; // Límite de requests concurrentes
     }
 
+    // ✅ MANTENER COMPATIBILIDAD: Función legacy para sheets-sin-factura.js
+    async obtenerDatosCombinados() {
+        console.warn('⚠️ obtenerDatosCombinados() está deprecado. Usar obtenerDatosCompletos()');
+        return await this.obtenerDatosCompletos();
+    }
+
     // ✅ FUNCIÓN OPTIMIZADA: Fetch con cache, retry y timeout
     async fetchSheetData(spreadsheetId, range, useCache = true) {
         const cacheKey = `${spreadsheetId}_${range}`;
