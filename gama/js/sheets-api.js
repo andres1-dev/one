@@ -505,114 +505,155 @@ class SheetsAPI {
     }
 
     // ✅ COMBINACIÓN OPTIMIZADA DE DATOS
-    combinarDatosOptimizado(datosData2, datosSiesa, datosData, datosSoportes, datosRec, datosGlobales) {
-        const datosCombinados = [];
-        const loteMap = new Map(); // Para evitar duplicados
-        let estadisticas = {
-            data2: 0,
-            rec: 0,
-            conFactura: 0,
-            sinFactura: 0
-        };
-
-        // 1. PROCESAR DATA2
-        datosData2.forEach(itemData2 => {
-            const documento = "REC" + itemData2.documento;
-            const referencia = itemData2.referencia;
-            const lote = itemData2.lote;
-            const clave = `${documento}_${lote}`;
-
-            if (loteMap.has(clave)) return; // Evitar duplicados
-
-            const coincidenciasSiesa = datosSiesa.filter(filaSiesa => 
-                String(filaSiesa[3]).trim() === String(lote).trim()
-            );
-
-            let datosRelacionados = [];
-
-            if (coincidenciasSiesa.length > 0) {
-                // Tiene facturas en SIESA
-                datosRelacionados = coincidenciasSiesa.map(fila => {
-                    estadisticas.conFactura++;
-                    return this.crearRegistroSiesa(fila, datosSoportes, documento, lote, 'DATA2');
-                });
-            } else {
-                // Sin facturas - procesar distribución
-                datosRelacionados = this.procesarDistribucionData2(
-                    documento, itemData2, datosData, datosSoportes
-                );
-                estadisticas.sinFactura += datosRelacionados.length;
-            }
-
-            if (datosRelacionados.length > 0) {
-                datosCombinados.push({
-                    documento,
-                    referencia,
-                    lote,
-                    datosSiesa: datosRelacionados,
-                    fuente: 'DATA2'
-                });
-                loteMap.set(clave, true);
-                estadisticas.data2++;
-            }
-        });
-
-        // 2. PROCESAR REC
-        const datosGlobalesPorLote = new Map();
-        datosGlobales.forEach(item => {
-            datosGlobalesPorLote.set(item.lote, item.datosGlobal || []);
-        });
-
-        datosRec.forEach(filaRec => {
-            const documento = filaRec[0];
-            const referencia = filaRec[1];
-            const lote = filaRec[2];
-            const clave = `${documento}_${lote}`;
-
-            if (loteMap.has(clave)) return; // Evitar duplicados
-
-            const coincidenciasSiesa = datosSiesa.filter(filaSiesa => 
-                String(filaSiesa[3]).trim() === String(lote).trim()
-            );
-
-            let datosRelacionados = [];
-
-            if (coincidenciasSiesa.length > 0) {
-                // Tiene facturas en SIESA
-                datosRelacionados = coincidenciasSiesa.map(fila => {
-                    estadisticas.conFactura++;
-                    return this.crearRegistroSiesa(fila, datosSoportes, documento, lote, 'REC');
-                });
-            } else if (datosGlobalesPorLote.has(lote)) {
-                // Usar datos globales
-                datosRelacionados = datosGlobalesPorLote.get(lote).map(item => {
-                    const confirmacion = this.obtenerConfirmacion(
-                        datosSoportes, documento, lote, item.referencia, item.cantidad, item.nit
-                    );
-                    estadisticas.sinFactura++;
-                    return { ...item, confirmacion, fuente: 'REC' };
-                });
-            }
-
-            if (datosRelacionados.length > 0) {
-                datosCombinados.push({
-                    documento,
-                    referencia,
-                    lote,
-                    datosSiesa: datosRelacionados,
-                    fuente: 'REC'
-                });
-                loteMap.set(clave, true);
-                estadisticas.rec++;
-            }
-        });
-
-        console.log(`📊 Estadísticas finales:`, estadisticas);
-        return { datosCombinados, estadisticas };
-    }
-
+    
     // ✅ FUNCIONES AUXILIARES OPTIMIZADAS
+// En sheets-api.js, modifica la función combinarDatosOptimizado:
 
+combinarDatosOptimizado(datosData2, datosSiesa, datosData, datosSoportes, datosRec, datosGlobales) {
+    const datosCombinados = [];
+    const loteMap = new Map();
+    let estadisticas = {
+        data2: 0,
+        rec: 0,
+        conFactura: 0,
+        sinFactura: 0,
+        data2_conFactura: 0,
+        data2_sinFactura: 0,
+        rec_conFactura: 0,
+        rec_sinFactura: 0
+    };
+
+    // 1. PROCESAR DATA2 - GARANTIZAR DATOS SIN FACTURA
+    datosData2.forEach(itemData2 => {
+        const documento = "REC" + itemData2.documento;
+        const referencia = itemData2.referencia;
+        const lote = itemData2.lote;
+        const clave = `${documento}_${lote}`;
+
+        if (loteMap.has(clave)) return;
+
+        const coincidenciasSiesa = datosSiesa.filter(filaSiesa => 
+            String(filaSiesa[3]).trim() === String(lote).trim()
+        );
+
+        let datosRelacionados = [];
+
+        if (coincidenciasSiesa.length > 0) {
+            // ✅ TIENE FACTURAS EN SIESA - PROCESAR NORMAL
+            datosRelacionados = coincidenciasSiesa.map(fila => {
+                estadisticas.conFactura++;
+                estadisticas.data2_conFactura++;
+                return this.crearRegistroSiesa(fila, datosSoportes, documento, lote, 'DATA2');
+            });
+        } else {
+            // ✅ NO TIENE FACTURAS EN SIESA - PROCESAR DISTRIBUCIÓN (ENTREGAS SIN FACTURA)
+            datosRelacionados = this.procesarDistribucionData2(
+                documento, itemData2, datosData, datosSoportes
+            );
+            
+            if (datosRelacionados.length > 0) {
+                estadisticas.sinFactura += datosRelacionados.length;
+                estadisticas.data2_sinFactura += datosRelacionados.length;
+                console.log(`📦 DATA2 sin factura: ${documento} - ${datosRelacionados.length} distribuciones`);
+            } else {
+                console.log(`⚠️ DATA2 sin distribución: ${documento}`);
+            }
+        }
+
+        if (datosRelacionados.length > 0) {
+            datosCombinados.push({
+                documento,
+                referencia,
+                lote,
+                datosSiesa: datosRelacionados,
+                fuente: 'DATA2'
+            });
+            loteMap.set(clave, true);
+            estadisticas.data2++;
+        }
+    });
+
+    // 2. PROCESAR REC - GARANTIZAR DATOS SIN FACTURA
+    const datosGlobalesPorLote = new Map();
+    datosGlobales.forEach(item => {
+        datosGlobalesPorLote.set(item.lote, item.datosGlobal || []);
+    });
+
+    datosRec.forEach(filaRec => {
+        const documento = filaRec[0];
+        const referencia = filaRec[1];
+        const lote = filaRec[2];
+        const clave = `${documento}_${lote}`;
+
+        if (loteMap.has(clave)) return;
+
+        const coincidenciasSiesa = datosSiesa.filter(filaSiesa => 
+            String(filaSiesa[3]).trim() === String(lote).trim()
+        );
+
+        let datosRelacionados = [];
+
+        if (coincidenciasSiesa.length > 0) {
+            // ✅ TIENE FACTURAS EN SIESA
+            datosRelacionados = coincidenciasSiesa.map(fila => {
+                estadisticas.conFactura++;
+                estadisticas.rec_conFactura++;
+                return this.crearRegistroSiesa(fila, datosSoportes, documento, lote, 'REC');
+            });
+        } else if (datosGlobalesPorLote.has(lote)) {
+            // ✅ USAR DATOS GLOBALES (ENTREGAS SIN FACTURA)
+            const datosGlobal = datosGlobalesPorLote.get(lote);
+            datosRelacionados = datosGlobal.map(item => {
+                const confirmacion = this.obtenerConfirmacion(
+                    datosSoportes, documento, lote, item.referencia, item.cantidad, item.nit
+                );
+                estadisticas.sinFactura++;
+                estadisticas.rec_sinFactura++;
+                return { 
+                    ...item, 
+                    confirmacion, 
+                    fuente: 'REC',
+                    // Asegurar que tenga todos los campos necesarios
+                    estado: item.estado || '',
+                    factura: item.factura || '',
+                    fecha: item.fecha || '',
+                    proovedor: item.proovedor || '',
+                    cliente: item.cliente || '',
+                    valorBruto: item.valorBruto || '',
+                    cantidad: item.cantidad || '',
+                    nit: item.nit || ''
+                };
+            });
+            console.log(`📦 REC sin factura: ${documento} - ${datosRelacionados.length} registros globales`);
+        } else {
+            console.log(`⚠️ REC sin datos: ${documento} - lote ${lote}`);
+        }
+
+        if (datosRelacionados.length > 0) {
+            datosCombinados.push({
+                documento,
+                referencia,
+                lote,
+                datosSiesa: datosRelacionados,
+                fuente: 'REC'
+            });
+            loteMap.set(clave, true);
+            estadisticas.rec++;
+        }
+    });
+
+    console.log(`📊 Estadísticas finales:`, estadisticas);
+    console.log(`✅ Datos combinados: ${datosCombinados.length} registros totales`);
+    
+    // Log detallado de registros sin factura
+    const totalSinFactura = datosCombinados.filter(item => 
+        item.datosSiesa.some(siesa => !siesa.factura || siesa.factura.trim() === '')
+    ).length;
+    console.log(`📦 Registros con entregas sin factura: ${totalSinFactura}`);
+
+    return { datosCombinados, estadisticas };
+}
+    
     crearRegistroSiesa(fila, datosSoportes, documento, lote, fuente) {
         const codProveedor = Number(fila[4]);
         let nombreProveedor = fila[4];
