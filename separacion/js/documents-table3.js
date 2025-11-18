@@ -1,4 +1,4 @@
-// Configuración de DataTable para documentos disponibles
+// Configuración de DataTable para documentos disponibles - ERROR SOLUCIONADO
 let documentosTable = null;
 let listaResponsables = [];
 let timers = {};
@@ -19,12 +19,9 @@ let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
 
-function verificarDataTables() {
-    if (typeof $.fn.dataTable === 'undefined' || typeof $.fn.dataTable.ext === 'undefined') {
-        console.error('DataTables no está cargado correctamente');
-        return false;
-    }
-    return true;
+// VERIFICAR SI DATATABLES ESTÁ CARGADO
+function isDataTableLoaded() {
+    return typeof $.fn.DataTable !== 'undefined';
 }
 
 function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
@@ -501,6 +498,12 @@ function actualizarDuracionEnTabla(rec) {
 }
 
 function configurarFiltroFecha() {
+    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE USAR EXT
+    if (!isDataTableLoaded()) {
+        console.error('DataTables no está cargado');
+        return;
+    }
+    
     $.fn.dataTable.ext.search.pop();
     
     $.fn.dataTable.ext.search.push(
@@ -1262,208 +1265,22 @@ function obtenerBotonesAccion(data) {
 }
 
 function inicializarDataTable(documentos) {
-    if (!verificarDataTables()) {
-        console.error('DataTables no está disponible');
-        return;
-    }
-    
-    const table = $('#documentosTable');
-    
-    try {
-        documentosTable = table.DataTable({
-            data: documentos,
-            columns: [
-                { 
-                    data: 'rec',
-                    render: function(data) {
-                        return `REC${data}`;
-                    }
-                },
-                { 
-                    data: 'estado',
-                    render: function(data) {
-                        const clases = {
-                            'PENDIENTE': 'badge bg-warning',
-                            'DIRECTO': 'badge bg-success',
-                            'ELABORACION': 'badge bg-info',
-                            'PAUSADO': 'badge bg-secondary',
-                            'FINALIZADO': 'badge bg-dark'
-                        };
-                        return `<span class="${clases[data] || 'badge bg-light text-dark'}">${data}</span>`;
-                    }
-                },
-                { 
-                    data: 'colaborador',
-                    render: function(data, type, row) {
-                        return generarSelectResponsables(row.rec, data, documentos, row);
-                    }
-                },
-                { 
-                    data: 'fecha',
-                    render: function(data, type, row) {
-                        const fechaCompleta = row.fecha_completa || data;
-                        return `
-                            <span class="small" title="${fechaCompleta}">
-                                ${data}
-                            </span>
-                        `;
-                    }
-                },
-                { 
-                    data: null,
-                    render: function(data) {
-                        const duracion = calcularDuracionDesdeSheets(data);
-                        const clase = data.estado === 'PAUSADO' ? 'text-warning' : 
-                                     data.estado === 'FINALIZADO' ? 'text-muted' : 'text-primary';
-                        return `<span class="duracion-tiempo ${clase} fw-bold">${duracion}</span>`;
-                    }
-                },
-                { 
-                    data: 'cantidad',
-                    render: function(data) {
-                        return data ? `<span class="badge bg-light text-dark">${data}</span>` : '-';
-                    }
-                },
-                { 
-                    data: 'prenda',
-                    render: function(data) {
-                        return data ? `<span class="small">${data}</span>` : '-';
-                    }
-                },
-                { 
-                    data: 'lote',
-                    render: function(data) {
-                        return data ? `<span class="small">${data}</span>` : '-';
-                    }
-                },
-                { 
-                    data: 'refProv',
-                    render: function(data) {
-                        return data ? `<span class="small">${data}</span>` : '-';
-                    }
-                },
-                { 
-                    data: null,
-                    render: function(data) {
-                        return obtenerBotonesAccion(data);
-                    }
-                }
-            ],
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-            },
-            lengthMenu: [
-                [5, 10, 25, 50, 100, -1],
-                [5, 10, 25, 50, 100, 'Todos']
-            ],
-            pageLength: 5,
-            order: [[2, 'asc']],
-            responsive: true,
-            autoWidth: false,
-            stateSave: true,
-            stateDuration: -1,
-            createdRow: function(row, data, dataIndex) {
-                if (data.estado !== 'PAUSADO' && data.estado !== 'FINALIZADO' && data.datetime_inicio) {
-                    if (!timers[data.rec]) {
-                        timers[data.rec] = setInterval(() => {
-                            actualizarDuracionEnTabla(data.rec);
-                        }, 1000);
-                    }
-                }
-            },
-            drawCallback: function(settings) {
-                const api = this.api();
-                const pageInfo = api.page.info();
-                
-                if (pageInfo.recordsTotal === 0) {
-                    $('#documentosTable tbody').html(
-                        '<tr><td colspan="10" class="text-center text-muted py-4">No se encontraron documentos</td></tr>'
-                    );
-                }
-                
-                if (filtrosActivos.busqueda) {
-                    api.search(filtrosActivos.busqueda).draw();
-                }
-            }
-        });
-        
-        configurarFiltroFecha();
-        
-        $('#documentosTable').on('change', '.select-responsable', function() {
-            const rec = $(this).data('rec');
-            const nuevoResponsable = $(this).val();
-            
-            if (nuevoResponsable !== undefined) {
-                cambiarResponsable(rec, nuevoResponsable);
-            }
-        });
-        
-        $('#recInput').on('input', function() {
-            const searchTerm = $(this).val().trim();
-            filtrosActivos.busqueda = searchTerm;
-            
-            if (searchTerm) {
-                documentosTable.search(searchTerm).draw();
+    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE INICIALIZAR
+    if (!isDataTableLoaded()) {
+        console.error('DataTables no está disponible. Reintentando en 500ms...');
+        setTimeout(() => {
+            if (isDataTableLoaded()) {
+                inicializarDataTable(documentos);
             } else {
-                documentosTable.search('').draw();
+                console.error('DataTables no se cargó después del reintento');
             }
-        });
-        
-    } catch (error) {
-        console.error('Error inicializando DataTable:', error);
-        mostrarNotificacion('Error', 'Error al inicializar la tabla: ' + error.message, 'error');
-    }
-}
-
-// MODIFICAR $(document).ready PARA VERIFICAR DEPENDENCIAS
-$(document).ready(function() {
-    console.log('Inicializando documents-table.js');
-    
-    // Verificar que todas las dependencias estén cargadas
-    if (typeof $ === 'undefined') {
-        console.error('jQuery no está cargado');
+        }, 500);
         return;
     }
     
-    if (typeof $.fn.dataTable === 'undefined') {
-        console.error('DataTables no está cargado');
-        mostrarNotificacion('Error', 'DataTables no está cargado correctamente', 'error');
-        return;
-    }
-    
-    const checkDataLoaded = setInterval(() => {
-        if (typeof datosGlobales !== 'undefined') {
-            clearInterval(checkDataLoaded);
-            console.log('Datos globales disponibles, cargando tabla...');
-            
-            if (document.getElementById('filtroFecha')) {
-                window.flatpickrInstance = flatpickr("#filtroFecha", {
-                    mode: "range",
-                    dateFormat: "Y-m-d",
-                    locale: "es",
-                    onChange: function(selectedDates, dateStr) {
-                        if (selectedDates.length === 2) {
-                            aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
-                        } else if (selectedDates.length === 0) {
-                            rangoFechasSeleccionado = null;
-                            filtrosActivos.fecha = null;
-                            if (documentosTable) {
-                                documentosTable.draw();
-                            }
-                        }
-                    }
-                });
-            }
-            
-            cargarTablaDocumentos();
-        }
-    }, 100);
-});
-
-/*
-function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
     
+    // LIMPIAR FILTROS EXISTENTES
     $.fn.dataTable.ext.search = [];
     
     documentosTable = table.DataTable({
@@ -1604,7 +1421,7 @@ function inicializarDataTable(documentos) {
             documentosTable.search('').draw();
         }
     });
-}*/
+}
 
 async function imprimirSoloClientesDesdeTabla(rec) {
     try {
@@ -1697,6 +1514,12 @@ function aplicarFiltroPorEstado(tipoFiltro) {
     
     console.log('Estados del filtro:', estadosFiltro);
     
+    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE USAR EXT
+    if (!isDataTableLoaded()) {
+        console.error('DataTables no está cargado para aplicar filtros');
+        return;
+    }
+    
     // Aplicar filtro
     $.fn.dataTable.ext.search.push(
         function(settings, data, dataIndex) {
@@ -1749,6 +1572,12 @@ function limpiarFiltroTarjetas() {
     });
     
     if (!documentosTable) return;
+    
+    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE USAR EXT
+    if (!isDataTableLoaded()) {
+        console.error('DataTables no está cargado para limpiar filtros');
+        return;
+    }
     
     // Remover filtros de estado
     $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(filter => {
@@ -1878,33 +1707,51 @@ function limpiarFiltroFechaDataTable() {
 $(document).ready(function() {
     console.log('Inicializando documents-table.js');
     
-    const checkDataLoaded = setInterval(() => {
-        if (typeof datosGlobales !== 'undefined') {
-            clearInterval(checkDataLoaded);
-            console.log('Datos globales disponibles, cargando tabla...');
-            
-            if (document.getElementById('filtroFecha')) {
-                window.flatpickrInstance = flatpickr("#filtroFecha", {
-                    mode: "range",
-                    dateFormat: "Y-m-d",
-                    locale: "es",
-                    onChange: function(selectedDates, dateStr) {
-                        if (selectedDates.length === 2) {
-                            aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
-                        } else if (selectedDates.length === 0) {
-                            rangoFechasSeleccionado = null;
-                            filtrosActivos.fecha = null;
-                            if (documentosTable) {
-                                documentosTable.draw();
+    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE INICIALIZAR
+    if (!isDataTableLoaded()) {
+        console.error('DataTables no está cargado. Verifica que el script esté incluido correctamente.');
+        // Reintentar después de un breve tiempo
+        setTimeout(() => {
+            if (isDataTableLoaded()) {
+                console.log('DataTables cargado después del reintento');
+                inicializarAplicacion();
+            } else {
+                console.error('DataTables no se cargó después del reintento');
+            }
+        }, 1000);
+    } else {
+        inicializarAplicacion();
+    }
+    
+    function inicializarAplicacion() {
+        const checkDataLoaded = setInterval(() => {
+            if (typeof datosGlobales !== 'undefined') {
+                clearInterval(checkDataLoaded);
+                console.log('Datos globales disponibles, cargando tabla...');
+                
+                if (document.getElementById('filtroFecha')) {
+                    window.flatpickrInstance = flatpickr("#filtroFecha", {
+                        mode: "range",
+                        dateFormat: "Y-m-d",
+                        locale: "es",
+                        onChange: function(selectedDates, dateStr) {
+                            if (selectedDates.length === 2) {
+                                aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
+                            } else if (selectedDates.length === 0) {
+                                rangoFechasSeleccionado = null;
+                                filtrosActivos.fecha = null;
+                                if (documentosTable) {
+                                    documentosTable.draw();
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                }
+                
+                cargarTablaDocumentos();
             }
-            
-            cargarTablaDocumentos();
-        }
-    }, 100);
+        }, 100);
+    }
 });
 
 window.aplicarFiltroFechaDataTable = aplicarFiltroFechaDataTable;
