@@ -1,0 +1,668 @@
+/* ===== VARIABLES Y CONFIGURACIÓN GENERAL ===== */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #34495e;
+    --accent-color: #3498db;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #2980b9;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --border-color: #bdc3c7;
+    --bg-color: #f8f9fa;
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    --hover-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: #333;
+    line-height: 1.6;
+}
+
+/* ===== LAYOUT Y CONTENEDORES ===== */
+.container-fluid {
+    padding: 0 15px;
+    max-width: 100%;
+}
+
+/* ===== HEADER ===== */
+.header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    padding: 1rem 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.header h1 i {
+    margin-right: 0.5rem;
+    opacity: 0.9;
+}
+
+/* ===== TARJETAS DE RESUMEN ===== */
+.resumen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.resumen-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--light-color);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.resumen-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--hover-shadow);
+}
+
+.resumen-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+}
+
+.resumen-card.pendientes::before { background: var(--warning-color); }
+.resumen-card.proceso::before { background: var(--info-color); }
+.resumen-card.directos::before { background: var(--success-color); }
+.resumen-card.total::before { background: var(--primary-color); }
+
+.resumen-card.pendientes { border-left-color: var(--warning-color); }
+.resumen-card.proceso { border-left-color: var(--info-color); }
+.resumen-card.directos { border-left-color: var(--success-color); }
+.resumen-card.total { border-left-color: var(--primary-color); }
+
+.resumen-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resumen-text h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.resumen-text p {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    margin: 0;
+}
+
+.resumen-numbers {
+    text-align: right;
+}
+
+.resumen-count {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.resumen-unidades {
+    font-size: 0.75rem;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+/* ===== PANEL DE FILTROS ===== */
+.filtros-panel {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--light-color);
+}
+
+.filtros-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.filtro-group {
+    margin-bottom: 0;
+}
+
+.filtro-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control-sm {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.form-control-sm:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* ===== BOTONES ===== */
+.btn-group-sm {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-info {
+    background: var(--info-color);
+    color: white;
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-outline-primary {
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background: var(--accent-color);
+    color: white;
+}
+
+.btn-light {
+    background: var(--light-color);
+    color: var(--dark-color);
+}
+
+/* ===== TABLA PRINCIPAL ===== */
+.card {
+    border: 1px solid var(--light-color);
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    background: white;
+}
+
+.card-header {
+    background: white;
+    border-bottom: 1px solid var(--light-color);
+    padding: 1rem 1.25rem;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.table-responsive {
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+}
+
+.table {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.table th {
+    //background: var(--light-color);
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 600;
+    color: var(--dark-color);
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    padding: 0.5rem;
+    vertical-align: middle;
+    border-color: var(--light-color);
+}
+
+/*.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(236, 240, 241, 0.5);
+}*/
+
+.table-hover tbody tr:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+/* ===== BADGES ===== */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+    border-radius: 6px;
+}
+
+.badge.bg-warning { background: var(--warning-color) !important; }
+.badge.bg-success { background: var(--success-color) !important; }
+.badge.bg-info { background: var(--info-color) !important; }
+.badge.bg-secondary { background: #95a5a6 !important; }
+.badge.bg-dark { background: var(--dark-color) !important; }
+.badge.bg-danger { background: var(--danger-color) !important; }
+
+/* ===== SELECT PERSONALIZADO ===== */
+.select-responsable {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    min-width: 180px;
+}
+
+.select-responsable:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* ===== DURACIÓN ===== */
+.duracion-tiempo {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+/* ===== LOADER ===== */
+#loader {
+    padding: 2rem;
+}
+
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* ===== ALERTAS ===== */
+.alert {
+    border: none;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success-color);
+    border-left: 4px solid var(--success-color);
+}
+
+.alert-danger {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    border-left: 4px solid var(--danger-color);
+}
+
+.alert-info {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--accent-color);
+    border-left: 4px solid var(--accent-color);
+}
+
+/* ===== FLATPICKR PERSONALIZADO ===== */
+.flatpickr-input {
+    background: white !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+}
+
+.flatpickr-calendar {
+    border-radius: 12px !important;
+    box-shadow: var(--hover-shadow) !important;
+    border: 1px solid var(--light-color) !important;
+}
+
+
+/* ===== ANIMACIONES PARA ACTUALIZACIONES EN TIEMPO REAL ===== */
+
+/* Animación para elementos actualizados */
+@keyframes pulseUpdate {
+    0% {
+        background-color: rgba(52, 152, 219, 0.2);
+        transform: scale(1);
+    }
+    50% {
+        background-color: rgba(52, 152, 219, 0.4);
+        transform: scale(1.05);
+    }
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
+}
+
+.actualizado {
+    animation: pulseUpdate 0.6s ease-out;
+}
+
+/* Animaciones para toast notifications */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+}
+
+/* Estilo para el indicador de última actualización */
+#ultima-actualizacion {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+#ultima-actualizacion:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    transform: scale(1.05);
+}
+
+/* Animación para filas actualizadas en la tabla */
+@keyframes highlightRow {
+    0% {
+        background-color: rgba(52, 152, 219, 0.3);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.row-updated {
+    animation: highlightRow 1s ease-out;
+}
+
+/* Spinner personalizado para actualización */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.fa-sync-alt.fa-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Estilo para el badge de última actualización responsive */
+@media (max-width: 768px) {
+    #ultima-actualizacion {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    #indicador-actualizacion {
+        top: 60px;
+        right: 10px;
+        padding: 8px 15px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Transición suave para cambios en los contadores */
+.resumen-count {
+    transition: all 0.3s ease;
+}
+
+.resumen-count.actualizado {
+    color: var(--accent-color);
+    font-weight: 900;
+}
+
+/* Efecto de destello para actualizaciones importantes */
+@keyframes flashUpdate {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.flash-update {
+    animation: flashUpdate 0.5s ease-in-out 2;
+}
+
+/* Estilo para notificaciones toast */
+.toast-notification {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Indicador de sincronización en curso */
+.syncing::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px solid var(--accent-color);
+    border-radius: inherit;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.02);
+    }
+}
+
+/* Estado de carga suave para la tabla */
+.table-loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.table-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Mejorar visibilidad del header con badges */
+.header .d-flex {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 576px) {
+    .header h1 {
+        font-size: 1.1rem;
+    }
+    
+    .header .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .header .d-flex > div {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+/* Efecto hover mejorado para botones de acción */
+.btn-group-sm .btn {
+    transition: all 0.2s ease;
+}
+
+.btn-group-sm .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-group-sm .btn:active {
+    transform: translateY(0);
+}
+
+/* Indicador visual de cambio en select de responsables */
+.select-responsable {
+    transition: all 0.3s ease;
+}
+
+.select-responsable:focus {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Animación para cards de resumen */
+.resumen-card {
+    transition: all 0.3s ease;
+}
+
+.resumen-card.actualizado {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+}
+
+/* Feedback visual para acciones */
+@keyframes successPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(39, 174, 96, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0);
+    }
+}
+
+.success-feedback {
+    animation: successPulse 0.6s ease-out;
+}
+
+/* Modo oscuro para notificaciones (opcional) */
+@media (prefers-color-scheme: dark) {
+    .toast-notification {
+        background: #2c3e50;
+        color: white;
+    }
+    
+    #indicador-actualizacion {
+        background: linear-gradient(135deg, #434343 0%, #000000 100%);
+    }
+}
+

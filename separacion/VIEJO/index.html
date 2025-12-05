@@ -23,7 +23,337 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">    
     
     <!-- Estilos Personalizados -->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles2.css">
+
+    <!-- CSS para asegurar que el loader esté oculto -->
+    <style>
+        #loader {
+            display: none !important;
+        }
+        
+        /* Ocultar elementos específicos */
+        #recInput,
+        button[onclick="buscarPorREC()"],
+        button[onclick="imprimirSoloClientes()"],
+        button[onclick="mostrarOpcionesImpresion()"] {
+            display: none !important;
+        }
+        
+        /* Ajustar el layout de los filtros */
+        .filtros-grid {
+            grid-template-columns: 1fr auto !important;
+        }
+        
+        .filtro-group:last-child .btn-group-sm {
+            gap: 0.25rem;
+        }
+
+        /* ===== HEADER MEJORADO ===== */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: nowrap;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            transition: all var(--transition-base);
+            overflow: hidden;
+        }
+
+        .control-item:hover {
+            border-color: var(--accent-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .flatpickr-control {
+            min-width: 150px;
+            max-width: 180px;
+        }
+
+        .flatpickr-header-input {
+            width: 100%;
+            font-size: 0.8125rem !important;
+            padding: 0.5rem 0.75rem !important;
+            border: none !important;
+            background: transparent !important;
+            color: var(--text-primary) !important;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .flatpickr-header-input:focus {
+            outline: none;
+            box-shadow: none !important;
+        }
+
+        .flatpickr-header-input::placeholder {
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+        }
+
+        .control-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.875rem;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+            height: 100%;
+        }
+
+        .control-btn:hover {
+            background: rgba(15, 52, 96, 0.05);
+            color: var(--accent-color);
+        }
+
+        .control-btn i {
+            font-size: 0.875rem;
+            color: var(--accent-color);
+            transition: color var(--transition-fast);
+        }
+
+        .control-btn:hover i {
+            color: var(--accent-light);
+        }
+
+        /* Botón de menú móvil */
+        .mobile-menu-btn {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: var(--bg-secondary);
+            color: var(--accent-color);
+            font-size: 1.125rem;
+            transition: all var(--transition-fast);
+        }
+
+        .mobile-menu-btn:hover {
+            border-color: var(--accent-color);
+            background: rgba(15, 52, 96, 0.05);
+            transform: rotate(90deg);
+        }
+
+        /* Modal de controles móviles */
+        .controls-modal .modal-header {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .controls-modal .modal-body {
+            padding: 1.5rem;
+        }
+
+        .control-option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            margin-bottom: 0.75rem;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            background: var(--bg-secondary);
+        }
+
+        .control-option:hover {
+            border-color: var(--accent-color);
+            background: rgba(15, 52, 96, 0.03);
+            transform: translateX(4px);
+        }
+
+        .control-option:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-option i {
+            width: 20px;
+            text-align: center;
+            font-size: 1.125rem;
+            color: var(--accent-color);
+        }
+
+        .control-option-content {
+            flex: 1;
+        }
+
+        .control-option-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .control-option-desc {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        /* Flatpickr en modal móvil */
+        #flatpickrMobile {
+            text-align: center;
+            font-size: 1rem;
+            padding: 1rem;
+        }
+
+        /* ===== SPINER PROFESIONAL ===== */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-left: 1rem;
+        }
+
+        .spinner-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+        }
+
+        .spinner-icon i {
+            font-size: 0.875rem;
+            color: var(--accent-color);
+            transition: all 0.3s ease;
+        }
+
+        .spinner-icon.rotating i {
+            animation: spin 1.5s linear infinite;
+        }
+
+        .spinner-icon.success i {
+            color: #28a745;
+        }
+
+        .spinner-icon.warning i {
+            color: #ffc107;
+        }
+
+        .spinner-icon.error i {
+            color: #dc3545;
+        }
+
+        .status-text {
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .status-text.updating {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .last-update {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.125rem;
+            white-space: nowrap;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-controls .control-item:not(.mobile-menu-btn) {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: flex;
+            }
+            
+            .header .d-flex.justify-content-between {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .status-indicator {
+                margin-left: 0.5rem;
+                gap: 0.5rem;
+            }
+
+            .status-text, .last-update {
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-menu-btn {
+                display: none !important;
+            }
+        }
+
+        /* Ajustes para pantallas medianas */
+        @media (max-width: 992px) and (min-width: 769px) {
+            .flatpickr-control {
+                min-width: 140px;
+                max-width: 160px;
+            }
+            
+            .control-btn {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .control-btn .hide-xs {
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Ocultar el flatpickr original del panel de filtros */
+        #filtroFecha {
+            display: none !important;
+        }
+
+        .filtro-group label[for="filtroFecha"] {
+            display: none;
+        }
+
+        /* Mejoras de alineación y espaciado */
+        .header h1 {
+            flex-shrink: 0;
+        }
+
+        .header-controls {
+            flex-shrink: 0;
+        }
+
+        /* Estados activos */
+        .control-item.active {
+            border-color: var(--accent-color);
+            background: rgba(15, 52, 96, 0.05);
+        }
+
+        .flatpickr-header-input.active {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+        
+        /* Animaciones de entrada */
+        .fade-in {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
 </head>
 <body>
 
@@ -327,7 +657,7 @@
     <script src="js/search.js"></script>
     <script src="js/print-templates.js"></script>
     <!-- <script src="js/documents-table2.js"></script> -->
-    <script src="js/documents-table.js"></script>
+    <script src="js/documents-table3.js"></script>
 
     <script>
     // Variables globales para flatpickr
