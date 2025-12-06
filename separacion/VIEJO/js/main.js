@@ -64,7 +64,7 @@ async function cargarDatos() {
                 'ESPECIALES': 'JUAN ESTEBAN ZULUAGA HOYOS',
                 'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS'
             };
-
+            
             for (const [key, value] of Object.entries(gestores)) {
                 if (normalized.includes(key)) return value;
             }
@@ -81,14 +81,14 @@ async function cargarDatos() {
             if (!hrString) return [];
             const result = [];
             const entries = hrString.split('☬');
-
+            
             for (const entry of entries) {
                 const parts = entry.split('∞');
                 if (parts.length !== 4) continue;
-
+                
                 const cantidad = Number(parts[3]);
                 if (isNaN(cantidad)) continue;
-
+                
                 result.push([
                     String(parts[0] || '').trim(),
                     String(parts[1] || '').trim(),
@@ -96,7 +96,7 @@ async function cargarDatos() {
                     cantidad
                 ]);
             }
-
+            
             return result;
         }
 
@@ -107,7 +107,7 @@ async function cargarDatos() {
                 'TIPO', 'PVP', 'PRENDA', 'GENERO'
             ];
             let vacios = 0;
-
+            
             for (const campo of camposRequeridos) {
                 const valor = item[campo];
                 if (!valor || (typeof valor === 'string' && valor.trim() === '') || (typeof valor === 'number' && valor === 0)) {
@@ -124,27 +124,23 @@ async function cargarDatos() {
                 fetchSheetData(SPREADSHEET_IDS.main, "DATA2!S2:S"),
                 fetchSheetData(SPREADSHEET_IDS.rec, "DataBase!A2:AG"),
                 fetchSheetData(SPREADSHEET_IDS.clientes, "CLIENTES!A2:I"),
-                fetchSheetData(SPREADSHEET_IDS.clientes, "DATA!A2:K") // Updated to A2:K for unified access
+                fetchSheetData(SPREADSHEET_IDS.clientes, "DATA!A2:E")
             ]);
-
-            // Expose the raw data for documents-table3.js
-            window.datosTablaDocumentos = dataValues;
-            console.log("Datos brutos de DATA cargados globalmente (cols A-K):", dataValues ? dataValues.length : 0);
-
+            
             return { data2Values, recValues, clientesValues, dataValues };
         }
 
         function processDistribucionAndColaboradorData(values) {
             const clienteDistribucionMap = {};
             const colaboradorMap = {};
-
+            
             for (const row of values) {
                 const documento = String(row[0] || '').trim();
-
+                
                 if (documento && row[4]) {
                     colaboradorMap[documento] = row[4];
                 }
-
+                
                 if (documento && row[2]) {
                     try {
                         const parsed = JSON.parse(row[2]);
@@ -156,13 +152,13 @@ async function cargarDatos() {
                     }
                 }
             }
-
+            
             return { clienteDistribucionMap, colaboradorMap };
         }
 
         function processClientesData(values) {
             const clientesMap = {};
-
+            
             for (const row of values) {
                 const id = String(row[0] || '').trim();
                 if (id) {
@@ -179,7 +175,7 @@ async function cargarDatos() {
                     };
                 }
             }
-
+            
             return clientesMap;
         }
 
@@ -188,7 +184,7 @@ async function cargarDatos() {
                 try {
                     const jsonData = JSON.parse(row[0]);
                     const rawPVP = normalizePVP(jsonData.PVP || '');
-
+                    
                     return {
                         DOCUMENTO: String(jsonData.A || ''),
                         FECHA: normalizeDate(jsonData.FECHA || ''),
@@ -254,14 +250,14 @@ async function cargarDatos() {
 
         function enrichSingleClient(clienteData, clientesDataMap) {
             const clienteId = clienteData.id;
-
+            
             if (clientesDataMap[clienteId]) {
                 return {
                     ...clientesDataMap[clienteId],
                     distribucion: clienteData.distribucion || []
                 };
             }
-
+            
             return {
                 id: clienteId,
                 nombre: clienteData.nombre || '',
@@ -272,16 +268,16 @@ async function cargarDatos() {
 
         function enrichClientesData(clientesDistribucion, clientesData) {
             const enriched = {};
-
+            
             for (const [nombreCliente, datosCliente] of Object.entries(clientesDistribucion)) {
                 const clienteId = datosCliente.id;
-
+                
                 if (clientesData[clienteId]) {
                     enriched[nombreCliente] = {
                         ...clientesData[clienteId],
                         distribucion: datosCliente.distribucion || []
                     };
-
+                    
                     if (datosCliente.porcentaje) {
                         enriched[nombreCliente].porcentaje = datosCliente.porcentaje;
                     }
@@ -295,25 +291,25 @@ async function cargarDatos() {
                     };
                 }
             }
-
+            
             return enriched;
         }
 
         function enrichItem(item, clienteDistribucionMap, clientesDataMap, colaboradorMap, fuente) {
             const docKey = String(item.DOCUMENTO).trim();
-
+            
             if (clienteDistribucionMap[docKey]) {
                 item.CLIENTES = enrichClientesData(clienteDistribucionMap[docKey], clientesDataMap);
             }
-
+            
             if (colaboradorMap[docKey]) {
                 item.COLABORADOR = colaboradorMap[docKey];
             }
-
+            
             item.FUENTE = fuente;
             item.GESTOR = item.GESTOR || getGestorByLinea(item.LINEA);
             item.PROVEEDOR = item.PROVEEDOR || getProveedorByLinea(item.LINEA);
-
+            
             return item;
         }
 
@@ -363,11 +359,11 @@ async function cargarDatos() {
 
                     for (const anexo of anexos) {
                         const nombreAnexo = (anexo.TIPO || '').toUpperCase();
-
+                        
                         // Procesar clientes especiales
                         if (clientesEspeciales[nombreAnexo]) {
                             const clienteInfo = clientesEspeciales[nombreAnexo];
-
+                            
                             if (Array.isArray(anexo.HR) && anexo.HR.length > 0) {
                                 const distribucion = anexo.HR.map(([codigo, color, talla, cantidad]) => {
                                     const cant = Number(cantidad) || 0;
@@ -379,7 +375,7 @@ async function cargarDatos() {
                                         cantidad: cant
                                     };
                                 });
-
+                                
                                 clientesEspecialesData[nombreAnexo] = enrichSingleClient({
                                     id: clienteInfo.nit,
                                     nombre: clienteInfo.nombre,
@@ -388,7 +384,7 @@ async function cargarDatos() {
                             }
                             continue;
                         }
-
+                        
                         if (nombreAnexo === 'PENDIENTES') {
                             if (Array.isArray(anexo.HR) && anexo.HR.length > 0) {
                                 for (const [codigo, color, talla, cantidad] of anexo.HR) {
@@ -400,7 +396,7 @@ async function cargarDatos() {
                             }
                             continue;
                         }
-
+                        
                         if (Array.isArray(anexo.HR) && anexo.HR.length > 0) {
                             anexosNormales.push(...anexo.HR.map(([codigo, color, talla, cantidad]) => {
                                 const cant = Number(cantidad) || 0;
@@ -421,7 +417,7 @@ async function cargarDatos() {
                     // Agregar clientes especiales enriquecidos a CLIENTES
                     if (Object.keys(clientesEspecialesData).length > 0) {
                         if (!principal.CLIENTES) principal.CLIENTES = {};
-
+                        
                         for (const [nombre, data] of Object.entries(clientesEspecialesData)) {
                             const nombreFormateado = nombre.charAt(0) + nombre.slice(1).toLowerCase();
                             principal.CLIENTES[nombreFormateado] = data;
@@ -431,18 +427,18 @@ async function cargarDatos() {
                     // Consolidar PENDIENTES con HR existente
                     if (pendientesMap.size > 0) {
                         const hrMap = new Map();
-
+                        
                         if (principal.HR && principal.HR.length > 0) {
                             for (const [codigo, color, talla, cantidad] of principal.HR) {
                                 const key = `${codigo}-${color}-${talla}`;
                                 hrMap.set(key, { codigo, color, talla, cantidad });
                             }
                         }
-
+                        
                         for (const [key, cantidadPendiente] of pendientesMap.entries()) {
                             const [codigo, color, talla] = key.split('-');
                             const itemKey = `${codigo}-${color}-${talla}`;
-
+                            
                             if (hrMap.has(itemKey)) {
                                 const item = hrMap.get(itemKey);
                                 item.cantidad += cantidadPendiente;
@@ -454,10 +450,10 @@ async function cargarDatos() {
                                     cantidad: Number(cantidadPendiente)
                                 });
                             }
-
+                            
                             totalCantidad += cantidadPendiente;
                         }
-
+                        
                         principal.HR = Array.from(hrMap.values()).map(item => [
                             item.codigo,
                             item.color,
@@ -493,16 +489,16 @@ async function cargarDatos() {
         const { data2Values, recValues, clientesValues, dataValues } = await getAllSpreadsheetData();
         const { clienteDistribucionMap, colaboradorMap } = processDistribucionAndColaboradorData(dataValues);
         const clientesDataMap = processClientesData(clientesValues);
-
+        
         // Procesar datos SISPRO
         const sisproData = processMainDataOptimized(data2Values)
             .filter(item => !isAnuladoOptimized(item))
             .map(item => enrichItem(item, clienteDistribucionMap, clientesDataMap, colaboradorMap, "SISPRO"));
-
+        
         // Procesar datos BUSINT
         const busintData = processRecDataOptimized(recValues)
             .filter(item => !isAnuladoOptimized(item));
-
+        
         const busintFinal = processBusintData(
             busintData,
             clienteDistribucionMap,
@@ -539,5 +535,5 @@ async function cargarDatos() {
     }
 }
 
-// Cargar los datos al iniciar la página y exponer la promesa
-window.loaderPromise = cargarDatos();
+// Cargar los datos al iniciar la página
+window.onload = cargarDatos;

@@ -1,29 +1,26 @@
-// Configuración de DataTable para documentos disponibles - ERROR SOLUCIONADO
+// Configuración de DataTable para documentos disponibles
 let documentosTable = null;
 let listaResponsables = [];
-let timers = {};
-let documentosGlobales = [];
-let rangoFechasSeleccionado = null;
+let timers = {}; // Almacenar los intervalos de tiempo
+let documentosGlobales = []; // Almacenar todos los documentos para los consolidados
+let rangoFechasSeleccionado = null; // Almacenar rango de fechas para filtrado
 let filtrosActivos = {
     busqueda: '',
     fecha: null,
     estado: null
 };
-let actualizacionEnProgreso = false;
-let timeoutActualizacion = null;
-let filtroTarjetaActivo = null;
+let actualizacionEnProgreso = false; // Flag para evitar múltiples actualizaciones simultáneas
+let timeoutActualizacion = null; // Timeout para debounce
 
+// URL de la API de Google Apps Script
 const API_URL = 'https://script.google.com/macros/s/AKfycbzeG16VGHb63ePAwm00QveNsdbMEHi9dFbNsmQCreNOXDtwIh22NHxzRpwuzZBZ-oIJWg/exec';
 
+// Estados permitidos para mostrar
 let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
 const ESTADOS_FINALIZADOS = ['FINALIZADO'];
 
-// VERIFICAR SI DATATABLES ESTÁ CARGADO
-function isDataTableLoaded() {
-    return typeof $.fn.DataTable !== 'undefined';
-}
-
+// Función para mostrar notificaciones con SweetAlert2 en el CENTRO
 function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
     return Swal.fire({
         title: titulo,
@@ -36,6 +33,7 @@ function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
     });
 }
 
+// Función para mostrar confirmación con SweetAlert2 en el CENTRO
 async function mostrarConfirmacion(titulo, texto, tipo = 'info') {
     const result = await Swal.fire({
         title: titulo,
@@ -51,6 +49,7 @@ async function mostrarConfirmacion(titulo, texto, tipo = 'info') {
     return result.isConfirmed;
 }
 
+// Función para mostrar input con SweetAlert2 en el CENTRO
 async function mostrarInput(titulo, texto, tipo = 'text') {
     const { value } = await Swal.fire({
         title: titulo,
@@ -71,6 +70,7 @@ async function mostrarInput(titulo, texto, tipo = 'text') {
     return value;
 }
 
+// Función para mostrar loading EN EL CENTRO
 function mostrarLoading(titulo = 'Procesando...', texto = '') {
     return Swal.fire({
         title: titulo,
@@ -84,9 +84,10 @@ function mostrarLoading(titulo = 'Procesando...', texto = '') {
     });
 }
 
+// Función para guardar estado actual de la tabla
 function guardarEstadoTabla() {
     if (!documentosTable) return null;
-
+    
     return {
         search: documentosTable.search(),
         page: documentosTable.page(),
@@ -95,41 +96,49 @@ function guardarEstadoTabla() {
     };
 }
 
+// Función para restaurar estado de la tabla
 function restaurarEstadoTabla(estado) {
     if (!documentosTable || !estado) return;
-
+    
+    // Restaurar búsqueda
     if (estado.search) {
         documentosTable.search(estado.search);
     }
-
+    
+    // Restaurar página
     if (estado.page !== undefined) {
         documentosTable.page(estado.page).draw('page');
     }
-
+    
+    // Restaurar orden
     if (estado.order) {
         documentosTable.order(estado.order);
     }
-
+    
+    // Restaurar filtros
     if (estado.estadoFiltros) {
         filtrosActivos = { ...estado.estadoFiltros };
-
+        
+        // Restaurar búsqueda en input
         if (document.getElementById('recInput')) {
             document.getElementById('recInput').value = filtrosActivos.busqueda || '';
         }
-
+        
+        // Restaurar fecha en flatpickr
         if (filtrosActivos.fecha && window.flatpickrInstance) {
             window.flatpickrInstance.setDate(filtrosActivos.fecha, false);
         }
     }
 }
 
+// Función para llamar a la API
 async function llamarAPI(params) {
     try {
         const queryString = new URLSearchParams(params).toString();
         const url = `${API_URL}?${queryString}`;
-
+        
         console.log('Llamando a API:', url);
-
+        
         const response = await fetch(url, {
             method: 'POST',
             redirect: 'follow'
@@ -139,7 +148,7 @@ async function llamarAPI(params) {
             const finalUrl = response.url;
             const finalResponse = await fetch(finalUrl);
             const text = await finalResponse.text();
-
+            
             try {
                 return JSON.parse(text);
             } catch (e) {
@@ -157,45 +166,51 @@ async function llamarAPI(params) {
         }
     } catch (error) {
         console.error('Error llamando a la API:', error);
-        return {
-            success: false,
+        return { 
+            success: false, 
             error: error.message,
             message: 'Error de conexión con el servidor'
         };
     }
 }
 
+// Función OPTIMIZADA para actualizar solo una fila específica
+// Función MEJORADA para actualizar solo una fila específica
 async function actualizarFilaEspecifica(rec) {
     if (!documentosTable) return;
-
+    
     try {
         console.log(`Actualizando solo fila REC${rec}`);
-
+        
+        // Obtener datos actualizados solo para este documento
         const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
         const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
-
+        
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
         const values = data.values || [];
-
+        
+        // Encontrar el documento específico
         const rowData = values.find(row => String(row[0] || '').trim() === rec);
-
+        
         if (!rowData) {
             console.warn(`No se encontró REC${rec}`);
             return;
         }
-
+        
+        // Procesar el documento
         const documento = String(rowData[0] || '').trim();
         const estado = String(rowData[3] || '').trim().toUpperCase();
         const colaborador = String(rowData[4] || '').trim();
         const fechaHora = rowData[1] || '';
         const fechaSolo = formatearFechaSolo(fechaHora);
         const fechaObjeto = parsearFecha(fechaSolo);
-
+        
+        // BUSCAR EN DATOS GLOBALES ACTUALIZADOS
         const datosCompletos = datosGlobales.find(d => d.REC === documento);
         const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
-
+        
         const documentoActualizado = {
             rec: documento,
             estado: estado,
@@ -207,10 +222,10 @@ async function actualizarFilaEspecifica(rec) {
             lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
             refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
             prenda: datosCompletos ? (datosCompletos.PRENDA || '') : '',
-            tieneClientes: datosCompletos ?
-                (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes &&
-                    Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
-            datosCompletos: datosCompletos,
+            tieneClientes: datosCompletos ? 
+                (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
+                 Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
+            datosCompletos: datosCompletos, // ESTO ES CLAVE PARA LA IMPRESIÓN
             datetime_inicio: rowData[5] || '',
             datetime_fin: rowData[6] || '',
             duracion_guardada: rowData[7] || '',
@@ -218,91 +233,94 @@ async function actualizarFilaEspecifica(rec) {
             datetime_pausas: rowData[9] || '',
             duracion_pausas: rowData[10] || ''
         };
-
+        
+        // Actualizar la fila en DataTable
         const fila = documentosTable.row((idx, data) => data.rec === rec);
         if (fila.any()) {
-            fila.data(documentoActualizado).draw(false);
+            fila.data(documentoActualizado).draw(false); // false = no cambiar de página
             console.log(`Fila REC${rec} actualizada exitosamente`);
-
+            
+            // ACTUALIZAR INTERFAZ: Forzar redibujado del select de responsables
             const rowNode = fila.node();
-            const selectCell = $(rowNode).find('td:eq(2)');
+            const selectCell = $(rowNode).find('td:eq(2)'); // Columna de responsable
             selectCell.html(generarSelectResponsables(rec, colaborador, documentosGlobales, documentoActualizado));
         }
-
+        
+        // Actualizar documentosGlobales
         const index = documentosGlobales.findIndex(d => d.rec === rec);
         if (index !== -1) {
             documentosGlobales[index] = documentoActualizado;
         } else {
             documentosGlobales.push(documentoActualizado);
         }
-
+        
+        // Recalcular consolidados
         const consolidados = calcularConsolidados(documentosGlobales);
         actualizarTarjetasResumen(consolidados);
-
+        
     } catch (error) {
         console.error('Error actualizando fila específica:', error);
     }
 }
 
+// Función ACTUALIZADA para actualizar inmediatamente - CON VACIADO DE TABLA
 async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null, accion = null) {
+    // Evitar múltiples actualizaciones simultáneas
     if (actualizacionEnProgreso && !forzarRecarga) {
         console.log('Actualización ya en progreso, ignorando...');
         return;
     }
-
+    
+    // VACIAR TABLA TEMPORALMENTE para actualizaciones manuales
     if (forzarRecarga && !recEspecifico) {
         vaciarTablaCompletamente();
     }
-
+    
     let estadoTabla = null;
     actualizacionEnProgreso = true;
-
+    
     try {
+        // Guardar estado actual antes de cualquier cambio (solo si no vaciamos tabla)
         if (!forzarRecarga) {
             estadoTabla = guardarEstadoTabla();
         }
 
         console.log('Actualizando tabla...', { forzarRecarga, recEspecifico, accion });
 
+        // Si se fuerza recarga o no hay tabla, cargar completamente
         if (forzarRecarga || !documentosTable) {
             console.log('Recargando tabla completa...');
-
-            // Si es forzado, recargar datos globales primero
-            if (forzarRecarga && typeof window.cargarDatos === 'function') {
-                await window.cargarDatos();
-            }
-
-            await cargarTablaDocumentos(); // Esta función ya inicializa las tarjetas
+            await cargarTablaDocumentos();
         } else {
             console.log('Actualizando datos existentes...');
+            // Solo actualizar los datos de la tabla existente
             const documentosDisponibles = await obtenerDocumentosCombinados();
             documentosGlobales = documentosDisponibles;
-
+            
             const consolidados = calcularConsolidados(documentosDisponibles);
             actualizarTarjetasResumen(consolidados);
-
+            
+            // Actualizar DataTable con nuevos datos
             documentosTable.clear();
             documentosTable.rows.add(documentosDisponibles);
-            documentosTable.draw(false);
-
+            documentosTable.draw(false); // false = mantener página actual
+            
+            // Reiniciar timers
             iniciarTimers(documentosDisponibles);
-
-            // REINICIALIZAR TARJETAS DESPUÉS DE ACTUALIZAR DATOS
-            setTimeout(() => {
-                inicializarTarjetasInteractivas();
-            }, 100);
         }
-
+        
+        // Restaurar estado después de cargar (solo si no fue recarga forzada)
         if (estadoTabla && documentosTable) {
             setTimeout(() => {
                 restaurarEstadoTabla(estadoTabla);
             }, 50);
         }
-
+        
         console.log('Tabla actualizada correctamente');
-
+        
     } catch (error) {
         console.error('Error en actualización inmediata:', error);
+        // Restaurar estado incluso en error
         if (estadoTabla && documentosTable) {
             restaurarEstadoTabla(estadoTabla);
         }
@@ -312,10 +330,102 @@ async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = n
     }
 }
 
+// Función MEJORADA para actualizar inmediatamente después de un cambio
+/*async function actualizarInmediatamente(forzarRecarga = false, recEspecifico = null, accion = null) {
+    // Evitar múltiples actualizaciones simultáneas
+    if (actualizacionEnProgreso && !forzarRecarga) {
+        console.log('Actualización ya en progreso, ignorando...');
+        return;
+    }
+    
+    // OPTIMIZACIÓN: Para pausar/reanudar/finalizar, solo actualizar fila específica
+    if (recEspecifico && !forzarRecarga && ['pausar', 'reanudar', 'finalizar'].includes(accion)) {
+        console.log(`Actualización optimizada para ${accion} - solo fila REC${recEspecifico}`);
+        await actualizarFilaEspecifica(recEspecifico);
+        return;
+    }
+    
+    // Para asignar responsable, SI cargar datos globales
+    if (recEspecifico && accion === 'asignarResponsable') {
+        console.log('Asignación de responsable - recargando datos globales');
+        forzarRecarga = true;
+    }
+    
+    let estadoTabla = null;
+    actualizacionEnProgreso = true;
+    
+    try {
+        // Guardar estado actual antes de cualquier cambio
+        estadoTabla = guardarEstadoTabla();
+        
+        // Mostrar loader global solo si es recarga forzada
+        const loader = document.getElementById('loader');
+        if (loader && forzarRecarga) {
+            loader.style.display = 'block';
+        }
+
+        console.log('Actualizando tabla...', { forzarRecarga, recEspecifico, accion });
+
+        // Si se fuerza recarga o no hay tabla, cargar completamente
+        if (forzarRecarga || !documentosTable) {
+            console.log('Recargando tabla completa...');
+            await cargarTablaDocumentos();
+        } else {
+            console.log('Actualizando datos existentes...');
+            // Solo actualizar los datos de la tabla existente
+            const documentosDisponibles = await obtenerDocumentosCombinados();
+            documentosGlobales = documentosDisponibles;
+            
+            const consolidados = calcularConsolidados(documentosDisponibles);
+            actualizarTarjetasResumen(consolidados);
+            
+            // Actualizar DataTable con nuevos datos
+            documentosTable.clear();
+            documentosTable.rows.add(documentosDisponibles);
+            documentosTable.draw(false); // false = mantener página actual
+            
+            // Reiniciar timers
+            iniciarTimers(documentosDisponibles);
+        }
+        
+        // Restaurar estado después de cargar
+        if (estadoTabla) {
+            setTimeout(() => {
+                restaurarEstadoTabla(estadoTabla);
+            }, 50);
+        }
+        
+        // Ocultar loader
+        if (loader && forzarRecarga) {
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 200);
+        }
+        
+        console.log('Tabla actualizada correctamente');
+        
+    } catch (error) {
+        console.error('Error en actualización inmediata:', error);
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'none';
+        }
+        // Restaurar estado incluso en error
+        if (estadoTabla && documentosTable) {
+            restaurarEstadoTabla(estadoTabla);
+        }
+        throw error;
+    } finally {
+        actualizacionEnProgreso = false;
+    }
+}*/
+
+// Función para actualizar datos globales después de cambios
 async function actualizarDatosGlobales() {
     try {
         console.log('Actualizando datos globales...');
-
+        
+        // Recargar los datos desde la API
         if (typeof cargarDatos === 'function') {
             await cargarDatos();
             console.log('Datos globales actualizados correctamente');
@@ -330,9 +440,10 @@ async function actualizarDatosGlobales() {
     }
 }
 
+// Función para formatear fecha a solo fecha (sin hora)
 function formatearFechaSolo(fechaHoraStr) {
     if (!fechaHoraStr) return '-';
-
+    
     try {
         if (fechaHoraStr.includes(' ')) {
             return fechaHoraStr.split(' ')[0];
@@ -344,23 +455,28 @@ function formatearFechaSolo(fechaHoraStr) {
     }
 }
 
+// Función CORREGIDA para convertir fecha string a objeto Date
 function parsearFecha(fechaStr) {
     if (!fechaStr || fechaStr === '-') return null;
-
+    
     try {
+        // Formato esperado: "1/11/2025" (día/mes/año)
         const partes = fechaStr.split('/');
         if (partes.length !== 3) return null;
-
+        
         const dia = parseInt(partes[0], 10);
         const mes = parseInt(partes[1], 10);
         const año = parseInt(partes[2], 10);
-
+        
+        // Validar que sean números válidos
         if (isNaN(dia) || isNaN(mes) || isNaN(año)) return null;
-
+        
+        // Crear fecha (mes - 1 porque en JS los meses van de 0-11)
         const fecha = new Date(año, mes - 1, dia);
-
+        
+        // Verificar que la fecha sea válida
         if (isNaN(fecha.getTime())) return null;
-
+        
         return fecha;
     } catch (e) {
         console.error('Error parseando fecha:', e, 'String:', fechaStr);
@@ -368,6 +484,7 @@ function parsearFecha(fechaStr) {
     }
 }
 
+// Función para calcular consolidados
 function calcularConsolidados(documentos) {
     const consolidados = {
         pendientes: { count: 0, unidades: 0 },
@@ -377,47 +494,47 @@ function calcularConsolidados(documentos) {
     };
 
     documentos.forEach(doc => {
-        consolidados.total.count++;
-        consolidados.total.unidades += doc.cantidad || 0;
+        if (ESTADOS_VISIBLES.includes(doc.estado)) {
+            consolidados.total.count++;
+            consolidados.total.unidades += doc.cantidad || 0;
 
-        if (doc.estado === 'PENDIENTE') {
-            consolidados.pendientes.count++;
-            consolidados.pendientes.unidades += doc.cantidad || 0;
-        } else if (doc.estado === 'DIRECTO') {
-            consolidados.directos.count++;
-            consolidados.directos.unidades += doc.cantidad || 0;
-        } else if (doc.estado === 'ELABORACION' || doc.estado === 'PAUSADO') {
-            consolidados.proceso.count++;
-            consolidados.proceso.unidades += doc.cantidad || 0;
+            if (doc.estado === 'PENDIENTE') {
+                consolidados.pendientes.count++;
+                consolidados.pendientes.unidades += doc.cantidad || 0;
+            } else if (doc.estado === 'DIRECTO') {
+                consolidados.directos.count++;
+                consolidados.directos.unidades += doc.cantidad || 0;
+            } else if (doc.estado === 'ELABORACION' || doc.estado === 'PAUSADO') {
+                consolidados.proceso.count++;
+                consolidados.proceso.unidades += doc.cantidad || 0;
+            }
         }
     });
 
     return consolidados;
 }
 
-function actualizarTarjetasResumen(consolidados, mantenerEstado = false) {
+// Función para actualizar las tarjetas de resumen
+function actualizarTarjetasResumen(consolidados) {
     const pendientesElement = document.getElementById('contadorPendientes');
     const procesoElement = document.getElementById('contadorProceso');
     const directosElement = document.getElementById('contadorDirectos');
     const totalElement = document.getElementById('contadorTotal');
-
+    
     if (pendientesElement) pendientesElement.textContent = consolidados.pendientes.count;
     if (document.getElementById('unidadesPendientes')) document.getElementById('unidadesPendientes').textContent = `${consolidados.pendientes.unidades} unidades`;
-
+    
     if (procesoElement) procesoElement.textContent = consolidados.proceso.count;
     if (document.getElementById('unidadesProceso')) document.getElementById('unidadesProceso').textContent = `${consolidados.proceso.unidades} unidades`;
-
+    
     if (directosElement) directosElement.textContent = consolidados.directos.count;
     if (document.getElementById('unidadesDirectos')) document.getElementById('unidadesDirectos').textContent = `${consolidados.directos.unidades} unidades`;
-
+    
     if (totalElement) totalElement.textContent = consolidados.total.count;
     if (document.getElementById('unidadesTotal')) document.getElementById('unidadesTotal').textContent = `${consolidados.total.unidades} unidades`;
-
-    if (!mantenerEstado && filtroTarjetaActivo) {
-        limpiarFiltroTarjetas();
-    }
 }
 
+// Función para convertir hh:mm:ss a milisegundos
 function tiempoAMilisegundos(tiempo) {
     if (!tiempo) return 0;
     try {
@@ -432,6 +549,7 @@ function tiempoAMilisegundos(tiempo) {
     }
 }
 
+// Función para convertir milisegundos a hh:mm:ss
 function milisegundosATiempo(ms) {
     const totalSec = Math.floor(ms / 1000);
     const horas = Math.floor(totalSec / 3600).toString().padStart(2, '0');
@@ -440,6 +558,7 @@ function milisegundosATiempo(ms) {
     return `${horas}:${minutos}:${segundos}`;
 }
 
+// Función para calcular la duración usando las columnas F-K
 function calcularDuracionDesdeSheets(datos) {
     const {
         estado,
@@ -473,12 +592,13 @@ function calcularDuracionDesdeSheets(datos) {
     }
 }
 
+// Función para iniciar/actualizar timers
 function iniciarTimers(documentos) {
     Object.keys(timers).forEach(rec => {
         clearInterval(timers[rec]);
         delete timers[rec];
     });
-
+    
     documentos.forEach(doc => {
         if (doc.estado !== 'PAUSADO' && doc.estado !== 'FINALIZADO' && doc.datetime_inicio) {
             timers[doc.rec] = setInterval(() => {
@@ -488,13 +608,14 @@ function iniciarTimers(documentos) {
     });
 }
 
+// Función para actualizar la duración en la tabla
 function actualizarDuracionEnTabla(rec) {
     if (documentosTable) {
         const fila = documentosTable.row((idx, data) => data.rec === rec);
         if (fila.any()) {
             const datos = fila.data();
             const nuevaDuracion = calcularDuracionDesdeSheets(datos);
-
+            
             const celdaDuracion = $(fila.node()).find('.duracion-tiempo');
             if (celdaDuracion.length && celdaDuracion.text() !== nuevaDuracion) {
                 celdaDuracion.text(nuevaDuracion);
@@ -503,36 +624,37 @@ function actualizarDuracionEnTabla(rec) {
     }
 }
 
+// Función CORREGIDA para configurar filtro de fecha
 function configurarFiltroFecha() {
-    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE USAR EXT
-    if (!isDataTableLoaded()) {
-        console.error('DataTables no está cargado');
-        return;
-    }
-
+    // Remover filtros anteriores
     $.fn.dataTable.ext.search.pop();
-
+    
+    // Agregar nuevo filtro
     $.fn.dataTable.ext.search.push(
-        function (settings, data, dataIndex) {
+        function(settings, data, dataIndex) {
+            // Si no hay rango seleccionado, mostrar todo
             if (!rangoFechasSeleccionado || rangoFechasSeleccionado.length !== 2) {
                 return true;
             }
 
             try {
+                // Obtener la fila completa
                 const rowData = documentosTable.row(dataIndex).data();
-
+                
                 if (!rowData || !rowData.fecha_objeto) {
                     return false;
                 }
 
                 const fechaDocumento = rowData.fecha_objeto;
-
+                
+                // Configurar fechas de inicio y fin del rango
                 const fechaInicio = new Date(rangoFechasSeleccionado[0]);
                 fechaInicio.setHours(0, 0, 0, 0);
-
+                
                 const fechaFin = new Date(rangoFechasSeleccionado[1]);
                 fechaFin.setHours(23, 59, 59, 999);
 
+                // Comparar fechas
                 return fechaDocumento >= fechaInicio && fechaDocumento <= fechaFin;
             } catch (e) {
                 console.error('Error en filtro de fecha:', e);
@@ -542,81 +664,88 @@ function configurarFiltroFecha() {
     );
 }
 
+// Función CORREGIDA para aplicar filtro de fecha
 function aplicarFiltroFecha(fechaInicio, fechaFin) {
     console.log('Aplicando filtro de fecha:', fechaInicio, fechaFin);
-
+    
+    // Normalizar fechas
     const inicio = new Date(fechaInicio);
     inicio.setHours(0, 0, 0, 0);
-
+    
     const fin = new Date(fechaFin);
     fin.setHours(23, 59, 59, 999);
-
+    
     rangoFechasSeleccionado = [inicio, fin];
     filtrosActivos.fecha = [fechaInicio, fechaFin];
-
+    
     console.log('Rango normalizado:', rangoFechasSeleccionado);
-
+    
     if (documentosTable) {
+        // Redibujar la tabla con el filtro
         documentosTable.draw();
-
+        
+        // Recalcular consolidados con datos filtrados
         const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
         console.log('Documentos después del filtro:', datosFiltrados.length);
-
+        
         const consolidados = calcularConsolidados(datosFiltrados);
         actualizarTarjetasResumen(consolidados);
     }
 }
 
+// Función para limpiar filtros
 function limpiarFiltros() {
     console.log('Limpiando filtros...');
-
+    
     rangoFechasSeleccionado = null;
     filtrosActivos = {
         busqueda: '',
         fecha: null,
         estado: null
     };
-
+    
     if (document.getElementById('filtroFecha')) {
         document.getElementById('filtroFecha').value = '';
     }
     if (document.getElementById('recInput')) {
         document.getElementById('recInput').value = '';
     }
-
+    
+    // Limpiar flatpickr si existe
     if (window.flatpickrInstance) {
         window.flatpickrInstance.clear();
     }
-
+    
     if (documentosTable) {
         documentosTable.search('').draw();
-
+        
         const consolidados = calcularConsolidados(documentosGlobales);
         actualizarTarjetasResumen(consolidados);
     }
 }
 
+// Función para cargar responsables desde Google Sheets
 async function cargarResponsables() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
     const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
-
+    
     try {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
         const response = await fetch(url);
-
+        
         if (!response.ok) throw new Error('Error al obtener responsables');
-
+        
         const data = await response.json();
         const values = data.values || [];
-
+        
         listaResponsables = values
             .filter(row => row[1] === 'true' || row[1] === 'TRUE')
             .map(row => row[0].trim())
             .filter(nombre => nombre !== '');
-
+            
         console.log('Responsables cargados:', listaResponsables);
         return listaResponsables;
-
+        
     } catch (error) {
         console.error('Error cargando responsables:', error);
         listaResponsables = [
@@ -634,56 +763,59 @@ async function cargarResponsables() {
     }
 }
 
+// Función para obtener responsables disponibles para un documento específico
 function obtenerResponsablesDisponibles(documentos, documentoActual) {
     const responsablesAsignados = documentos
         .filter(doc => doc.rec !== documentoActual.rec)
         .map(doc => doc.colaborador)
         .filter(resp => resp && resp.trim() !== '' && resp !== 'Sin responsable');
-
+    
     return listaResponsables.filter(resp => !responsablesAsignados.includes(resp));
 }
 
+// Función para calcular cantidad total de un documento
 function calcularCantidadTotal(documento) {
     if (!documento.datosCompletos) return 0;
-
+    
+    // Usar solo CANTIDAD principal
     const cantidad = parseInt(documento.datosCompletos.CANTIDAD) || 0;
-
+    
     console.log(`Cantidad para REC${documento.rec}: ${cantidad} (solo principal)`);
     return cantidad;
 }
 
+// Función para obtener estados según configuración
 function obtenerEstadosParaMostrar() {
-    return mostrarFinalizados
+    return mostrarFinalizados 
         ? [...ESTADOS_VISIBLES, ...ESTADOS_FINALIZADOS]
         : ESTADOS_VISIBLES;
 }
 
+// Función para alternar visibilidad de finalizados
 function toggleFinalizados() {
     mostrarFinalizados = !mostrarFinalizados;
     const btn = document.getElementById('btnToggleFinalizados');
     if (btn) {
-        if (mostrarFinalizados) {
-            btn.innerHTML = '<i class="fas fa-eye-slash"></i><span class="hide-xs"> Ocultar Finalizados</span>';
-        } else {
-            btn.innerHTML = '<i class="fas fa-eye"></i><span class="hide-xs"> Mostrar Finalizados</span>';
-        }
+        btn.innerHTML = mostrarFinalizados 
+            ? '<i class="fas fa-eye-slash me-1"></i>Ocultar Finalizados'
+            : '<i class="fas fa-eye me-1"></i>Mostrar Finalizados';
     }
     actualizarInmediatamente(true);
 }
 
-async function cargarTablaDocumentos() {
+// Función MEJORADA para cargar la tabla de documentos
+/*async function cargarTablaDocumentos() {
     try {
         console.log('Iniciando carga de tabla de documentos...');
-
-        vaciarTablaCompletamente();
-
+        
         const loader = document.getElementById('loader');
         if (loader) {
             loader.style.display = 'block';
         }
 
         await cargarResponsables();
-
+        
+        // Destruir tabla existente si hay una
         if (documentosTable) {
             documentosTable.destroy();
             documentosTable = null;
@@ -691,20 +823,17 @@ async function cargarTablaDocumentos() {
 
         const documentosDisponibles = await obtenerDocumentosCombinados();
         documentosGlobales = documentosDisponibles;
-
+        
         console.log('Documentos disponibles:', documentosDisponibles.length);
-
+        
         const consolidados = calcularConsolidados(documentosDisponibles);
         actualizarTarjetasResumen(consolidados);
-
+        
+        // Inicializar DataTable solo si hay datos
         if (documentosDisponibles.length > 0) {
             inicializarDataTable(documentosDisponibles);
-
-            // INICIALIZAR TARJETAS DESPUÉS DE CREAR LA TABLA
-            setTimeout(() => {
-                inicializarTarjetasInteractivas();
-            }, 100);
         } else {
+            // Mostrar mensaje de no hay datos
             $('#documentosTable').html(`
                 <thead class="table-light">
                     <tr>
@@ -729,21 +858,126 @@ async function cargarTablaDocumentos() {
                 </tbody>
             `);
         }
-
+        
         if (loader) {
             loader.style.display = 'none';
         }
-
+        
         console.log('Tabla de documentos cargada correctamente');
-
+        
     } catch (error) {
         console.error('Error al cargar tabla de documentos:', error);
-
+        
         const loader = document.getElementById('loader');
         if (loader) {
             loader.style.display = 'none';
         }
+        
+        // Mostrar error en la tabla
+        $('#documentosTable').html(`
+            <thead class="table-light">
+                <tr>
+                    <th>Documento</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Fecha</th>
+                    <th>Duración</th>
+                    <th>Cantidad</th>
+                    <th>Línea</th>
+                    <th>Lote</th>
+                    <th>RefProv</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="10" class="text-center text-danger py-4">
+                        Error al cargar los documentos: ${error.message}
+                    </td>
+                </tr>
+            </tbody>
+        `);
+        
+        mostrarNotificacion('Error', 'Error al cargar los documentos: ' + error.message, 'error');
+    }
+}
+*/
 
+// Función MEJORADA para cargar la tabla de documentos - CON VACIADO INICIAL
+async function cargarTablaDocumentos() {
+    try {
+        console.log('Iniciando carga de tabla de documentos...');
+        
+        // VACIAR TABLA AL INICIAR (para actualizaciones manuales)
+        vaciarTablaCompletamente();
+        
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'block';
+        }
+
+        await cargarResponsables();
+        
+        // Destruir tabla existente si hay una (ya lo hace vaciarTablaCompletamente, pero por si acaso)
+        if (documentosTable) {
+            documentosTable.destroy();
+            documentosTable = null;
+        }
+
+        const documentosDisponibles = await obtenerDocumentosCombinados();
+        documentosGlobales = documentosDisponibles;
+        
+        console.log('Documentos disponibles:', documentosDisponibles.length);
+        
+        const consolidados = calcularConsolidados(documentosDisponibles);
+        actualizarTarjetasResumen(consolidados);
+        
+        // INICIALIZAR NUEVA TABLA solo si hay datos
+        if (documentosDisponibles.length > 0) {
+            inicializarDataTable(documentosDisponibles);
+            console.log('Nueva tabla inicializada con datos');
+        } else {
+            // Mostrar mensaje de no hay datos
+            $('#documentosTable').html(`
+                <thead class="table-light">
+                    <tr>
+                        <th>Documento</th>
+                        <th>Estado</th>
+                        <th>Responsable</th>
+                        <th>Fecha</th>
+                        <th>Duración</th>
+                        <th>Cantidad</th>
+                        <th>Línea</th>
+                        <th>Lote</th>
+                        <th>RefProv</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            No se encontraron documentos
+                        </td>
+                    </tr>
+                </tbody>
+            `);
+        }
+        
+        if (loader) {
+            loader.style.display = 'none';
+        }
+        
+        console.log('Tabla de documentos cargada correctamente');
+        
+    } catch (error) {
+        console.error('Error al cargar tabla de documentos:', error);
+        
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'none';
+        }
+        
+        // Mostrar error en la tabla
         $('#documentosTable').html(`
             <thead class="table-light">
                 <tr>
@@ -768,36 +1002,25 @@ async function cargarTablaDocumentos() {
                 </tr>
             </tbody>
         `);
-
+        
         mostrarNotificacion('Error', 'Error al cargar los documentos: ' + error.message, 'error');
     }
 }
 
+// Función para obtener datos combinados
 async function obtenerDocumentosCombinados() {
+    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
+    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    
     try {
-        // Esperar a que main.js termine de cargar si es necesario
-        if (window.loaderPromise) {
-            console.log("Esperando a que main.js cargue los datos...");
-            await window.loaderPromise;
-        }
-
-        // Usar los datos globales cargados por main.js
-        let values = window.datosTablaDocumentos || [];
-
-        // Si por alguna razón no hay datos, intentar cargarlos (fallback)
-        if (!values || values.length === 0) {
-            console.warn("Datos globales no encontrados, intentando cargar nuevamente...");
-            if (typeof window.cargarDatos === 'function') {
-                await window.cargarDatos();
-                values = window.datosTablaDocumentos || [];
-            }
-        }
-
-        if (!values || values.length === 0) {
-            console.error("No se pudieron obtener datos de la hoja DATA");
-            return [];
-        }
-
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error('Error al obtener datos de la hoja DATA');
+        
+        const data = await response.json();
+        const values = data.values || [];
+        
         const datosGlobalesMap = {};
         if (datosGlobales && datosGlobales.length > 0) {
             datosGlobales.forEach(item => {
@@ -812,26 +1035,23 @@ async function obtenerDocumentosCombinados() {
         const estadosParaMostrar = obtenerEstadosParaMostrar();
         const documentosProcesados = values
             .map((row) => {
-                // Validación básica de fila
-                if (!row || row.length === 0) return null;
-
                 const documento = String(row[0] || '').trim();
                 const estado = String(row[3] || '').trim().toUpperCase();
                 const colaborador = String(row[4] || '').trim();
                 const fechaHora = row[1] || '';
                 const fechaSolo = formatearFechaSolo(fechaHora);
                 const fechaObjeto = parsearFecha(fechaSolo);
-
+                
                 const datetime_inicio = row[5] || '';
                 const datetime_fin = row[6] || '';
                 const duracion_guardada = row[7] || '';
                 const pausas = row[8] || '';
                 const datetime_pausas = row[9] || '';
                 const duracion_pausas = row[10] || '';
-
+                
                 const datosCompletos = datosGlobalesMap[documento];
                 const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
-
+                
                 return {
                     rec: documento,
                     estado: estado,
@@ -843,9 +1063,9 @@ async function obtenerDocumentosCombinados() {
                     lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
                     refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
                     prenda: datosCompletos ? (datosCompletos.PRENDA || '') : '',
-                    tieneClientes: datosCompletos ?
-                        (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes &&
-                            Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
+                    tieneClientes: datosCompletos ? 
+                        (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes && 
+                         Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
                     datosCompletos: datosCompletos,
                     datetime_inicio: datetime_inicio,
                     datetime_fin: datetime_fin,
@@ -859,26 +1079,27 @@ async function obtenerDocumentosCombinados() {
 
         console.log('Documentos procesados:', documentosProcesados.length);
         return documentosProcesados;
-
+            
     } catch (error) {
         console.error('Error obteniendo documentos:', error);
         throw error;
     }
 }
 
-async function cambiarResponsable(rec, responsable) {
+// Función OPTIMIZADA para cambiar responsable - VERSIÓN CORREGIDA
+/*async function cambiarResponsable(rec, responsable) {
+    // Evitar múltiples llamadas simultáneas
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de responsable...');
         return;
     }
-
+    
     try {
         console.log(`Asignando responsable ${responsable} a REC${rec}`);
-
+        
         actualizacionEnProgreso = true;
-
-        vaciarTablaCompletamente();
-
+        
+        // Mostrar loading compacto
         const loadingToast = Swal.fire({
             title: 'Asignando...',
             text: responsable,
@@ -896,93 +1117,160 @@ async function cambiarResponsable(rec, responsable) {
             id: rec,
             responsable: responsable
         });
-
+        
+        // Cerrar loading
         Swal.close();
-
+        
         if (result.success) {
+            // Mostrar éxito breve
             await mostrarNotificacion('✓ Asignado', responsable, 'success');
-
+            
+            // ACTUALIZACIÓN INMEDIATA: Actualizar datos globales primero
             await actualizarDatosGlobales();
+            
+            // ACTUALIZACIÓN INMEDIATA: Actualizar SOLO la fila específica
             await cargarTablaDocumentos();
-
+            
+            console.log(`Responsable ${responsable} asignado a REC${rec} - Tabla actualizada`);
+            
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
-            await cargarTablaDocumentos();
         }
     } catch (error) {
         console.error('Error cambiando responsable:', error);
         Swal.close();
         await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
-        await cargarTablaDocumentos();
+    } finally {
+        actualizacionEnProgreso = false;
+    }
+}
+*/
+
+// Función CORREGIDA para cambiar responsable - TABLA VACÍA DURANTE PROCESO
+// Función ACTUALIZADA para cambiar responsable - TABLA VACÍA TEMPORAL
+async function cambiarResponsable(rec, responsable) {
+    if (actualizacionEnProgreso) {
+        console.log('Actualización en progreso, ignorando cambio de responsable...');
+        return;
+    }
+    
+    try {
+        console.log(`Asignando responsable ${responsable} a REC${rec}`);
+        
+        actualizacionEnProgreso = true;
+        
+        // VACIAR TABLA TEMPORALMENTE
+        vaciarTablaCompletamente();
+        
+        const loadingToast = Swal.fire({
+            title: 'Asignando...',
+            text: responsable,
+            icon: 'info',
+            position: 'center',
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const result = await llamarAPI({
+            action: 'asignarResponsable',
+            id: rec,
+            responsable: responsable
+        });
+        
+        Swal.close();
+        
+        if (result.success) {
+            await mostrarNotificacion('✓ Asignado', responsable, 'success');
+            
+            // Recargar datos globales y reconstruir tabla
+            await actualizarDatosGlobales();
+            await cargarTablaDocumentos();
+            
+        } else {
+            await mostrarNotificacion('Error', result.message || 'Error al asignar responsable', 'error');
+            await cargarTablaDocumentos(); // Reconstruir tabla incluso en error
+        }
+    } catch (error) {
+        console.error('Error cambiando responsable:', error);
+        Swal.close();
+        await mostrarNotificacion('Error', 'Error al asignar responsable: ' + error.message, 'error');
+        await cargarTablaDocumentos(); // Reconstruir tabla en caso de error
     } finally {
         actualizacionEnProgreso = false;
     }
 }
 
+// Función para VACIAR tabla completamente (solo headers)
+// Función para VACIAR tabla completamente (solo headers, sin afectar contadores)
 function vaciarTablaCompletamente() {
     console.log('Vaciando tabla completamente...');
-
+    
     // Destruir DataTable si existe
     if (documentosTable) {
         documentosTable.destroy();
         documentosTable = null;
     }
+    
+    // Limpiar contenido y mostrar solo headers
+    $('#documentosTable').html(`
+        <thead class="table-light">
+            <tr>
+                <th>Documento</th>
+                <th>Estado</th>
+                <th>Responsable</th>
+                <th>Fecha</th>
+                <th>Duración</th>
+                <th>Cantidad</th>
+                <th>Línea</th>
+                <th>Lote</th>
+                <th>RefProv</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="10" class="text-center text-muted py-4">
+                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
 
-    // Limpiar contenido y mostrar solo headers - PERO NO AFECTAR TARJETAS
-    const tableContainer = document.getElementById('documentosTable');
-    if (tableContainer) {
-        tableContainer.innerHTML = `
-            <thead class="table-light">
-                <tr>
-                    <th>Documento</th>
-                    <th>Estado</th>
-                    <th>Responsable</th>
-                    <th>Fecha</th>
-                    <th>Duración</th>
-                    <th>Cantidad</th>
-                    <th>Línea</th>
-                    <th>Lote</th>
-                    <th>RefProv</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="10" class="text-center text-muted py-4">
-                        <div class="spinner-border spinner-border-sm me-2" role="status">
-                            <span class="visually-hidden">Cargando...</span>
-                        </div>
-                        Actualizando...
-                    </td>
-                </tr>
-            </tbody>
-        `;
-    }
+                </td>
+            </tr>
+        </tbody>
+    `);
+    
 }
 
+// Función OPTIMIZADA para cambiar estado del documento - LÓGICA CORREGIDA
+// Función ACTUALIZADA para cambiar estado - TABLA VACÍA TEMPORAL
 async function cambiarEstadoDocumento(rec, nuevoEstado) {
     if (actualizacionEnProgreso) {
         console.log('Actualización en progreso, ignorando cambio de estado...');
         return;
     }
-
+    
     try {
         const documentoActual = documentosGlobales.find(doc => doc.rec === rec);
         const estadoActual = documentoActual ? documentoActual.estado : '';
-
+        
+        // LÓGICA ESPECIAL: Finalizar desde pausado
         if (nuevoEstado === 'FINALIZADO' && estadoActual === 'PAUSADO') {
             const confirmar = await mostrarConfirmacion(
                 '¿Finalizar documento desde estado PAUSADO?',
                 `REC${rec} se encuentra actualmente PAUSADO. Para garantizar el registro correcto de tiempos, el sistema reanudará y finalizará automáticamente. ¿Continuar?`,
                 'warning'
             );
-
+            
             if (!confirmar) return;
-
+            
+            // VACIAR TABLA TEMPORALMENTE
             vaciarTablaCompletamente();
-
+            
             actualizacionEnProgreso = true;
-
+            
             const loadingToast = Swal.fire({
                 title: 'Procesando...',
                 html: `REC${rec}<br>Reanudando → Finalizando`,
@@ -995,63 +1283,68 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 }
             });
 
+            // Primero reanudar
             const resultReanudar = await llamarAPI({
                 action: 'reanudar',
                 id: rec
             });
-
+            
             if (!resultReanudar.success) {
                 Swal.close();
                 await mostrarNotificacion('Error', 'Error al reanudar: ' + (resultReanudar.message || 'Error desconocido'), 'error');
-                await cargarTablaDocumentos();
+                await cargarTablaDocumentos(); // Reconstruir tabla
                 actualizacionEnProgreso = false;
                 return;
             }
-
+            
             await new Promise(resolve => setTimeout(resolve, 500));
-
+            
+            // Luego finalizar
             const resultFinalizar = await llamarAPI({
                 action: 'finalizar',
                 id: rec
             });
-
+            
             Swal.close();
-
+            
             if (resultFinalizar.success) {
                 if (timers[rec]) {
                     clearInterval(timers[rec]);
                     delete timers[rec];
                 }
-
+                
                 await mostrarNotificacion('✓ Finalizado', `REC${rec} completado`, 'success');
-
+                
+                // RECONSTRUIR TABLA COMPLETA
                 await cargarTablaDocumentos();
-
+                
             } else {
                 await mostrarNotificacion('Error', 'Error al finalizar: ' + (resultFinalizar.message || 'Error desconocido'), 'error');
-                await cargarTablaDocumentos();
+                await cargarTablaDocumentos(); // Reconstruir tabla incluso en error
             }
-
+            
             actualizacionEnProgreso = false;
             return;
         }
-
+        
+        // CONFIRMACIÓN normal para otros finalizados
         else if (nuevoEstado === 'FINALIZADO') {
             const confirmar = await mostrarConfirmacion(
                 '¿Finalizar documento?',
                 `REC${rec} → ${nuevoEstado}`,
                 'info'
             );
-
+            
             if (!confirmar) return;
         }
-
+        
+        // VACIAR TABLA TEMPORALMENTE para TODOS los cambios de estado
         vaciarTablaCompletamente();
-
+        
         console.log(`Cambiando estado del documento REC${rec} de ${estadoActual} a: ${nuevoEstado}`);
-
+        
         actualizacionEnProgreso = true;
-
+        
         const loadingToast = Swal.fire({
             title: 'Cambiando estado...',
             text: `REC${rec} → ${nuevoEstado}`,
@@ -1065,7 +1358,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
         });
 
         let action;
-        switch (nuevoEstado) {
+        switch(nuevoEstado) {
             case 'PAUSADO':
                 action = 'pausar';
                 break;
@@ -1078,18 +1371,18 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             default:
                 Swal.close();
                 await mostrarNotificacion('Error', 'Estado no válido', 'error');
-                await cargarTablaDocumentos();
+                await cargarTablaDocumentos(); // Reconstruir tabla
                 actualizacionEnProgreso = false;
                 return;
         }
-
+        
         const result = await llamarAPI({
             action: action,
             id: rec
         });
-
+        
         Swal.close();
-
+        
         if (result.success) {
             if (nuevoEstado === 'PAUSADO' || nuevoEstado === 'FINALIZADO') {
                 if (timers[rec]) {
@@ -1097,25 +1390,28 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                     delete timers[rec];
                 }
             }
-
+            
             await mostrarNotificacion('✓ Actualizado', `${nuevoEstado}`, 'success');
-
+            
+            // RECONSTRUIR TABLA COMPLETA
             await cargarTablaDocumentos();
-
+            
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al cambiar estado', 'error');
-            await cargarTablaDocumentos();
+            await cargarTablaDocumentos(); // Reconstruir tabla incluso en error
         }
     } catch (error) {
         console.error('Error cambiando estado:', error);
         Swal.close();
         await mostrarNotificacion('Error', 'Error al cambiar estado: ' + error.message, 'error');
-        await cargarTablaDocumentos();
+        await cargarTablaDocumentos(); // Reconstruir tabla en caso de error
     } finally {
         actualizacionEnProgreso = false;
     }
 }
 
+// Función OPTIMIZADA para restablecer documento
+// Función ACTUALIZADA para restablecer documento - TABLA VACÍA TEMPORAL
 async function restablecerDocumento(rec) {
     try {
         const password = await mostrarInput(
@@ -1123,18 +1419,19 @@ async function restablecerDocumento(rec) {
             'Ingrese la contraseña para restablecer REC' + rec,
             'password'
         );
-
+        
         if (!password) return;
-
+        
         if (password !== 'one') {
             await mostrarNotificacion('Error', 'Contraseña incorrecta', 'error');
             return;
         }
-
+        
+        // VACIAR TABLA TEMPORALMENTE
         vaciarTablaCompletamente();
-
+        
         actualizacionEnProgreso = true;
-
+        
         const loadingToast = Swal.fire({
             title: 'Restableciendo...',
             text: `REC${rec}`,
@@ -1152,28 +1449,29 @@ async function restablecerDocumento(rec) {
             id: rec,
             password: password
         });
-
+        
         Swal.close();
-
+        
         if (result.success) {
             if (timers[rec]) {
                 clearInterval(timers[rec]);
                 delete timers[rec];
             }
-
+            
             await mostrarNotificacion('✓ Restablecido', `REC${rec}`, 'success');
-
+            
+            // RECONSTRUIR TABLA COMPLETA
             await cargarTablaDocumentos();
-
+            
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al restablecer', 'error');
-            await cargarTablaDocumentos();
+            await cargarTablaDocumentos(); // Reconstruir tabla incluso en error
         }
     } catch (error) {
         console.error('Error restableciendo documento:', error);
         Swal.close();
         await mostrarNotificacion('Error', 'Error al restablecer documento: ' + error.message, 'error');
-        await cargarTablaDocumentos();
+        await cargarTablaDocumentos(); // Reconstruir tabla en caso de error
     } finally {
         actualizacionEnProgreso = false;
     }
@@ -1185,20 +1483,20 @@ function puedeModificarResponsable(documento) {
 
 function generarSelectResponsables(rec, responsableActual = '', todosDocumentos, documentoActual) {
     const puedeModificar = puedeModificarResponsable(documentoActual);
-    const responsablesDisponibles = puedeModificar
+    const responsablesDisponibles = puedeModificar 
         ? obtenerResponsablesDisponibles(todosDocumentos, documentoActual)
         : [];
-
+    
     let opciones = '';
-
+    
     if (puedeModificar) {
         opciones = `
             <option value="">Sin responsable</option>
-            ${responsablesDisponibles.map(resp =>
-            `<option value="${resp}" ${resp === responsableActual ? 'selected' : ''}>${resp}</option>`
-        ).join('')}
+            ${responsablesDisponibles.map(resp => 
+                `<option value="${resp}" ${resp === responsableActual ? 'selected' : ''}>${resp}</option>`
+            ).join('')}
         `;
-
+        
         return `
             <select class="form-select form-select-sm select-responsable" 
                     data-rec="${rec}" 
@@ -1211,7 +1509,7 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
         const texto = tieneResponsable ? responsableActual : 'Sin responsable';
         const clase = tieneResponsable ? 'text-success' : 'text-muted';
         const icono = tieneResponsable ? 'fa-user-check' : 'fa-user';
-
+        
         return `
             <span class="${clase} small" title="Responsable asignado - No modificable">
                 <i class="fas ${icono} me-1"></i>${texto}
@@ -1220,15 +1518,19 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
     }
 }
 
+// Reemplaza la función obtenerBotonesAccion en documents-table.js con esta versión mejorada
+
 function obtenerBotonesAccion(data) {
     const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
     const tieneClientes = data.tieneClientes;
     const puedeImprimir = tieneColaborador && tieneClientes;
-
+    
     let botonesEstado = '';
-
-    const puedePausar = data.estado !== 'DIRECTO';
-
+    
+    // LÓGICA PARA BOTÓN DE PAUSA: Deshabilitar solo si el estado es DIRECTO
+    const puedePausar = data.estado !== 'DIRECTO'; // ← AQUÍ ESTÁ EL CAMBIO PRINCIPAL
+    
+    // Botón de imprimir (siempre presente)
     const botonImprimir = `
         <button class="btn ${puedeImprimir ? 'btn-primary' : 'btn-secondary'}" 
                 ${puedeImprimir ? '' : 'disabled'}
@@ -1236,7 +1538,8 @@ function obtenerBotonesAccion(data) {
                 title="${puedeImprimir ? 'Imprimir clientes' : 'No se puede imprimir'}">
             <i class="fas fa-print"></i>
         </button>`;
-
+    
+    // Botones de estado según el estado actual
     if (data.estado === 'PAUSADO') {
         botonesEstado = `
             <button class="btn btn-success" 
@@ -1260,21 +1563,24 @@ function obtenerBotonesAccion(data) {
                 <i class="fas fa-pause"></i>
             </button>`;
     }
-
+    
+    // Botón de finalizar (si no está finalizado)
     const botonFinalizar = data.estado !== 'FINALIZADO' ? `
         <button class="btn btn-info" 
                 onclick="cambiarEstadoDocumento('${data.rec}', 'FINALIZADO')"
                 title="Finalizar documento">
             <i class="fas fa-check"></i>
         </button>` : '';
-
+    
+    // Botón de restablecer (siempre presente)
     const botonRestablecer = `
         <button class="btn btn-danger" 
                 onclick="restablecerDocumento('${data.rec}')"
                 title="Restablecer documento">
             <i class="fas fa-undo"></i>
         </button>`;
-
+    
+    // Retornar panel unificado
     return `
         <div class="acciones-panel">
             ${botonImprimir}
@@ -1285,37 +1591,85 @@ function obtenerBotonesAccion(data) {
     `;
 }
 
-function inicializarDataTable(documentos) {
-    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE INICIALIZAR
-    if (!isDataTableLoaded()) {
-        console.error('DataTables no está disponible. Reintentando en 500ms...');
-        setTimeout(() => {
-            if (isDataTableLoaded()) {
-                inicializarDataTable(documentos);
-            } else {
-                console.error('DataTables no se cargó después del reintento');
-            }
-        }, 500);
-        return;
+/*
+function obtenerBotonesAccion(data) {
+    const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
+    const tieneClientes = data.tieneClientes;
+    const puedeImprimir = tieneColaborador && tieneClientes;
+    
+    let botonesEstado = '';
+    
+    if (data.estado === 'PAUSADO') {
+        botonesEstado = `
+            <button class="btn btn-success btn-sm" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'ELABORACION')"
+                    title="Reanudar">
+                <i class="fas fa-play"></i>
+            </button>`;
+    } else if (data.estado === 'ELABORACION') {
+        botonesEstado = `
+            <button class="btn btn-warning btn-sm" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
+                    title="Pausar">
+                <i class="fas fa-pause"></i>
+            </button>`;
+    } else if (data.estado === 'PENDIENTE' || data.estado === 'DIRECTO') {
+        botonesEstado = `
+            <button class="btn btn-warning btn-sm" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
+                    title="Pausar">
+                <i class="fas fa-pause"></i>
+            </button>`;
     }
+    
+    if (data.estado !== 'FINALIZADO') {
+        botonesEstado += `
+            <button class="btn btn-info btn-sm" 
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'FINALIZADO')"
+                    title="Finalizar">
+                <i class="fas fa-check"></i>
+            </button>`;
+    }
+    
+    return `
+        <div class="btn-group btn-group-sm">
+            <button class="btn ${puedeImprimir ? 'btn-primary' : 'btn-secondary'} btn-sm" 
+                    ${puedeImprimir ? '' : 'disabled'}
+                    onclick="imprimirSoloClientesDesdeTabla('${data.rec}')"
+                    title="${puedeImprimir ? 'Imprimir clientes' : 'No se puede imprimir'}">
+                <i class="fas fa-print"></i>
+            </button>
+            
+            ${botonesEstado}
+            
+            <button class="btn btn-danger btn-sm" 
+                    onclick="restablecerDocumento('${data.rec}')"
+                    title="Restablecer">
+                <i class="fas fa-undo"></i>
+            </button>
+        </div>
+    `;
+}
+*/
 
+function inicializarDataTable(documentos) {
     const table = $('#documentosTable');
-
-    // LIMPIAR FILTROS EXISTENTES
+    
+    // Limpiar búsquedas anteriores
     $.fn.dataTable.ext.search = [];
-
+    
     documentosTable = table.DataTable({
         data: documentos,
         columns: [
-            {
+            { 
                 data: 'rec',
-                render: function (data) {
+                render: function(data) {
                     return `REC${data}`;
                 }
             },
-            {
+            { 
                 data: 'estado',
-                render: function (data) {
+                render: function(data) {
                     const clases = {
                         'PENDIENTE': 'badge bg-warning',
                         'DIRECTO': 'badge bg-success',
@@ -1326,15 +1680,15 @@ function inicializarDataTable(documentos) {
                     return `<span class="${clases[data] || 'badge bg-light text-dark'}">${data}</span>`;
                 }
             },
-            {
+            { 
                 data: 'colaborador',
-                render: function (data, type, row) {
+                render: function(data, type, row) {
                     return generarSelectResponsables(row.rec, data, documentos, row);
                 }
             },
-            {
+            { 
                 data: 'fecha',
-                render: function (data, type, row) {
+                render: function(data, type, row) {
                     const fechaCompleta = row.fecha_completa || data;
                     return `
                         <span class="small" title="${fechaCompleta}">
@@ -1343,42 +1697,42 @@ function inicializarDataTable(documentos) {
                     `;
                 }
             },
-            {
+            { 
                 data: null,
-                render: function (data) {
+                render: function(data) {
                     const duracion = calcularDuracionDesdeSheets(data);
-                    const clase = data.estado === 'PAUSADO' ? 'text-warning' :
-                        data.estado === 'FINALIZADO' ? 'text-muted' : 'text-primary';
+                    const clase = data.estado === 'PAUSADO' ? 'text-warning' : 
+                                 data.estado === 'FINALIZADO' ? 'text-muted' : 'text-primary';
                     return `<span class="duracion-tiempo ${clase} fw-bold">${duracion}</span>`;
                 }
             },
-            {
+            { 
                 data: 'cantidad',
-                render: function (data) {
+                render: function(data) {
                     return data ? `<span class="badge bg-light text-dark">${data}</span>` : '-';
                 }
             },
-            {
-                data: 'prenda',
-                render: function (data) {
+            { 
+                data: 'prenda',  // Cambiado de 'linea' a 'prenda'
+                render: function(data) {
                     return data ? `<span class="small">${data}</span>` : '-';
                 }
             },
-            {
+            { 
                 data: 'lote',
-                render: function (data) {
+                render: function(data) {
                     return data ? `<span class="small">${data}</span>` : '-';
                 }
             },
-            {
+            { 
                 data: 'refProv',
-                render: function (data) {
+                render: function(data) {
                     return data ? `<span class="small">${data}</span>` : '-';
                 }
             },
-            {
+            { 
                 data: null,
-                render: function (data) {
+                render: function(data) {
                     return obtenerBotonesAccion(data);
                 }
             }
@@ -1387,16 +1741,16 @@ function inicializarDataTable(documentos) {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
         lengthMenu: [
-            [5, 10, 25, 50, 100, -1],
-            [5, 10, 25, 50, 100, 'Todos']
+        [5, 10, 25, 50, 100, -1],
+        [5, 10, 25, 50, 100, 'Todos']
         ],
         pageLength: 5,
         order: [[2, 'asc']],
         responsive: true,
         autoWidth: false,
-        stateSave: true,
-        stateDuration: -1,
-        createdRow: function (row, data, dataIndex) {
+        stateSave: true, // Guardar estado de la tabla
+        stateDuration: -1, // Guardar permanentemente
+        createdRow: function(row, data, dataIndex) {
             if (data.estado !== 'PAUSADO' && data.estado !== 'FINALIZADO' && data.datetime_inicio) {
                 if (!timers[data.rec]) {
                     timers[data.rec] = setInterval(() => {
@@ -1405,37 +1759,40 @@ function inicializarDataTable(documentos) {
                 }
             }
         },
-        drawCallback: function (settings) {
+        drawCallback: function(settings) {
             const api = this.api();
             const pageInfo = api.page.info();
-
+            
             if (pageInfo.recordsTotal === 0) {
                 $('#documentosTable tbody').html(
                     '<tr><td colspan="10" class="text-center text-muted py-4">No se encontraron documentos</td></tr>'
                 );
             }
-
+            
+            // Aplicar búsqueda guardada si existe
             if (filtrosActivos.busqueda) {
                 api.search(filtrosActivos.busqueda).draw();
             }
         }
     });
-
+    
     configurarFiltroFecha();
-
-    $('#documentosTable').on('change', '.select-responsable', function () {
+    
+    // Evento para cambio de responsable
+    $('#documentosTable').on('change', '.select-responsable', function() {
         const rec = $(this).data('rec');
         const nuevoResponsable = $(this).val();
-
+        
         if (nuevoResponsable !== undefined) {
             cambiarResponsable(rec, nuevoResponsable);
         }
     });
-
-    $('#recInput').on('input', function () {
+    
+    // Evento para búsqueda por REC
+    $('#recInput').on('input', function() {
         const searchTerm = $(this).val().trim();
         filtrosActivos.busqueda = searchTerm;
-
+        
         if (searchTerm) {
             documentosTable.search(searchTerm).draw();
         } else {
@@ -1444,29 +1801,35 @@ function inicializarDataTable(documentos) {
     });
 }
 
+// Función MEJORADA para imprimir clientes
+// Función MEJORADA para imprimir clientes
 async function imprimirSoloClientesDesdeTabla(rec) {
     try {
         console.log(`Imprimiendo clientes para REC${rec}`);
-
+        
+        // Buscar el documento en datosGlobales ACTUALIZADOS
         const documento = datosGlobales.find(doc => doc.REC === rec);
-
+        
         if (!documento) {
             await mostrarNotificacion('Error', `No se encontró el documento REC${rec} en datos globales`, 'error');
             return;
         }
 
-        if (!documento.DISTRIBUCION || !documento.DISTRIBUCION.Clientes ||
+        // Verificar que tenga clientes
+        if (!documento.DISTRIBUCION || !documento.DISTRIBUCION.Clientes || 
             Object.keys(documento.DISTRIBUCION.Clientes).length === 0) {
             await mostrarNotificacion('Error', `No hay clientes asignados para REC${rec}`, 'error');
             return;
         }
 
+        // Verificar que tenga responsable asignado
         const documentoEnTabla = documentosGlobales.find(doc => doc.rec === rec);
         if (!documentoEnTabla || !documentoEnTabla.colaborador || documentoEnTabla.colaborador.trim() === '') {
             await mostrarNotificacion('Error', `No hay responsable asignado para REC${rec}`, 'error');
             return;
         }
 
+        // Preparar datos para impresión
         const datosImpresion = {
             rec: rec,
             fecha: documento.FECHA || '',
@@ -1475,233 +1838,88 @@ async function imprimirSoloClientesDesdeTabla(rec) {
             linea: documento.LINEA || '',
             cantidad: documento.CANTIDAD || 0,
             clientes: documento.DISTRIBUCION.Clientes,
-            responsable: documentoEnTabla.colaborador
+            responsable: documentoEnTabla.colaborador // Incluir responsable
         };
 
+        // Llamar a la función de impresión
         if (typeof imprimirSoloClientes === 'function') {
             imprimirSoloClientes(datosImpresion);
             await mostrarNotificacion('Éxito', `Imprimiendo REC${rec}`, 'success');
         } else {
             await mostrarNotificacion('Error', 'Función de impresión no disponible', 'error');
         }
-
+        
     } catch (error) {
         console.error('Error al imprimir clientes:', error);
         await mostrarNotificacion('Error', 'Error al preparar la impresión: ' + error.message, 'error');
     }
 }
 
-function aplicarFiltroPorEstado(tipoFiltro) {
-    console.log('Aplicando filtro por estado:', tipoFiltro);
-
-    document.querySelectorAll('.resumen-card').forEach(card => {
-        card.classList.remove('active');
-    });
-
-    if (filtroTarjetaActivo === tipoFiltro) {
-        filtroTarjetaActivo = null;
-        limpiarFiltroTarjetas();
-        return;
-    }
-
-    const tarjeta = document.querySelector(`.resumen-card.${tipoFiltro}`);
-    if (tarjeta) {
-        tarjeta.classList.add('active');
-    }
-
-    filtroTarjetaActivo = tipoFiltro;
-
-    if (!documentosTable) {
-        console.warn('DataTable no inicializada');
-        return;
-    }
-
-    let estadosFiltro = [];
-
-    switch (tipoFiltro) {
-        case 'pendientes':
-            estadosFiltro = ['PENDIENTE'];
-            break;
-        case 'proceso':
-            estadosFiltro = ['ELABORACION', 'PAUSADO'];
-            break;
-        case 'directos':
-            estadosFiltro = ['DIRECTO'];
-            break;
-        case 'total':
-            estadosFiltro = obtenerEstadosParaMostrar();
-            break;
-    }
-
-    console.log('Estados del filtro:', estadosFiltro);
-
-    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE USAR EXT
-    if (!isDataTableLoaded()) {
-        console.error('DataTables no está cargado para aplicar filtros');
-        return;
-    }
-
-    // Aplicar filtro
-    $.fn.dataTable.ext.search.push(
-        function (settings, data, dataIndex) {
-            const rowData = documentosTable.row(dataIndex).data();
-            if (!rowData) return false;
-
-            return estadosFiltro.includes(rowData.estado);
-        }
-    );
-
-    // OBTENER NÚMERO DE DOCUMENTOS QUE COINCIDEN CON EL FILTRO
-    const documentosFiltrados = documentosGlobales.filter(doc =>
-        estadosFiltro.includes(doc.estado)
-    );
-
-    console.log(`Documentos que coinciden con el filtro: ${documentosFiltrados.length}`);
-
-    // SOLO PARA EL FILTRO "EN PROCESO": SI HAY MÁS DE 5 DOCUMENTOS, MOSTRAR TODOS
-    if (tipoFiltro === 'proceso' && documentosFiltrados.length > 5) {
-        documentosTable.page.len(-1); // -1 muestra todos los registros
-        console.log('Mostrando todos los documentos del filtro EN PROCESO');
-    } else {
-        // Para otros filtros o si son 5 o menos, usar la configuración por defecto
-        documentosTable.page.len(5);
-    }
-
-    documentosTable.draw();
-
-    const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
-    const consolidadosFiltrados = calcularConsolidados(datosFiltrados);
-    actualizarTarjetasResumen(consolidadosFiltrados, true);
-
-    // Actualizar icono del filtro activo EN LAS TARJETAS
-    actualizarIconoFiltroActivo();
-
-    mostrarNotificacion(
-        'Filtro aplicado',
-        `Mostrando: ${obtenerNombreFiltro(tipoFiltro)} (${documentosFiltrados.length} documentos)`,
-        'info'
-    );
-}
-
-function limpiarFiltroTarjetas() {
-    console.log('Limpiando filtro de tarjetas');
-
-    filtroTarjetaActivo = null;
-
-    document.querySelectorAll('.resumen-card').forEach(card => {
-        card.classList.remove('active');
-    });
-
-    if (!documentosTable) return;
-
-    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE USAR EXT
-    if (!isDataTableLoaded()) {
-        console.error('DataTables no está cargado para limpiar filtros');
-        return;
-    }
-
-    // Remover filtros de estado
-    $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(filter => {
-        return filter.toString().includes('fecha_objeto') || filter.toString().includes('rangoFechasSeleccionado');
-    });
-
-    // RESTAURAR PAGINACIÓN POR DEFECTO (5 registros)
-    documentosTable.page.len(5);
-    documentosTable.draw();
-
-    const consolidados = calcularConsolidados(documentosGlobales);
-    actualizarTarjetasResumen(consolidados);
-
-    // Limpiar icono del filtro activo EN LAS TARJETAS
-    actualizarIconoFiltroActivo();
-
-    mostrarNotificacion('Filtro limpiado', 'Mostrando todos los documentos', 'info');
-}
-
-// Función para actualizar el indicador de filtro activo en las tarjetas
-function actualizarIconoFiltroActivo() {
-    // Remover indicadores de todas las tarjetas primero
-    document.querySelectorAll('.resumen-card').forEach(card => {
-        const existingBadge = card.querySelector('.filtro-badge');
-        if (existingBadge) {
-            existingBadge.remove();
-        }
-        card.classList.remove('filtro-activo');
-    });
-
-    // Si hay filtro activo, agregar badge a la tarjeta correspondiente
-    if (filtroTarjetaActivo) {
-        const tarjetaActiva = document.querySelector(`.resumen-card.${filtroTarjetaActivo}`);
-        if (tarjetaActiva) {
-            tarjetaActiva.classList.add('filtro-activo');
-
-            // Crear y agregar badge profesional
-            const badge = document.createElement('div');
-            badge.className = 'filtro-badge';
-            badge.innerHTML = `
-                <i class="fas fa-filter"></i>
-                <span>Filtro activo</span>
-            `;
-            tarjetaActiva.querySelector('.resumen-text').appendChild(badge);
-        }
-    }
-}
-
-function obtenerNombreFiltro(tipoFiltro) {
-    const nombres = {
-        'pendientes': 'Pendientes',
-        'proceso': 'En Proceso',
-        'directos': 'Directos',
-        'total': 'Total Activos'
-    };
-    return nombres[tipoFiltro] || tipoFiltro;
-}
-
-function inicializarTarjetasInteractivas() {
-    console.log('Inicializando tarjetas interactivas...');
-
-    // Remover event listeners anteriores para evitar duplicados
-    document.querySelectorAll('.resumen-card').forEach(card => {
-        card.replaceWith(card.cloneNode(true));
-    });
-
-    // Agregar nuevos event listeners
-    document.querySelectorAll('.resumen-card').forEach(card => {
-        card.addEventListener('click', function () {
-            const tipo = Array.from(this.classList).find(cls =>
-                ['pendientes', 'proceso', 'directos', 'total'].includes(cls)
-            );
-
-            if (tipo) {
-                aplicarFiltroPorEstado(tipo);
+// Inicializar cuando el DOM esté listo
+$(document).ready(function() {
+    console.log('Inicializando documents-table.js');
+    
+    // Esperar a que los datos globales estén cargados
+    const checkDataLoaded = setInterval(() => {
+        if (typeof datosGlobales !== 'undefined') {
+            clearInterval(checkDataLoaded);
+            console.log('Datos globales disponibles, cargando tabla...');
+            
+            // Configurar flatpickr para filtro de fecha si existe
+            if (document.getElementById('filtroFecha')) {
+                window.flatpickrInstance = flatpickr("#filtroFecha", {
+                    mode: "range",
+                    dateFormat: "Y-m-d",
+                    locale: "es",
+                    onChange: function(selectedDates, dateStr) {
+                        if (selectedDates.length === 2) {
+                            aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
+                        } else if (selectedDates.length === 0) {
+                            // Limpiar filtro de fecha cuando se borra
+                            rangoFechasSeleccionado = null;
+                            filtrosActivos.fecha = null;
+                            if (documentosTable) {
+                                documentosTable.draw();
+                            }
+                        }
+                    }
+                });
             }
-        });
-    });
+            
+            // Cargar tabla inicial
+            cargarTablaDocumentos();
+        }
+    }, 100);
+});
 
-    console.log('Tarjetas interactivas inicializadas');
-}
+// ===== FUNCIONES PARA FILTRADO DE FECHAS EN DATATABLE =====
 
+// Función para aplicar filtro de fecha en DataTable
 function aplicarFiltroFechaDataTable(fechaInicio, fechaFin) {
     console.log('Aplicando filtro de fecha en DataTable:', fechaInicio, fechaFin);
-
+    
     if (!documentosTable) {
         console.warn('DataTable no inicializada');
         return;
     }
-
+    
+    // Configurar el filtro de fecha
     rangoFechasSeleccionado = [fechaInicio, fechaFin];
     filtrosActivos.fecha = [fechaInicio, fechaFin];
-
+    
     console.log('Rango normalizado:', rangoFechasSeleccionado);
-
+    
+    // Redibujar la tabla con el filtro
     documentosTable.draw();
-
+    
+    // Recalcular consolidados con datos filtrados
     const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
     console.log('Documentos después del filtro:', datosFiltrados.length);
-
+    
     const consolidados = calcularConsolidados(datosFiltrados);
     actualizarTarjetasResumen(consolidados);
-
+    
+    // Mostrar notificación
     Swal.fire({
         icon: 'success',
         title: 'Filtro aplicado',
@@ -1711,75 +1929,28 @@ function aplicarFiltroFechaDataTable(fechaInicio, fechaFin) {
     });
 }
 
+// Función para limpiar filtro de fecha en DataTable
 function limpiarFiltroFechaDataTable() {
     console.log('Limpiando filtro de fecha en DataTable');
-
+    
     rangoFechasSeleccionado = null;
     filtrosActivos.fecha = null;
-
+    
     if (documentosTable) {
         documentosTable.draw();
-
+        
         const consolidados = calcularConsolidados(documentosGlobales);
         actualizarTarjetasResumen(consolidados);
     }
 }
 
-$(document).ready(function () {
-    console.log('Inicializando documents-table.js');
-
-    // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE INICIALIZAR
-    if (!isDataTableLoaded()) {
-        console.error('DataTables no está cargado. Verifica que el script esté incluido correctamente.');
-        // Reintentar después de un breve tiempo
-        setTimeout(() => {
-            if (isDataTableLoaded()) {
-                console.log('DataTables cargado después del reintento');
-                inicializarAplicacion();
-            } else {
-                console.error('DataTables no se cargó después del reintento');
-            }
-        }, 1000);
-    } else {
-        inicializarAplicacion();
-    }
-
-    function inicializarAplicacion() {
-        const checkDataLoaded = setInterval(() => {
-            if (typeof datosGlobales !== 'undefined') {
-                clearInterval(checkDataLoaded);
-                console.log('Datos globales disponibles, cargando tabla...');
-
-                if (document.getElementById('filtroFecha')) {
-                    window.flatpickrInstance = flatpickr("#filtroFecha", {
-                        mode: "range",
-                        dateFormat: "Y-m-d",
-                        locale: "es",
-                        onChange: function (selectedDates, dateStr) {
-                            if (selectedDates.length === 2) {
-                                aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
-                            } else if (selectedDates.length === 0) {
-                                rangoFechasSeleccionado = null;
-                                filtrosActivos.fecha = null;
-                                if (documentosTable) {
-                                    documentosTable.draw();
-                                }
-                            }
-                        }
-                    });
-                }
-
-                cargarTablaDocumentos();
-            }
-        }, 100);
-    }
-});
-
+// Hacer disponibles globalmente
 window.aplicarFiltroFechaDataTable = aplicarFiltroFechaDataTable;
 window.limpiarFiltroFechaDataTable = limpiarFiltroFechaDataTable;
-window.aplicarFiltroFecha = aplicarFiltroFechaDataTable;
-window.limpiarFiltros = limpiarFiltroFechaDataTable;
+window.aplicarFiltroFecha = aplicarFiltroFechaDataTable; // Alias para compatibilidad
+window.limpiarFiltros = limpiarFiltroFechaDataTable; // Alias para compatibilidad
 
+// Exportar funciones para uso global
 window.cambiarResponsable = cambiarResponsable;
 window.cambiarEstadoDocumento = cambiarEstadoDocumento;
 window.restablecerDocumento = restablecerDocumento;
@@ -1787,6 +1958,3 @@ window.imprimirSoloClientesDesdeTabla = imprimirSoloClientesDesdeTabla;
 window.actualizarInmediatamente = actualizarInmediatamente;
 window.limpiarFiltros = limpiarFiltros;
 window.toggleFinalizados = toggleFinalizados;
-window.aplicarFiltroPorEstado = aplicarFiltroPorEstado;
-window.limpiarFiltroTarjetas = limpiarFiltroTarjetas;
-window.inicializarTarjetasInteractivas = inicializarTarjetasInteractivas;
