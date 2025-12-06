@@ -8,21 +8,18 @@ function abrirPlantillaImpresion(datos, options = {}) {
 
     const isModoCliente = modo === 'cliente';
     const isModoPrincipal = modo === 'principal' || soloPrincipal;
-
+    
     // Configuración común
     const currentSearchKey = datos.REC || '';
-
-    // Para códigos QR y de barras, limpiamos el sufijo decimal (ej: 1234.1 -> 1234)
-    const recForCode = String(currentSearchKey).split('.')[0];
-
+    
     // Configuración específica para cliente
     const clienteData = isModoCliente ? datos.DISTRIBUCION.Clientes[clienteNombre] : null;
     const clienteId = isModoCliente ? (clienteData.id || '') : '';
-
+    
     // Determinar el ID del proveedor si no hay cliente
     let proveedorId = '';
     const proveedorNombre = datos.PROVEEDOR || '';
-
+    
     if (!isModoCliente) {
         if (proveedorNombre.includes("TEXTILES Y CREACIONES EL UNIVERSO")) {
             proveedorId = "900616124";
@@ -30,17 +27,17 @@ function abrirPlantillaImpresion(datos, options = {}) {
             proveedorId = "900692469";
         }
     }
-
+    
     // Construir los códigos QR y de barras
     let qrData;
     if (isModoCliente) {
-        qrData = `REC${recForCode}-${clienteId}`;
+        qrData = `REC${currentSearchKey}-${clienteId}`;
     } else if (proveedorId) {
-        qrData = `REC${recForCode}-${proveedorId}`;
+        qrData = `REC${currentSearchKey}-${proveedorId}`;
     } else {
-        qrData = `REC${recForCode}`;
+        qrData = `REC${currentSearchKey}`;
     }
-
+    
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(qrData)}`;
     const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(qrData)}&code=Code128&dpi=300&dataseparator=`;
 
@@ -49,17 +46,17 @@ function abrirPlantillaImpresion(datos, options = {}) {
     const barcodeElement = document.querySelector('.barcode');
 
     if (barcodeElement) {
-        barcodeElement.style.height = isModoCliente ? '35px' : '60px';
-        barcodeElement.style.maxHeight = '60px'; // para prevenir que se pase
-        barcodeElement.style.width = 'auto';     // mantener proporción
+      barcodeElement.style.height = isModoCliente ? '35px' : '60px';
+      barcodeElement.style.maxHeight = '60px'; // para prevenir que se pase
+      barcodeElement.style.width = 'auto';     // mantener proporción
     }
-
+    
     // Abrir ventana
     const ventana = window.open('', '_blank');
-    const titulo = isModoCliente
+    const titulo = isModoCliente 
         ? `Separación REC${datos.REC} - ${clienteNombre}`
         : `Separación REC${datos.REC}`;
-
+    
     // Generar HTML
     ventana.document.write(`
         <!DOCTYPE html>
@@ -314,10 +311,11 @@ function abrirPlantillaImpresion(datos, options = {}) {
                 <div class="info-container">
                     <div class="title-section">
                         <div class="main-title">Separación de terceros para:</div>
-                        <div class="provider-name">${isModoCliente
-            ? clienteData.razonSocial || clienteNombre
-            : datos.PROVEEDOR || 'Proveedor no especificado'
-        }</div>
+                        <div class="provider-name">${
+                            isModoCliente 
+                                ? clienteData.razonSocial || clienteNombre 
+                                : datos.PROVEEDOR || 'Proveedor no especificado'
+                        }</div>
                         <div class="subtitle">${datos.DESCRIPCION || 'Sin descripción'}</div>
                     </div>
                     
@@ -342,21 +340,21 @@ function abrirPlantillaImpresion(datos, options = {}) {
                             <div class="info-label">PVP:</div>
                             <div class="info-value">
                                 ${(() => {
-            let pvpStr = datos.PVP || '';
-            let pvpNum = parseInt(pvpStr.replace('$', '').replace(/\./g, '').trim());
-            if (pvpNum <= 39900) return `${pvpStr} Linea`;
-            if (pvpNum >= 40000 && pvpNum <= 59900) return `${pvpStr} Moda`;
-            if (pvpNum >= 60000) return `${pvpStr} Pronta`;
-            return `${pvpStr}`;
-        })()}
+                                    let pvpStr = datos.PVP || '';
+                                    let pvpNum = parseInt(pvpStr.replace('$', '').replace(/\./g, '').trim());
+                                    if (pvpNum <= 39900) return `${pvpStr} Linea`;
+                                    if (pvpNum >= 40000 && pvpNum <= 59900) return `${pvpStr} Moda`;
+                                    if (pvpNum >= 60000) return `${pvpStr} Pronta`;
+                                    return `${pvpStr}`;
+                                })()}
                             </div>
                         </div>
 
 <div class="info-item">
     <div class="info-label">Tipo:</div>
     <div class="info-value">
-        ${isModoCliente
-            ? (clienteData.tipoCliente === "Empresa"
+        ${isModoCliente 
+            ? (clienteData.tipoCliente === "Empresa" 
                 ? `${clienteData.tipoCliente} ${clienteData.tipoEmpresa?.replace(/^Empresa\s*/, '') || ''} ${clienteData.porcentaje || ''}`
                 : `${clienteData.tipoCliente || ''} ${clienteData.porcentaje || ''}`)
             : datos.TIPO || ''}
@@ -366,11 +364,11 @@ function abrirPlantillaImpresion(datos, options = {}) {
                         <!-- <div class="info-item">
                             <div class="info-label">Tipo:</div>
                             <div class="info-value">
-                                ${isModoCliente
-            ? (clienteData.tipoCliente === "Empresa"
-                ? clienteData.tipoCliente + " " + (clienteData.tipoEmpresa || '')
-                : clienteData.tipoCliente || '')
-            : datos.TIPO || ''}
+                                ${isModoCliente 
+                                    ? (clienteData.tipoCliente === "Empresa" 
+                                        ? clienteData.tipoCliente + " " + (clienteData.tipoEmpresa || '') 
+                                        : clienteData.tipoCliente || '')
+                                    : datos.TIPO || ''}
                             </div>
                         </div> -->
 
@@ -427,32 +425,32 @@ function abrirPlantillaImpresion(datos, options = {}) {
             </div>
             
             <div class="footer">
-                ${isModoCliente
-            ? `Cantidad: <span class="info-value"><strong>${clienteData.distribucion ? clienteData.distribucion.reduce((acc, item) => acc + (parseInt(item.cantidad) || 0), 0) : 0}</strong></span> &nbsp;|&nbsp; Responsable: <span class="info-value">${datos.COLABORADOR || ''}</span> &nbsp;|&nbsp; `
-            : ''}
-                Impreso: ${new Date().toLocaleString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            })}
+                ${isModoCliente 
+                    ? `Responsable: <span class="info-value">${datos.COLABORADOR || ''}</span> &nbsp;|&nbsp; ` 
+                    : ''}
+                Impreso: ${new Date().toLocaleString('es-ES', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                })}
             </div>
     `);
 
     // Sección de anexos
     if (datos.ANEXOS && Array.isArray(datos.ANEXOS) && datos.ANEXOS.length > 0) {
-        const mostrarAnexosCompletos = !isModoCliente ||
-            (isModoCliente && clienteData.tipoEmpresa &&
-                clienteData.tipoEmpresa.includes("Principal"));
-
+        const mostrarAnexosCompletos = !isModoCliente || 
+                                      (isModoCliente && clienteData.tipoEmpresa && 
+                                       clienteData.tipoEmpresa.includes("Principal"));
+        
         if (mostrarAnexosCompletos) {
-            const anexosFiltrados = datos.ANEXOS.filter(anexo =>
+            const anexosFiltrados = datos.ANEXOS.filter(anexo => 
                 anexo.TIPO === "PENDIENTES" || anexo.TIPO === "PROMO");
-
-            const otrosAnexos = datos.ANEXOS.filter(anexo =>
+            
+            const otrosAnexos = datos.ANEXOS.filter(anexo => 
                 anexo.TIPO !== "PENDIENTES" && anexo.TIPO !== "PROMO");
 
             if (anexosFiltrados.length > 0) {
@@ -471,7 +469,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                 </tr>
                             </thead>
                             <tbody>`);
-
+                
                 anexosFiltrados.forEach(anexo => {
                     totalAnexos += parseInt(anexo.CANTIDAD) || 0;
                     ventana.document.write(`
@@ -483,7 +481,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                     <td>${anexo.CANTIDAD || '0'}</td>
                                 </tr>`);
                 });
-
+                
                 ventana.document.write(`
                                 <tr class="total">
                                     <td colspan="3">TOTAL ANEXOS</td>
@@ -494,7 +492,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
                         </table>
                     </div>`);
             }
-
+            
             if (otrosAnexos.length > 0) {
                 ventana.document.write(`
                     <div style="padding: 8px 15px 15px 15px; background-color: #ffffff; border-radius: 4px; border-left: 4px solid #3498db; text-align: left;">
@@ -529,10 +527,10 @@ function abrirPlantillaImpresion(datos, options = {}) {
         if (isModoCliente) {
             // Distribución para cliente específico
             let totalUnidadesCliente = 0;
-
+            
             if (clienteData.distribucion) {
                 totalUnidadesCliente = clienteData.distribucion.reduce((total, item) => total + (parseInt(item.cantidad) || 0), 0);
-
+                
                 const distribucionOrdenada = [...clienteData.distribucion].sort((a, b) => {
                     const sizeA = parseSize(a.talla);
                     const sizeB = parseSize(b.talla);
@@ -556,7 +554,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                 </tr>
                             </thead>
                             <tbody>`);
-
+                
                 distribucionOrdenada.forEach(item => {
                     ventana.document.write(`
                                 <tr>
@@ -566,7 +564,7 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                     <td>${item.cantidad}</td>
                                 </tr>`);
                 });
-
+                
                 ventana.document.write(`
                                 <tr class="total">
                                     <td colspan="3">TOTAL</td>
@@ -592,8 +590,8 @@ function abrirPlantillaImpresion(datos, options = {}) {
             });
 
             // Cambio clave: si es soloImpresionPrincipal, mostramos todos los clientes
-            let clientesOrdenados = (isModoPrincipal && !soloImpresionPrincipal)
-                ? principales
+            let clientesOrdenados = (isModoPrincipal && !soloImpresionPrincipal) 
+                ? principales 
                 : [...principales, ...secundarias, ...mayoristas];
 
             // Procesar distribución
@@ -629,11 +627,11 @@ function abrirPlantillaImpresion(datos, options = {}) {
                                 <th>Color</th>
                                 <th>Talla</th>
                                 <th>Total</th>`);
-
+            
             clientesOrdenados.forEach(cliente => {
                 ventana.document.write(`<th>${cliente}${porcentajes[cliente] ? '<br>' + porcentajes[cliente] : ''}</th>`);
             });
-
+            
             ventana.document.write(`</tr>
                         </thead>
                         <tbody>`);
@@ -645,12 +643,12 @@ function abrirPlantillaImpresion(datos, options = {}) {
                             <td>${row.color}</td>
                             <td>${row.talla}</td>
                             <td>${row.cantidadTotal}</td>`);
-
+                
                 clientesOrdenados.forEach(cliente => {
                     ventana.document.write(`<td>${row[cliente]}</td>`);
                     totalPorCliente[cliente] = (totalPorCliente[cliente] || 0) + row[cliente];
                 });
-
+                
                 ventana.document.write(`</tr>`);
             });
 
@@ -658,11 +656,11 @@ function abrirPlantillaImpresion(datos, options = {}) {
             ventana.document.write(`<tr class="total">
                         <td colspan="3">TOTALES</td>
                         <td>${totalGeneral}</td>`);
-
+            
             clientesOrdenados.forEach(cliente => {
                 ventana.document.write(`<td>${totalPorCliente[cliente]}</td>`);
             });
-
+            
             ventana.document.write(`</tr>
                         </tbody>
                     </table>
@@ -674,34 +672,8 @@ function abrirPlantillaImpresion(datos, options = {}) {
     ventana.document.write(`
         <div class="no-print" style="text-align: center; margin-top: 15px;">
             <button onclick="window.print()" style="padding: 8px 15px; font-size: 10pt; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Imprimir</button>
-            <button onclick="downloadHTML()" style="padding: 8px 15px; font-size: 10pt; margin-left: 10px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer;">Descargar</button>
             <button onclick="window.close()" style="padding: 8px 15px; font-size: 10pt; margin-left: 10px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Cerrar</button>
         </div>
-        <script>
-            function downloadHTML() {
-                // Clonar el contenido para manipularlo sin afectar la ventana actual
-                const docClone = document.documentElement.cloneNode(true);
-                
-                // Remover los botones (clase no-print)
-                const noPrintDiv = docClone.querySelector('.no-print');
-                if (noPrintDiv) {
-                    noPrintDiv.remove();
-                }
-
-                // Remover los scripts para dejar un archivo limpio
-                const scripts = docClone.querySelectorAll('script');
-                scripts.forEach(script => script.remove());
-
-                const content = "<!DOCTYPE html>" + docClone.outerHTML;
-                const blob = new Blob([content], {type: 'text/html'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = document.title + '.html';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-        </script>
         </body>
         </html>
     `);
@@ -710,9 +682,9 @@ function abrirPlantillaImpresion(datos, options = {}) {
 }
 
 function parseSize(size) {
-    const sizeOrder = {
-        "XXXS": 1, "XXS": 2, "XS": 3, "S": 4,
-        "M": 5, "L": 6, "XL": 7, "XXL": 8, "XXXL": 9
+    const sizeOrder = { 
+        "XXXS": 1, "XXS": 2, "XS": 3, "S": 4, 
+        "M": 5, "L": 6, "XL": 7, "XXL": 8, "XXXL": 9 
     };
 
     // Expresión regular para capturar tallas como "3XL", "XXS", "M", etc.
