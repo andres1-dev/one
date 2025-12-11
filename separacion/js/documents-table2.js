@@ -979,8 +979,8 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
 
             if (!confirmar) return;
 
-            // SOLO MARCA LA FILA COMO ACTUALIZANDO, NO LA VACIEMOS
-            marcarFilaComoActualizando(rec);
+            vaciarTablaCompletamente();
+
             actualizacionEnProgreso = true;
 
             const loadingToast = Swal.fire({
@@ -1003,7 +1003,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             if (!resultReanudar.success) {
                 Swal.close();
                 await mostrarNotificacion('Error', 'Error al reanudar: ' + (resultReanudar.message || 'Error desconocido'), 'error');
-                await actualizarFilaEspecifica(rec); // ACTUALIZAR SOLO ESA FILA
+                await cargarTablaDocumentos();
                 actualizacionEnProgreso = false;
                 return;
             }
@@ -1025,13 +1025,11 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
 
                 await mostrarNotificacion('✓ Finalizado', `REC${rec} completado`, 'success');
 
-                // ACTUALIZAR SOLO ESA FILA Y RECARGAR DATOS GLOBALES
-                await actualizarFilaEspecifica(rec);
-                await actualizarDatosGlobales();
+                await cargarTablaDocumentos();
 
             } else {
                 await mostrarNotificacion('Error', 'Error al finalizar: ' + (resultFinalizar.message || 'Error desconocido'), 'error');
-                await actualizarFilaEspecifica(rec);
+                await cargarTablaDocumentos();
             }
 
             actualizacionEnProgreso = false;
@@ -1048,9 +1046,8 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             if (!confirmar) return;
         }
 
-        // SOLO MARCA LA FILA COMO ACTUALIZANDO
-        marcarFilaComoActualizando(rec);
-        
+        vaciarTablaCompletamente();
+
         console.log(`Cambiando estado del documento REC${rec} de ${estadoActual} a: ${nuevoEstado}`);
 
         actualizacionEnProgreso = true;
@@ -1081,7 +1078,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             default:
                 Swal.close();
                 await mostrarNotificacion('Error', 'Estado no válido', 'error');
-                await actualizarFilaEspecifica(rec);
+                await cargarTablaDocumentos();
                 actualizacionEnProgreso = false;
                 return;
         }
@@ -1103,42 +1100,21 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
 
             await mostrarNotificacion('✓ Actualizado', `${nuevoEstado}`, 'success');
 
-            // ACTUALIZAR SOLO ESA FILA Y DATOS GLOBALES
-            await actualizarFilaEspecifica(rec);
-            await actualizarDatosGlobales();
+            await cargarTablaDocumentos();
 
         } else {
             await mostrarNotificacion('Error', result.message || 'Error al cambiar estado', 'error');
-            await actualizarFilaEspecifica(rec);
+            await cargarTablaDocumentos();
         }
     } catch (error) {
         console.error('Error cambiando estado:', error);
         Swal.close();
         await mostrarNotificacion('Error', 'Error al cambiar estado: ' + error.message, 'error');
-        await actualizarFilaEspecifica(rec);
+        await cargarTablaDocumentos();
     } finally {
         actualizacionEnProgreso = false;
     }
 }
-
-function marcarFilaComoActualizando(rec) {
-    if (!documentosTable) return;
-
-    const fila = documentosTable.row((idx, data) => data.rec === rec);
-    if (!fila.any()) return;
-
-    const rowNode = fila.node();
-    $(rowNode).addClass('actualizando-fila');
-
-    // Celda de estado
-    const celdaEstado = $(rowNode).find('td:eq(1)');
-
-    // Indicador sutil sin spinner
-    celdaEstado.html(`
-        <span class="text-muted small fst-italic">Actualizando…</span>
-    `);
-}
-
 
 async function restablecerDocumento(rec) {
     try {
