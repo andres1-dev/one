@@ -4361,8 +4361,10 @@ async function getREC2024() {
     }
 }
 
+/*
 async function getBudgetData() {
     try {
+        const range2026 = "BUDGET2026!A1:K14";
         const range2025 = "BUDGET2025!A1:L14";
         const range2024 = "BUDGET2024!A1:M14";
         
@@ -4405,6 +4407,71 @@ async function getBudgetData() {
         });
 
         return [...budgets2025, ...budgets2024];
+    } catch (error) {
+        console.error("Error en getBudgetData:", error);
+        throw error;
+    }
+}
+*/
+
+async function getBudgetData() {
+    try {
+        const range2026 = "BUDGET2026!A1:K14";
+        const range2025 = "BUDGET2025!A1:L14";
+        const range2024 = "BUDGET2024!A1:M14";
+        
+        const [response2026, response2025, response2024] = await Promise.all([
+            fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.BUDGETID}/values/${range2026}?key=${API_KEY}`),
+            fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.BUDGETID}/values/${range2025}?key=${API_KEY}`),
+            fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.BUDGETID}/values/${range2024}?key=${API_KEY}`)
+        ]);
+
+        const [data2026, data2025, data2024] = await Promise.all([
+            response2026.json(),
+            response2025.json(),
+            response2024.json()
+        ]);
+
+        // ===== 2026 =====
+        const lineas2026 = data2026.values[0].slice(1, -2);
+        const budgets2026 = data2026.values.slice(1).map(row => ({
+            MES: row[0],
+            ANO: '2026',
+            TOTAL: Number(row[row.length - 2]) || 0,
+            HABILES: Number(row[row.length - 1]) || 0,
+            LINEAS: lineas2026.reduce((acc, linea, idx) => {
+                acc[linea] = Number(row[idx + 1]) || 0;
+                return acc;
+            }, {})
+        }));
+
+        // ===== 2025 =====
+        const lineas2025 = data2025.values[0].slice(1, -2);
+        const budgets2025 = data2025.values.slice(1).map(row => ({
+            MES: row[0],
+            ANO: '2025',
+            TOTAL: Number(row[row.length - 2]) || 0,
+            HABILES: Number(row[row.length - 1]) || 0,
+            LINEAS: lineas2025.reduce((acc, linea, idx) => {
+                acc[linea] = Number(row[idx + 1]) || 0;
+                return acc;
+            }, {})
+        }));
+
+        // ===== 2024 =====
+        const lineas2024 = data2024.values[0].slice(1, -2);
+        const budgets2024 = data2024.values.slice(1).map(row => ({
+            MES: row[0],
+            ANO: '2024',
+            TOTAL: Number(row[row.length - 2]) || 0,
+            HABILES: Number(row[row.length - 1]) || 0,
+            LINEAS: lineas2024.reduce((acc, linea, idx) => {
+                acc[linea] = Number(row[idx + 1]) || 0;
+                return acc;
+            }, {})
+        }));
+
+        return [...budgets2026, ...budgets2025, ...budgets2024];
     } catch (error) {
         console.error("Error en getBudgetData:", error);
         throw error;
