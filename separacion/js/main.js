@@ -198,7 +198,7 @@ async function cargarDatos() {
                         ESCANER: jsonData.ESCANER || '',
                         LOTE: Number(jsonData.LOTE) || 0,
                         REFPROV: String(jsonData.REFPROV || ''),
-                        DESCRIPCIÓN: jsonData.DESCRIPCIÓN || '',
+                        DESCRIPCIÓN: jsonData.DESCRIPCIÓN_LARGA || '',
                         CANTIDAD: Number(jsonData.CANTIDAD) || 0,
                         REFERENCIA: jsonData.REFERENCIA || '',
                         TIPO: jsonData.TIPO || '',
