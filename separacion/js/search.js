@@ -1,48 +1,60 @@
+/**
+ * SEPARACION/js/search.js
+ * Lógica de búsqueda e integración con el sistema de impresión LOTE
+ */
+
 function buscarPorREC() {
-    let recBuscado = document.getElementById("recInput").value;
+    let recInput = document.getElementById("recInput");
+    let recBuscado = recInput.value.trim();
+    
     if (!recBuscado) {
         document.getElementById("resultado").innerHTML = "<p>Ingrese un documento para buscar.</p>";
         return;
     }
 
-    // Verificar si es una búsqueda múltiple
+    // Lógica Multi-REC (Comas)
     if (recBuscado.includes(',')) {
-        buscarMultiplesRECs();
+        buscarMultiplesRECs(recBuscado);
         return;
     }
 
     let resultado = datosGlobales.find(item => item.REC == recBuscado);
 
     if (resultado) {
-        // Verificar si tiene colaborador asignado
+        // Validación de Responsable (Colaborador)
         if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
             document.getElementById("resultado").innerHTML = `
                 <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
                     <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene colaborador/responsable asignado.</p>
-                    <p>Por favor, asigne un colaborador en la hoja DATA antes de imprimir.</p>
                 </div>
             `;
             return;
         }
 
-        // Abrir plantilla completa con todas las sub-plantillas
-        abrirPlantillaImpresion(resultado);
+        // UNIFICADO: Preparamos la lista para LOTE (Main + Clientes)
+        const listaLote = [];
+        
+        // 1. Plantilla Principal
+        listaLote.push({ datos: resultado, options: { modo: 'completo' } });
 
-        // Para cada cliente, abrir su plantilla individual
+        // 2. Plantillas de Clientes
         if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
             const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
             clientes.forEach(cliente => {
-                abrirPlantillaImpresion(resultado, { 
-                    modo: 'cliente', 
-                    clienteNombre: cliente 
+                listaLote.push({ 
+                    datos: resultado, 
+                    options: { modo: 'cliente', clienteNombre: cliente } 
                 });
             });
         }
 
+        // Disparamos la impresión unificada
+        imprimirLoteDocumentos(listaLote);
+
         document.getElementById("resultado").innerHTML = `
             <div style="color: var(--secondary-dark); padding: 1rem; border-radius: var(--radius);">
-                <p>Documento ${recBuscado} encontrado. Se abrió la plantilla de impresión.</p>
-                <p>Colaborador asignado: <strong>${resultado.COLABORADOR}</strong></p>
+                <p>REC ${recBuscado} procesado. Se han generado ${listaLote.length} etiquetas en una sola ventana.</p>
+                <p>Responsable: <strong>${resultado.COLABORADOR}</strong></p>
             </div>
         `;
     } else {
@@ -50,88 +62,131 @@ function buscarPorREC() {
     }
 }
 
+function buscarMultiplesRECs(recsInput) {
+    let recsArray = recsInput.split(',')
+        .map(rec => rec.trim())
+        .filter(rec => rec !== '');
+    
+    if (recsArray.length === 0) return;
+    
+    const listaLote = [];
+    let encontrados = 0;
+    let desaparecidos = [];
 
+    recsArray.forEach(rec => {
+        let resultado = datosGlobales.find(item => item.REC == rec);
+        if (resultado) {
+            // Para múltiples, imprimimos solo la principal (regla del proyecto principal)
+            listaLote.push({ datos: resultado, options: { modo: 'completo', soloImpresionPrincipal: true } });
+            encontrados++;
+        } else {
+            desaparecidos.push(rec);
+        }
+    });
 
+    if (listaLote.length > 0) {
+        imprimirLoteDocumentos(listaLote);
+        
+        let msg = `<div style="padding: 1rem;">
+            <p>Se procesaron ${encontrados} documentos exitosamente.</p>`;
+        if (desaparecidos.length > 0) {
+            msg += `<p style="color: var(--danger);">No se encontraron: ${desaparecidos.join(', ')}</p>`;
+        }
+        msg += `</div>`;
+        document.getElementById("resultado").innerHTML = msg;
+    }
+}
 
-
-
-function mostrarOpcionesImpresion() {
-    let recBuscado = document.getElementById("recInput").value;
+function imprimirSoloClientes() {
+    let recBuscado = document.getElementById("recInput").value.trim();
     if (!recBuscado) {
         document.getElementById("resultado").innerHTML = "<p>Ingrese un documento para buscar.</p>";
         return;
     }
 
-    if (recBuscado.includes(',')) {
+    // Soporte para múltiples RECs en Solo Clientes (LOTE)
+    let recsArray = recBuscado.split(',').map(r => r.trim()).filter(r => r !== '');
+    const listaLote = [];
+    let faltaResponsable = false;
+
+    recsArray.forEach(rec => {
+        let resultado = datosGlobales.find(item => item.REC == rec);
+        if (resultado) {
+            if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
+                faltaResponsable = true;
+                return;
+            }
+
+            if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
+                const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
+                clientes.forEach(cliente => {
+                    listaLote.push({ 
+                        datos: resultado, 
+                        options: { modo: 'cliente', clienteNombre: cliente } 
+                    });
+                });
+            }
+        }
+    });
+
+    if (faltaResponsable) {
         document.getElementById("resultado").innerHTML = `
-            <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
-                <p>Esta función solo funciona con un documento a la vez.</p>
+            <div style="color: var(--danger); padding: 1rem;">
+                <p>Error: Uno o más documentos no tienen Responsable asignado.</p>
             </div>
         `;
         return;
     }
+
+    if (listaLote.length > 0) {
+        imprimirLoteDocumentos(listaLote);
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--secondary-dark); padding: 1rem;">
+                <p>Generadas ${listaLote.length} etiquetas de clientes en una sola ventana.</p>
+            </div>
+        `;
+    } else {
+        document.getElementById("resultado").innerHTML = "<p>No se encontraron clientes para procesar.</p>";
+    }
+}
+
+// Mantenemos esta función para compatibilidad con la tabla si se requiere, pero ahora usa la lógica LOTE
+function mostrarOpcionesImpresion() {
+    let recBuscado = document.getElementById("recInput").value.trim();
+    if (!recBuscado) return;
 
     let resultado = datosGlobales.find(item => item.REC == recBuscado);
-
-    if (!resultado) {
-        document.getElementById("resultado").innerHTML = "<p>No se encontró el documento especificado.</p>";
-        return;
-    }
+    if (!resultado) return;
 
     if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
-        document.getElementById("resultado").innerHTML = `
-            <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
-                <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene colaborador/responsable asignado.</p>
-            </div>
-        `;
+        document.getElementById("resultado").innerHTML = `<p style="color: red;">Falta Responsable.</p>`;
         return;
     }
 
-    // Crear interfaz de selección mejorada
     let html = `
         <div class="card" style="margin-top: 1rem;">
-            <div class="card-header">
-                <h3>Opciones de impresión para REC${recBuscado}</h3>
-            </div>
+            <div class="card-header"><h3>Opciones REC${recBuscado}</h3></div>
             <div class="card-body">
                 <div style="margin-bottom: 1rem;">
-                    <div class="btn-group" style="margin-bottom: 1rem;">
-                        <button onclick="seleccionarTodasOpciones(true)" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                            <i class="fas fa-check-circle btn-icon"></i> Seleccionar todo
-                        </button>
-                        <button onclick="seleccionarTodasOpciones(false)" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                            <i class="fas fa-times-circle btn-icon"></i> Deseleccionar todo
-                        </button>
-                    </div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Seleccione qué imprimir:</label>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="checkbox" id="impPrincipal" class="opcion-impresion">
-                            Plantilla Principal
-                        </label>`;
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="checkbox" id="impPrincipal" checked> Plantilla Principal
+                    </label>`;
 
-    // Agregar opciones para cada cliente si existen
     if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
         const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
         clientes.forEach(cliente => {
             html += `
-                        <label style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="checkbox" id="impCliente_${cliente.replace(/\s+/g, '_')}" class="opcion-impresion">
-                            Cliente: ${cliente}
-                        </label>`;
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+                    <input type="checkbox" class="chk-cliente" data-cliente="${cliente}" checked> Cliente: ${cliente}
+                </label>`;
         });
     }
 
     html += `
-                    </div>
                 </div>
                 <div class="btn-group">
-                    <button onclick="confirmarImpresionSelectiva('${recBuscado}')" class="btn btn-primary">
-                        <i class="fas fa-print btn-icon"></i> Imprimir Selección
-                    </button>
-                    <button onclick="document.getElementById('resultado').innerHTML = ''" class="btn btn-secondary">
-                        <i class="fas fa-times btn-icon"></i> Cancelar
-                    </button>
+                    <button onclick="confirmarImpresionSelectiva('${recBuscado}')" class="btn btn-primary">Imprimir Selección</button>
+                    <button onclick="document.getElementById('resultado').innerHTML = ''" class="btn btn-secondary">Cerrar</button>
                 </div>
             </div>
         </div>`;
@@ -139,158 +194,36 @@ function mostrarOpcionesImpresion() {
     document.getElementById("resultado").innerHTML = html;
 }
 
-// Nueva función para seleccionar/deseleccionar todas las opciones
-function seleccionarTodasOpciones(seleccionar) {
-    const checkboxes = document.querySelectorAll('.opcion-impresion');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = seleccionar;
-    });
-}
-
 function confirmarImpresionSelectiva(recBuscado) {
     const resultado = datosGlobales.find(item => item.REC == recBuscado);
     if (!resultado) return;
 
-    // Verificar si al menos una opción está seleccionada
-    const checkboxes = document.querySelectorAll('.opcion-impresion:checked');
-    if (checkboxes.length === 0) {
-        alert("Por favor seleccione al menos una opción para imprimir");
-        return;
+    const listaLote = [];
+    if (document.getElementById("impPrincipal").checked) {
+        listaLote.push({ datos: resultado, options: { modo: 'completo' } });
     }
 
-    // Obtener opciones seleccionadas
-    const impPrincipal = document.getElementById("impPrincipal").checked;
-    
-    // Imprimir plantilla principal si está seleccionada
-    if (impPrincipal) {
-        abrirPlantillaImpresion(resultado, { 
-            modo: 'completo', 
-            soloImpresionPrincipal: true 
+    const checks = document.querySelectorAll(".chk-cliente:checked");
+    checks.forEach(chk => {
+        listaLote.push({ 
+            datos: resultado, 
+            options: { modo: 'cliente', clienteNombre: chk.getAttribute('data-cliente') } 
         });
-    }
+    });
 
-    // Imprimir plantillas de clientes seleccionados
-    if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
-        const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
-        clientes.forEach(cliente => {
-            const checkbox = document.getElementById(`impCliente_${cliente.replace(/\s+/g, '_')}`);
-            if (checkbox && checkbox.checked) {
-                abrirPlantillaImpresion(resultado, { 
-                    modo: 'cliente', 
-                    clienteNombre: cliente 
-                });
+    if (listaLote.length > 0) {
+        imprimirLoteDocumentos(listaLote);
+    }
+}
+
+// Listener para el Enter en el input de búsqueda
+document.addEventListener('DOMContentLoaded', () => {
+    const recInput = document.getElementById("recInput");
+    if (recInput) {
+        recInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                buscarPorREC();
             }
         });
     }
-
-    // Mostrar confirmación
-    document.getElementById("resultado").innerHTML = `
-        <div style="color: var(--secondary-dark); padding: 1rem; border-radius: var(--radius);">
-            <p>Documento ${recBuscado} - Impresión iniciada para las opciones seleccionadas.</p>
-            <p>Total de plantillas generadas: ${checkboxes.length}</p>
-        </div>
-    `;
-}
-
-
-
-
-
-function buscarMultiplesRECs() {
-    let recsInput = document.getElementById("recInput").value;
-    if (!recsInput) {
-        document.getElementById("resultado").innerHTML = "<p>Ingrese uno o más documentos para buscar.</p>";
-        return;
-    }
-    
-    // Separar los RECs por comas y limpiar espacios
-    let recsArray = recsInput.split(',')
-        .map(rec => rec.trim())
-        .filter(rec => rec !== '');
-    
-    if (recsArray.length === 0) {
-        document.getElementById("resultado").innerHTML = "<p>No se ingresaron documentos válidos.</p>";
-        return;
-    }
-    
-    document.getElementById("resultado").innerHTML = `<p>Buscando ${recsArray.length} documento...</p>`;
-    
-    // Buscar cada REC y abrir solo la plantilla principal
-    recsArray.forEach(rec => {
-        let resultado = datosGlobales.find(item => item.REC == rec);
-        
-        if (resultado) {
-            // Usamos modo: 'completo' pero con soloImpresionPrincipal: true para mostrar todas las distribuciones
-            abrirPlantillaImpresion(resultado, { 
-                modo: 'completo', 
-                soloImpresionPrincipal: true 
-            });
-            document.getElementById("resultado").innerHTML += `<p>REC ${rec} encontrado. Se abrió la plantilla principal.</p>`;
-        } else {
-            document.getElementById("resultado").innerHTML += `<p>No se encontró el documento ${rec}.</p>`;
-        }
-    });
-}
-
-function imprimirSoloClientes() {
-    let recBuscado = document.getElementById("recInput").value;
-    if (!recBuscado) {
-        document.getElementById("resultado").innerHTML = "<p>Ingrese un documento para buscar.</p>";
-        return;
-    }
-
-    // Verificar si es una búsqueda múltiple
-    if (recBuscado.includes(',')) {
-        document.getElementById("resultado").innerHTML = `
-            <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
-                <p>Esta función solo funciona con un documento a la vez.</p>
-            </div>
-        `;
-        return;
-    }
-
-    let resultado = datosGlobales.find(item => item.REC == recBuscado);
-
-    if (resultado) {
-        // Verificar si tiene colaborador asignado
-        if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
-            document.getElementById("resultado").innerHTML = `
-                <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
-                    <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene colaborador/responsable asignado.</p>
-                </div>
-            `;
-            return;
-        }
-
-        // Verificar si tiene clientes asignados
-        if (!resultado.DISTRIBUCION || !resultado.DISTRIBUCION.Clientes || Object.keys(resultado.DISTRIBUCION.Clientes).length === 0) {
-            document.getElementById("resultado").innerHTML = `
-                <div style="color: var(--danger); padding: 1rem; border-radius: var(--radius);">
-                    <p><strong>No se puede imprimir:</strong> El documento ${recBuscado} no tiene clientes asignados.</p>
-                </div>
-            `;
-            return;
-        }
-
-        // Abrir solo las plantillas de clientes
-        const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
-        clientes.forEach(cliente => {
-            abrirPlantillaImpresion(resultado, { 
-                modo: 'cliente', 
-                clienteNombre: cliente 
-            });
-        });
-
-        document.getElementById("resultado").innerHTML = `
-            <div style="color: var(--secondary-dark); padding: 1rem; border-radius: var(--radius);">
-                <p>Documento ${recBuscado} - Impresión iniciada para:</p>
-                <ul>
-                    ${clientes.map(cliente => `<li>${cliente}</li>`).join('')}
-                </ul>
-                <p>Total clientes: <strong>${clientes.length}</strong></p>
-            </div>
-        `;
-    } else {
-        document.getElementById("resultado").innerHTML = "<p>No se encontró el documento especificado.</p>";
-    }
-}
+});
