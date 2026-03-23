@@ -13,17 +13,18 @@ function abrirPlantillaImpresion(datos, options = {}) {
 /**
  * Función que genera un LOTE de impresión (Mismas reglas que el proyecto principal)
  */
-function imprimirLoteDocumentos(listaProcesada) {
+function imprimirLoteDocumentos(listaProcesada, titulo = null) {
     if (!listaProcesada || listaProcesada.length === 0) return;
 
     const ventana = window.open('', '_blank');
+    const tituloFinal = titulo || `Múltiple (${listaProcesada.length} etiquetas)`;
     
     let htmlLote = `
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
-        <title>Impresión de Lote (${listaProcesada.length})</title>
+        <title>${tituloFinal}</title>
         ${print_getEstilosOriginales(true)}
     </head>
     <body class="lote-body">
@@ -51,9 +52,10 @@ function imprimirLoteDocumentos(listaProcesada) {
 }
 
 function print_generarDocumentoCompleto(datos, options = {}) {
-    const titulo = options.modo === 'cliente' 
-        ? `Separación REC${datos.REC} - ${options.clienteNombre}`
-        : `Separación REC${datos.REC}`;
+    const recNum = String(datos.REC).split('.')[0];
+    const titulo = options.modo === 'cliente'
+        ? `${String(options.clienteNombre).toUpperCase()} REC${recNum}`
+        : `Separación REC${recNum}`;
 
     return `
     <!DOCTYPE html>

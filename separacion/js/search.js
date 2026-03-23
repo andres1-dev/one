@@ -85,7 +85,7 @@ function buscarMultiplesRECs(recsInput) {
     });
 
     if (listaLote.length > 0) {
-        imprimirLoteDocumentos(listaLote);
+        imprimirLoteDocumentos(listaLote, 'Impresión Múltiple');
         
         let msg = `<div style="padding: 1rem;">
             <p>Se procesaron ${encontrados} documentos exitosamente.</p>`;
@@ -104,30 +104,38 @@ function imprimirSoloClientes() {
         return;
     }
 
-    // Soporte para múltiples RECs en Solo Clientes (LOTE)
+    // Solo Clientes: solo funciona con UN solo documento
     let recsArray = recBuscado.split(',').map(r => r.trim()).filter(r => r !== '');
+
+    if (recsArray.length > 1) {
+        document.getElementById("resultado").innerHTML = `
+            <div style="color: var(--danger-color, #ef4444); padding: 1rem; border-radius: 6px; border: 1px solid currentColor;">
+                <p><strong>Solo Clientes</strong> solo funciona con un documento a la vez.<br>
+                Ingrese un único REC para imprimir sus etiquetas de clientes.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const recUnico = recsArray[0];
+
     const listaLote = [];
     let faltaResponsable = false;
 
-    recsArray.forEach(rec => {
-        let resultado = datosGlobales.find(item => item.REC == rec);
-        if (resultado) {
-            if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
-                faltaResponsable = true;
-                return;
-            }
-
-            if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
-                const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
-                clientes.forEach(cliente => {
-                    listaLote.push({ 
-                        datos: resultado, 
-                        options: { modo: 'cliente', clienteNombre: cliente } 
-                    });
+    let resultado = datosGlobales.find(item => item.REC == recUnico);
+    if (resultado) {
+        if (!resultado.COLABORADOR || resultado.COLABORADOR.trim() === "") {
+            faltaResponsable = true;
+        } else if (resultado.DISTRIBUCION && resultado.DISTRIBUCION.Clientes) {
+            const clientes = Object.keys(resultado.DISTRIBUCION.Clientes);
+            clientes.forEach(cliente => {
+                listaLote.push({ 
+                    datos: resultado, 
+                    options: { modo: 'cliente', clienteNombre: cliente } 
                 });
-            }
+            });
         }
-    });
+    }
 
     if (faltaResponsable) {
         document.getElementById("resultado").innerHTML = `
@@ -139,7 +147,7 @@ function imprimirSoloClientes() {
     }
 
     if (listaLote.length > 0) {
-        imprimirLoteDocumentos(listaLote);
+        imprimirLoteDocumentos(listaLote, `Separación REC${recUnico}`);
         document.getElementById("resultado").innerHTML = `
             <div style="color: var(--secondary-dark); padding: 1rem;">
                 <p>Generadas ${listaLote.length} etiquetas de clientes en una sola ventana.</p>
