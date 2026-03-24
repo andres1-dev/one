@@ -6,26 +6,15 @@
 function print_abrirPlantillaImpresion(datos, options = {}) {
     const html = print_generarDocumentoCompleto(datos, options);
     const ventana = window.open('', '_blank');
-    if (!ventana) {
-        alert('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
-        return;
-    }
     ventana.document.write(html);
     ventana.document.close();
 }
 
-function print_imprimirLoteDocumentos(listaProcesada, titulo = null, autoprint = false) {
+function print_imprimirLoteDocumentos(listaProcesada, titulo = null) {
     if (!listaProcesada || listaProcesada.length === 0) return;
 
+    const ventana = window.open('', '_blank');
     const tituloFinal = titulo || `Múltiple (${listaProcesada.length} etiquetas)`;
-
-    const botoneraPill = autoprint
-        ? ''
-        : `<div class="pill-bar no-print">
-            <button onclick="window.print()" class="btn-pill-primary">Imprimir</button>
-            <button onclick="downloadHTML()" class="btn-pill-success">Descargar</button>
-            <button onclick="window.close()" class="btn-pill-secondary">Cerrar</button>
-        </div>`;
 
     let htmlLote = `
     <!DOCTYPE html>
@@ -36,7 +25,12 @@ function print_imprimirLoteDocumentos(listaProcesada, titulo = null, autoprint =
         ${print_getEstilosOriginales(true)}
     </head>
     <body class="lote-body">
-        ${botoneraPill}
+        <!-- Botonera Unificada (Igual a la individual) -->
+        <div class="pill-bar no-print">
+            <button onclick="window.print()" class="btn-pill-primary">Imprimir</button>
+            <button onclick="downloadHTML()" class="btn-pill-success">Descargar</button>
+            <button onclick="window.close()" class="btn-pill-secondary">Cerrar</button>
+        </div>
     `;
 
     listaProcesada.forEach((item) => {
@@ -49,35 +43,10 @@ function print_imprimirLoteDocumentos(listaProcesada, titulo = null, autoprint =
         </div>`;
     });
 
-    const scriptAutoprint = autoprint
-        ? `<script>
-            window.addEventListener('load', function() {
-                var imgs = document.querySelectorAll('img');
-                var total = imgs.length;
-                if (total === 0) { window.print(); window.close(); return; }
-                var loaded = 0;
-                function onLoad() { loaded++; if (loaded >= total) { window.print(); window.close(); } }
-                imgs.forEach(function(img) {
-                    if (img.complete) { onLoad(); }
-                    else { img.addEventListener('load', onLoad); img.addEventListener('error', onLoad); }
-                });
-            });
-          <\/script>`
-        : '';
-
     htmlLote += `
         ${print_getScriptsOriginales()}
-        ${scriptAutoprint}
     </body>
     </html>`;
-
-    // Abrir ventana primero (en el mismo tick del evento de usuario) y luego escribir
-    const ventana = window.open('', '_blank');
-
-    if (!ventana) {
-        alert('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
-        return;
-    }
 
     ventana.document.write(htmlLote);
     ventana.document.close();
@@ -85,37 +54,12 @@ function print_imprimirLoteDocumentos(listaProcesada, titulo = null, autoprint =
 
 /**
  * Función que genera un documento HTML completo para un solo REC
- * onDone: callback opcional que se llama después de window.print() (para encadenar)
  */
-function print_generarDocumentoCompleto(datos, options = {}, onDone = null) {
+function print_generarDocumentoCompleto(datos, options = {}) {
     const recNum = String(datos.REC).split('.')[0];
     const titulo = options.modo === 'cliente'
         ? `${String(options.clienteNombre).toUpperCase()} REC${recNum}`
         : `Separación REC${recNum}`;
-
-    // Script de autoprint: espera imágenes, imprime y avisa al padre para abrir el siguiente
-    const scriptAutoprint = onDone
-        ? `<script>
-            window.addEventListener('load', function() {
-                var imgs = document.querySelectorAll('img');
-                var total = imgs.length;
-                function doprint() {
-                    window.print();
-                    if (window.opener && window.opener._imprimirSiguiente) {
-                        window.opener._imprimirSiguiente();
-                    }
-                    window.close();
-                }
-                if (total === 0) { doprint(); return; }
-                var loaded = 0;
-                function onLoad() { loaded++; if (loaded >= total) doprint(); }
-                imgs.forEach(function(img) {
-                    if (img.complete) { onLoad(); }
-                    else { img.addEventListener('load', onLoad); img.addEventListener('error', onLoad); }
-                });
-            });
-          <\/script>`
-        : '';
 
     return `
     <!DOCTYPE html>
@@ -137,7 +81,6 @@ function print_generarDocumentoCompleto(datos, options = {}, onDone = null) {
             ${print_generarContenidoInterno(datos, options)}
         </div>
         ${print_getScriptsOriginales()}
-        ${scriptAutoprint}
     </body>
     </html>`;
 }
@@ -294,9 +237,6 @@ function print_generarContenidoInterno(datos, options = {}) {
                 const sizeA = print_parseSize(a.talla);
                 const sizeB = print_parseSize(b.talla);
                 if (sizeA.rank !== sizeB.rank) return sizeA.rank - sizeB.rank;
-                if (sizeA.numPart !== null && sizeB.numPart !== null) {
-                    if (sizeA.numPart !== sizeB.numPart) return sizeA.numPart - sizeB.numPart;
-                }
                 return a.color.localeCompare(b.color, "es", { sensitivity: "base" });
             });
             html += `<div class="section"><div class="section-title">DISTRIBUCIÓN (${totalUnidadesCliente}) ${clienteNombre} </div><table><thead><tr><th>Código</th><th>Color</th><th>Talla</th><th>Cantidad</th></tr></thead><tbody>`;
@@ -322,7 +262,7 @@ function print_generarContenidoInterno(datos, options = {}) {
 
             clientesOrdenados.forEach(cliente => {
                 datos.DISTRIBUCION.Clientes[cliente].distribucion.forEach(({ codigo, color, talla, cantidad }) => {
-                    let key = `${codigo}-${talla}`;
+                    let key = `${codigo}-${talla}-${color}`;
                     if (!distribucionFinal[key]) {
                         distribucionFinal[key] = { codigo, color, talla, cantidadTotal: 0 };
                         clientesOrdenados.forEach(c => distribucionFinal[key][c] = 0);
@@ -336,9 +276,6 @@ function print_generarContenidoInterno(datos, options = {}) {
                 const sizeA = print_parseSize(a.talla);
                 const sizeB = print_parseSize(b.talla);
                 if (sizeA.rank !== sizeB.rank) return sizeA.rank - sizeB.rank;
-                if (sizeA.numPart !== null && sizeB.numPart !== null) {
-                    if (sizeA.numPart !== sizeB.numPart) return sizeA.numPart - sizeB.numPart;
-                }
                 return a.color.localeCompare(b.color, "es", { sensitivity: "base" });
             });
 
@@ -447,6 +384,24 @@ function print_getEstilosOriginales(esLote = false) {
                 width: 100% !important;
                 page-break-after: always !important;
                 break-after: page !important;
+            }
+
+            .blank-page-forced {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                page-break-before: always !important;
+                break-before: page !important;
+                /* Tamaño CARTA (11in) - Usamos una altura considerable para forzar la visualizacion */
+                height: 9.5in !important; 
+                width: 100% !important;
+                text-align: center;
+                color: #bbb;
+                font-style: italic;
+                margin: 0 !important;
+                padding: 20px !important;
+                opacity: 0; /* Casi transparente para ahorro de tinta */
             }
         }
 
@@ -664,6 +619,47 @@ function print_getScriptsOriginales() {
             a.download = document.title + '.html';
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        /**
+         * Lógica de Detección de Paridad (Dúplex) Optimizada
+         * Traducido al Español y optimizado para máxima velocidad
+         */
+        function print_vincularLogicaDuplex() {
+            const units = document.querySelectorAll('.print-unit');
+            if (!units.length) return;
+            
+            const PAGE_HEIGHT_PX = 1016; 
+            const injections = [];
+
+            // Fase 1: Medición (Minimizar reflows)
+            units.forEach((unit) => {
+                if (Math.ceil(unit.offsetHeight / PAGE_HEIGHT_PX) % 2 !== 0) {
+                    injections.push(unit);
+                }
+            });
+
+            // Fase 2: Inyección masiva
+                injections.forEach(unit => {
+                    const blank = document.createElement('div');
+                    blank.className = 'blank-page-forced no-print-if-even';
+                    blank.innerHTML = \`
+                        <div style="text-align: center; color: #ffffffff;">
+                            <span style="font-family: Webdings; font-size: 30pt; color: #ffffffff;">P</span>
+                            <div style="font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10pt; font-weight: normal; margin-top: 15px;">
+                                Por favor, considere el medio ambiente antes de imprimir este documento
+                            </div>
+                        </div>
+                    \`;
+                    unit.parentElement.appendChild(blank);
+                });
+        }
+
+        // Ejecución acelerada
+        if (document.readyState === 'complete') {
+            print_vincularLogicaDuplex();
+        } else {
+            window.addEventListener('load', print_vincularLogicaDuplex);
         }
     </script>`;
 }
