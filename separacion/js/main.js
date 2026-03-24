@@ -1,22 +1,9 @@
 let datosGlobales = [];
 
-// Fallback para Logger si no está definido (evita errores en carga)
-if (typeof window.Logger === 'undefined') {
-    window.Logger = {
-        info: (m, msg, p) => console.log(`[INFO] ${m}: ${msg}`, p || ''),
-        success: (m, msg, p) => console.log(`[SUCCESS] ${m}: ${msg}`, p || ''),
-        warn: (m, msg, p) => console.warn(`[WARN] ${m}: ${msg}`, p || ''),
-        error: (m, msg, p) => console.error(`[ERROR] ${m}: ${msg}`, p || '')
-    };
-}
-
 // Función para cargar los datos desde la API
 async function cargarDatos() {
-    const loader = document.getElementById("loader");
-    const resultContainer = document.getElementById("resultado");
-
-    if (loader) loader.style.display = "block";
-    if (resultContainer) resultContainer.innerHTML = "<p>Cargando datos...</p>";
+    document.getElementById("loader").style.display = "block";
+    document.getElementById("resultado").innerHTML = "<p>Cargando datos...</p>";
 
     try {
         // Configuración
@@ -211,7 +198,7 @@ async function cargarDatos() {
                         ESCANER: jsonData.ESCANER || '',
                         LOTE: Number(jsonData.LOTE) || 0,
                         REFPROV: String(jsonData.REFPROV || ''),
-                        DESCRIPCIÓN: jsonData.DESCRIPCIÓN_LARGA || jsonData.DESCRIPCIÓN || '',
+                        DESCRIPCIÓN: jsonData.DESCRIPCIÓN_LARGA || '',
                         CANTIDAD: Number(jsonData.CANTIDAD) || 0,
                         REFERENCIA: jsonData.REFERENCIA || '',
                         TIPO: jsonData.TIPO || '',
@@ -541,14 +528,13 @@ async function cargarDatos() {
 
         // Almacenar datos globalmente y actualizar UI
         datosGlobales = resultadoFinal;
-        window.datosGlobales = resultadoFinal;
-        if (loader) loader.style.display = "none";
-        if (resultContainer) resultContainer.innerHTML = "<p>Datos cargados correctamente. Ingrese un documento para buscar.</p>";
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("resultado").innerHTML = "<p>Datos cargados correctamente. Ingrese un documento para buscar.</p>";
 
         return resultadoFinal;
     } catch (error) {
-        if (loader) loader.style.display = "none";
-        if (resultContainer) resultContainer.innerHTML = `<p>Error al cargar datos: ${error.message}</p>`;
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("resultado").innerHTML = `<p>Error al cargar datos: ${error.message}</p>`;
         throw error;
     }
 }

@@ -1315,8 +1315,7 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
 
 function obtenerBotonesAccion(data) {
     const tieneColaborador = data.colaborador && data.colaborador.trim() !== '';
-    // Para DIRECTO, el cliente está implícito (100% a 1 cliente); también verificar tieneClientes normal
-    const tieneClientes = data.tieneClientes || data.estado === 'DIRECTO';
+    const tieneClientes = data.tieneClientes;
     const puedeImprimir = tieneColaborador && tieneClientes;
 
     let botonesEstado = '';
@@ -1549,13 +1548,8 @@ async function imprimirSoloClientesDesdeTabla(rec) {
             return;
         }
 
-        // Obtener clientes desde DISTRIBUCION.Clientes o CLIENTES directamente
-        const clientes = (documento.DISTRIBUCION && documento.DISTRIBUCION.Clientes &&
-            Object.keys(documento.DISTRIBUCION.Clientes).length > 0)
-            ? documento.DISTRIBUCION.Clientes
-            : documento.CLIENTES || null;
-
-        if (!clientes || Object.keys(clientes).length === 0) {
+        if (!documento.DISTRIBUCION || !documento.DISTRIBUCION.Clientes ||
+            Object.keys(documento.DISTRIBUCION.Clientes).length === 0) {
             await mostrarNotificacion('Error', `No hay clientes asignados para REC${rec}`, 'error');
             return;
         }
@@ -1573,7 +1567,7 @@ async function imprimirSoloClientesDesdeTabla(rec) {
             refProv: documento.REFPROV || '',
             linea: documento.LINEA || '',
             cantidad: documento.CANTIDAD || 0,
-            clientes: clientes,
+            clientes: documento.DISTRIBUCION.Clientes,
             responsable: documentoEnTabla.colaborador
         };
 
