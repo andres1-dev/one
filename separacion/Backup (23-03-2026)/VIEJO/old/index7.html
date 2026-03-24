@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Sistema de Gestión de Documentos - Separación">
+    <title>Sistema de Gestión de Documentos</title>
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">    
+    
+    <!-- Estilos Personalizados -->
+    <link rel="stylesheet" href="css/styles2.css">
+
+    <style>
+    /* Ocultar elementos específicos */
+    #recInput,
+    button[onclick="buscarPorREC()"],
+    button[onclick="imprimirSoloClientes()"],
+    button[onclick="mostrarOpcionesImpresion()"] {
+        display: none !important;
+    }
+    
+    /* Ajustar el layout de los filtros */
+    .filtros-grid {
+        grid-template-columns: 1fr auto !important;
+    }
+    
+    .filtro-group:last-child .btn-group-sm {
+        gap: 0.25rem;
+    }
+
+    /* ===== HEADER MEJORADO ===== */
+    .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: nowrap;
+    }
+
+    .control-item {
+        display: flex;
+        align-items: center;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        transition: all var(--transition-base);
+        overflow: hidden;
+    }
+
+    .control-item:hover {
+        border-color: var(--accent-color);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .flatpickr-control {
+        min-width: 150px;
+        max-width: 180px;
+    }
+
+    .flatpickr-header-input {
+        width: 100%;
+        font-size: 0.8125rem !important;
+        padding: 0.5rem 0.75rem !important;
+        border: none !important;
+        background: transparent !important;
+        color: var(--text-primary) !important;
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .flatpickr-header-input:focus {
+        outline: none;
+        box-shadow: none !important;
+    }
+
+    .flatpickr-header-input::placeholder {
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+    }
+
+    .control-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+        height: 100%;
+    }
+
+    .control-btn:hover {
+        background: rgba(15, 52, 96, 0.05);
+        color: var(--accent-color);
+    }
+
+    .control-btn i {
+        font-size: 0.875rem;
+        color: var(--accent-color);
+        transition: color var(--transition-fast);
+    }
+
+    .control-btn:hover i {
+        color: var(--accent-light);
+    }
+
+    /* Botón de menú móvil */
+    .mobile-menu-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        background: var(--bg-secondary);
+        color: var(--accent-color);
+        font-size: 1.125rem;
+        transition: all var(--transition-fast);
+    }
+
+    .mobile-menu-btn:hover {
+        border-color: var(--accent-color);
+        background: rgba(15, 52, 96, 0.05);
+        transform: rotate(90deg);
+    }
+
+    /* Modal de controles móviles */
+    .controls-modal .modal-header {
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .controls-modal .modal-body {
+        padding: 1.5rem;
+    }
+
+    .control-option {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        margin-bottom: 0.75rem;
+        transition: all var(--transition-fast);
+        cursor: pointer;
+        background: var(--bg-secondary);
+    }
+
+    .control-option:hover {
+        border-color: var(--accent-color);
+        background: rgba(15, 52, 96, 0.03);
+        transform: translateX(4px);
+    }
+
+    .control-option:last-child {
+        margin-bottom: 0;
+    }
+
+    .control-option i {
+        width: 20px;
+        text-align: center;
+        font-size: 1.125rem;
+        color: var(--accent-color);
+    }
+
+    .control-option-content {
+        flex: 1;
+    }
+
+    .control-option-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .control-option-desc {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+
+    /* Flatpickr en modal móvil */
+    #flatpickrMobile {
+        text-align: center;
+        font-size: 1rem;
+        padding: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .header-controls .control-item:not(.mobile-menu-btn) {
+            display: none;
+        }
+        
+        .mobile-menu-btn {
+            display: flex;
+        }
+        
+        .header .d-flex.justify-content-between {
+            flex-direction: row;
+            align-items: center;
+        }
+    }
+
+    @media (min-width: 769px) {
+        .mobile-menu-btn {
+            display: none !important;
+        }
+    }
+
+    /* Ajustes para pantallas medianas */
+    @media (max-width: 992px) and (min-width: 769px) {
+        .flatpickr-control {
+            min-width: 140px;
+            max-width: 160px;
+        }
+        
+        .control-btn {
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .control-btn .hide-xs {
+            font-size: 0.75rem;
+        }
+    }
+
+    /* Ocultar el flatpickr original del panel de filtros */
+    #filtroFecha {
+        display: none !important;
+    }
+
+    .filtro-group label[for="filtroFecha"] {
+        display: none;
+    }
+
+    /* Mejoras de alineación y espaciado */
+    .header h1 {
+        flex-shrink: 0;
+    }
+
+    .header-controls {
+        flex-shrink: 0;
+    }
+
+    /* Estados activos */
+    .control-item.active {
+        border-color: var(--accent-color);
+        background: rgba(15, 52, 96, 0.05);
+    }
+
+    .flatpickr-header-input.active {
+        color: var(--accent-color);
+        font-weight: 500;
+    }
+    </style>
+    
+</head>
+<body>
+    <!-- Header Minimalista -->
+    <header class="header">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>
+                    <i class="fas fa-file-invoice"></i>
+                    <span>Separación</span>
+                </h1>
+                
+                <!-- Controles del Header -->
+                <div class="header-controls">
+                    <!-- Flatpickr -->
+                    <div class="control-item flatpickr-control">
+                        <input type="text" 
+                               class="form-control form-control-sm flatpickr-header-input" 
+                               id="filtroFechaHeader" 
+                               placeholder="Rango de fechas"
+                               autocomplete="off"
+                               title="Seleccionar rango de fechas">
+                    </div>
+                    
+                    <!-- Botón Actualizar -->
+                    <button type="button" 
+                            class="control-item control-btn" 
+                            onclick="cargarTablaDocumentos()"
+                            title="Actualizar tabla">
+                        <i class="fas fa-sync-alt"></i>
+                        <span class="hide-xs">Actualizar</span>
+                    </button>
+                    
+                    <!-- Botón Mostrar Finalizados -->
+                    <button id="btnToggleFinalizados" 
+                            class="control-item control-btn" 
+                            onclick="toggleFinalizados()"
+                            title="Mostrar/ocultar finalizados">
+                        <i class="fas fa-eye"></i>
+                        <span class="hide-xs">Finalizados</span>
+                    </button>
+
+                    <!-- Botón Menú Móvil -->
+                    <button class="mobile-menu-btn" 
+                            onclick="abrirModalControles()"
+                            title="Opciones">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Modal para Controles Móviles -->
+    <div class="modal fade controls-modal" id="controlsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-cog me-2"></i>
+                        Opciones
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Opción Filtro Fechas -->
+                    <div class="control-option" onclick="abrirFlatpickrModal()">
+                        <i class="fas fa-calendar-alt"></i>
+                        <div class="control-option-content">
+                            <div class="control-option-title">Filtrar por Fechas</div>
+                            <div class="control-option-desc">Seleccionar rango de fechas</div>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                    
+                    <!-- Opción Actualizar -->
+                    <div class="control-option" onclick="ejecutarActualizar()">
+                        <i class="fas fa-sync-alt"></i>
+                        <div class="control-option-content">
+                            <div class="control-option-title">Actualizar Tabla</div>
+                            <div class="control-option-desc">Refrescar datos actuales</div>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                    
+                    <!-- Opción Mostrar Finalizados -->
+                    <div class="control-option" onclick="ejecutarToggleFinalizados()">
+                        <i class="fas fa-eye"></i>
+                        <div class="control-option-content">
+                            <div class="control-option-title" id="modalToggleText">Mostrar Finalizados</div>
+                            <div class="control-option-desc">Ver documentos completados</div>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Flatpickr en Móvil -->
+    <div class="modal fade" id="flatpickrModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Rango de Fechas
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" 
+                           class="form-control form-control-lg text-center" 
+                           id="filtroFechaMobile" 
+                           placeholder="Seleccionar rango de fechas"
+                           autocomplete="off">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltroFechaMovil()">
+                        Limpiar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="aplicarFiltroFechaMovil()">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="container-fluid">
+        
+        <!-- Tarjetas de Resumen Mejoradas -->
+        <div class="resumen-grid fade-in" id="resumenTarjetas">
+            <div class="resumen-card pendientes">
+                <div class="resumen-content">
+                    <div class="resumen-text">
+                        <h3>Pendientes</h3>
+                        <p>Documentos por iniciar</p>
+                    </div>
+                    <div class="resumen-numbers">
+                        <div class="resumen-count" id="contadorPendientes">0</div>
+                        <div class="resumen-unidades" id="unidadesPendientes">0 unidades</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="resumen-card proceso">
+                <div class="resumen-content">
+                    <div class="resumen-text">
+                        <h3>En Proceso</h3>
+                        <p>Elaboración + Pausadas</p>
+                    </div>
+                    <div class="resumen-numbers">
+                        <div class="resumen-count" id="contadorProceso">0</div>
+                        <div class="resumen-unidades" id="unidadesProceso">0 unidades</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="resumen-card directos">
+                <div class="resumen-content">
+                    <div class="resumen-text">
+                        <h3>Directos</h3>
+                        <p>Sin distribución</p>
+                    </div>
+                    <div class="resumen-numbers">
+                        <div class="resumen-count" id="contadorDirectos">0</div>
+                        <div class="resumen-unidades" id="unidadesDirectos">0 unidades</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="resumen-card total">
+                <div class="resumen-content">
+                    <div class="resumen-text">
+                        <h3>Total Activos</h3>
+                        <p>Todos los estados</p>
+                    </div>
+                    <div class="resumen-numbers">
+                        <div class="resumen-count" id="contadorTotal">0</div>
+                        <div class="resumen-unidades" id="unidadesTotal">0 unidades</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Filtros Mejorado (oculto completamente) -->
+<div class="filtros-panel fade-in" style="display: none;">
+    <div class="filtros-grid">
+        <div class="filtro-group">
+            <input type="text" 
+                   class="form-control form-control-sm" 
+                   id="recInput" 
+                   placeholder="Ej: 12345 o 12345,12346,12347"
+                   autocomplete="off">
+        </div>
+        
+        <div class="filtro-group">
+            <label class="hide-xs">&nbsp;</label>
+            <div class="btn-group-sm">
+                <button type="button" class="btn btn-primary btn-sm" onclick="buscarPorREC()">
+                    <i class="fas fa-search"></i>
+                    <span class="hide-xs">Buscar</span>
+                </button>
+                <button type="button" class="btn btn-info btn-sm" onclick="imprimirSoloClientes()">
+                    <i class="fas fa-users"></i>
+                    <span class="hide-xs">Clientes</span>
+                </button>
+                <button type="button" class="btn btn-success btn-sm" onclick="mostrarOpcionesImpresion()">
+                    <i class="fas fa-print"></i>
+                    <span class="hide-xs">Opciones</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- Tabla de Documentos Mejorada -->
+        <div class="card fade-in">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list"></i>
+                    Documentos Disponibles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="documentosTable" class="table table-hover w-100 mb-0">
+                        <thead>
+                            <tr>
+                                <th>Documento</th>
+                                <th>Estado</th>
+                                <th>Responsable</th>
+                                <th>Fecha</th>
+                                <th>Duración</th>
+                                <th>Cantidad</th>
+                                <th class="hide-sm">Prenda</th>
+                                <th class="hide-sm">Lote</th>
+                                <th class="hide-md">RefProv</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Los datos se cargarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loader Minimalista -->
+        <div id="loader" class="text-center mt-3" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando datos...</p>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultado" class="mt-3">
+            <!-- Aquí se mostrarán los resultados de búsqueda -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
+    
+    <!-- Flatpickr -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    
+    <!-- Scripts de la aplicación -->
+    <script src="js/main.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/print-templates.js"></script>
+    <script src="js/documents-table.js"></script>
+
+    <script>
+    // Variables globales para flatpickr
+    let flatpickrInstance = null;
+    let flatpickrMobileInstance = null;
+    let selectedDatesGlobal = [];
+
+    // Inicializar Flatpickr después de que se cargue la página
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Inicializando Flatpickr en header...');
+        
+        // Inicializar flatpickr del header (PC)
+        flatpickrInstance = flatpickr("#filtroFechaHeader", {
+            mode: "range",
+            locale: "es",
+            dateFormat: "d/m/Y",
+            allowInput: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                console.log('Flatpickr PC onChange:', selectedDates);
+                selectedDatesGlobal = selectedDates;
+                
+                // Aplicar filtro automáticamente cuando se selecciona rango completo
+                if (selectedDates.length === 2) {
+                    aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
+                }
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                console.log('Flatpickr PC onClose:', selectedDates);
+                
+                // Limpiar si no hay fechas seleccionadas
+                if (selectedDates.length === 0) {
+                    limpiarFiltroFecha();
+                }
+            }
+        });
+        
+        console.log('Flatpickr PC inicializado:', flatpickrInstance);
+        
+        // Hacer disponible globalmente
+        window.flatpickrInstance = flatpickrInstance;
+
+        // Añadir animaciones de entrada
+        const elements = document.querySelectorAll('.fade-in');
+        elements.forEach((el, index) => {
+            setTimeout(() => {
+                el.style.opacity = '1';
+            }, index * 100);
+        });
+    });
+
+    // Función para abrir modal de controles
+    function abrirModalControles() {
+        const modal = new bootstrap.Modal(document.getElementById('controlsModal'));
+        modal.show();
+    }
+
+    // Función para abrir flatpickr en modal móvil
+    function abrirFlatpickrModal() {
+        // Cerrar modal de controles primero
+        const controlsModal = bootstrap.Modal.getInstance(document.getElementById('controlsModal'));
+        if (controlsModal) {
+            controlsModal.hide();
+        }
+        
+        // Abrir modal de flatpickr después de un breve delay
+        setTimeout(() => {
+            const modal = new bootstrap.Modal(document.getElementById('flatpickrModal'));
+            modal.show();
+            
+            // Inicializar flatpickr móvil
+            setTimeout(() => {
+                if (flatpickrMobileInstance) {
+                    flatpickrMobileInstance.destroy();
+                }
+                
+                flatpickrMobileInstance = flatpickr("#filtroFechaMobile", {
+                    mode: "range",
+                    locale: "es", 
+                    dateFormat: "d/m/Y",
+                    allowInput: true,
+                    onChange: function(selectedDates, dateStr, instance) {
+                        console.log('Flatpickr Mobile onChange:', selectedDates);
+                        selectedDatesGlobal = selectedDates;
+                    }
+                });
+                
+                // Sincronizar con fechas actuales si existen
+                if (selectedDatesGlobal.length > 0) {
+                    flatpickrMobileInstance.setDate(selectedDatesGlobal, true);
+                }
+            }, 300);
+        }, 200);
+    }
+
+    // Función para aplicar filtro desde móvil
+    function aplicarFiltroFechaMovil() {
+        console.log('Aplicando filtro desde móvil:', selectedDatesGlobal);
+        
+        if (selectedDatesGlobal.length === 2) {
+            // Aplicar filtro
+            aplicarFiltroFecha(selectedDatesGlobal[0], selectedDatesGlobal[1]);
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('flatpickrModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Mostrar confirmación
+            Swal.fire({
+                icon: 'success',
+                title: 'Filtro aplicado',
+                text: `Fechas: ${selectedDatesGlobal[0].toLocaleDateString()} - ${selectedDatesGlobal[1].toLocaleDateString()}`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selecciona un rango',
+                text: 'Por favor selecciona un rango de fechas completo',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    }
+
+    // Función para limpiar filtro desde móvil
+    function limpiarFiltroFechaMovil() {
+        if (flatpickrMobileInstance) {
+            flatpickrMobileInstance.clear();
+        }
+        selectedDatesGlobal = [];
+        limpiarFiltroFecha();
+        
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('flatpickrModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        Swal.fire({
+            icon: 'info',
+            title: 'Filtro limpiado',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }
+
+    // Función para aplicar filtro de fecha (común para PC y móvil)
+    function aplicarFiltroFecha(fechaInicio, fechaFin) {
+        console.log('Aplicando filtro de fecha:', fechaInicio, fechaFin);
+        
+        if (window.aplicarFiltroFecha) {
+            window.aplicarFiltroFecha(fechaInicio, fechaFin);
+        } else {
+            console.warn('Función aplicarFiltroFecha no disponible');
+            // Fallback: recargar tabla o mostrar mensaje
+            cargarTablaDocumentos();
+        }
+    }
+
+    // Función para limpiar filtro de fecha
+    function limpiarFiltroFecha() {
+        console.log('Limpiando filtro de fecha');
+        selectedDatesGlobal = [];
+        
+        if (flatpickrInstance) {
+            flatpickrInstance.clear();
+        }
+        
+        if (window.limpiarFiltros) {
+            window.limpiarFiltros();
+        } else {
+            console.warn('Función limpiarFiltros no disponible');
+            cargarTablaDocumentos();
+        }
+    }
+
+    // Funciones para el modal de controles
+    function ejecutarActualizar() {
+        cargarTablaDocumentos();
+        cerrarModalControles();
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Actualizando...',
+            timer: 1000,
+            showConfirmButton: false
+        });
+    }
+
+    function ejecutarToggleFinalizados() {
+        toggleFinalizados();
+        cerrarModalControles();
+        actualizarTextoFinalizados();
+    }
+
+    function cerrarModalControles() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('controlsModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+
+    // Actualizar texto del botón de finalizados
+    function actualizarTextoFinalizados() {
+        const btn = document.getElementById('btnToggleFinalizados');
+        const modalText = document.getElementById('modalToggleText');
+        if (btn && modalText) {
+            const isShowing = btn.classList.contains('active');
+            const text = isShowing ? 'Ocultar Finalizados' : 'Mostrar Finalizados';
+            modalText.textContent = text;
+        }
+    }
+
+    // Sobrescribir toggleFinalizados para actualizar el texto
+    const originalToggleFinalizados = window.toggleFinalizados;
+    window.toggleFinalizados = function() {
+        if (originalToggleFinalizados) {
+            originalToggleFinalizados();
+        }
+        setTimeout(actualizarTextoFinalizados, 100);
+    };
+
+    // Funciones globales simplificadas
+    function buscarDocumentoEnTabla(rec) {
+        document.getElementById('recInput').value = rec;
+        buscarPorREC();
+    }
+
+    function imprimirSoloClientesDesdeTabla(rec) {
+        document.getElementById('recInput').value = rec;
+        imprimirSoloClientes();
+    }
+
+    function mostrarOpcionesDesdeTabla(rec) {
+        document.getElementById('recInput').value = rec;
+        mostrarOpcionesImpresion();
+    }
+
+    // Hacer funciones disponibles globalmente
+    window.buscarDocumentoEnTabla = buscarDocumentoEnTabla;
+    window.imprimirSoloClientesDesdeTabla = imprimirSoloClientesDesdeTabla;
+    window.mostrarOpcionesDesdeTabla = mostrarOpcionesDesdeTabla;
+    window.limpiarFiltroFecha = limpiarFiltroFecha;
+    window.aplicarFiltroFecha = aplicarFiltroFecha;
+    window.abrirFlatpickrModal = abrirFlatpickrModal;
+    window.cerrarModalControles = cerrarModalControles;
+
+    // Inicializar texto de finalizados
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(actualizarTextoFinalizados, 500);
+    });
+
+    // Optimización: Prevenir zoom en inputs en iOS
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        const meta = document.querySelector('meta[name="viewport"]');
+        meta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
+    }
+    </script>
+</body>
+</html>

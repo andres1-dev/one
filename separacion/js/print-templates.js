@@ -1,5 +1,6 @@
 /**
  * SEPARACION/js/print-templates.js
+<<<<<<< HEAD
  * Adaptado de js/printing (Original) con soporte para DESCRIPCION_LARGA
  */
 
@@ -14,6 +15,27 @@ function print_imprimirLoteDocumentos(listaProcesada, titulo = null) {
     const ventana = window.open('', '_blank');
     const tituloFinal = titulo || `Separación Lote (${listaProcesada.length})`;
 
+=======
+ * Generador de plantillas de impresión (Versión Modular con Soporte LOTE/Duplex)
+ */
+
+function abrirPlantillaImpresion(datos, options = {}) {
+    const html = print_generarDocumentoCompleto(datos, options);
+    const ventana = window.open('', '_blank');
+    ventana.document.write(html);
+    ventana.document.close();
+}
+
+/**
+ * Función que genera un LOTE de impresión (Mismas reglas que el proyecto principal)
+ */
+function imprimirLoteDocumentos(listaProcesada, titulo = null) {
+    if (!listaProcesada || listaProcesada.length === 0) return;
+
+    const ventana = window.open('', '_blank');
+    const tituloFinal = titulo || `Múltiple (${listaProcesada.length} etiquetas)`;
+    
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
     let htmlLote = `
     <!DOCTYPE html>
     <html lang="es">
@@ -24,7 +46,11 @@ function print_imprimirLoteDocumentos(listaProcesada, titulo = null) {
     </head>
     <body class="lote-body">
         <div class="pill-bar no-print">
+<<<<<<< HEAD
             <button onclick="window.print()" class="btn-pill-primary">Imprimir Lote</button>
+=======
+            <button onclick="window.print()" class="btn-pill-primary">Imprimir</button>
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
             <button onclick="downloadHTML()" class="btn-pill-success">Descargar</button>
             <button onclick="window.close()" class="btn-pill-secondary">Cerrar</button>
         </div>
@@ -32,11 +58,16 @@ function print_imprimirLoteDocumentos(listaProcesada, titulo = null) {
 
     listaProcesada.forEach((item) => {
         const { datos, options } = item;
+<<<<<<< HEAD
         htmlLote += `
         <div class="lote-separator">
             <div class="print-unit">
                 ${print_generarContenidoInterno(datos, options)}
             </div>
+=======
+        htmlLote += `<div class="print-unit lote-separator">
+            ${print_generarContenidoInterno(datos, options)}
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
         </div>`;
     });
 
@@ -49,12 +80,47 @@ function print_imprimirLoteDocumentos(listaProcesada, titulo = null) {
     ventana.document.close();
 }
 
+<<<<<<< HEAD
 /**
  * GENERA EL CONTENIDO INTERNO (ADAPTADO PARA SEPARACION CON DESCRIPCION_LARGA)
  */
 function print_generarContenidoInterno(datos, options = {}) {
     const {
         modo = 'completo',
+=======
+function print_generarDocumentoCompleto(datos, options = {}) {
+    const recNum = String(datos.REC).split('.')[0];
+    const titulo = options.modo === 'cliente'
+        ? `${String(options.clienteNombre).toUpperCase()} REC${recNum}`
+        : `Separación REC${recNum}`;
+
+    return `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>${titulo}</title>
+        ${print_getEstilosOriginales(false)}
+    </head>
+    <body class="individual-body">
+        <div class="pill-bar no-print">
+            <button onclick="window.print()" class="btn-pill-primary">Imprimir</button>
+            <button onclick="downloadHTML()" class="btn-pill-success">Descargar</button>
+            <button onclick="window.close()" class="btn-pill-secondary">Cerrar</button>
+        </div>
+
+        <div class="print-unit">
+            ${print_generarContenidoInterno(datos, options)}
+        </div>
+        ${print_getScriptsOriginales()}
+    </body>
+    </html>`;
+}
+
+function print_generarContenidoInterno(datos, options = {}) {
+    const {
+        modo = 'completo', 
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
         clienteNombre = null,
         soloPrincipal = false,
         soloImpresionPrincipal = false
@@ -64,7 +130,10 @@ function print_generarContenidoInterno(datos, options = {}) {
     const isModoPrincipal = modo === 'principal' || soloPrincipal;
     const currentSearchKey = datos.REC || '';
     const recForCode = String(currentSearchKey).split('.')[0];
+<<<<<<< HEAD
 
+=======
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
     const clienteData = isModoCliente ? datos.DISTRIBUCION.Clientes[clienteNombre] : null;
     const clienteId = isModoCliente ? (clienteData.id || '') : '';
 
@@ -74,6 +143,14 @@ function print_generarContenidoInterno(datos, options = {}) {
         if (proveedorNombre.includes("TEXTILES Y CREACIONES EL UNIVERSO")) proveedorId = "900616124";
         else if (proveedorNombre.includes("TEXTILES Y CREACIONES LOS ANGELES")) proveedorId = "900692469";
     }
+<<<<<<< HEAD
+=======
+
+    let qrData;
+    if (isModoCliente) qrData = `REC${recForCode}-${clienteId}`;
+    else if (proveedorId) qrData = `REC${recForCode}-${proveedorId}`;
+    else qrData = `REC${recForCode}`;
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
 
     let qrData = isModoCliente ? `REC${recForCode}-${clienteId}` : (proveedorId ? `REC${recForCode}-${proveedorId}` : `REC${recForCode}`);
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(qrData)}`;
@@ -85,8 +162,12 @@ function print_generarContenidoInterno(datos, options = {}) {
                 <div class="title-section">
                     <div class="main-title">Separación de terceros para:</div>
                     <div class="provider-name">${isModoCliente ? (clienteData.razonSocial || clienteNombre) : (datos.PROVEEDOR || 'Proveedor no especificado')}</div>
+<<<<<<< HEAD
                     <!-- CAMBIO SOLICITADO: Respetar Descripción Larga -->
                     <div class="subtitle">${datos.DESCRIPCION_LARGA || datos.DESCRIPCION || 'Sin descripción'}</div>
+=======
+                    <div class="subtitle">${datos.DESCRIPCION || 'Sin descripción'}</div>
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
                 </div>
                 
                 <div class="info-grid">
@@ -110,7 +191,13 @@ function print_generarContenidoInterno(datos, options = {}) {
                     <div class="info-item">
                         <div class="info-label">Tipo:</div>
                         <div class="info-value">
+<<<<<<< HEAD
                             ${isModoCliente ? (clienteData.tipoCliente === "Empresa" ? `${clienteData.tipoCliente} ${clienteData.tipoEmpresa?.replace(/^Empresa\s*/, '') || ''} ${clienteData.porcentaje || ''}` : `${clienteData.tipoCliente || ''} ${clienteData.porcentaje || ''}`) : (datos.TIPO || '')}
+=======
+                            ${isModoCliente 
+                                ? (clienteData.tipoCliente === "Empresa" ? `${clienteData.tipoCliente} ${clienteData.tipoEmpresa?.replace(/^Empresa\s*/, '') || ''} ${clienteData.porcentaje || ''}` : `${clienteData.tipoCliente || ''} ${clienteData.porcentaje || ''}`)
+                                : (datos.TIPO || '')}
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
                         </div>
                     </div>
                     <div class="info-item"><div class="info-label">Fecha:</div><div class="info-value">${datos.FECHA || ''}</div></div>
@@ -132,7 +219,11 @@ function print_generarContenidoInterno(datos, options = {}) {
                     <div class="code-display">${qrData}</div>
                 </div>
                 <div class="barcode-container">
+<<<<<<< HEAD
                     <img src="${barcodeUrl}" class="barcode" alt="Código de barras" style="${isModoCliente ? 'max-height: 35px;' : 'max-height: 60px;'}">
+=======
+                    <img src="${barcodeUrl}" class="barcode" alt="Código de barras">
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
                 </div>
             </div>
         </div>
@@ -149,6 +240,10 @@ function print_generarContenidoInterno(datos, options = {}) {
         if (mostrarAnexosCompletos) {
             const anexosFiltrados = datos.ANEXOS.filter(anexo => anexo.TIPO === "PENDIENTES" || anexo.TIPO === "PROMO");
             const otrosAnexos = datos.ANEXOS.filter(anexo => anexo.TIPO !== "PENDIENTES" && anexo.TIPO !== "PROMO");
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
             if (anexosFiltrados.length > 0) {
                 let totalAnexos = 0;
                 html += `<div class="section"><div class="section-title">ANEXOS (${anexosFiltrados.length})</div><table><thead><tr><th>Referencia</th><th>Talla</th><th>Color</th><th>Tipo</th><th>Cantidad</th></tr></thead><tbody>`;
@@ -156,21 +251,42 @@ function print_generarContenidoInterno(datos, options = {}) {
                     totalAnexos += parseInt(anexo.CANTIDAD) || 0;
                     html += `<tr><td>${anexo.DOCUMENTO || '-'}</td><td>${anexo.TALLA || '-'}</td><td>${anexo.COLOR || '-'}</td><td>${anexo.TIPO || '-'}</td><td>${anexo.CANTIDAD || '0'}</td></tr>`;
                 });
+<<<<<<< HEAD
                 html += `<tr class="total"><td colspan="3">TOTAL ANEXOS</td><td>${anexosFiltrados.length}</td><td>${totalAnexos}</td></tr></tbody></table></div>`;
+=======
+                html += `<tr class="total"> <td colspan="3">TOTAL ANEXOS</td><td>${anexosFiltrados.length}</td><td>${totalAnexos}</td></tr></tbody></table></div>`;
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
             }
             if (otrosAnexos.length > 0) {
                 html += `<div style="padding: 8px 15px 15px 15px; background-color: #ffffff; border-radius: 4px; border-left: 4px solid #3498db; text-align: left;"><p style="margin: 0; line-height: 1.3; text-transform: uppercase;"><strong>OBSERVACIONES:</strong> `;
+<<<<<<< HEAD
                 html += otrosAnexos.map(anexo => {
                     const cant = parseInt(anexo.CANTIDAD) || 1;
                     return `<strong>${cant}</strong> UNIDAD${cant>1?'ES':''}, ${anexo.TIPO||''}, TALLA ${anexo.TALLA||''}, COLOR ${anexo.COLOR||''}`;
                 }).join('; ') + `.</p></div>`;
+=======
+                const textosAnexos = otrosAnexos.map(anexo => {
+                    const cantidad = parseInt(anexo.CANTIDAD) || 1;
+                    const plural = cantidad > 1 ? 'ES' : '';
+                    const tipo = anexo.TIPO ? anexo.TIPO.toUpperCase() : '';
+                    const talla = anexo.TALLA ? `TALLA ${anexo.TALLA.toUpperCase()}` : '';
+                    const color = anexo.COLOR ? `COLOR ${anexo.COLOR.toUpperCase()}` : '';
+                    let partes = [`<strong>${cantidad}</strong> UNIDAD${plural}`];
+                    if (tipo) partes.push(tipo);
+                    if (talla) partes.push(talla);
+                    if (color) partes.push(color);
+                    return partes.join(', ');
+                });
+                html += textosAnexos.join('; ') + '.';
+                html += `</p></div>`;
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
             }
         }
     }
 
-    // Sección de distribución
     if (datos.DISTRIBUCION && datos.DISTRIBUCION.Clientes) {
         if (isModoCliente && clienteData.distribucion) {
+<<<<<<< HEAD
             let total = clienteData.distribucion.reduce((s, i) => s + (parseInt(i.cantidad) || 0), 0);
             html += `<div class="section"><div class="section-title">DISTRIBUCIÓN (${total}) ${clienteNombre} </div><table><thead><tr><th>Código</th><th>Color</th><th>Talla</th><th>Cantidad</th></tr></thead><tbody>`;
             clienteData.distribucion.forEach(item => { html += `<tr><td>${item.codigo}</td><td>${item.color}</td><td>${item.talla}</td><td>${item.cantidad}</td></tr>`; });
@@ -199,6 +315,78 @@ function print_generarContenidoInterno(datos, options = {}) {
             html += `<tr class="total"><td colspan="3">TOTALES</td><td>${Object.values(cols).reduce((a,b)=>a+b,0)}</td>${orden.map(c => `<td>${cols[c]}</td>`).join('')}</tr></tbody></table></div>`;
         }
     }
+=======
+            let totalUnidadesCliente = clienteData.distribucion.reduce((total, item) => total + (parseInt(item.cantidad) || 0), 0);
+            const distribucionOrdenada = [...clienteData.distribucion].sort((a, b) => {
+                const sizeA = print_parseSize(a.talla);
+                const sizeB = print_parseSize(b.talla);
+                if (sizeA.rank !== sizeB.rank) return sizeA.rank - sizeB.rank;
+                return a.color.localeCompare(b.color, "es", { sensitivity: "base" });
+            });
+            html += `<div class="section"><div class="section-title">DISTRIBUCIÓN (${totalUnidadesCliente}) ${clienteNombre} </div><table><thead><tr><th>Código</th><th>Color</th><th>Talla</th><th>Cantidad</th></tr></thead><tbody>`;
+            distribucionOrdenada.forEach(item => {
+                html += `<tr><td>${item.codigo}</td><td>${item.color}</td><td>${item.talla}</td><td>${item.cantidad}</td></tr>`;
+            });
+            html += `<tr class="total"><td colspan="3">TOTAL</td><td>${totalUnidadesCliente}</td></tr></tbody></table></div>`;
+        } else if (!isModoCliente) {
+            let clientes = Object.keys(datos.DISTRIBUCION.Clientes);
+            let principales = [], secundarias = [], mayoristas = [];
+            let distribucionFinal = {};
+            let porcentajes = {};
+
+            clientes.forEach(cliente => {
+                porcentajes[cliente] = datos.DISTRIBUCION.Clientes[cliente].porcentaje || '';
+                let tipo = datos.DISTRIBUCION.Clientes[cliente].tipoEmpresa || "";
+                if (tipo.includes("Principal")) principales.push(cliente);
+                else if (tipo.includes("Secundaria")) secundarias.push(cliente);
+                else mayoristas.push(cliente);
+            });
+
+            let clientesOrdenados = (isModoPrincipal && !soloImpresionPrincipal) ? principales : [...principales, ...secundarias, ...mayoristas];
+
+            clientesOrdenados.forEach(cliente => {
+                datos.DISTRIBUCION.Clientes[cliente].distribucion.forEach(({ codigo, color, talla, cantidad }) => {
+                    let key = `${codigo}-${talla}-${color}`;
+                    if (!distribucionFinal[key]) {
+                        distribucionFinal[key] = { codigo, color, talla, cantidadTotal: 0 };
+                        clientesOrdenados.forEach(c => distribucionFinal[key][c] = 0);
+                    }
+                    distribucionFinal[key].cantidadTotal += cantidad;
+                    distribucionFinal[key][cliente] += cantidad;
+                });
+            });
+
+            const todasLasFilas = Object.values(distribucionFinal).sort((a, b) => {
+                const sizeA = print_parseSize(a.talla);
+                const sizeB = print_parseSize(b.talla);
+                if (sizeA.rank !== sizeB.rank) return sizeA.rank - sizeB.rank;
+                return a.color.localeCompare(b.color, "es", { sensitivity: "base" });
+            });
+
+            html += `<div class="section"><div class="section-title">DISTRIBUCIÓN (${clientesOrdenados.length})</div><table><thead><tr><th>Código</th><th>Color</th><th>Talla</th><th>Total</th>`;
+            clientesOrdenados.forEach(cliente => {
+                html += `<th>${cliente}${porcentajes[cliente] ? '<br>' + porcentajes[cliente] : ''}</th>`;
+            });
+            html += `</tr></thead><tbody>`;
+
+            let totalPorCliente = {};
+            todasLasFilas.forEach(row => {
+                html += `<tr><td>${row.codigo}</td><td>${row.color}</td><td>${row.talla}</td><td>${row.cantidadTotal}</td>`;
+                clientesOrdenados.forEach(cliente => {
+                    html += `<td>${row[cliente]}</td>`;
+                    totalPorCliente[cliente] = (totalPorCliente[cliente] || 0) + row[cliente];
+                });
+                html += `</tr>`;
+            });
+
+            let totalGeneral = Object.values(totalPorCliente).reduce((sum, val) => sum + val, 0);
+            html += `<tr class="total"><td colspan="3">TOTALES</td><td>${totalGeneral}</td>`;
+            clientesOrdenados.forEach(cliente => html += `<td>${totalPorCliente[cliente]}</td>`);
+            html += `</tr></tbody></table></div>`;
+        }
+    }
+
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
     return html;
 }
 
@@ -206,11 +394,17 @@ function print_getEstilosOriginales(esLote = false) {
     return `
     <style>
         @page { size: letter; margin: 0.5cm; }
+<<<<<<< HEAD
         
         tr:nth-child(even):not(:last-child) { background-color: #f8fafc; }
         tr:last-child { background-color: white !important; }
         @media screen { tr:hover { background-color: #e3f2fd; } }
         
+=======
+        tr:nth-child(even):not(:last-child) { background-color: #f8fafc; }
+        tr:last-child { background-color: white !important; }
+        @media screen { tr:hover { background-color: #e3f2fd; } }
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
         @media print {
             tr:nth-child(even):not(:last-child) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             tr:last-child { background-color: white !important; }
@@ -221,6 +415,7 @@ function print_getEstilosOriginales(esLote = false) {
             tr { page-break-inside: avoid !important; page-break-after: auto !important; }
             th { position: relative !important; top: auto !important; }
             .no-print { display: none !important; }
+<<<<<<< HEAD
 
             .lote-separator { display: block !important; position: relative !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
             .print-unit { display: block !important; width: 100% !important; page-break-after: always !important; break-after: page !important; }
@@ -274,6 +469,42 @@ function print_getEstilosOriginales(esLote = false) {
     </style>`;
 }
 
+=======
+            .lote-separator { break-before: right !important; page-break-before: right !important; }
+            .print-unit { page-break-after: always; }
+        }
+        .info-grid .info-item:nth-child(1) .info-value, .info-grid .info-item:nth-child(2) .info-value, .info-grid .info-item:nth-child(3) .info-value { font-weight: bold; font-size: 11pt; }
+        .info-grid .info-item:nth-child(4) .info-value, .info-grid .info-item:nth-child(5) .info-value { border-left: 4px solid #3498db; padding-left: 8px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; width: 7.5in; margin: 0 auto; padding: 10px; font-size: 10pt; line-height: 1.4; color: #333; }
+        .header-container { display: flex; justify-content: space-between; margin-bottom: 10px; page-break-after: avoid; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .info-container { flex: 1; min-width: 0; }
+        .codes-container { display: flex; flex-direction: column; align-items: flex-end; margin-left: 15px; }
+        .qr-container { text-align: center; margin-bottom: 10px; }
+        .qr-code { width: 120px; height: 120px; padding: 5px; background: white; }
+        .barcode { display: block; margin-top: 0px; max-height: 35px; height: auto; width: auto; }
+        .title-section { text-align: center; margin-bottom: 10px; }
+        .provider-name { font-weight: bold; font-size: 16pt; margin: 5px 0; color: #2c3e50; text-transform: uppercase; }
+        .subtitle { font-size: 11pt; margin: 5px 0; color: #7f8c8d; font-style: italic; }
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; font-size: 9pt; }
+        .info-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; font-size: 9pt; }
+        .info-item { display: flex; align-items: center; }
+        .info-label { font-weight: 600; min-width: 70px; color: #34495e; }
+        .info-value { flex: 1; padding-left: 5px; border-left: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt; page-break-inside: avoid; }
+        th, td { border: 1px solid #ddd; padding: 5px; text-align: left; }
+        th { background-color: #f8f9fa; font-weight: 600; color: #2c3e50; position: sticky; top: 0; }
+        .section-title { font-weight: bold; font-size: 11pt; margin: 10px 0 5px 0; color: #2c3e50; padding: 5px 10px; background-color: #f8f9fa; border-left: 4px solid #3498db; }
+        .footer { margin-top: 15px; font-size: 8pt; color: #777; text-align: right; }
+        tr.total td { font-weight: bold !important; color: #2c3e50; }
+        .code-display { font-weight: bold; text-align: center; margin-top: 3px; }
+        .pill-bar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 25px; border-radius: 50px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); display: flex; gap: 15px; z-index: 10000; border: 1px solid #ddd; align-items: center; }
+        .btn-pill-primary { background: #3498db; color: white; border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; }
+        .btn-pill-success { background: #2ecc71; color: white; border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; }
+        .btn-pill-secondary { background: #f8f9fa; color: #333; border: 1px solid #ddd; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
+    </style>`;
+}
+
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
 function print_getScriptsOriginales() {
     return `
     <script>
@@ -292,6 +523,7 @@ function print_getScriptsOriginales() {
             a.click();
             URL.revokeObjectURL(url);
         }
+<<<<<<< HEAD
 
         function print_vincularLogicaDuplex() {
             const units = document.querySelectorAll('.print-unit');
@@ -311,11 +543,14 @@ function print_getScriptsOriginales() {
             });
         }
         window.addEventListener('load', () => setTimeout(print_vincularLogicaDuplex, 200));
+=======
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
     </script>`;
 }
 
 function print_parseSize(size) {
     const sizeOrder = { "XXXS": 1, "XXS": 2, "XS": 3, "S": 4, "M": 5, "L": 6, "XL": 7, "XXL": 8, "XXXL": 9 };
+<<<<<<< HEAD
     const match = String(size || '').match(/^(\\d+)?(XXXS|XXS|XS|S|M|L|XL|XXB|XXL|XXXL)?$/);
     if (!match) return { numPart: null, rank: 99, textPart: "" };
     if (!match[1] && match[2]) return { numPart: null, rank: sizeOrder[match[2]] || 99, textPart: match[2] };
@@ -326,4 +561,20 @@ function print_parseSize(size) {
     }
     if (match[1] && !match[2]) return { numPart: parseInt(match[1]), rank: parseInt(match[1]), textPart: "" };
     return { numPart: null, rank: 99, textPart: "" };
+=======
+    const match = String(size || '').match(/^(\d+)?(XXXS|XXS|XS|S|M|L|XL|XXB|XXL|XXXL)?$/);
+    if (!match) return { numPart: null, rank: 99 };
+    if (!match[1] && match[2]) return { numPart: null, rank: sizeOrder[match[2]] || 99 };
+    if (match[1] && match[2]) {
+        const num = parseInt(match[1]);
+        const text = match[2];
+        let rank = 99;
+        if (text === "XS") rank = 4 - num;
+        else if (text === "XL") rank = 6 + num;
+        else rank = sizeOrder[text] || 99;
+        return { numPart: num, rank };
+    }
+    if (match[1] && !match[2]) return { numPart: parseInt(match[1]), rank: parseInt(match[1]) };
+    return { numPart: null, rank: 99 };
+>>>>>>> 0a0f9de9c414931de46b1d7eef89a5d62738615b
 }
