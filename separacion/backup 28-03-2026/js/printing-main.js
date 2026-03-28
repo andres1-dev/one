@@ -1,40 +1,20 @@
-let datosGlobales = [];
+window.printingDatosGlobales = [];
+window.printingModuleInitialized = false;
+
+// Declarar datosGlobales como variable global real para compatibilidad con documents-table.js
+// documents-table.js hace: typeof datosGlobales !== 'undefined'
+// Con var en scope global, siempre existe; se llenará cuando carguen los datos
+var datosGlobales = [];
 
 // Función para cargar los datos desde la API
-async function cargarDatos() {
-    document.getElementById("loader").style.display = "block";
-    document.getElementById("resultado").innerHTML = "<p>Cargando datos...</p>";
+async function print_cargarDatos() {
+    const loader = document.getElementById("printLoader");
+    const resultContainer = document.getElementById("printResultContainer");
+
+    if (loader) loader.style.display = "block";
+    if (resultContainer) resultContainer.innerHTML = "<div class='loading-spinner-large'></div><p style='text-align:center'>Cargando datos del sistema de impresión...</p>";
 
     try {
-        // Verificar si debemos cargar desde Sheets o desde Firebase
-        const shouldLoadFromSheets = await window.firebaseCache.shouldLoadFromSheets();
-
-        if (!shouldLoadFromSheets) {
-            // Intentar cargar desde caché
-            let cachedData = await window.firebaseCache.loadFromCache();
-            
-            // Si no hay caché, esperar a que el líder lo cree
-            if (!cachedData) {
-                console.log('[Cache] Esperando datos del líder...');
-                cachedData = await window.firebaseCache.waitForCache();
-            }
-
-            if (cachedData) {
-                // Usar datos del caché
-                datosGlobales = cachedData.datosGlobales;
-                window.datosTablaDocumentos = cachedData.datosTablaDocumentos;
-                window.responsablesGlobales = cachedData.responsables;
-                
-                console.log('[Cache] ✅ Datos cargados desde Firebase (sin usar API de Sheets)');
-                document.getElementById("loader").style.display = "none";
-                document.getElementById("resultado").innerHTML = "";
-                return;
-            }
-        }
-
-        // Si llegamos aquí, somos el líder o no hay caché válido
-        console.log('[Cache] 👑 Cargando datos desde Google Sheets...');
-
         // Configuración
         const SPREADSHEET_IDS = {
             main: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
@@ -153,12 +133,11 @@ async function cargarDatos() {
                 fetchSheetData(SPREADSHEET_IDS.main, "DATA2!S2:S"),
                 fetchSheetData(SPREADSHEET_IDS.rec, "DataBase!A2:AG"),
                 fetchSheetData(SPREADSHEET_IDS.clientes, "CLIENTES!A2:I"),
-                fetchSheetData(SPREADSHEET_IDS.clientes, "DATA!A2:K") // Updated to A2:K for unified access
+                fetchSheetData(SPREADSHEET_IDS.clientes, "DATA!A2:K")
             ]);
 
-            // Expose the raw data for documents-table3.js
+            // Exponer datos crudos para documents-table.js
             window.datosTablaDocumentos = dataValues;
-            console.log("Datos brutos de DATA cargados globalmente (cols A-K):", dataValues ? dataValues.length : 0);
 
             return { data2Values, recValues, clientesValues, dataValues };
         }
@@ -181,7 +160,7 @@ async function cargarDatos() {
                             clienteDistribucionMap[documento] = parsed.Clientes;
                         }
                     } catch (e) {
-                        console.error("Error parseando JSON de distribución:", e.message, "Documento:", documento);
+                        // Error parseando JSON de distribución
                     }
                 }
             }
@@ -227,7 +206,7 @@ async function cargarDatos() {
                         ESCANER: jsonData.ESCANER || '',
                         LOTE: Number(jsonData.LOTE) || 0,
                         REFPROV: String(jsonData.REFPROV || ''),
-                        DESCRIPCIÓN: jsonData.DESCRIPCIÓN_LARGA || '',
+                        DESCRIPCIÓN: jsonData.DESCRIPCIÓN || '',
                         CANTIDAD: Number(jsonData.CANTIDAD) || 0,
                         REFERENCIA: jsonData.REFERENCIA || '',
                         TIPO: jsonData.TIPO || '',
@@ -242,7 +221,6 @@ async function cargarDatos() {
                         REC: jsonData.A // Mantener compatibilidad con tu código original
                     };
                 } catch (e) {
-                    console.error("Error al parsear JSON:", e.message, row[0]);
                     return null;
                 }
             }).filter(item => item !== null);
@@ -556,34 +534,52 @@ async function cargarDatos() {
         });
 
         // Almacenar datos globalmente y actualizar UI
+        window.printingDatosGlobales = resultadoFinal;
+        // Compatibilidad con documents-table.js que usa datosGlobales y cargarDatos
+        window.datosGlobales = resultadoFinal;
         datosGlobales = resultadoFinal;
-        document.getElementById("loader").style.display = "none";
-        document.getElementById("resultado").innerHTML = "<p>Datos cargados correctamente. Ingrese un documento para buscar.</p>";
+        if (loader) loader.style.display = "none";
 
-        // Guardar en caché de Firebase (solo si somos el líder)
-        if (window.firebaseCache && window.firebaseCache.isLeader) {
-            await window.firebaseCache.saveToCache({
-                datosGlobales: datosGlobales,
-                datosTablaDocumentos: window.datosTablaDocumentos,
-                responsables: window.responsablesGlobales
-            });
+        if (resultContainer) {
+            resultContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fa-solid fa-print empty-icon"></i>
+                    <h5>Sin datos para mostrar</h5>
+                    <p>Ingrese un documento para buscar información de impresión.</p>
+                </div>
+            `;
         }
 
+        window.printingModuleInitialized = true;
         return resultadoFinal;
+
     } catch (error) {
-        document.getElementById("loader").style.display = "none";
-        document.getElementById("resultado").innerHTML = `<p>Error al cargar datos: ${error.message}</p>`;
+        if (loader) loader.style.display = "none";
+        if (resultContainer) {
+            resultContainer.innerHTML = `
+                <div style="color: var(--error); padding: 20px; text-align: center;">
+                    <i class="codicon codicon-error" style="font-size: 32px; margin-bottom: 15px;"></i>
+                    <p>Error al cargar datos: ${error.message}</p>
+                    <button class="btn-primary" onclick="print_cargarDatos()" style="margin-top: 15px;">
+                        <i class="codicon codicon-refresh"></i> Reintentar
+                    </button>
+                </div>`;
+        }
         throw error;
     }
 }
 
-// Cargar los datos al iniciar la página y exponer la promesa
-(async function() {
-    // Inicializar caché de Firebase
-    if (window.firebaseCache) {
-        await window.firebaseCache.init();
+// Inicialización controlada
+function initPrintingModule() {
+    if (window.printingDatosGlobales && window.printingDatosGlobales.length > 0) {
+        return;
     }
-    
-    // Cargar datos
-    window.loaderPromise = cargarDatos();
-})();
+
+    if (!window.printingModuleInitialized) {
+        print_cargarDatos();
+    }
+}
+
+// Aliases de compatibilidad para documents-table.js (que espera nombres del backup)
+window.cargarDatos = print_cargarDatos;
+window.loaderPromise = print_cargarDatos();

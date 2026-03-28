@@ -25,10 +25,6 @@ function doPost(e) {
     let result;
     
     switch(action) {
-      case 'obtenerDocumento':
-        result = obtenerDocumento(id);
-        break;
-        
       case 'asignarResponsable':
         const responsable = e.parameter.responsable;
         if (!responsable) {
@@ -359,48 +355,13 @@ function restablecerTarea(id, password) {
   };
 }
 
-// Función para obtener un documento específico
-function obtenerDocumento(id) {
-  const range = `${SHEET_NAME}!A:K`;
-  const response = Sheets.Spreadsheets.Values.get(SPREADSHEET_ID, range);
-  const data = response.values;
-  
-  if (!data || data.length === 0) {
-    throw new Error('No se encontraron datos en la hoja');
-  }
-  
-  const index = data.findIndex((row, i) => i > 0 && row[0] === id);
-  if (index === -1) {
-    throw new Error('ID no encontrado: ' + id);
-  }
-
-  const row = data[index];
-  
-  return {
-    message: 'Documento encontrado',
-    data: {
-      documento: row[0] || '',
-      fechaHora: row[1] || '',
-      distribucion: row[2] || '',
-      estado: row[3] || '',
-      colaborador: row[4] || '',
-      datetime_inicio: row[5] || '',
-      datetime_fin: row[6] || '',
-      duracion_guardada: row[7] || '',
-      pausas: row[8] || '',
-      datetime_pausas: row[9] || '',
-      duracion_pausas: row[10] || ''
-    }
-  };
-}
-
 // Función doGet para probar el servicio (opcional)
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
     success: true,
     message: 'Servicio funcionando correctamente',
     endpoints: [
-      'POST / - obtenerDocumento, asignarResponsable, pausar, reanudar, finalizar, restablecer'
+      'POST / - asignarResponsable, pausar, reanudar, finalizar, restablecer'
     ]
   })).setMimeType(ContentService.MimeType.JSON);
 }
