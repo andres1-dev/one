@@ -1340,12 +1340,11 @@ function generarSelectResponsables(rec, responsableActual = '', todosDocumentos,
     } else {
         const tieneResponsable = responsableActual && responsableActual.trim() !== '';
         const texto = tieneResponsable ? responsableActual : 'Sin responsable';
-        const clase = tieneResponsable ? 'text-success' : 'text-muted';
         const icono = tieneResponsable ? 'fa-user-check' : 'fa-user';
 
         return `
-            <span class="${clase} small" title="Responsable asignado - No modificable">
-                <i class="fas ${icono} me-1"></i>${texto}
+            <span class="badge-responsable ${tieneResponsable ? 'asignado' : 'sin-asignar'}" title="Responsable asignado - No modificable">
+                <i class="fas ${icono}"></i> ${texto}
             </span>
         `;
     }
@@ -1443,15 +1442,20 @@ function inicializarDataTable(documentos) {
 
     documentosTable = table.DataTable({
         data: documentos,
+        dom: '<"card-header-controls"lf>rt<"bottom"ip>',
         columns: [
             {
                 data: 'rec',
+                className: 'control all', // Control para expandir + siempre visible
+                responsivePriority: 1,
                 render: function (data) {
                     return `REC${data}`;
                 }
             },
             {
                 data: 'estado',
+                className: 'none', // Oculto en móvil
+                responsivePriority: 3,
                 render: function (data) {
                     const clases = {
                         'PENDIENTE': 'badge bg-warning',
@@ -1465,12 +1469,16 @@ function inicializarDataTable(documentos) {
             },
             {
                 data: 'colaborador',
+                className: 'none', // Oculto en móvil
+                responsivePriority: 4,
                 render: function (data, type, row) {
                     return generarSelectResponsables(row.rec, data, documentos, row);
                 }
             },
             {
                 data: 'fecha',
+                className: 'none', // Oculto en móvil
+                responsivePriority: 5,
                 render: function (data, type, row) {
                     const fechaCompleta = row.fecha_completa || data;
                     return `
@@ -1482,6 +1490,8 @@ function inicializarDataTable(documentos) {
             },
             {
                 data: null,
+                className: 'none', // Oculto en móvil
+                responsivePriority: 6,
                 render: function (data) {
                     const duracion = calcularDuracionDesdeSheets(data);
                     const clase = data.estado === 'PAUSADO' ? 'text-warning' :
@@ -1491,35 +1501,52 @@ function inicializarDataTable(documentos) {
             },
             {
                 data: 'cantidad',
+                className: 'none', // Oculto en móvil
+                responsivePriority: 7,
                 render: function (data) {
                     return data ? `<span class="badge bg-light text-dark">${data}</span>` : '-';
                 }
             },
             {
                 data: 'prenda',
+                className: 'none', // Oculto en móvil
+                responsivePriority: 8,
                 render: function (data) {
                     return data ? `<span class="small">${data}</span>` : '-';
                 }
             },
             {
                 data: 'lote',
+                className: 'none', // Oculto en móvil
+                responsivePriority: 9,
                 render: function (data) {
                     return data ? `<span class="small">${data}</span>` : '-';
                 }
             },
             {
                 data: 'refProv',
+                className: 'none', // Oculto en móvil
+                responsivePriority: 10,
                 render: function (data) {
                     return data ? `<span class="small">${data}</span>` : '-';
                 }
             },
             {
                 data: null,
+                className: 'all', // Siempre visible
+                responsivePriority: 2,
+                orderable: false,
                 render: function (data) {
                     return obtenerBotonesAccion(data);
                 }
             }
         ],
+        responsive: {
+            details: {
+                type: 'column',
+                target: 'td.control'
+            }
+        },
         language: {
             "decimal": "",
             "emptyTable": "No hay datos disponibles en la tabla",
@@ -1528,10 +1555,11 @@ function inicializarDataTable(documentos) {
             "infoFiltered": "(filtrado de _MAX_ registros totales)",
             "infoPostFix": "",
             "thousands": ",",
-            "lengthMenu": "Mostrar _MENU_ registros",
+            "lengthMenu": "_MENU_ registros por página",
             "loadingRecords": "Cargando...",
             "processing": "Procesando...",
-            "search": "Buscar:",
+            "search": "",
+            "searchPlaceholder": "Buscar documentos...",
             "zeroRecords": "No se encontraron registros coincidentes",
             "paginate": {
                 "first": "Primero",
@@ -1550,10 +1578,10 @@ function inicializarDataTable(documentos) {
         ],
         pageLength: 5,
         order: [[2, 'asc']],
-        responsive: true,
         autoWidth: false,
         stateSave: true,
         stateDuration: -1,
+        pagingType: 'simple_numbers', // Anterior, números, Siguiente
         createdRow: function (row, data, dataIndex) {
             if (data.estado !== 'PAUSADO' && data.estado !== 'FINALIZADO' && data.datetime_inicio) {
                 if (!timers[data.rec]) {
@@ -1600,6 +1628,22 @@ function inicializarDataTable(documentos) {
             documentosTable.search('').draw();
         }
     });
+
+    // Personalizar los labels de DataTables
+    setTimeout(() => {
+        // Ocultar texto del label de length
+        $('.dataTables_length label').contents().filter(function() {
+            return this.nodeType === 3; // Text nodes
+        }).remove();
+        
+        // Ocultar texto del label de filter
+        $('.dataTables_filter label').contents().filter(function() {
+            return this.nodeType === 3; // Text nodes
+        }).remove();
+        
+        // Agregar placeholder al input de búsqueda si no existe
+        $('.dataTables_filter input[type="search"]').attr('placeholder', 'Buscar documentos...');
+    }, 100);
 }
 
 /**
