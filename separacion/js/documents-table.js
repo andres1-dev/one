@@ -160,60 +160,6 @@ async function llamarAPI(params) {
     }
 }
 
-// Función para actualizar solo una fila desde el API (optimización para evitar 429)
-async function actualizarFilaDesdeAPI(rec) {
-    try {
-        console.log('[Sync] Actualizando solo REC:', rec);
-        
-        // Obtener datos del documento específico desde el API
-        const result = await llamarAPI({
-            action: 'obtenerDocumento',
-            id: rec
-        });
-
-        if (!result.success || !result.data) {
-            console.error('[Sync] Error al obtener documento:', result.message);
-            return;
-        }
-
-        const docData = result.data;
-        
-        // Actualizar window.datosTablaDocumentos
-        if (window.datosTablaDocumentos) {
-            const index = window.datosTablaDocumentos.findIndex(row => row[0] === rec);
-            if (index !== -1) {
-                window.datosTablaDocumentos[index] = [
-                    docData.documento,
-                    docData.fechaHora,
-                    docData.distribucion,
-                    docData.estado,
-                    docData.colaborador,
-                    docData.datetime_inicio,
-                    docData.datetime_fin,
-                    docData.duracion_guardada,
-                    docData.pausas,
-                    docData.datetime_pausas,
-                    docData.duracion_pausas
-                ];
-            }
-        }
-
-        // Actualizar la fila en la tabla visual
-        await actualizarFilaEspecifica(rec);
-        
-        // Actualizar tarjetas de resumen
-        await actualizarDatosGlobales();
-        
-        console.log('[Sync] ✅ Fila actualizada exitosamente');
-        
-    } catch (error) {
-        console.error('[Sync] Error al actualizar fila:', error);
-        // Si falla, recargar todo como fallback
-        console.log('[Sync] Fallback: recargando tabla completa');
-        cargarTablaDocumentos();
-    }
-}
-
 async function actualizarFilaEspecifica(rec) {
     if (!documentosTable) return;
 
@@ -723,11 +669,6 @@ async function cargarTablaDocumentos() {
             loader.style.display = 'block';
         }
 
-        // FORZAR RECARGA DE DATOS DESDE GOOGLE SHEETS
-        if (typeof window.cargarDatos === 'function') {
-            await window.cargarDatos();
-        }
-
         await cargarResponsables();
 
         if (documentosTable) {
@@ -934,16 +875,6 @@ async function cambiarResponsable(rec, responsable) {
         if (result.success) {
             await mostrarNotificacion('✓ Asignado', responsable, 'success');
 
-            // Notificar cambio a otras pestañas INMEDIATAMENTE
-            if (window.syncManager) {
-                window.syncManager.notifyChange('cambiarResponsable', rec, { responsable });
-            }
-
-            // Recargar datos desde Google Sheets
-            if (typeof window.cargarDatos === 'function') {
-                await window.cargarDatos();
-            }
-
             await actualizarDatosGlobales();
             await cargarTablaDocumentos();
 
@@ -1063,16 +994,6 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
 
                 await mostrarNotificacion('✓ Finalizado', `REC${rec} completado`, 'success');
                 
-                // Notificar cambio a otras pestañas INMEDIATAMENTE
-                if (window.syncManager) {
-                    window.syncManager.notifyChange('cambiarEstado', rec, { nuevoEstado: 'FINALIZADO' });
-                }
-                
-                // Recargar datos desde Google Sheets
-                if (typeof window.cargarDatos === 'function') {
-                    await window.cargarDatos();
-                }
-                
                 // RECARGAR COMPLETA SOLO PARA FINALIZADO
                 await actualizarInmediatamente(true);
 
@@ -1123,11 +1044,6 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 }
 
                 await mostrarNotificacion('✓ Finalizado', `REC${rec} completado`, 'success');
-                
-                // Notificar cambio a otras pestañas
-                if (window.syncManager) {
-                    window.syncManager.notifyChange('cambiarEstado', rec, { nuevoEstado: 'FINALIZADO' });
-                }
                 
                 // RECARGAR COMPLETA PARA FINALIZADO
                 await actualizarInmediatamente(true);
@@ -1190,16 +1106,6 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             }
 
             await mostrarNotificacion('✓ Actualizado', `${nuevoEstado}`, 'success');
-
-            // Notificar cambio a otras pestañas INMEDIATAMENTE
-            if (window.syncManager) {
-                window.syncManager.notifyChange('cambiarEstado', rec, { nuevoEstado });
-            }
-
-            // Recargar datos desde Google Sheets
-            if (typeof window.cargarDatos === 'function') {
-                await window.cargarDatos();
-            }
 
             // ACTUALIZACIÓN PARCIAL (solo la fila)
             await actualizarFilaEspecifica(rec);
@@ -1284,16 +1190,6 @@ async function restablecerDocumento(rec) {
 
             await mostrarNotificacion('✓ Restablecido', `REC${rec}`, 'success');
 
-            // Notificar cambio a otras pestañas INMEDIATAMENTE
-            if (window.syncManager) {
-                window.syncManager.notifyChange('restablecer', rec);
-            }
-
-            // Recargar datos desde Google Sheets
-            if (typeof window.cargarDatos === 'function') {
-                await window.cargarDatos();
-            }
-
             // RECARGAR COMPLETA PARA RESTABLECER
             await actualizarInmediatamente(true);
 
@@ -1359,11 +1255,7 @@ function obtenerBotonesAccion(data) {
 
     let botonesEstado = '';
 
-    // Si no hay responsable en estados DIRECTO o PENDIENTE, deshabilitar todas las acciones
-    const sinResponsableEnEstadoInicial = !tieneColaborador && (data.estado === 'DIRECTO' || data.estado === 'PENDIENTE');
-    const puedePausar = data.estado !== 'DIRECTO' && tieneColaborador;
-    const puedeFinalizar = tieneColaborador && data.estado !== 'FINALIZADO';
-    const puedeRestablecer = tieneColaborador;
+    const puedePausar = data.estado !== 'DIRECTO';
 
     const botonImprimir = `
         <button class="btn ${puedeImprimir ? 'btn-primary' : 'btn-secondary'}" 
@@ -1376,42 +1268,38 @@ function obtenerBotonesAccion(data) {
     if (data.estado === 'PAUSADO') {
         botonesEstado = `
             <button class="btn btn-success" 
-                    ${tieneColaborador ? '' : 'disabled'}
-                    onclick="${tieneColaborador ? `cambiarEstadoDocumento('${data.rec}', 'ELABORACION')` : ''}"
-                    title="${tieneColaborador ? 'Reanudar documento' : 'Debe seleccionar un responsable'}">
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'ELABORACION')"
+                    title="Reanudar documento">
                 <i class="fas fa-play"></i>
             </button>`;
     } else if (data.estado === 'ELABORACION') {
         botonesEstado = `
             <button class="btn btn-warning" 
-                    ${tieneColaborador ? '' : 'disabled'}
-                    onclick="${tieneColaborador ? `cambiarEstadoDocumento('${data.rec}', 'PAUSADO')` : ''}"
-                    title="${tieneColaborador ? 'Pausar documento' : 'Debe seleccionar un responsable'}">
+                    onclick="cambiarEstadoDocumento('${data.rec}', 'PAUSADO')"
+                    title="Pausar documento">
                 <i class="fas fa-pause"></i>
             </button>`;
     } else if (data.estado === 'PENDIENTE' || data.estado === 'DIRECTO') {
         botonesEstado = `
             <button class="btn btn-warning" 
-                    ${puedePausar ? '' : 'disabled'}
+                    ${!puedePausar ? 'disabled' : ''}
                     onclick="${puedePausar ? `cambiarEstadoDocumento('${data.rec}', 'PAUSADO')` : ''}"
-                    title="${!tieneColaborador ? 'Debe seleccionar un responsable' : (data.estado === 'DIRECTO' ? 'No se puede pausar en estado DIRECTO' : 'Pausar documento')}">
+                    title="${puedePausar ? 'Pausar documento' : 'No se puede pausar en estado DIRECTO'}">
                 <i class="fas fa-pause"></i>
             </button>`;
     }
 
     const botonFinalizar = data.estado !== 'FINALIZADO' ? `
         <button class="btn btn-info" 
-                ${puedeFinalizar ? '' : 'disabled'}
-                onclick="${puedeFinalizar ? `cambiarEstadoDocumento('${data.rec}', 'FINALIZADO')` : ''}"
-                title="${puedeFinalizar ? 'Finalizar documento' : 'Debe seleccionar un responsable'}">
+                onclick="cambiarEstadoDocumento('${data.rec}', 'FINALIZADO')"
+                title="Finalizar documento">
             <i class="fas fa-check"></i>
         </button>` : '';
 
     const botonRestablecer = `
         <button class="btn btn-danger" 
-                ${puedeRestablecer ? '' : 'disabled'}
-                onclick="${puedeRestablecer ? `restablecerDocumento('${data.rec}')` : ''}"
-                title="${puedeRestablecer ? 'Restablecer documento' : 'Debe seleccionar un responsable'}">
+                onclick="restablecerDocumento('${data.rec}')"
+                title="Restablecer documento">
             <i class="fas fa-undo"></i>
         </button>`;
 
@@ -1944,39 +1832,6 @@ $(document).ready(function () {
         const checkDataLoaded = setInterval(() => {
             if (typeof datosGlobales !== 'undefined') {
                 clearInterval(checkDataLoaded);
-
-                // Inicializar sistema de sincronización
-                if (window.syncManager) {
-                    window.syncManager.init(async (data) => {
-                        console.log('[App] Cambio detectado desde otra pestaña:', data);
-                        
-                        // Si es actualización parcial, solo actualizar esa fila
-                        if (data.updateType === 'partial' && data.rec) {
-                            console.log('[App] Actualización parcial para REC:', data.rec);
-                            
-                            // Mostrar notificación sutil
-                            mostrarNotificacion(
-                                'Actualización',
-                                `Documento ${data.rec} actualizado`,
-                                'info'
-                            );
-                            
-                            // Actualizar solo esa fila desde el API
-                            await actualizarFilaDesdeAPI(data.rec);
-                        } else {
-                            // Actualización completa (fallback)
-                            mostrarNotificacion(
-                                'Actualización',
-                                'Recargando datos...',
-                                'info'
-                            );
-                            
-                            setTimeout(() => {
-                                cargarTablaDocumentos();
-                            }, 500);
-                        }
-                    });
-                }
 
                 if (document.getElementById('filtroFecha')) {
                     window.flatpickrInstance = flatpickr("#filtroFecha", {

@@ -6,35 +6,6 @@ async function cargarDatos() {
     document.getElementById("resultado").innerHTML = "<p>Cargando datos...</p>";
 
     try {
-        // Verificar si debemos cargar desde Sheets o desde Firebase
-        const shouldLoadFromSheets = await window.firebaseCache.shouldLoadFromSheets();
-
-        if (!shouldLoadFromSheets) {
-            // Intentar cargar desde caché
-            let cachedData = await window.firebaseCache.loadFromCache();
-            
-            // Si no hay caché, esperar a que el líder lo cree
-            if (!cachedData) {
-                console.log('[Cache] Esperando datos del líder...');
-                cachedData = await window.firebaseCache.waitForCache();
-            }
-
-            if (cachedData) {
-                // Usar datos del caché
-                datosGlobales = cachedData.datosGlobales;
-                window.datosTablaDocumentos = cachedData.datosTablaDocumentos;
-                window.responsablesGlobales = cachedData.responsables;
-                
-                console.log('[Cache] ✅ Datos cargados desde Firebase (sin usar API de Sheets)');
-                document.getElementById("loader").style.display = "none";
-                document.getElementById("resultado").innerHTML = "";
-                return;
-            }
-        }
-
-        // Si llegamos aquí, somos el líder o no hay caché válido
-        console.log('[Cache] 👑 Cargando datos desde Google Sheets...');
-
         // Configuración
         const SPREADSHEET_IDS = {
             main: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
@@ -560,15 +531,6 @@ async function cargarDatos() {
         document.getElementById("loader").style.display = "none";
         document.getElementById("resultado").innerHTML = "<p>Datos cargados correctamente. Ingrese un documento para buscar.</p>";
 
-        // Guardar en caché de Firebase (solo si somos el líder)
-        if (window.firebaseCache && window.firebaseCache.isLeader) {
-            await window.firebaseCache.saveToCache({
-                datosGlobales: datosGlobales,
-                datosTablaDocumentos: window.datosTablaDocumentos,
-                responsables: window.responsablesGlobales
-            });
-        }
-
         return resultadoFinal;
     } catch (error) {
         document.getElementById("loader").style.display = "none";
@@ -578,12 +540,4 @@ async function cargarDatos() {
 }
 
 // Cargar los datos al iniciar la página y exponer la promesa
-(async function() {
-    // Inicializar caché de Firebase
-    if (window.firebaseCache) {
-        await window.firebaseCache.init();
-    }
-    
-    // Cargar datos
-    window.loaderPromise = cargarDatos();
-})();
+window.loaderPromise = cargarDatos();
