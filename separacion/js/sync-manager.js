@@ -78,15 +78,8 @@ class SyncManager {
 
         console.log('[Firebase] ✅ Escuchando cambios en tiempo real');
         
-        // Limpiar eventos antiguos al iniciar
+        // Limpiar eventos antiguos (más de 1 hora)
         this.cleanOldEvents();
-        this.cleanExcessEvents();
-        
-        // Programar limpieza automática cada 5 minutos
-        setInterval(() => {
-          this.cleanOldEvents();
-          this.cleanExcessEvents();
-        }, 5 * 60 * 1000); // Cada 5 minutos
         
       } catch (error) {
         console.error('[Firebase] Error al configurar listeners:', error);
@@ -155,87 +148,21 @@ class SyncManager {
     }
   }
 
-  // Limpiar eventos antiguos de Firebase
+  // Limpiar eventos antiguos de Firebase (más de 1 hora)
   cleanOldEvents() {
     if (!window.isFirebaseInitialized || !this.firebaseRef) return;
 
-    // Limpiar eventos de más de 5 minutos (300 segundos)
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
     
-    this.firebaseRef.orderByChild('timestamp').endAt(fiveMinutesAgo).once('value', (snapshot) => {
+    this.firebaseRef.orderByChild('timestamp').endAt(oneHourAgo).once('value', (snapshot) => {
       const updates = {};
-      let count = 0;
-      
       snapshot.forEach((child) => {
         updates[child.key] = null;
-        count++;
-      });
-      
-      if (count > 0) {
-        this.firebaseRef.update(updates);
-        console.log(`[Firebase] 🗑️ Limpiados ${count} eventos antiguos (>5 min)`);
-      }
-    });
-  }
-
-  // Limpiar eventos excesivos (mantener solo los últimos 50)
-  cleanExcessEvents() {
-    if (!window.isFirebaseInitialized || !this.firebaseRef) return;
-
-    this.firebaseRef.orderByChild('timestamp').once('value', (snapshot) => {
-      const events = [];
-      snapshot.forEach((child) => {
-        events.push({
-          key: child.key,
-          timestamp: child.val().timestamp
-        });
-      });
-
-      // Si hay más de 50 eventos, eliminar los más antiguos
-      if (events.length > 50) {
-        events.sort((a, b) => a.timestamp - b.timestamp);
-        const toDelete = events.slice(0, events.length - 50);
-        
-        const updates = {};
-        toDelete.forEach(event => {
-          updates[event.key] = null;
-        });
-
-        this.firebaseRef.update(updates);
-        console.log(`[Firebase] 🗑️ Limpiados ${toDelete.length} eventos excesivos (manteniendo últimos 50)`);
-      }
-    });
-  }
       });
       
       if (Object.keys(updates).length > 0) {
         this.firebaseRef.update(updates);
         console.log('[Firebase] Limpiados', Object.keys(updates).length, 'eventos antiguos');
-      }
-    });
-  }
-
-  // Limpiar TODOS los eventos (útil para mantenimiento)
-  cleanAllEvents() {
-    if (!window.isFirebaseInitialized || !this.firebaseRef) {
-      console.warn('[Firebase] No inicializado');
-      return;
-    }
-
-    this.firebaseRef.once('value', (snapshot) => {
-      const updates = {};
-      let count = 0;
-      
-      snapshot.forEach((child) => {
-        updates[child.key] = null;
-        count++;
-      });
-      
-      if (count > 0) {
-        this.firebaseRef.update(updates);
-        console.log(`[Firebase] 🗑️ Limpiados TODOS los eventos (${count} total)`);
-      } else {
-        console.log('[Firebase] No hay eventos para limpiar');
       }
     });
   }
