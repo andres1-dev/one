@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Usuario en Supabase Auth</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .quick-fill {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .quick-fill h3 {
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #374151;
+            font-weight: 600;
+        }
+        .quick-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        .quick-btn:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        button[type="submit"] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        button[type="submit"]:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 30px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .error { color: #ef4444; }
+        .success { color: #10b981; }
+        .info { color: #60a5fa; }
+        .warning { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👤 Crear Usuario en Supabase</h1>
+        <p class="subtitle">Crea usuarios uno por uno en Supabase Authentication</p>
+
+        <div class="quick-fill">
+            <h3>⚡ Usuarios predefinidos (clic para autocompletar):</h3>
+            <button class="quick-btn" onclick="fillUser(0)">CARLOS (OWNER)</button>
+            <button class="quick-btn" onclick="fillUser(1)">GUSTAVO (USER)</button>
+            <button class="quick-btn" onclick="fillUser(2)">MARIBEL (MODERATOR)</button>
+            <button class="quick-btn" onclick="fillUser(3)">KELLY (ADMIN)</button>
+            <button class="quick-btn" onclick="fillUser(4)">JUAN (GUEST)</button>
+        </div>
+
+        <form id="userForm" onsubmit="createUser(event)">
+            <div class="form-group">
+                <label for="userId">ID (Legacy)</label>
+                <input type="text" id="userId" required placeholder="1144167164">
+            </div>
+
+            <div class="form-group">
+                <label for="nombre">Nombre Completo</label>
+                <input type="text" id="nombre" required placeholder="CARLOS ANDRES MENDOZA ARIAS">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required placeholder="usuario@ejemplo.com">
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Teléfono</label>
+                <input type="text" id="phone" required placeholder="3168007979">
+            </div>
+
+            <div class="form-group">
+                <label for="rol">Rol</label>
+                <select id="rol" required>
+                    <option value="OWNER">OWNER</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="MODERATOR">MODERATOR</option>
+                    <option value="USER" selected>USER</option>
+                    <option value="GUEST">GUEST</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="text" id="password" required placeholder="Password123">
+            </div>
+
+            <button type="submit" id="submitBtn">Crear Usuario</button>
+        </form>
+
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const EDGE_FUNCTION_URL = 'https://iladaofarozipitwaeti.supabase.co/functions/v1/create-user';
+
+        const predefinedUsers = [
+            {
+                id: '1144167164',
+                nombre: 'CARLOS ANDRES MENDOZA ARIAS',
+                rol: 'OWNER',
+                email: 'coordinadorlogistico@eltemplodelamoda.com.co',
+                phone: '3168007979',
+                password: 'One654321'
+            },
+            {
+                id: '1143978191',
+                nombre: 'GUSTAVO ADOLFO CAICEDO CAICEDO',
+                rol: 'USER',
+                email: 'guspoetics1@icloud.com',
+                phone: '3207754869',
+                password: '654321'
+            },
+            {
+                id: '66994013',
+                nombre: 'MARIBEL GARCIA CASTRILLON',
+                rol: 'MODERATOR',
+                email: 'auditorinterno@tceluniverso.com',
+                phone: '3183154240',
+                password: 'Santi2830'
+            },
+            {
+                id: '1005935949',
+                nombre: 'KELLY TATIANA FERNANDEZ ASTUDILLO',
+                rol: 'ADMIN',
+                email: 'kelly123.ktfa@gmail.com',
+                phone: '3124824826',
+                password: '100593594'
+            },
+            {
+                id: '1010087925',
+                nombre: 'JUAN ESTEBAN ZULUAGA HOYOS',
+                rol: 'GUEST',
+                email: 'auxiliar3@tceluniverso.com',
+                phone: '573125514996',
+                password: 'Jz1010087925'
+            }
+        ];
+
+        function fillUser(index) {
+            const user = predefinedUsers[index];
+            document.getElementById('userId').value = user.id;
+            document.getElementById('nombre').value = user.nombre;
+            document.getElementById('email').value = user.email;
+            document.getElementById('phone').value = user.phone;
+            document.getElementById('rol').value = user.rol;
+            document.getElementById('password').value = user.password;
+            log(`📋 Formulario autocompletado: ${user.nombre}`, 'info');
+        }
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<span class="${type}">[${timestamp}] ${message}</span>\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function createUser(event) {
+            event.preventDefault();
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creando...';
+
+            const userData = {
+                id: document.getElementById('userId').value.trim(),
+                nombre: document.getElementById('nombre').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                rol: document.getElementById('rol').value,
+                password: document.getElementById('password').value
+            };
+
+            log(`🚀 Creando usuario: ${userData.nombre} (${userData.email})`, 'info');
+
+            try {
+                const response = await fetch(EDGE_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user: userData })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    log(`✅ Usuario creado exitosamente!`, 'success');
+                    log(`   📧 Email: ${result.user.email}`, 'success');
+                    log(`   🆔 Auth ID: ${result.user.auth_id}`, 'success');
+                    log(`   👤 Rol: ${result.user.rol}`, 'success');
+                    log(`   📱 Phone: ${result.user.phone}`, 'success');
+                    log('', 'info');
+                    
+                    // Limpiar formulario
+                    document.getElementById('userForm').reset();
+                } else {
+                    log(`❌ Error: ${result.error}`, 'error');
+                    log('', 'info');
+                }
+
+            } catch (error) {
+                log(`❌ Error de conexión: ${error.message}`, 'error');
+                log('', 'info');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Crear Usuario';
+            }
+        }
+    </script>
+</body>
+</html>

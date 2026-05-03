@@ -749,13 +749,13 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
-    <!-- Configuración y autenticación -->
-    <script src="delivery/js/core/config.js"></script>
+    <!-- Configuración propia (independiente de delivery/) -->
+    <script src="js/config.js"></script>
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
         
-        // Inicializar Supabase
-        const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
+        // Inicializar Supabase con config propio
+        const supabase = createClient(SiesaConfig.SUPABASE_URL, SiesaConfig.SUPABASE_ANON_KEY)
         window.supabase = supabase
         
         // Verificar sesión al cargar
@@ -864,7 +864,7 @@
         // Obtener API Key desde el servidor
         async function getApiKey(accessToken) {
             try {
-                const response = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/get-api-keys`, {
+                const response = await fetch(`${SiesaConfig.SUPABASE_URL}/functions/v1/get-api-keys`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
