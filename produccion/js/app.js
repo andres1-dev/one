@@ -54,12 +54,25 @@ function poblarFiltros(data) {
     const proveedores = [...new Set(data.map(f => f.proveedor).filter(v => v))].sort();
     const estados = [...new Set(data.map(f => f.Estado).filter(v => v))].sort();
     const tipos = [...new Set(data.map(f => f.tipo).filter(v => v))].sort();
+    
     $('#filtroCliente').html('<option value="">Todos</option>' + clientes.map(c => `<option value="${c}">${c}</option>`).join(''));
     $('#filtroProveedor').html('<option value="">Todos</option>' + proveedores.map(p => `<option value="${p}">${p}</option>`).join(''));
-    $('#filtroEstado').html('<option value="">Todos</option>' + estados.map(e => `<option value="${e}">${e}</option>`).join(''));
+    
+    // Multi-select de Estado: OWNER y ADMIN ven todos los estados (incluidas Anuladas), otros no ven Anuladas
+    const user_role_filtro = (JSON.parse(localStorage.getItem('user') || '{}')).rol || '';
+    const canSeeAnuladas = user_role_filtro === 'OWNER' || user_role_filtro === 'ADMIN';
+    
+    const estadosFiltrados = canSeeAnuladas ? estados : estados.filter(e => e !== 'Anuladas');
+    
+    // Por defecto solo "Aprobadas" está marcado
+    const estadoCheckboxes = estadosFiltrados.map(e => {
+        const checked = e === 'Aprobadas' ? 'checked' : '';
+        return `<label class="filtro-estado-item"><input type="checkbox" value="${e}" ${checked}> ${e}</label>`;
+    }).join('');
+    $('#filtroEstadoDropdown').html(estadoCheckboxes);
+    actualizarLabelEstado();
 
     // Multi-select de tipo: para admin/owner REMISION y OFICAL por defecto; para otros, todos marcados
-    const user_role_filtro = (JSON.parse(localStorage.getItem('user') || '{}')).rol || '';
     const canSeeAllTipos = user_role_filtro === 'OWNER' || user_role_filtro === 'ADMIN';
     const DEFAULT_TIPOS_UPPER = canSeeAllTipos ? ['REMISION', 'OFICAL', 'OFICIAL'] : null; // null = todos
     const tipoCheckboxes = tipos.map(t => {
@@ -75,7 +88,8 @@ function aplicarFiltros() {
     const filtroCliente = $('#filtroCliente').val();
 
     const filtroProveedor = $('#filtroProveedor').val();
-    const filtroEstado = $('#filtroEstado').val();
+    // Leer estados seleccionados del multi-select
+    const filtroEstados = $('#filtroEstadoDropdown input[type=checkbox]:checked').map(function() { return this.value; }).get();
     // Leer tipos seleccionados del multi-select
     const filtroTipos = $('#filtroTipoDropdown input[type=checkbox]:checked').map(function() { return this.value; }).get();
     const filtroConfirmacion = $('#filtroConfirmacion').val();
@@ -94,7 +108,8 @@ function aplicarFiltros() {
 
         if (filtroCliente && row['Razón social cliente factura'] !== filtroCliente) return false;
         if (filtroProveedor && row.proveedor !== filtroProveedor) return false;
-        if (filtroEstado && row.Estado !== filtroEstado) return false;
+        // Si hay estados seleccionados, filtrar; si no hay ninguno, mostrar todos
+        if (filtroEstados.length > 0 && !filtroEstados.includes(row.Estado)) return false;
         // Si hay tipos seleccionados, filtrar; si no hay ninguno, mostrar todos
         if (filtroTipos.length > 0 && !filtroTipos.includes(row.tipo)) return false;
         if (filtroConfirmacion && row.confirmacion !== filtroConfirmacion) return false;
@@ -107,7 +122,7 @@ function aplicarFiltros() {
         const filtrosDoc = {
             cliente: filtroCliente,
             proveedor: filtroProveedor,
-            estado: filtroEstado,
+            estados: filtroEstados,
             tipos: filtroTipos,
             confirmacion: filtroConfirmacion,
             search: busca
@@ -341,14 +356,17 @@ async function cargarDatos(fechaInicio, fechaFin) {
         const result = await response.json();
         if (!result.success) throw new Error(result.error);
         
-        // Filtrar NOTAS y DEVOLUCION: solo admin/owner pueden verlos
+        // Filtrar según permisos del usuario
         const user_role = (JSON.parse(localStorage.getItem('user') || '{}')).rol || '';
         const canSeeAll = user_role === 'OWNER' || user_role === 'ADMIN';
+        
         const dataFiltrada = canSeeAll
-            ? result.data
+            ? result.data // OWNER y ADMIN ven todo (incluidas Anuladas, NOTAS, DEVOLUCION)
             : result.data.filter(f => {
+                // Otros roles: filtrar NOTAS, DEVOLUCION y Anuladas
                 const tipo = (f.tipo || '').toUpperCase();
-                return tipo !== 'NOTAS' && tipo !== 'DEVOLUCION';
+                const estado = (f.Estado || '').toLowerCase();
+                return tipo !== 'NOTAS' && tipo !== 'DEVOLUCION' && estado !== 'anuladas';
             });
         
         allData = dataFiltrada.map(f => ({...f, confirmacion: (f.entregas || []).length > 0 ? 'ENTREGADO' : 'PENDIENTE'}));
@@ -414,7 +432,12 @@ async function cargarDatos(fechaInicio, fechaFin) {
                         const p = JSON.parse(savedFilters);
                         if (p.cliente) $('#filtroCliente').val(p.cliente);
                         if (p.proveedor) $('#filtroProveedor').val(p.proveedor);
-                        if (p.estado) $('#filtroEstado').val(p.estado);
+                        if (p.estados && Array.isArray(p.estados)) {
+                            $('#filtroEstadoDropdown input[type=checkbox]').each(function() {
+                                $(this).prop('checked', p.estados.includes(this.value));
+                            });
+                            actualizarLabelEstado();
+                        }
                         if (p.tipos && Array.isArray(p.tipos)) {
                             $('#filtroTipoDropdown input[type=checkbox]').each(function() {
                                 $(this).prop('checked', p.tipos.includes(this.value));
@@ -426,6 +449,14 @@ async function cargarDatos(fechaInicio, fechaFin) {
                     } catch (e) {
                         console.error('Error al restaurar filtros:', e);
                     }
+                }
+            } else {
+                // Si no hay persistencia, asegurar que "Aprobadas" esté seleccionado por defecto
+                // (ya se hace en poblarFiltros, pero lo reforzamos aquí)
+                const aprobadaCheckbox = $('#filtroEstadoDropdown input[type=checkbox][value="Aprobadas"]');
+                if (aprobadaCheckbox.length && !aprobadaCheckbox.is(':checked')) {
+                    aprobadaCheckbox.prop('checked', true);
+                    actualizarLabelEstado();
                 }
             }
 
@@ -530,7 +561,12 @@ $(document).ready(function() {
     });
 
     cargarDatos(primerDia, hoy);
-    $('#filtroCliente, #filtroProveedor, #filtroEstado, #filtroConfirmacion').on('change', aplicarFiltros);
+    $('#filtroCliente, #filtroProveedor, #filtroConfirmacion').on('change', aplicarFiltros);
+    // Multi-select de estado: escuchar cambios en checkboxes
+    $(document).on('change', '#filtroEstadoDropdown input[type=checkbox]', function() {
+        actualizarLabelEstado();
+        aplicarFiltros();
+    });
     // Multi-select de tipo: escuchar cambios en checkboxes
     $(document).on('change', '#filtroTipoDropdown input[type=checkbox]', function() {
         actualizarLabelTipo();
@@ -558,7 +594,11 @@ $(document).ready(function() {
     });
 
     $('#btnLimpiarFiltros').on('click', function() {
-        $('#filtroCliente, #filtroProveedor, #filtroEstado, #filtroConfirmacion').val('');
+        $('#filtroCliente, #filtroProveedor, #filtroConfirmacion').val('');
+        // Desmarcar todos los estados y marcar solo "Aprobadas"
+        $('#filtroEstadoDropdown input[type=checkbox]').prop('checked', false);
+        $('#filtroEstadoDropdown input[type=checkbox][value="Aprobadas"]').prop('checked', true);
+        actualizarLabelEstado();
         // Desmarcar todos los tipos
         $('#filtroTipoDropdown input[type=checkbox]').prop('checked', false);
         actualizarLabelTipo();
@@ -878,4 +918,11 @@ function actualizarLabelTipo() {
     const checked = $('#filtroTipoDropdown input[type=checkbox]:checked').map(function() { return this.value; }).get();
     const label = checked.length === 0 ? 'Todos' : checked.join(', ');
     $('#filtroTipoLabel').text(label);
+}
+
+// Actualiza el texto del botón del dropdown de estado según selección
+function actualizarLabelEstado() {
+    const checked = $('#filtroEstadoDropdown input[type=checkbox]:checked').map(function() { return this.value; }).get();
+    const label = checked.length === 0 ? 'Todos' : checked.join(', ');
+    $('#filtroEstadoLabel').text(label);
 }

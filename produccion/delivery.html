@@ -394,12 +394,14 @@
         }
 
         /* ========== MULTI-SELECT TIPO ========== */
-        .filtro-tipo-wrapper .dropdown-menu {
+        .filtro-tipo-wrapper .dropdown-menu,
+        .filtro-estado-wrapper .dropdown-menu {
             border-radius: 8px;
             border: 1px solid #e2e8f0;
         }
 
-        .filtro-tipo-item {
+        .filtro-tipo-item,
+        .filtro-estado-item {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -412,11 +414,13 @@
             white-space: nowrap;
         }
 
-        .filtro-tipo-item:hover {
+        .filtro-tipo-item:hover,
+        .filtro-estado-item:hover {
             background: #f1f5f9;
         }
 
-        .filtro-tipo-item input[type=checkbox] {
+        .filtro-tipo-item input[type=checkbox],
+        .filtro-estado-item input[type=checkbox] {
             accent-color: #2563eb;
             width: 15px;
             height: 15px;
@@ -424,13 +428,15 @@
             flex-shrink: 0;
         }
 
-        #filtroTipoBtn {
+        #filtroTipoBtn,
+        #filtroEstadoBtn {
             background: white;
             border: 1px solid #dee2e6;
             cursor: pointer;
         }
 
-        #filtroTipoBtn:focus {
+        #filtroTipoBtn:focus,
+        #filtroEstadoBtn:focus {
             box-shadow: 0 0 0 0.2rem rgba(37,99,235,0.15);
             border-color: #2563eb;
         }
@@ -615,9 +621,18 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Estado</label>
-                    <select id="filtroEstado" class="form-select form-select-sm">
-                        <option value="">Todos</option>
-                    </select>
+                    <div class="dropdown filtro-estado-wrapper">
+                        <button class="form-select form-select-sm text-start d-flex align-items-center justify-content-between"
+                                type="button" id="filtroEstadoBtn"
+                                data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                                style="font-size: 0.875rem;">
+                            <span id="filtroEstadoLabel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">Aprobadas</span>
+                            <i class="fas fa-chevron-down ms-1" style="font-size:0.7rem;flex-shrink:0;"></i>
+                        </button>
+                        <div class="dropdown-menu p-2 shadow-sm" id="filtroEstadoDropdown" style="min-width:160px;max-height:220px;overflow-y:auto;">
+                            <!-- Checkboxes se generan dinámicamente en poblarFiltros -->
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Tipo</label>
@@ -948,9 +963,15 @@
         
         // Función para cargar la app
         function loadApp() {
+            // Evitar cargar scripts múltiples veces
+            if (window.appScriptsLoaded) {
+                return
+            }
+            
+            window.appScriptsLoaded = true
+            
             // Cargar scripts de la aplicación
             const scripts = [
-                'js/config.js',
                 'js/app.js',
                 'upload/js/utils/formatters.js',
                 'upload/js/utils/validators.js',
@@ -975,22 +996,7 @@
         checkSession()
     </script>
     
-    <!-- Scripts de la app (se cargan después del login) -->
-    <script src="js/config.js"></script>
-    <script src="js/app.js"></script>
-    
-    <!-- Scripts de Carga (Carpeta upload) -->
-
-    <script src="upload/js/utils/formatters.js"></script>
-    <script src="upload/js/utils/validators.js"></script>
-    <script src="upload/js/utils/file-reader.js"></script>
-    <script src="upload/js/parsers/csv-parser.js"></script>
-    <script src="upload/js/parsers/xlsx-parser.js"></script>
-    <script src="upload/js/processors/unifier.js"></script>
-    <script src="upload/js/processors/consolidator.js"></script>
-    <script src="upload/js/processors/uploader.js"></script>
-    <script src="upload/js/ui-controller.js"></script>
-    <script src="upload/js/app.js"></script>
+    <!-- Los demás scripts se cargan dinámicamente después del login en loadApp() -->
 </body>
 </html>
 
