@@ -363,10 +363,9 @@ async function cargarDatos(fechaInicio, fechaFin) {
         const dataFiltrada = canSeeAll
             ? result.data // OWNER y ADMIN ven todo (incluidas Anuladas, NOTAS, DEVOLUCION)
             : result.data.filter(f => {
-                // Otros roles: filtrar NOTAS, DEVOLUCION y Anuladas
+                // Otros roles: filtrar NOTAS y DEVOLUCION (Anuladas ya filtradas en backend)
                 const tipo = (f.tipo || '').toUpperCase();
-                const estado = (f.Estado || '').toLowerCase();
-                return tipo !== 'NOTAS' && tipo !== 'DEVOLUCION' && estado !== 'anuladas';
+                return tipo !== 'NOTAS' && tipo !== 'DEVOLUCION';
             });
         
         allData = dataFiltrada.map(f => ({...f, confirmacion: (f.entregas || []).length > 0 ? 'ENTREGADO' : 'PENDIENTE'}));
