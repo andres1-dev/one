@@ -189,7 +189,12 @@ function removeFile(index) {
   SiesaApp.removeFile(index);
 }
 
-// Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
+// Inicializar cuando el DOM esté listo o inmediatamente si ya lo está
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    SiesaApp.init();
+  });
+} else {
   SiesaApp.init();
-});
+}
+
