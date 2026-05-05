@@ -101,6 +101,30 @@ export const getParsedMainData = async () => {
         return data.values.map(row => {
             try {
                 const jsonData = JSON.parse(row[0]);
+                
+                // Calcular cantidad correcta: HR + ANEXOS tipo PROMO
+                let cantidad = 0;
+                
+                // 1. Sumar HR (todas las cantidades)
+                if (jsonData.HR && Array.isArray(jsonData.HR)) {
+                    cantidad = jsonData.HR.reduce((sum, item) => {
+                        // HR formato: [codigo, color, talla, cantidad]
+                        const cant = Number(item[3]) || 0;
+                        return sum + cant;
+                    }, 0);
+                }
+                
+                // 2. Sumar ANEXOS tipo PROMO
+                if (jsonData.ANEXOS && Array.isArray(jsonData.ANEXOS)) {
+                    const cantidadPromo = jsonData.ANEXOS.reduce((sum, anexo) => {
+                        if (anexo.TIPO === 'PROMO') {
+                            return sum + (Number(anexo.CANTIDAD) || 0);
+                        }
+                        return sum;
+                    }, 0);
+                    cantidad += cantidadPromo;
+                }
+                
                 return {
                     DOCUMENTO: String(jsonData.A || ''),
                     FECHA: normalizeDate(jsonData.FECHA || ''), // Aplicar normalización de fecha
@@ -112,7 +136,7 @@ export const getParsedMainData = async () => {
                     LOTE: Number(jsonData.LOTE) || 0,
                     REFPROV: String(jsonData.REFPROV || ''),
                     DESCRIPCIÓN: jsonData.DESCRIPCIÓN || '',
-                    CANTIDAD: Number(jsonData.CANTIDAD) || 0,
+                    CANTIDAD: cantidad,
                     REFERENCIA: jsonData.REFERENCIA || '',
                     TIPO: jsonData.TIPO || '',
                     PVP: normalizePVP(jsonData.PVP || ''), // Ya incluye la eliminación de separadores de miles
