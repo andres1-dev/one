@@ -440,9 +440,60 @@
             box-shadow: 0 0 0 0.2rem rgba(37,99,235,0.15);
             border-color: #2563eb;
         }
+
+        /* Botón lupa que abre el Spotlight */
+        .btn-spotlight-trigger {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(37, 99, 235, 0.08);
+            color: #2563eb;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
+    <!-- Spotlight Search -->
+    <div id="spotlightOverlay" class="spotlight-overlay">
+        <div class="spotlight-container">
+            <div class="spotlight-search-box">
+                <i class="fas fa-search spotlight-icon"></i>
+                <input type="text" id="spotlightInput" placeholder="Buscar por documento, OP o referencia..." autocomplete="off">
+                <div class="spotlight-shortcut-hint">ESC</div>
+            </div>
+            <div id="spotlightActiveFilters" class="spotlight-active-filters"></div>
+            <div id="spotlightResults" class="spotlight-results">
+                <!-- Resultados se generarán dinámicamente -->
+            </div>
+            <div id="spotlightDateContainer" class="spotlight-date-container">
+                <div class="glass-calendar">
+                    <div class="glass-cal-header">
+                        <button class="glass-cal-nav" id="glassCalPrev"><i class="fa-solid fa-chevron-left"></i></button>
+                        <span class="glass-cal-title" id="glassCalTitle"></span>
+                        <button class="glass-cal-nav" id="glassCalNext"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                    <div class="glass-cal-weekdays">
+                        <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+                    </div>
+                    <div class="glass-cal-days" id="glassCalDays"></div>
+                    <div class="glass-cal-range-label" id="glassCalLabel">Selecciona una fecha de inicio</div>
+                    <button class="glass-cal-apply" id="glassCalApply">Aplicar Rango <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+            <div class="spotlight-footer">
+                <div class="footer-item"><kbd><i class="fa-solid fa-arrow-up"></i></kbd><kbd><i class="fa-solid fa-arrow-down"></i></kbd> Navegar</div>
+                <div class="footer-item"><kbd><i class="fa-solid fa-turn-down fa-rotate-90"></i></kbd> Seleccionar</div>
+                <div class="footer-item"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> Buscar</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Login Screen -->
     <div id="loginScreen">
         <div class="login-box">
@@ -504,25 +555,23 @@
                 </div>
             </div>
             <div class="header-controls">
-                <div class="search-wrapper">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="globalSearch" class="form-control" placeholder="Buscar...">
+                <div class="header-toolbar">
+                    <button id="btnSpotlight" class="toolbar-btn" title="Buscar (Ctrl+K)">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                    <div class="toolbar-divider" id="divider1"></div>
+                    <button id="btnUpload" class="toolbar-btn" data-bs-toggle="modal" data-bs-target="#uploadModal" title="Cargar Datos">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <div class="toolbar-divider" id="divider2"></div>
+                    <button id="btnDescargarCSV" class="toolbar-btn" title="Descargar CSV">
+                        <i class="fa-solid fa-file-export"></i>
+                    </button>
                 </div>
-                <div class="date-picker-wrapper">
-                    <i class="fas fa-calendar-alt"></i>
-                    <input type="text" id="dateRange" class="form-control" placeholder="Seleccionar fechas">
-                </div>
-                <button id="btnUpload" class="btn-action btn-upload" data-bs-toggle="modal" data-bs-target="#uploadModal" title="Cargar Datos">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                </button>
-                <button id="btnDescargarCSV" class="btn-action btn-export" title="Descargar CSV">
-                    <i class="fas fa-file-csv"></i>
-                </button>
                 
-                <!-- Usuario y Logout -->
                 <div class="dropdown">
-                    <button class="btn-action btn-user" type="button" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false" title="Usuario">
-                        <i class="fas fa-user-circle"></i>
+                    <button class="btn-user-profile" type="button" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false" title="Usuario">
+                        <i class="fa-solid fa-user"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end p-3 border-0 shadow-lg" aria-labelledby="dropdownUser" style="border-radius: 12px; min-width: 280px;">
                         <li class="mb-3">
@@ -605,7 +654,7 @@
             </div>
         </div>
 
-        <div class="filtros mb-3">
+        <div class="filtros mb-3" style="display: none !important;">
             <div class="row g-2">
                 <div class="col-md-2">
                     <label class="form-label">Cliente</label>

@@ -389,43 +389,78 @@ body {
     transform: scale(0.95);
 }
 
-.btn-action {
-    background-color: var(--gray-50);
+/* Toolbar Unificada (Tipo Interruptor/Segmented) */
+.header-toolbar {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 3px;
+    border-radius: 14px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s;
+}
+
+.toolbar-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
     color: var(--gray-600);
-    border: 2px solid var(--gray-100);
-    border-radius: 10px;
-    font-size: 18px;
-    height: 48px;
-    min-width: 48px;
-    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 11px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-action:hover {
-    border-color: var(--gray-800);
-    color: var(--gray-800);
-    background-color: white;
-}
-
-.btn-upload {
-    color: var(--siesa-green);
-}
-
-.btn-upload:hover {
-    border-color: var(--siesa-green);
-    background-color: rgba(16, 185, 129, 0.05);
-    color: var(--siesa-green);
-}
-
-.btn-export {
+.toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.7);
     color: var(--siesa-blue);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.btn-export:hover {
-    border-color: var(--siesa-blue);
-    background-color: rgba(13, 121, 254, 0.05);
+.toolbar-btn:active {
+    transform: scale(0.92);
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.06);
+    margin: 0 2px;
+}
+
+/* Perfil de Usuario Minimal */
+.btn-user-profile {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--gray-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 8px;
+}
+
+.btn-user-profile:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--gray-800);
+}
+
+
+.btn-upload-active {
+    color: var(--siesa-green);
+}
+
+.btn-export-active {
     color: var(--siesa-blue);
 }
 
@@ -1216,4 +1251,528 @@ body {
     .flatpickr-calendar::after {
         display: none !important;
     }
+}
+
+/* ========== SPOTLIGHT SEARCH — GLASS MORPHISM ========== */
+.spotlight-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 15, 30, 0.45);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    z-index: 11000;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 12vh;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+.spotlight-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Contenedor glass — ancho fijo, alto adaptativo */
+.spotlight-container {
+    width: 94%;
+    max-width: 600px;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(28px) saturate(220%);
+    -webkit-backdrop-filter: blur(28px) saturate(220%);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+        0 2px 0 0 rgba(255,255,255,0.8) inset,
+        0 32px 64px -16px rgba(0, 0, 0, 0.35),
+        0 8px 24px -8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    /* SIN height ni max-height fijo — se adapta al contenido */
+    transform: translateY(-16px) scale(0.97);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.25s ease;
+    overflow: hidden;
+}
+
+.spotlight-overlay.active .spotlight-container {
+    transform: translateY(0) scale(1);
+}
+
+/* Barra de búsqueda */
+.spotlight-search-box {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.spotlight-icon {
+    font-size: 17px;
+    color: var(--siesa-blue);
+    opacity: 0.75;
+    flex-shrink: 0;
+}
+
+#spotlightInput {
+    flex: 1;
+    border: none;
+    background: transparent !important;
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(15,23,42,0.9);
+    outline: none !important;
+    box-shadow: none !important;
+    letter-spacing: -0.2px;
+}
+
+#spotlightInput::placeholder {
+    color: rgba(100,116,139,0.7);
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.spotlight-shortcut-hint {
+    padding: 2px 7px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(100,116,139,0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+}
+
+/* Filtros activos en el Spotlight */
+.spotlight-active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 18px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    background: rgba(0, 0, 0, 0.01);
+}
+
+.spotlight-active-filters:empty {
+    display: none;
+}
+
+.filter-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #475569;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    transition: all 0.2s;
+}
+
+.filter-tag .tag-label {
+    opacity: 0.7;
+    font-weight: 500;
+    margin-right: 2px;
+}
+
+.filter-tag .tag-remove {
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.08);
+    color: #475569;
+    cursor: pointer;
+    font-size: 8px;
+    transition: all 0.2s;
+}
+
+.filter-tag .tag-remove:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* Área de resultados — sin altura fija, se estira al contenido */
+.spotlight-results {
+    overflow-y: auto;
+    padding: 6px;
+    max-height: 480px; /* Suficiente para ver todas las opciones y el calendario */
+}
+
+/* Cada opción */
+.spotlight-result-item {
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+}
+
+.spotlight-result-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.spotlight-result-item.selected {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    transform: translateX(2px);
+}
+
+/* Icono por opción */
+.spotlight-result-item .item-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: var(--siesa-blue);
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.spotlight-result-item.selected .item-icon {
+    transform: scale(1.1);
+    color: var(--siesa-blue);
+}
+
+.spotlight-result-item .item-content {
+    flex: 1;
+    min-width: 0;
+    padding-left: 2px;
+}
+
+.spotlight-result-item .item-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.spotlight-result-item.selected .item-title {
+    color: #0f172a;
+}
+
+.spotlight-result-item .item-subtitle {
+    font-size: 11px;
+    color: #64748b;
+    opacity: 0.8;
+    line-height: 1.3;
+    margin-top: 1px;
+}
+
+.spotlight-result-item .item-shortcut {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--siesa-blue);
+    background: rgba(13, 121, 254, 0.1);
+    padding: 2px 6px;
+    border-radius: 6px;
+    opacity: 0;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.spotlight-result-item.selected .item-shortcut {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
+    color: #1e293b;
+}
+
+/* Footer de atajos */
+.spotlight-footer {
+    padding: 8px 18px;
+    background: rgba(0, 0, 0, 0.03);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+}
+
+.footer-item {
+    font-size: 9.5px;
+    color: rgba(100,116,139,0.7);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.footer-item kbd {
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 5px;
+    padding: 2px 5px;
+    font-family: inherit;
+    font-size: 8.5px;
+    font-weight: 800;
+    color: rgba(30,41,59,0.8);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    line-height: 1.4;
+}
+
+.footer-item i {
+    font-size: 8px;
+}
+
+/* Animaciones de items */
+@keyframes spotlightItemIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.spotlight-result-item {
+    animation: spotlightItemIn 0.2s ease both;
+}
+
+/* Scrollbar ultrafina */
+.spotlight-results::-webkit-scrollbar { width: 4px; }
+.spotlight-results::-webkit-scrollbar-track { background: transparent; }
+.spotlight-results::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.12);
+    border-radius: 10px;
+}
+.spotlight-results::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.2);
+}
+
+/* ========== GLASS CALENDAR CUSTOM ========== */
+.spotlight-date-container {
+    padding: 20px 24px;
+    display: none;
+}
+
+.spotlight-date-container.active {
+    display: block;
+}
+
+.glass-calendar {
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+}
+
+/* Header: mes/año + flechas */
+.glass-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.glass-cal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-800);
+    letter-spacing: -0.3px;
+}
+
+.glass-cal-nav {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--gray-600);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    transition: all 0.2s;
+}
+
+.glass-cal-nav:hover {
+    background: rgba(13, 121, 254, 0.1);
+    color: var(--siesa-blue);
+}
+
+/* Días de la semana */
+.glass-cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.glass-cal-weekdays span {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 0;
+}
+
+/* Grid de días */
+.glass-cal-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    text-align: center;
+}
+
+.glass-day {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-800);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    user-select: none;
+    z-index: 1;
+}
+
+.glass-day:hover {
+    background: rgba(13, 121, 254, 0.1);
+    color: var(--siesa-blue);
+}
+
+.glass-day.today {
+    font-weight: 800;
+    color: var(--siesa-blue);
+}
+
+.glass-day.today::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    width: 4px;
+    height: 4px;
+    background: var(--siesa-blue);
+    border-radius: 50%;
+}
+
+.glass-day.today.start::after,
+.glass-day.today.end::after {
+    background: white;
+}
+
+.glass-day.other-month {
+    color: var(--gray-300);
+    cursor: default;
+}
+
+.glass-day.other-month:hover {
+    background: transparent;
+    color: var(--gray-300);
+}
+
+.glass-day:hover:not(.start):not(.end) {
+    background: rgba(13, 121, 254, 0.08);
+    border-radius: 8px;
+}
+
+.glass-day.in-range {
+    background: rgba(13, 121, 254, 0.12);
+    color: var(--siesa-blue);
+    font-weight: 600;
+}
+
+.glass-day.start,
+.glass-day.end {
+    color: white !important;
+    font-weight: 700;
+}
+
+.glass-day.start::before,
+.glass-day.end::before {
+    content: '';
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    background: var(--siesa-blue);
+    border-radius: 50%;
+    z-index: -1;
+    box-shadow: 0 4px 12px rgba(13, 121, 254, 0.4);
+}
+
+/* El fondo del strip para los extremos */
+.glass-day.start {
+    background: linear-gradient(to right, transparent 50%, rgba(13, 121, 254, 0.12) 50%);
+}
+
+.glass-day.end {
+    background: linear-gradient(to left, transparent 50%, rgba(13, 121, 254, 0.12) 50%);
+}
+
+.glass-day.start.end {
+    background: transparent !important;
+}
+
+.glass-day.start.end::before {
+    width: 34px;
+    height: 34px;
+}
+
+/* Etiqueta del rango seleccionado */
+.glass-cal-range-label {
+    margin-top: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-align: center;
+    min-height: 18px;
+    letter-spacing: 0.2px;
+}
+
+/* Botón Aplicar */
+.glass-cal-apply {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--siesa-blue);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 8px 20px -6px rgba(13, 121, 254, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.glass-cal-apply:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px -6px rgba(13, 121, 254, 0.55);
+}
+
+.glass-cal-apply:disabled {
+    background: var(--gray-200);
+    color: var(--gray-400);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
