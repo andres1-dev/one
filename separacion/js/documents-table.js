@@ -224,7 +224,7 @@ async function actualizarFilaEspecifica(rec) {
         const debeMostrarse = estadosParaMostrar.includes(estado);
 
         const fila = documentosTable.row((idx, data) => data.rec === rec);
-        
+
         if (fila.any()) {
             if (debeMostrarse) {
                 // ACTUALIZAR LA FILA EXISTENTE
@@ -232,14 +232,14 @@ async function actualizarFilaEspecifica(rec) {
 
                 const rowNode = fila.node();
                 $(rowNode).removeClass('actualizando-fila');
-                
+
                 // Actualizar el select de responsables si es necesario
                 const selectCell = $(rowNode).find('td:eq(2)');
                 selectCell.html(generarSelectResponsables(rec, colaborador, documentosGlobales, documentoActualizado));
             } else {
                 // ELIMINAR LA FILA SI NO DEBE MOSTRARSE (ej: finalizado con filtro desactivado)
                 fila.remove();
-                
+
                 // Si hay un timer activo, detenerlo
                 if (timers[rec]) {
                     clearInterval(timers[rec]);
@@ -252,7 +252,7 @@ async function actualizarFilaEspecifica(rec) {
         }
 
         // ACTUALIZAR CONSOLIDADOS Y TARJETAS
-        const consolidados = calcularConsolidados(documentosGlobales.filter(doc => 
+        const consolidados = calcularConsolidados(documentosGlobales.filter(doc =>
             obtenerEstadosParaMostrar().includes(doc.estado)
         ));
         actualizarTarjetasResumen(consolidados);
@@ -590,7 +590,7 @@ function limpiarFiltros() {
 
 async function cargarResponsables() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    const API_KEY = 'AIzaSyC1QqwUAZmDbOVrOo3Iwq90J_lJ5PmAYVg';
 
     try {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
@@ -993,7 +993,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 }
 
                 await mostrarNotificacion('✓ Finalizado', `REC${rec} completado`, 'success');
-                
+
                 // RECARGAR COMPLETA SOLO PARA FINALIZADO
                 await actualizarInmediatamente(true);
 
@@ -1014,10 +1014,10 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             );
 
             if (!confirmar) return;
-            
+
             // Para FINALIZADO: recargar completa
             actualizacionEnProgreso = true;
-            
+
             const loadingToast = Swal.fire({
                 title: 'Finalizando...',
                 text: `REC${rec}`,
@@ -1044,7 +1044,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
                 }
 
                 await mostrarNotificacion('✓ Finalizado', `REC${rec} completado`, 'success');
-                
+
                 // RECARGAR COMPLETA PARA FINALIZADO
                 await actualizarInmediatamente(true);
 
@@ -1059,7 +1059,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
 
         // Para otros estados (PAUSADO, ELABORACION): actualización parcial
         marcarFilaComoActualizando(rec);
-        
+
         actualizacionEnProgreso = true;
 
         const loadingToast = Swal.fire({
@@ -1118,7 +1118,7 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
     } catch (error) {
         Swal.close();
         await mostrarNotificacion('Error', 'Error al cambiar estado: ' + error.message, 'error');
-        
+
         // Si hay error, recargar completa
         await actualizarInmediatamente(true);
     } finally {

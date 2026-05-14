@@ -598,7 +598,7 @@ function limpiarFiltros() {
 
 async function cargarResponsables() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    const API_KEY = 'AIzaSyC1QqwUAZmDbOVrOo3Iwq90J_lJ5PmAYVg';
 
     try {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
