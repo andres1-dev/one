@@ -1,5 +1,5 @@
 // Configuración de la API de Google Sheets (variables globales)
-const SHEETS_API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+const SHEETS_API_KEY = 'AIzaSyB35PqBx4p2WcH9T-2oiRfsziIzLesxfrU';
 const API_BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 // IDs de las hojas de cálculo (solo las necesarias para facturas)
@@ -19,11 +19,11 @@ class SheetsAPI {
         try {
             const url = `${API_BASE_URL}/${spreadsheetId}/values/${range}?key=${SHEETS_API_KEY}`;
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const data = await response.json();
             return data.values || [];
         } catch (error) {
@@ -37,7 +37,7 @@ class SheetsAPI {
         try {
             console.time('Carga_Facturas');
             console.log('🚀 Cargando SOLO datos con facturas...');
-            
+
             // SOLO lo esencial para facturas
             const [
                 datosData2,
@@ -50,7 +50,7 @@ class SheetsAPI {
             ]);
 
             console.timeEnd('Carga_Facturas');
-            
+
             // Combinar SOLO datos con facturas
             const datosCombinados = this.combinarDatosFacturas(datosData2, datosSiesa, datosSoportes);
 
@@ -76,27 +76,27 @@ class SheetsAPI {
     // Combinar SOLO datos que tienen facturas
     combinarDatosFacturas(datosData2, datosSiesa, datosSoportes) {
         const datosCombinados = [];
-        
+
         console.log('🔄 Combinando datos con facturas...');
-        
+
         // Procesar solo datosData2 que tienen coincidencias en SIESA (facturas)
         datosData2.forEach(itemData2 => {
             const documento = "REC" + itemData2.documento;
             const referencia = itemData2.referencia;
             const lote = itemData2.lote;
-            
+
             // Buscar coincidencias en SIESA (facturas)
             const coincidenciasSiesa = datosSiesa.filter(filaSiesa => {
                 const codigoSiesa = filaSiesa[3];
                 return String(codigoSiesa).trim() === String(lote).trim();
             });
-            
+
             // SOLO incluir si tiene facturas en SIESA
             if (coincidenciasSiesa.length > 0) {
                 const datosRelacionados = coincidenciasSiesa.map(fila => {
                     const codProveedor = Number(fila[4]);
                     let nombreProveedor = fila[4];
-                    
+
                     if (codProveedor === 5) {
                         nombreProveedor = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
                     } else if (codProveedor === 3) {
@@ -107,7 +107,7 @@ class SheetsAPI {
                     const referenciaItem = fila[7] || '';
                     const cantidadItem = String(fila[8] || '');
                     const confirmacion = this.obtenerConfirmacion(datosSoportes, documento, lote, referenciaItem, cantidadItem, nitCliente);
-                    
+
                     return {
                         estado: fila[0],
                         factura: fila[1],
@@ -122,7 +122,7 @@ class SheetsAPI {
                         confirmacion: confirmacion
                     };
                 });
-                
+
                 datosCombinados.push({
                     documento: documento,
                     referencia: referencia,
@@ -178,7 +178,7 @@ class SheetsAPI {
                 const cantidad = String(row[4] || '').trim();
                 const factura = row[5] || '';
                 const nit = String(row[6] || '').trim();
-                
+
                 const clave = `${documento}_${lote}_${referencia}_${cantidad}_${nit}`;
                 soportesMap[clave] = {
                     factura: factura,
@@ -206,10 +206,10 @@ class SheetsAPI {
             { nombre: "QUINTERO ORTIZ PATRICIA YAMILET", nit: "67006141" },
             { nombre: "ZULUAGA GOMEZ RUBEN ESTEBAN", nit: "1007348825" },
         ];
-        
+
         const estadosExcluir = ["Anuladas", "En elaboración"];
         const prefijosValidos = ["017", "FEV", "029", "FVE"];
-        
+
         const normalizarCliente = (nombreCliente) => {
             if (!nombreCliente) return nombreCliente;
             return nombreCliente
@@ -217,34 +217,34 @@ class SheetsAPI {
                 .replace(/\s+/g, ' ')
                 .trim();
         };
-        
+
         const formatearFecha = (fechaStr) => {
             if (!fechaStr || typeof fechaStr !== 'string') return fechaStr;
             const partes = fechaStr.split('/');
             return partes.length === 3 ? `${partes[1]}/${partes[0]}/${partes[2]}` : fechaStr;
         };
-        
+
         const tienePrefijoValido = (valor) => {
             if (!valor || typeof valor !== 'string') return false;
             return prefijosValidos.some(prefijo => valor.startsWith(prefijo));
         };
-        
+
         const obtenerNitDeCliente = (nombreNormalizado) => {
             const clienteEncontrado = clientesEspecificos.find(
                 cliente => normalizarCliente(cliente.nombre) === nombreNormalizado
             );
             return clienteEncontrado ? clienteEncontrado.nit : '';
         };
-        
+
         const processedSiesaV2 = {};
-        
+
         siesaV2Values.forEach(row => {
             if (row.length >= 3) {
                 const key = row[0];
                 const value1 = parseFloat(row[1]) || 0;
                 const value2 = row[2] || '';
                 const value3 = parseFloat(row[3]) || 0;
-                
+
                 if (!processedSiesaV2[key]) {
                     processedSiesaV2[key] = {
                         sumValue1: value1,
@@ -260,7 +260,7 @@ class SheetsAPI {
                 }
             }
         });
-        
+
         return siesaValues
             .filter(row => {
                 const estado = row[0] || '';
@@ -274,7 +274,7 @@ class SheetsAPI {
                 if (row.length >= 7) {
                     const col6Value = row[6];
                     let selectedValue;
-                    
+
                     if (col6Value == "5") {
                         selectedValue = row[4] || '';
                     } else if (col6Value == "3") {
@@ -282,16 +282,16 @@ class SheetsAPI {
                     } else {
                         selectedValue = '';
                     }
-                    
+
                     const clienteNormalizado = row[3] ? normalizarCliente(row[3]) : '';
                     const fechaFormateada = formatearFecha(row[2] || '');
-                    const complementData = processedSiesaV2[row[1]] || { 
-                        sumValue1: 0, 
-                        value2Items: [], 
+                    const complementData = processedSiesaV2[row[1]] || {
+                        sumValue1: 0,
+                        value2Items: [],
                         sumValue3: 0,
                         count: 0
                     };
-                    
+
                     let value2Result;
                     if (complementData.count === 0) {
                         value2Result = '';
@@ -300,9 +300,9 @@ class SheetsAPI {
                     } else {
                         value2Result = "RefVar";
                     }
-                    
+
                     const nitCliente = obtenerNitDeCliente(clienteNormalizado);
-                    
+
                     return [
                         row[0],
                         row[1],
@@ -317,24 +317,24 @@ class SheetsAPI {
                     ];
                 } else {
                     const clienteNormalizado = row[3] ? normalizarCliente(row[3]) : '';
-                    const complementData = processedSiesaV2[row[1]] || { 
-                        sumValue1: 0, 
-                        value2Items: [], 
+                    const complementData = processedSiesaV2[row[1]] || {
+                        sumValue1: 0,
+                        value2Items: [],
                         sumValue3: 0,
                         count: 0
                     };
-                    
-                    let value2Result = complementData.count === 0 ? '' : 
-                                    (complementData.count === 1 ? complementData.value2Items[0] : "RefVar");
-                    
+
+                    let value2Result = complementData.count === 0 ? '' :
+                        (complementData.count === 1 ? complementData.value2Items[0] : "RefVar");
+
                     const nitCliente = obtenerNitDeCliente(clienteNormalizado);
-                    
+
                     return [
                         row[0] || '',
                         row[1] || '',
                         formatearFecha(row[2] || ''),
                         '',
-                        row[6] || '', 
+                        row[6] || '',
                         clienteNormalizado,
                         complementData.sumValue1,
                         value2Result,
@@ -345,7 +345,7 @@ class SheetsAPI {
             })
             .filter(row => {
                 const clienteNormalizado = row[5];
-                return clientesEspecificos.some(cliente => 
+                return clientesEspecificos.some(cliente =>
                     normalizarCliente(cliente.nombre) === clienteNormalizado
                 );
             });
@@ -357,9 +357,9 @@ class SheetsAPI {
         referencia = String(referencia || '').trim();
         cantidad = String(cantidad || '').trim();
         nit = String(nit || '').trim();
-        
+
         const clave = `${documento}_${lote}_${referencia}_${cantidad}_${nit}`;
-        
+
         if (clave in soportesMap) {
             const soporte = soportesMap[clave];
             if (!soporte.factura || soporte.factura === '') {
@@ -368,7 +368,7 @@ class SheetsAPI {
                 return "ENTREGADO";
             }
         }
-        
+
         return "";
     }
 
@@ -396,30 +396,30 @@ class SheetsAPI {
     async consultarFacturaEnTiempoReal(factura) {
         try {
             console.log(`🔍 Búsqueda rápida de factura: ${factura}`);
-            
+
             if (!factura || factura.trim() === '') {
                 return { existe: false, confirmado: false };
             }
-            
+
             const facturaBuscada = String(factura).trim();
-            
+
             // ✅ CONSULTA MÁS RÁPIDA - Solo traer columnas necesarias
             const values = await this.fetchSheetData(SPREADSHEET_IDS.SOPORTES, 'SOPORTES!F:F');
-            
+
             if (!values || values.length === 0) {
                 console.log('📋 Hoja SOPORTES vacía o no accesible');
                 return { existe: false, confirmado: false };
             }
-            
+
             // ✅ BÚSQUEDA RÁPIDA - Solo en columna F (facturas)
             let encontrada = false;
-            
+
             // Empezar desde la fila 1 (saltar encabezado si existe)
             for (let i = 1; i < values.length; i++) {
                 const row = values[i];
                 if (row && row.length > 0) {
                     const facturaEnFila = String(row[0] || '').trim();
-                    
+
                     // Comparación exacta
                     if (facturaEnFila === facturaBuscada) {
                         encontrada = true;
@@ -427,15 +427,15 @@ class SheetsAPI {
                     }
                 }
             }
-            
+
             console.log(`📋 Factura ${facturaBuscada} ${encontrada ? '✅ ENCONTRADA' : '❌ NO encontrada'} en SOPORTES`);
-            
+
             return {
                 existe: encontrada,
                 confirmado: encontrada,
                 timestamp: new Date().toISOString()
             };
-            
+
         } catch (error) {
             console.error('❌ Error crítico en consulta rápida:', error);
             throw new Error(`Error consultando factura: ${error.message}`);
