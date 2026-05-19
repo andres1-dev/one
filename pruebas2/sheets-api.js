@@ -1,5 +1,5 @@
 // sheets-api.js
-const API_KEY = 'AIzaSyCrTSddJcCaJCqQ_Cr_PC2zt-eVZAihC38';
+const API_KEY = 'AIzaSyDO9sQXU3MZPIJLlQ4LAlSKGlwgzzabOV0';
 const SPREADSHEET_IDS = {
     DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
     REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc"
@@ -36,7 +36,7 @@ const normalizeDate = (date) => {
 
     return `${year}-${mm}-${dd}`;
     //return `${dd}/${mm}/${year}`;
-}; 
+};
 
 const normalizeDocumento = (documento) => documento.replace(/^REC/i, '');
 
@@ -53,7 +53,7 @@ const getGestorByLinea = (linea) => {
         'ESPECIALES': 'JUAN ESTEBAN ZULUAGA HOYOS',
         'BOGOTA': 'JUAN ESTEBAN ZULUAGA HOYOS'
     };
-    
+
     for (const [key, value] of Object.entries(gestores)) {
         if (normalizedLinea.includes(key)) return value;
     }
@@ -61,23 +61,23 @@ const getGestorByLinea = (linea) => {
 };
 
 const getProveedorByLinea = (linea) => {
-    return normalizeLinea(linea).includes('ANGELES') 
-        ? 'TEXTILES Y CREACIONES LOS ANGELES SAS' 
+    return normalizeLinea(linea).includes('ANGELES')
+        ? 'TEXTILES Y CREACIONES LOS ANGELES SAS'
         : 'TEXTILES Y CREACIONES EL UNIVERSO SAS';
 };
 
 const isAnulado = (item) => {
     const camposRequeridos = [
-        'TALLER', 'LINEA', 'AUDITOR', 'ESCANER', 'LOTE', 
+        'TALLER', 'LINEA', 'AUDITOR', 'ESCANER', 'LOTE',
         'REFPROV', 'DESCRIPCIÓN', 'CANTIDAD', 'REFERENCIA',
         'TIPO', 'PVP', 'PRENDA', 'GENERO'
     ];
-    
+
     let camposVacios = 0;
-    
+
     for (const campo of camposRequeridos) {
-        if (!item[campo] || 
-            (typeof item[campo] === 'number' && item[campo] === 0) || 
+        if (!item[campo] ||
+            (typeof item[campo] === 'number' && item[campo] === 0) ||
             (typeof item[campo] === 'string' && item[campo].trim() === '')) {
             camposVacios++;
             if (camposVacios > 4) return true;
@@ -93,7 +93,7 @@ export const getParsedMainData = async () => {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.DATA2}/values/${range}?key=${API_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
-        
+
         if (!data.values || data.values.length === 0) {
             throw new Error("No se encontraron datos en la hoja DATA2");
         }
@@ -101,10 +101,10 @@ export const getParsedMainData = async () => {
         return data.values.map(row => {
             try {
                 const jsonData = JSON.parse(row[0]);
-                
+
                 // Calcular cantidad correcta: HR + ANEXOS tipo PROMO
                 let cantidad = 0;
-                
+
                 // 1. Sumar HR (todas las cantidades)
                 if (jsonData.HR && Array.isArray(jsonData.HR)) {
                     cantidad = jsonData.HR.reduce((sum, item) => {
@@ -113,7 +113,7 @@ export const getParsedMainData = async () => {
                         return sum + cant;
                     }, 0);
                 }
-                
+
                 // 2. Sumar ANEXOS tipo PROMO
                 if (jsonData.ANEXOS && Array.isArray(jsonData.ANEXOS)) {
                     const cantidadPromo = jsonData.ANEXOS.reduce((sum, anexo) => {
@@ -124,7 +124,7 @@ export const getParsedMainData = async () => {
                     }, 0);
                     cantidad += cantidadPromo;
                 }
-                
+
                 return {
                     DOCUMENTO: String(jsonData.A || ''),
                     FECHA: normalizeDate(jsonData.FECHA || ''), // Aplicar normalización de fecha
@@ -165,7 +165,7 @@ export const getREC = async () => {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_IDS.REC}/values/${range}?key=${API_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
-        
+
         if (!data.values || data.values.length === 0) {
             throw new Error("No se encontraron datos en la hoja DataBase");
         }
@@ -174,7 +174,7 @@ export const getREC = async () => {
             if (!row[0] && !row[1]) return null;
             const documento = String(row[0] || '');
             const linea = row[3] || '';
-            
+
             return {
                 DOCUMENTO: normalizeDocumento(documento),
                 FECHA: normalizeDate(row[1] || ''), // Aplicar normalización de fecha
@@ -192,7 +192,7 @@ export const getREC = async () => {
                 PVP: normalizePVP(row[31] || ''), // Ya incluye la eliminación de separadores de miles
                 PRENDA: row[29] || '',
                 GENERO: row[30] || '',
-                GESTOR: getGestorByLinea(linea), 
+                GESTOR: getGestorByLinea(linea),
                 PROVEEDOR: getProveedorByLinea(linea),
                 CLASE: getClaseByPVP(normalizePVP(row[31] || '')),
                 FUENTE: 'BUSINT'
@@ -211,7 +211,7 @@ export const getCombinedData = async () => {
             getParsedMainData(),
             getREC()
         ]);
-        
+
         return [...dataFromFirstSheet, ...dataFromSecondSheet].filter(item => !isAnulado(item));
     } catch (error) {
         console.error("Error al combinar datos:", error);
