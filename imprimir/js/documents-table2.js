@@ -11,7 +11,7 @@ const ESTADOS_SIN_RESPONSABLES = ['ELABORACION', 'PAUSADO'];
 // Función para cargar la lista de responsables
 async function cargarResponsables() {
     const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-    const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+    const API_KEY = 'AIzaSyDQWPYg7cwNVQeFJp466kGaq8bcQ6fKE6M';
     
     try {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;

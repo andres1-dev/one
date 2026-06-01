@@ -12,7 +12,7 @@ async function cargarDatos() {
             rec: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
             clientes: "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE"
         };
-        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        const API_KEY = 'AIzaSyDQWPYg7cwNVQeFJp466kGaq8bcQ6fKE6M';
 
         // Función para obtener datos de la hoja
         async function fetchSheetData(spreadsheetId, range) {
