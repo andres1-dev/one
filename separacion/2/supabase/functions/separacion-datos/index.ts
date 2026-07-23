@@ -166,20 +166,15 @@ Deno.serve(async (req) => {
     const [
       { data: ingresos, error: eIng },
       { data: clientes, error: eCli },
-      { data: siesa, error: eSiesa },
     ] = await Promise.all([
       idsNecesarios.length > 0
         ? supabase.from("ingresos").select("*").in("id_ingreso", idsNecesarios)
         : Promise.resolve({ data: [], error: null }),
       supabase.from("clientes").select("*"),
-      idsNecesarios.length > 0
-        ? supabase.from("SIESA").select("*").in("op", idsNecesarios)
-        : Promise.resolve({ data: [], error: null }),
     ]);
 
     if (eIng)  throw new Error("ingresos: " + eIng.message);
     if (eCli)  throw new Error("clientes: " + eCli.message);
-    if (eSiesa) throw new Error("SIESA: " + eSiesa.message);
 
     // ── 2. Índices para lookup O(1) ────────────────────────────────────────
 
@@ -194,6 +189,22 @@ Deno.serve(async (req) => {
     for (const ing of ingresos!) {
       ingresosMap[String(ing.id_ingreso)] = ing;
     }
+
+    // Extraer lotes únicos de los ingresos para búsqueda en SIESA
+    const lotesNecesarios = new Set<string>();
+    for (const ing of ingresos!) {
+      if (ing.lote) {
+        lotesNecesarios.add(String(ing.lote));
+      }
+    }
+
+    // Consultar SIESA por op (id_distribucion) y por lote
+    const idsParaSIESA = [...new Set([...idsNecesarios, ...lotesNecesarios])];
+    const { data: siesa, error: eSiesa } = idsParaSIESA.length > 0
+      ? await supabase.from("SIESA").select("*").in("op", idsParaSIESA)
+      : { data: [], error: null };
+
+    if (eSiesa) throw new Error("SIESA: " + eSiesa.message);
 
     // Mapa op → array de facturas de SIESA
     const siesaMap: Record<string, Record<string, unknown>[]> = {};
@@ -218,7 +229,13 @@ Deno.serve(async (req) => {
     for (const dist of distribuciones!) {
       const docId   = String(dist.id_distribucion);
       const ingreso = ingresosMap[docId];
-      const facturasSIESA = siesaMap[docId] ?? [];
+
+      // Buscar facturas primero por op (id_distribucion), si no hay, buscar por lote
+      let facturasSIESA = siesaMap[docId] ?? [];
+      if (facturasSIESA.length === 0 && ingreso?.lote) {
+        const lote = String(ingreso.lote);
+        facturasSIESA = siesaMap[lote] ?? [];
+      }
 
       // datos_distribucion ya es JSONB en Supabase
       const datosDistrib = dist.datos_distribucion as {

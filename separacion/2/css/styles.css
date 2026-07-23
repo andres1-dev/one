@@ -159,6 +159,26 @@ body {
             color: var(--accent-color);
         }
 
+        .control-btn.active,
+        #btnToggleFacturados.active {
+            background: var(--success-color) !important;
+            color: white !important;
+            border-color: var(--success-color) !important;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+            opacity: 1 !important;
+        }
+
+        .control-btn.active i,
+        #btnToggleFacturados.active i {
+            color: white !important;
+        }
+
+        .control-btn.active:hover,
+        #btnToggleFacturados.active:hover {
+            background: #059669 !important;
+            color: white !important;
+        }
+
         .control-btn i {
             font-size: 0.875rem;
             color: var(--accent-color);
@@ -398,20 +418,21 @@ body {
 
 /* ===== LAYOUT Y CONTENEDORES ===== */
 .container-fluid {
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
     max-width: 100%;
     margin: 0 auto;
 }
 
 @media (min-width: 768px) {
     .container-fluid {
-        padding: var(--spacing-lg) var(--spacing-xl);
+        padding: var(--spacing-md) var(--spacing-lg);
     }
 }
 
 @media (min-width: 1200px) {
     .container-fluid {
-        max-width: 1400px;
+        max-width: 1800px;
+        padding: var(--spacing-md) var(--spacing-xl);
     }
 }
 
@@ -486,6 +507,40 @@ body {
     transition: all var(--transition-base);
     position: relative;
     overflow: hidden;
+}
+
+/* Ícono watermark para tarjetas de resumen */
+.resumen-card-bg-icon {
+    position: absolute;
+    bottom: -10px;
+    right: -8px;
+    font-size: 4.5rem;
+    color: var(--card-accent, #3b82f6);
+    opacity: 0.07;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+    line-height: 1;
+}
+
+.resumen-card.pendientes .resumen-card-bg-icon {
+    color: var(--warning-color);
+}
+
+.resumen-card.proceso .resumen-card-bg-icon {
+    color: var(--info-color);
+}
+
+.resumen-card.directos .resumen-card-bg-icon {
+    color: var(--success-color);
+}
+
+.resumen-card.total .resumen-card-bg-icon {
+    color: var(--accent-color);
+}
+
+.resumen-card:hover .resumen-card-bg-icon {
+    opacity: 0.13;
+    transform: translate(-4px, -4px) scale(1.08);
 }
 
 .resumen-card::before {
@@ -779,6 +834,8 @@ body {
     box-shadow: var(--shadow-sm);
     background: var(--bg-secondary);
     overflow: hidden;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .card-header {
@@ -817,18 +874,19 @@ body {
 }
 
 .table th {
-    background: var(--bg-primary);
+    background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
     border-bottom: 2px solid var(--border-color);
     font-weight: 600;
-    color: var(--text-secondary);
-    padding: 0.875rem 0.75rem;
-    font-size: 0.75rem;
+    color: var(--text-primary);
+    padding: 1rem 0.75rem;
     text-transform: uppercase;
+    font-size: 0.75rem;
     letter-spacing: 0.05em;
     white-space: nowrap;
     position: sticky;
     top: 0;
     z-index: 10;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .table td {
@@ -839,15 +897,29 @@ body {
 }
 
 .table tbody tr {
-    transition: background-color var(--transition-fast);
+    transition: all var(--transition-fast);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .table tbody tr:hover {
     background-color: var(--bg-primary);
+    transform: scale(1.002);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    z-index: 1;
+    position: relative;
 }
 
 .table tbody tr:last-child td {
     border-bottom: none;
+}
+
+/* Efecto de selección en DataTables */
+table.dataTable tbody tr.selected {
+    background-color: rgba(15, 52, 96, 0.1) !important;
+}
+
+table.dataTable tbody tr.selected td {
+    border-bottom: 1px solid var(--accent-color);
 }
 
 /* Responsividad de tabla en móviles */
@@ -1177,6 +1249,17 @@ body {
 /* Mantener estilos por defecto de SweetAlert2 */
 
 /* ===== DATATABLES PERSONALIZACIÓN ===== */
+.dataTables_wrapper {
+    margin: 0 auto;
+    width: 100%;
+    padding: var(--spacing-md);
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: var(--spacing-md);
+}
+
 .dataTables_wrapper .dataTables_length select,
 .dataTables_wrapper .dataTables_filter input {
     border: 1px solid var(--border-color) !important;
@@ -1184,6 +1267,7 @@ body {
     padding: 0.5rem 0.75rem !important;
     font-size: 0.875rem !important;
     transition: all var(--transition-fast) !important;
+    background: var(--bg-secondary) !important;
 }
 
 .dataTables_wrapper .dataTables_length select:focus,
@@ -1191,6 +1275,16 @@ body {
     outline: none !important;
     border-color: var(--accent-color) !important;
     box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1) !important;
+}
+
+.dataTables_wrapper .dataTables_info {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    padding-top: var(--spacing-sm);
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    padding-top: var(--spacing-sm);
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button {
@@ -1201,18 +1295,28 @@ body {
     background: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
     transition: all var(--transition-fast) !important;
+    font-weight: 500 !important;
+    box-shadow: var(--shadow-xs) !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
     background: var(--accent-color) !important;
     color: white !important;
     border-color: var(--accent-color) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow-sm) !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button.current {
     background: var(--accent-color) !important;
     color: white !important;
     border-color: var(--accent-color) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
 }
 
 /* ===== PRINT STYLES ===== */

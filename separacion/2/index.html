@@ -65,12 +65,21 @@
                 </button>
                 
                 <!-- Botón Buscar Finalizados -->
-                <button id="btnToggleFinalizados" 
-                        class="control-item control-btn" 
+                <button id="btnToggleFinalizados"
+                        class="control-item control-btn"
                         onclick="abrirBusquedaFinalizados()"
                         title="Buscar documentos finalizados">
                     <i class="fas fa-search"></i>
                     <span class="hide-xs">Finalizados</span>
+                </button>
+
+                <!-- Botón Filtrar Facturados -->
+                <button id="btnToggleFacturados"
+                        class="control-item control-btn"
+                        onclick="toggleFacturados()"
+                        title="Mostrar solo facturados">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span class="hide-xs">Facturados</span>
                 </button>
 
                 <!-- Botón Estadísticas -->
@@ -132,6 +141,16 @@
                         <div class="control-option-content">
                             <div class="control-option-title" id="modalToggleText">Buscar Finalizados</div>
                             <div class="control-option-desc">Buscar documentos completados por OP o Lote</div>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+
+                    <!-- Opción Filtrar Facturados -->
+                    <div class="control-option" onclick="ejecutarToggleFacturados()">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <div class="control-option-content">
+                            <div class="control-option-title" id="modalFacturadosText">Solo Facturados</div>
+                            <div class="control-option-desc">Mostrar solo documentos con factura</div>
                         </div>
                         <i class="fas fa-chevron-right text-muted"></i>
                     </div>
@@ -274,8 +293,9 @@
                         <div class="resumen-unidades" id="unidadesPendientes">0 unidades</div>
                     </div>
                 </div>
+                <i class="fas fa-clock resumen-card-bg-icon"></i>
             </div>
-            
+
             <div class="resumen-card proceso">
                 <div class="resumen-content">
                     <div class="resumen-text">
@@ -287,8 +307,9 @@
                         <div class="resumen-unidades" id="unidadesProceso">0 unidades</div>
                     </div>
                 </div>
+                <i class="fas fa-cogs resumen-card-bg-icon"></i>
             </div>
-            
+
             <div class="resumen-card directos">
                 <div class="resumen-content">
                     <div class="resumen-text">
@@ -300,8 +321,9 @@
                         <div class="resumen-unidades" id="unidadesDirectos">0 unidades</div>
                     </div>
                 </div>
+                <i class="fas fa-bolt resumen-card-bg-icon"></i>
             </div>
-            
+
             <div class="resumen-card total">
                 <div class="resumen-content">
                     <div class="resumen-text">
@@ -313,6 +335,7 @@
                         <div class="resumen-unidades" id="unidadesTotal">0 unidades</div>
                     </div>
                 </div>
+                <i class="fas fa-layer-group resumen-card-bg-icon"></i>
             </div>
         </div>
 

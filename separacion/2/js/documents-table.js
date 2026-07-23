@@ -12,6 +12,7 @@ let filtrosActivos = {
 let actualizacionEnProgreso = false;
 let timeoutActualizacion = null;
 let filtroTarjetaActivo = null;
+let filtroFacturadosActivo = false;
 
 // ─── Configuración Supabase ───────────────────────────────────────────────────
 const SUPABASE_URL_DT      = "https://iladaofarozipitwaeti.supabase.co";
@@ -806,6 +807,65 @@ function toggleFinalizados() {
         }
     }
     actualizarInmediatamente(true);
+}
+
+function toggleFacturados() {
+    filtroFacturadosActivo = !filtroFacturadosActivo;
+    const btn = document.getElementById('btnToggleFacturados');
+    const modalText = document.getElementById('modalFacturadosText');
+
+    if (btn) {
+        if (filtroFacturadosActivo) {
+            btn.classList.add('active');
+            btn.style.background = '#10b981';
+            btn.style.color = 'white';
+            btn.style.borderColor = '#10b981';
+            btn.innerHTML = '<i class="fas fa-file-invoice-dollar"></i><span class="hide-xs"> Todos</span>';
+        } else {
+            btn.classList.remove('active');
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.style.borderColor = '';
+            btn.innerHTML = '<i class="fas fa-file-invoice-dollar"></i><span class="hide-xs"> Facturados</span>';
+        }
+    }
+
+    if (modalText) {
+        modalText.textContent = filtroFacturadosActivo ? 'Mostrar Todos' : 'Solo Facturados';
+    }
+
+    aplicarFiltroFacturados();
+}
+
+function ejecutarToggleFacturados() {
+    cerrarModalControles();
+    toggleFacturados();
+}
+
+function aplicarFiltroFacturados() {
+    if (!documentosTable) return;
+
+    // Limpiar filtros de facturados existentes
+    $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function(searchFunc) {
+        return searchFunc.name !== 'filtroFacturados';
+    });
+
+    // Si el filtro está activo, agregar el nuevo filtro
+    if (filtroFacturadosActivo) {
+        const filtroFacturados = function(settings, data, dataIndex) {
+            const rowData = documentosTable.row(dataIndex).data();
+            return rowData && rowData.tieneFactura === true;
+        };
+        filtroFacturados.name = 'filtroFacturados';
+        $.fn.dataTable.ext.search.push(filtroFacturados);
+    }
+
+    documentosTable.draw();
+
+    // Actualizar tarjetas con los datos filtrados
+    const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
+    const consolidados = calcularConsolidados(datosFiltrados);
+    actualizarTarjetasResumen(consolidados, true);
 }
 
 async function cargarTablaDocumentos() {
