@@ -45,15 +45,19 @@
             <!-- Controles del Header -->
             <div class="header-controls">
                 <!-- Flatpickr -->
-                <div class="control-item flatpickr-control">
-                    <input type="text" 
-                           class="form-control form-control-sm flatpickr-header-input" 
-                           id="filtroFechaHeader" 
-                           placeholder="Rango de fechas"
-                           autocomplete="off"
-                           title="Seleccionar rango de fechas">
-                </div>
-                
+                <button type="button"
+                        class="control-item control-btn"
+                        id="btnFiltroFecha"
+                        onclick="abrirCalendario()"
+                        title="Filtrar por fechas">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="hide-xs" id="fechaLabel">Fechas</span>
+                </button>
+                <input type="text"
+                       id="filtroFechaHeader"
+                       autocomplete="off"
+                       style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;">
+
                 <!-- Botón Actualizar -->
                 <button type="button" 
                         class="control-item control-btn" 
@@ -464,18 +468,30 @@
             allowInput: true,
             onChange: function(selectedDates, dateStr, instance) {
                 selectedDatesGlobal = selectedDates;
-                
-                // Aplicar filtro automáticamente cuando se selecciona rango completo
+                const btn = document.getElementById('btnFiltroFecha');
+                const label = document.getElementById('fechaLabel');
+
                 if (selectedDates.length === 2) {
+                    // Mostrar rango de fechas en el botón
+                    const startDate = formatDate(selectedDates[0]);
+                    const endDate = formatDate(selectedDates[1]);
+                    label.textContent = `${startDate} - ${endDate}`;
+                    btn.classList.add('active');
                     aplicarFiltroFecha(selectedDates[0], selectedDates[1]);
                 } else if (selectedDates.length === 0) {
-                    // Limpiar filtro cuando no hay fechas seleccionadas
+                    // Restaurar texto original
+                    label.textContent = 'Fechas';
+                    btn.classList.remove('active');
                     limpiarFiltroFecha();
                 }
             },
             onClose: function(selectedDates, dateStr, instance) {
                 // Limpiar si no hay fechas seleccionadas
                 if (selectedDates.length === 0) {
+                    const btn = document.getElementById('btnFiltroFecha');
+                    const label = document.getElementById('fechaLabel');
+                    label.textContent = 'Fechas';
+                    btn.classList.remove('active');
                     limpiarFiltroFecha();
                 }
             }
@@ -632,10 +648,31 @@ window.finishUpdate = finishUpdate;
         }
     }
 
+    // Función para abrir el calendario
+    function abrirCalendario() {
+        if (flatpickrInstance) {
+            flatpickrInstance.open();
+        }
+    }
+
+    // Función para formatear fecha
+    function formatDate(date) {
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        return `${day}/${month}`;
+    }
+
     // Función para limpiar filtro de fecha
     function limpiarFiltroFecha() {
         selectedDatesGlobal = [];
-        
+        const btn = document.getElementById('btnFiltroFecha');
+        const label = document.getElementById('fechaLabel');
+
+        if (btn && label) {
+            label.textContent = 'Fechas';
+            btn.classList.remove('active');
+        }
+
         if (flatpickrInstance) {
             flatpickrInstance.clear();
         }
@@ -846,6 +883,7 @@ window.finishUpdate = finishUpdate;
     window.limpiarFiltroFecha = limpiarFiltroFecha;
     window.aplicarFiltroFecha = aplicarFiltroFecha;
     window.abrirFlatpickrModal = abrirFlatpickrModal;
+    window.abrirCalendario = abrirCalendario;
     window.cerrarModalControles = cerrarModalControles;
     window.updateStatusIndicator = updateStatusIndicator;
     window.startUpdate = startUpdate;
