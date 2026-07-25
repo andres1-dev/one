@@ -2552,103 +2552,17 @@ async function buscarFinalizados() {
     }
 }
 
-function renderizarResultadosFinalizados(resultados, terminoBusqueda) {
-    if (!resultados || resultados.length === 0) {
-        return `<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Sin resultados.</div>`;
-    }
+// Cargar los datos enriquecidos compartidos desde la Edge Function
+async function obtenerDatosCompletosFinalizado(rec) {
+    const loadingSwal = Swal.fire({
+        title: 'Cargando datos...',
+        text: `REC${rec}`,
+        icon: 'info',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
 
-    const filas = resultados.map(({ dist, datosCompletos }) => {
-        const rec        = dist.id_distribucion || '';
-        const colaborador = dist.colaborador || datosCompletos?.COLABORADOR || 'Sin asignar';
-        const fechaStr   = formatearFechaSolo(dist.fecha_distribucion || datosCompletos?.FECHA_DISTRIBUCION || '');
-        const duracion   = dist.duracion || datosCompletos?.DURACION || '-';
-        const lote       = datosCompletos?.LOTE       || '-';
-        const refProv    = datosCompletos?.REFPROV     || '-';
-        const prenda     = datosCompletos?.PRENDA      || '-';
-        const cantidad   = datosCompletos?.CANTIDAD    || '-';
-
-        const tieneClientes = datosCompletos?.DISTRIBUCION?.Clientes &&
-            Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0;
-
-        const btnImprimir = (tieneClientes || datosCompletos) ? `
-            <button class="btn btn-sm btn-primary" 
-                    onclick="imprimirFinalizadoDesdeModal('${rec}')"
-                    title="Imprimir plantillas">
-                <i class="fas fa-print"></i>
-            </button>` : `
-            <button class="btn btn-sm btn-secondary" disabled title="Sin datos para imprimir">
-                <i class="fas fa-print"></i>
-            </button>`;
-
-        const btnRestablecer = `
-            <button class="btn btn-sm btn-danger"
-                    onclick="restablecerFinalizadoDesdeModal('${rec}')"
-                    title="Restablecer documento">
-                <i class="fas fa-undo"></i>
-            </button>`;
-
-        return `
-            <tr>
-                <td><strong>REC${rec}</strong></td>
-                <td><span class="badge bg-dark">FINALIZADO</span></td>
-                <td class="small">${colaborador}</td>
-                <td class="small">${fechaStr}</td>
-                <td class="small">${duracion}</td>
-                <td class="small">${cantidad}</td>
-                <td class="small hide-sm">${prenda}</td>
-                <td class="small hide-sm">${lote}</td>
-                <td class="small hide-md">${refProv}</td>
-                <td>
-                    <div class="d-flex gap-1">
-                        ${btnImprimir}
-                        ${btnRestablecer}
-                    </div>
-                </td>
-            </tr>`;
-    }).join('');
-
-    return `
-        <div class="table-responsive">
-            <p class="text-muted small mb-2">
-                <i class="fas fa-check-circle text-success me-1"></i>
-                ${resultados.length} resultado(s) encontrado(s) para <strong>"${terminoBusqueda}"</strong>
-            </p>
-            <table class="table table-hover table-sm w-100 mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Documento</th>
-                        <th>Estado</th>
-                        <th>Responsable</th>
-                        <th>Fecha</th>
-                        <th>Duración</th>
-                        <th>Cantidad</th>
-                        <th class="hide-sm">Prenda</th>
-                        <th class="hide-sm">Lote</th>
-                        <th class="hide-md">RefProv</th>
-                        <th>Factura</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${filas}
-                </tbody>
-            </table>
-        </div>`;
-}
-
-async function imprimirFinalizadoDesdeModal(rec) {
-    // Cerrar el modal de Bootstrap antes del Swal para evitar conflicto de foco
-    const modalEl = document.getElementById('finalizadosModal');
-    const modalInstance = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
-    if (modalInstance) {
-        await new Promise(resolve => {
-            modalEl.addEventListener('hidden.bs.modal', resolve, { once: true });
-            modalInstance.hide();
-        });
-    }
-
-    // Obtener datos completos desde la Edge Function (con ?finalizado=true para saltear filtro de estados)
-    let datosCompletos = null;
     try {
         const resp = await fetch(
             `${SUPABASE_URL_DT}/functions/v1/separacion-datos?id=${rec}&finalizado=true`,
@@ -2659,80 +2573,192 @@ async function imprimirFinalizadoDesdeModal(rec) {
                 },
             }
         );
+        Swal.close();
         if (resp.ok) {
             const json = await resp.json();
             if (json.success && json.data && json.data.length > 0) {
-                datosCompletos = json.data[0];
+                return json.data[0];
             }
         }
+        throw new Error("No se obtuvieron datos correctos");
     } catch (e) {
-        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo obtener los datos del documento.', timer: 2000, showConfirmButton: false });
-        if (modalInstance) modalInstance.show();
+        Swal.close();
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo obtener los datos del documento.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        return null;
+    }
+}
+
+// Imprimir secuencialmente (uno a uno) las plantillas de todos los clientes
+async function imprimirClientesFinalizadoDirecto(rec) {
+    const datosCompletos = await obtenerDatosCompletosFinalizado(rec);
+    if (!datosCompletos) return;
+
+    const clientesObj = (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes &&
+        Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0)
+        ? datosCompletos.DISTRIBUCION.Clientes
+        : (datosCompletos.CLIENTES || {});
+
+    const clientes = Object.keys(clientesObj);
+
+    if (clientes.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Sin clientes', text: `El documento REC${rec} no tiene clientes asignados.`, timer: 2000, showConfirmButton: false });
         return;
     }
 
-    if (!datosCompletos) {
-        Swal.fire({ icon: 'warning', title: 'Sin datos', text: `No se encontraron datos para REC${rec}.`, timer: 2000, showConfirmButton: false });
-        if (modalInstance) modalInstance.show();
+    if (typeof print_generarDocumentoCompleto !== 'function') {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Función de impresión no disponible' });
         return;
     }
 
-    const tieneClientes = datosCompletos.DISTRIBUCION?.Clientes &&
-        Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0;
+    // Abrir la primera pestaña directamente y registrar window._imprimirSiguiente para encadenar las demás
+    let index = 0;
 
-    if (!tieneClientes) {
-        // Sin clientes — imprimir principal directo (no necesita Swal)
-        if (typeof print_abrirPlantillaImpresion === 'function') {
-            print_abrirPlantillaImpresion(datosCompletos, { modo: 'completo', soloImpresionPrincipal: true });
+    function abrirSiguiente() {
+        if (index >= clientes.length) {
+            delete window._imprimirSiguiente;
+            return;
         }
-        if (modalInstance) modalInstance.show();
-        return;
+
+        const cliente = clientes[index];
+        index++;
+
+        window._imprimirSiguiente = abrirSiguiente;
+
+        const html = print_generarDocumentoCompleto(datosCompletos, { modo: 'cliente', clienteNombre: cliente }, true);
+
+        const ventana = window.open('', '_blank');
+        if (!ventana) {
+            alert('El navegador bloqueó una ventana emergente. Permite popups para este sitio.');
+            return;
+        }
+        ventana.document.write(html);
+        ventana.document.close();
     }
 
-    // Mostrar opciones: principal + clientes
-    const clientes = Object.keys(datosCompletos.DISTRIBUCION.Clientes);
+    abrirSiguiente();
+}
 
-    const { value: seleccion } = await Swal.fire({
-        title: `Imprimir REC${rec}`,
-        html: `
-            <div style="text-align:left">
-                <p class="mb-2 text-muted small">Seleccione qué imprimir:</p>
-                <div class="form-check mb-1">
-                    <input class="form-check-input" type="checkbox" id="swal_principal" checked>
-                    <label class="form-check-label" for="swal_principal">Plantilla Principal</label>
+function renderizarResultadosFinalizados(resultados, terminoBusqueda) {
+    if (!resultados || resultados.length === 0) {
+        return `<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Sin resultados.</div>`;
+    }
+
+    const tarjetas = resultados.map(({ dist, datosCompletos }) => {
+        const rec        = dist.id_distribucion || '';
+        const colaborador = dist.colaborador || datosCompletos?.COLABORADOR || 'Sin asignar';
+        const fechaStr   = formatearFechaSolo(dist.fecha_distribucion || datosCompletos?.FECHA_DISTRIBUCION || '');
+        const duracion   = dist.duracion || datosCompletos?.DURACION || '-';
+        const lote       = datosCompletos?.LOTE       || '-';
+        const refProv    = datosCompletos?.REFPROV     || '-';
+        const prenda     = datosCompletos?.PRENDA      || '-';
+        const cantidad   = datosCompletos?.CANTIDAD    || '-';
+        const proveedor  = datosCompletos?.PROVEEDOR   || 'Sin especificar';
+        const genero     = datosCompletos?.GENERO      || '-';
+
+        const clientesObj = datosCompletos?.DISTRIBUCION?.Clientes || datosCompletos?.CLIENTES || {};
+        const clientes = Object.keys(clientesObj);
+
+        // Factura
+        const tieneFactura = datosCompletos?.TIENE_FACTURA === true;
+        const nroFactura = datosCompletos?.NRO_FACTURA || '';
+        const facturaBadge = tieneFactura 
+            ? `<span class="badge bg-success">${nroFactura}</span>`
+            : `<span class="badge bg-secondary">Sin factura</span>`;
+
+        // Clientes
+        const clientesHtml = clientes.length > 0
+            ? clientes.map(c => `<span class="fin-cliente-tag" title="${c}">${c}</span>`).join('')
+            : `<span style="color: var(--text-muted); font-size: 0.8125rem;">Sin clientes asignados</span>`;
+
+        const disabledPrint = clientes.length > 0 ? '' : 'disabled';
+
+        return `
+            <div class="fin-card" style="position: relative;">
+                <div class="fin-card-accent"></div>
+
+                <!-- Encabezado -->
+                <div class="fin-header">
+                    <h4 class="fin-header-id"><span>REC</span>${rec}</h4>
+                    <div class="fin-header-meta">
+                        ${facturaBadge}
+                        <span class="badge bg-success">Finalizado</span>
+                    </div>
                 </div>
-                ${clientes.map(c => `
-                <div class="form-check mb-1">
-                    <input class="form-check-input fin-cliente-check" type="checkbox" value="${c}" id="swal_c_${c.replace(/\s+/g,'_')}" checked>
-                    <label class="form-check-label" for="swal_c_${c.replace(/\s+/g,'_')}">${c}</label>
-                </div>`).join('')}
-            </div>`,
-        showCancelButton: true,
-        confirmButtonText: '<i class="fas fa-print me-1"></i>Imprimir',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#3085d6',
-        preConfirm: () => {
-            const items = [];
-            if (document.getElementById('swal_principal')?.checked) {
-                items.push({ datos: datosCompletos, options: { modo: 'completo', soloImpresionPrincipal: true } });
-            }
-            document.querySelectorAll('.fin-cliente-check:checked').forEach(cb => {
-                items.push({ datos: datosCompletos, options: { modo: 'cliente', clienteNombre: cb.value } });
-            });
-            if (items.length === 0) {
-                Swal.showValidationMessage('Selecciona al menos una opción');
-                return false;
-            }
-            return items;
-        }
-    });
 
-    if (seleccion && seleccion.length > 0 && typeof print_imprimirLoteDocumentos === 'function') {
-        print_imprimirLoteDocumentos(seleccion, `Separación REC${rec}`);
-    }
+                <!-- Grid de datos -->
+                <div class="fin-body">
+                    <div class="fin-field">
+                        <span class="fin-field-label">Prenda</span>
+                        <span class="fin-field-value" title="${prenda}">${prenda}</span>
+                    </div>
+                    <div class="fin-field">
+                        <span class="fin-field-label">Género</span>
+                        <span class="fin-field-value">${genero}</span>
+                    </div>
+                    <div class="fin-field">
+                        <span class="fin-field-label">Responsable</span>
+                        <span class="fin-field-value" title="${colaborador}">${colaborador}</span>
+                    </div>
+                    <div class="fin-field">
+                        <span class="fin-field-label">Proveedor</span>
+                        <span class="fin-field-value" title="${proveedor}">${proveedor}</span>
+                    </div>
+                    <div class="fin-field">
+                        <span class="fin-field-label">Lote</span>
+                        <span class="fin-field-value fin-value-lg">${lote}</span>
+                    </div>
+                    <div class="fin-field">
+                        <span class="fin-field-label">Cantidad</span>
+                        <span class="fin-field-value fin-value-lg">${cantidad}</span>
+                    </div>
+                    <div class="fin-field">
+                        <span class="fin-field-label">Duración</span>
+                        <span class="fin-field-value fin-value-mono">${duracion}</span>
+                    </div>
+                    <div class="fin-field">
+                        <span class="fin-field-label">Fecha</span>
+                        <span class="fin-field-value">${fechaStr}</span>
+                    </div>
+                    <div class="fin-field">
+                        <span class="fin-field-label">Ref. Proveedor</span>
+                        <span class="fin-field-value" title="${refProv}">${refProv}</span>
+                    </div>
 
-    // Reabrir el modal de finalizados después de imprimir
-    if (modalInstance) modalInstance.show();
+                    <!-- Clientes (fila completa) -->
+                    <div class="fin-clientes">
+                        <span class="fin-field-label">Clientes asignados · ${clientes.length}</span>
+                        <div class="fin-clientes-list">
+                            ${clientesHtml}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pie con acciones -->
+                <div class="fin-footer">
+                    <span style="font-size: 0.6875rem; color: var(--text-muted);">Supabase Cloud</span>
+                    <div class="fin-footer-actions">
+                        <button class="btn btn-sm btn-primary" 
+                                onclick="imprimirClientesFinalizadoDirecto('${rec}')" ${disabledPrint}>
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                        <button class="btn btn-sm btn-danger" 
+                                onclick="restablecerFinalizadoDesdeModal('${rec}')"
+                                title="Restablecer a PENDIENTE">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return tarjetas;
 }
 
 async function restablecerFinalizadoDesdeModal(rec) {
@@ -2803,10 +2829,10 @@ async function restablecerFinalizadoDesdeModal(rec) {
     }
 }
 
-window.buscarFinalizados              = buscarFinalizados;
-window.imprimirFinalizadoDesdeModal   = imprimirFinalizadoDesdeModal;
-window.restablecerFinalizadoDesdeModal = restablecerFinalizadoDesdeModal;
-window.abrirBusquedaFinalizados       = function() {
+window.buscarFinalizados                 = buscarFinalizados;
+window.imprimirClientesFinalizadoDirecto = imprimirClientesFinalizadoDirecto;
+window.restablecerFinalizadoDesdeModal    = restablecerFinalizadoDesdeModal;
+window.abrirBusquedaFinalizados          = function() {
     if (typeof abrirBusquedaFinalizados === 'function') abrirBusquedaFinalizados();
 };
 

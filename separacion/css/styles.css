@@ -2811,4 +2811,176 @@ img {
     color: #2563eb;
     border-color: #93c5fd;
     font-weight: 600;
+}
+
+/* ===== TARJETAS DE FINALIZADOS ===== */
+.fin-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: box-shadow var(--transition-base), border-color var(--transition-base);
+    margin-bottom: var(--spacing-md);
+}
+
+.fin-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-color);
+}
+
+/* Barra de acento izquierda */
+.fin-card-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--accent-color);
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+/* Encabezado de la tarjeta */
+.fin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
+    border-bottom: 1px solid var(--border-light);
+    position: relative;
+    padding-left: calc(var(--spacing-lg) + 8px); /* espacio para la barra de acento */
+}
+
+.fin-header-id {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.025em;
+    margin: 0;
+    line-height: 1;
+}
+
+.fin-header-id span {
+    color: var(--accent-color);
+    font-weight: 800;
+}
+
+.fin-header-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Cuerpo principal: grid de datos */
+.fin-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    position: relative;
+    padding-left: 4px; /* espacio para la barra de acento */
+}
+
+.fin-field {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.fin-field:nth-child(3n) {
+    border-right: none;
+}
+
+.fin-field-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    line-height: 1;
+}
+
+.fin-field-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+.fin-field-value.fin-value-lg {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.fin-field-value.fin-value-mono {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+/* Sección de clientes */
+.fin-clientes {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+    grid-column: 1 / -1;
+    padding-left: calc(var(--spacing-lg) + 4px);
+}
+
+.fin-clientes-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.fin-cliente-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Pie de tarjeta: acciones */
+.fin-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-primary);
+    padding-left: calc(var(--spacing-lg) + 4px);
+}
+
+.fin-footer-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+@media (max-width: 767.98px) {
+    .fin-body {
+        grid-template-columns: 1fr 1fr;
+    }
+    .fin-field:nth-child(3n) {
+        border-right: 1px solid var(--border-light);
+    }
+    .fin-field:nth-child(2n) {
+        border-right: none;
+    }
 }

@@ -227,7 +227,7 @@
 
     <!-- Modal Buscar Finalizados -->
     <div class="modal fade" id="finalizadosModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
@@ -243,9 +243,6 @@
                         <input type="text" class="form-control" id="finalizadosInput"
                             placeholder="Ingrese número de OP o Lote..." autocomplete="off"
                             onkeydown="if(event.key==='Enter') buscarFinalizados()">
-                        <button class="btn btn-primary" onclick="buscarFinalizados()" id="btnBuscarFinalizados">
-                            <i class="fas fa-search me-1"></i>Buscar
-                        </button>
                     </div>
                     <p class="text-muted small mb-3">
                         <i class="fas fa-info-circle me-1"></i>
@@ -976,9 +973,32 @@
         window.abrirBusquedaFinalizados = abrirBusquedaFinalizados;
         window.ejecutarBusquedaFinalizados = ejecutarBusquedaFinalizados;
 
-        // Inicializar texto de finalizados
+        // Inicializar buscador de finalizados con debounce automático (búsqueda en tiempo real)
         document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(() => { }, 500);
+            let debounceTimer = null;
+            const finalizadosInput = document.getElementById('finalizadosInput');
+            if (finalizadosInput) {
+                finalizadosInput.addEventListener('input', function () {
+                    clearTimeout(debounceTimer);
+                    const valor = this.value.trim();
+                    if (!valor) {
+                        const resultadosEl = document.getElementById('finalizadosResultados');
+                        if (resultadosEl) {
+                            resultadosEl.innerHTML = `
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-box-open fa-2x mb-2 d-block"></i>
+                                    Ingrese un valor para buscar
+                                </div>`;
+                        }
+                        return;
+                    }
+                    debounceTimer = setTimeout(() => {
+                        if (typeof window.buscarFinalizados === 'function') {
+                            window.buscarFinalizados();
+                        }
+                    }, 400); // 400ms de retraso
+                });
+            }
         });
 
         // Optimización: Prevenir zoom en inputs en iOS
