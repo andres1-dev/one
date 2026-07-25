@@ -2342,6 +2342,33 @@ img {
     z-index: 1;
 }
 
+/* 4° y 5° lugar: más pequeños para mantener la jerarquía del podio */
+.estad-podio-item.estad-podio-sub {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+    max-width: 170px;
+    opacity: 0.88;
+    transform: scale(0.91);
+    transform-origin: bottom center;
+}
+
+.estad-podio-item.estad-podio-sub:hover {
+    transform: scale(0.95) translateY(-2px);
+    opacity: 1;
+}
+
+.estad-podio-item.estad-podio-sub .estad-podio-pos {
+    font-size: 1.15rem;
+}
+
+.estad-podio-item.estad-podio-sub .estad-podio-nombre {
+    font-size: 0.72rem;
+}
+
+.estad-podio-item.estad-podio-sub .estad-podio-efic {
+    font-size: 1.05rem;
+}
+
 .estad-podio-item:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);

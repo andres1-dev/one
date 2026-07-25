@@ -3158,8 +3158,21 @@ function estad_procesarYRenderizar() {
             const sp    = c.unidades > 0 ? c.secTrabajados / c.unidades : Infinity;
             const efPct = sp < Infinity && sp > 0 ? Math.round((META_SEG / sp) * 100) : 0;
             return { ...c, _efPct: efPct };
-        })
-        .sort((a, b) => b._efPct - a._efPct);
+        });
+
+    // Puntaje ponderado: 60% unidades, 25% eficiencia, 15% documentos (normalizado dentro del grupo)
+    const maxUnidades = Math.max(1, ...colaboradores.map(c => c.unidades));
+    const maxEfPct    = Math.max(1, ...colaboradores.map(c => c._efPct));
+    const maxLotes    = Math.max(1, ...colaboradores.map(c => c.lotes));
+
+    colaboradores.forEach(c => {
+        const normUnidades = c.unidades / maxUnidades;
+        const normEfPct    = c._efPct    / maxEfPct;
+        const normLotes    = c.lotes     / maxLotes;
+        c._score = Math.round((normUnidades * 0.60 + normEfPct * 0.25 + normLotes * 0.15) * 100);
+    });
+
+    colaboradores.sort((a, b) => b._score - a._score);
 
     const tot = colaboradores.reduce((a, c) => ({
         lotes:         a.lotes         + c.lotes,
@@ -3283,58 +3296,79 @@ function estad_toggleTopMode() {
     }
 }
 
-function estad_renderPodio(top3, META_SEG) {
-    const podioLabels  = ['1°', '2°', '3°'];
-    const podioAcentos = ['#f59e0b', '#94a3b8', '#cd7f32'];
-    const podioIconos  = ['fas fa-crown', 'fas fa-medal', 'fas fa-award'];
+function estad_renderPodio(colaboradores, META_SEG) {
+    const podioLabels  = ['1°', '2°', '3°', '4°', '5°'];
+    const podioAcentos = ['#f59e0b', '#94a3b8', '#cd7f32', '#64748b', '#64748b'];
+    const podioIconos  = ['fas fa-crown', 'fas fa-medal', 'fas fa-award', 'fas fa-user-check', 'fas fa-user-check'];
 
-    const top = top3.slice(0, 3);
-    const ordenVisual = top.length === 1 ? [0]
-        : top.length === 2              ? [1, 0]
-        : [1, 0, 2];
+    const top = colaboradores.slice(0, 5);
+    const n = top.length;
+
+    // Ordenamiento visual para el podio (1° al centro)
+    const ordenVisual = n === 1 ? [0]
+        : n === 2 ? [1, 0]
+        : n === 3 ? [1, 0, 2]
+        : n === 4 ? [3, 1, 0, 2]
+        : [3, 1, 0, 2, 4]; // 4°, 2°, 1°, 3°, 5°
+
+    // Máximos del grupo para las barras de cada rubro
+    const maxUnidades = Math.max(1, ...top.map(c => c.unidades));
+    const maxEfPct    = Math.max(1, ...top.map(c => c._efPct));
+    const maxLotes    = Math.max(1, ...top.map(c => c.lotes));
 
     return ordenVisual.map(idx => {
         const c      = top[idx];
         if (!c) return '';
         const efPct  = c._efPct || 0;
+        const score  = c._score || 0;
         const sp     = c.unidades > 0 ? c.secTrabajados / c.unidades : 0;
         const nombre = estad_nombreCorto(c.nombre);
         const acento = podioAcentos[idx];
         const icono  = podioIconos[idx];
         const esTop1 = idx === 0;
+        const esSub  = idx >= 3; // 4° y 5° lugar
+        const podioClase = esTop1 ? ' estad-podio-top' : (esSub ? ' estad-podio-sub' : '');
 
-        const statPrincipalVal   = _estadTopPorEfic
-            ? `${efPct}%`
-            : c.unidades.toLocaleString();
-        const statPrincipalLabel = _estadTopPorEfic ? 'eficiencia' : 'unidades';
-        const barraW             = _estadTopPorEfic
-            ? Math.min(efPct, 100)
-            : 0;
+        // Barras proporcionales de cada rubro
+        const barUnidades = Math.round((c.unidades / maxUnidades) * 100);
+        const barEfPct    = Math.round((efPct / maxEfPct) * 100);
+        const barLotes    = Math.round((c.lotes / maxLotes) * 100);
 
         return `
-            <div class="estad-podio-item${esTop1 ? ' estad-podio-top' : ''}">
+            <div class="estad-podio-item${podioClase}">
                 <i class="${icono} estad-podio-bg-icon" style="color:${acento};"></i>
                 <div class="estad-podio-pos" style="color:${acento};">${podioLabels[idx]}</div>
                 <div class="estad-podio-nombre" title="${c.nombre}">${nombre}</div>
-                <div class="estad-podio-efic" style="color:${acento};">${statPrincipalVal}</div>
-                <div class="estad-podio-efic-label">${statPrincipalLabel}</div>
-                <div class="estad-podio-barra" style="${barraW === 0 ? 'opacity:0;' : ''}">
-                    <div class="estad-podio-barra-fill" style="width:${barraW}%; background:${acento};"></div>
+                <div class="estad-podio-efic" style="color:${acento};">${score}<span style="font-size:0.6em;">pts</span></div>
+                <div class="estad-podio-efic-label" style="margin-bottom:2px; font-weight:600; color:var(--text-secondary);">
+                    <i class="fas fa-stopwatch me-1" style="color:${acento};"></i>${sp > 0 ? sp.toFixed(1) + 's / pda' : '—'}
                 </div>
-                <div class="estad-podio-stats">
-                    <div class="estad-podio-stat">
-                        <span class="estad-podio-stat-val">${c.unidades.toLocaleString()}</span>
-                        <span class="estad-podio-stat-lbl">uds</span>
+
+                <!-- Barras de rubros -->
+                <div style="width:100%; margin-top:4px;">
+                    <!-- Unidades (60%) -->
+                    <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;">
+                        <span style="font-size:0.6rem; color:var(--text-muted); width:22px; text-align:right;">uds</span>
+                        <div style="flex:1; background:var(--border-light); border-radius:99px; height:4px;">
+                            <div style="width:${barUnidades}%; background:${acento}; height:100%; border-radius:99px; transition:width .6s;"></div>
+                        </div>
+                        <span style="font-size:0.6rem; color:var(--text-secondary); min-width:26px;">${c.unidades.toLocaleString()}</span>
                     </div>
-                    <div class="estad-podio-sep"></div>
-                    <div class="estad-podio-stat">
-                        <span class="estad-podio-stat-val">${efPct}%</span>
-                        <span class="estad-podio-stat-lbl">efic.</span>
+                    <!-- Eficiencia (25%) -->
+                    <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;">
+                        <span style="font-size:0.6rem; color:var(--text-muted); width:22px; text-align:right;">efic</span>
+                        <div style="flex:1; background:var(--border-light); border-radius:99px; height:4px;">
+                            <div style="width:${barEfPct}%; background:${acento}; height:100%; border-radius:99px; transition:width .6s;"></div>
+                        </div>
+                        <span style="font-size:0.6rem; color:var(--text-secondary); min-width:26px;">${efPct}%</span>
                     </div>
-                    <div class="estad-podio-sep"></div>
-                    <div class="estad-podio-stat">
-                        <span class="estad-podio-stat-val">${sp > 0 ? sp.toFixed(1)+'s' : '—'}</span>
-                        <span class="estad-podio-stat-lbl">seg/pda</span>
+                    <!-- Documentos (15%) -->
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <span style="font-size:0.6rem; color:var(--text-muted); width:22px; text-align:right;">docs</span>
+                        <div style="flex:1; background:var(--border-light); border-radius:99px; height:4px;">
+                            <div style="width:${barLotes}%; background:${acento}; height:100%; border-radius:99px; transition:width .6s;"></div>
+                        </div>
+                        <span style="font-size:0.6rem; color:var(--text-secondary); min-width:26px;">${c.lotes}</span>
                     </div>
                 </div>
             </div>`;
@@ -3397,14 +3431,9 @@ function estad_renderCuerpo(colaboradores, META_SEG, totalDists) {
         <div class="mb-4">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <p class="small fw-semibold mb-0" style="color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; font-size:0.72rem;">
-                    <i class="fas fa-trophy me-1" style="color:var(--warning-color);"></i>Top del día — por eficiencia
+                    <i class="fas fa-trophy me-1" style="color:var(--warning-color);"></i>Top del día
+                    <span style="font-weight:400; font-size:0.67rem; color:var(--text-muted); text-transform:none; letter-spacing:0;"> — ponderado: 60% uds · 25% efic. · 15% docs</span>
                 </p>
-                <div class="d-flex align-items-center gap-2">
-                    <span id="estadSwitchLabel" style="font-size:0.72rem; color:var(--text-muted); font-weight:500;">Por eficiencia</span>
-                    <div class="estad-switch" onclick="estad_toggleTopMode()" title="Cambiar criterio del top">
-                        <div class="estad-switch-thumb"></div>
-                    </div>
-                </div>
             </div>
             <div id="estadPodioContainer" class="estad-podio-container">
                 ${estad_renderPodio(colaboradores, META_SEG)}
@@ -3719,41 +3748,41 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct, to
                 if (x < chartArea.left - 2 || x > chartArea.right + 2) return;
 
                 if (marca.esExtremo) {
-                    // ── Extremos de jornada (7:10 am y 4:19 pm): Línea guía vertical completa sobre la gráfica ──
+                    // ── Extremos de jornada (7:10 am y 4:19 pm): Línea guía vertical azul sobre la gráfica ──
                     ctx.strokeStyle = '#2563eb';
                     ctx.lineWidth = 1.5;
                     ctx.setLineDash([4, 3]);
 
-                    // Línea vertical que cruza toda la gráfica de arriba a abajo
+                    // Línea vertical completa de arriba a abajo
                     ctx.beginPath();
                     ctx.moveTo(x, chartArea.top);
                     ctx.lineTo(x, yTop + 7);
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    // Texto azul destacado en negrita con am/pm
-                    ctx.font = 'bold 9px sans-serif';
+                    // Texto azul en nivel inferior (yTop + 14) bajado ligeramente
+                    ctx.font = 'bold 8.5px sans-serif';
                     ctx.fillStyle = '#2563eb';
-                    ctx.fillText(marca.label, x, yTop + 9);
+                    ctx.fillText(marca.label, x, yTop + 14);
 
                 } else if (marca.esHora) {
                     // ── Horas completas (8:00 am, 9:00 am, 10:00 am...) ───────────────
-                    // Muesca limpia en tono slate medio (6px)
+                    // Muesca limpia (7px)
                     ctx.strokeStyle = '#94a3b8';
                     ctx.lineWidth = 1.2;
                     ctx.beginPath();
                     ctx.moveTo(x, yTop);
-                    ctx.lineTo(x, yTop + 6);
+                    ctx.lineTo(x, yTop + 7);
                     ctx.stroke();
 
-                    // Texto gris slate elegante y suave (sin tono negro agresivo)
-                    ctx.font = '600 9px sans-serif';
+                    // Texto gris slate en nivel inferior (yTop + 14) para evitar cruce con los 15 min
+                    ctx.font = '600 8.5px sans-serif';
                     ctx.fillStyle = '#475569';
-                    ctx.fillText(marca.label, x, yTop + 8);
+                    ctx.fillText(marca.label, x, yTop + 14);
 
                 } else {
                     // ── Marcas intermedias de 15 min (7:15, 7:30...) ──────────────────
-                    // Muesca sutil (3px)
+                    // Muesca corta (3px)
                     ctx.strokeStyle = '#cbd5e1';
                     ctx.lineWidth = 1;
                     ctx.beginPath();
@@ -3761,10 +3790,10 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct, to
                     ctx.lineTo(x, yTop + 3);
                     ctx.stroke();
 
-                    // Texto tenue y ordenado
-                    ctx.font = '7.5px sans-serif';
+                    // Texto pequeño compacto (6.5px) en nivel superior (yTop + 4)
+                    ctx.font = '6.5px sans-serif';
                     ctx.fillStyle = '#94a3b8';
-                    ctx.fillText(marca.label, x, yTop + 5);
+                    ctx.fillText(marca.label, x, yTop + 4);
                 }
             });
 
