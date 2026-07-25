@@ -2817,10 +2817,14 @@ window.abrirBusquedaFinalizados       = function() {
 // ESTADÍSTICAS DEL DÍA
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Estado del módulo de estadísticas
-let _estadColaboradores = [];   // cache tras la última carga
-let _estadMeta          = 4;    // seg/prenda meta
-let _estadTopPorEfic    = true; // true = eficiencia, false = cantidad
+// ── Estado global de estadísticas ─────────────────────────────────────────────
+let _estadColaboradores   = [];   // colaboradores procesados
+let _estadMeta            = 4;    // seg/prenda meta
+let _estadTopPorEfic      = true; // true = eficiencia, false = cantidad
+let _estadSoloFinalizados = true; // Predeterminado: solo lotes finalizados
+let _estadRawDists        = [];   // todas las distribuciones del día (raw)
+let _estadCantMap         = {};   // mapa de cantidades por id_distribucion
+let _estadChartInstance   = null; // instancia Chart.js activa
 
 function mostrarEstadisticas() {
     const inputFecha = document.getElementById('estadFechaInput');
@@ -2855,6 +2859,41 @@ function estad_segAHMS(s) {
     return `${sec}s`;
 }
 
+function estad_obtenerRangoSemanaActual() {
+    const ahora = new Date();
+    const diaSemana = ahora.getDay(); // 0: dom, 1: lun, ..., 6: sáb
+    const diffLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
+    
+    const lunes = new Date(ahora);
+    lunes.setDate(ahora.getDate() + diffLunes);
+    
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    
+    const fmt = d => d.toISOString().split('T')[0];
+    return [fmt(lunes), fmt(domingo)];
+}
+
+function estad_calcularNumPausas(dist, secPaus) {
+    if (dist.pausas !== undefined && dist.pausas !== null && dist.pausas !== '') {
+        if (typeof dist.pausas === 'number') return dist.pausas;
+        if (Array.isArray(dist.pausas)) return dist.pausas.length;
+        if (typeof dist.pausas === 'string') {
+            const trimmed = dist.pausas.trim();
+            if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                try { return JSON.parse(trimmed).length; } catch (_) {}
+            }
+            if (trimmed.includes(',')) {
+                return trimmed.split(',').filter(x => x.trim().length > 0).length;
+            }
+            const parsed = parseInt(trimmed, 10);
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+    }
+    // Fallback: si hay tiempo de pausa acumulado (>0s), como mínimo hubo 1 pausa
+    return secPaus > 0 ? 1 : 0;
+}
+
 function estad_colorEfic(pct) {
     if (pct >= 100) return 'var(--success-color)';
     if (pct >= 80)  return 'var(--warning-color)';
@@ -2866,6 +2905,11 @@ function estad_badgeEfic(pct) {
     if (pct >= 100) return 'badge bg-success';
     if (pct >= 80)  return 'badge bg-warning';
     return 'badge bg-danger';
+}
+
+function estad_toggleFiltroFinalizados() {
+    _estadSoloFinalizados = !_estadSoloFinalizados;
+    estad_procesarYRenderizar();
 }
 
 // ── Carga principal ───────────────────────────────────────────────────────────
@@ -2889,19 +2933,14 @@ async function cargarEstadisticas() {
     }
 
     // Spinner
-    if (contenido)  contenido.innerHTML  = `
+    if (contenido) contenido.innerHTML = `
         <div class="text-center py-5">
             <div class="spinner-border" style="color:var(--accent-color); width:2rem; height:2rem;" role="status"></div>
             <p class="mt-2 small" style="color:var(--text-muted);">Procesando datos...</p>
         </div>`;
     if (tarjetasEl) tarjetasEl.innerHTML = '';
 
-    const META_SEG = 4;
-
     try {
-        // ── 1. Obtener distribuciones del día desde Supabase ──────────────────
-        // Incluimos datos_distribucion para calcular cantidades directamente del JSONB
-        // sin depender de la tabla ingresos (evita problemas de RLS y relaciones)
         const fechaDesde = `${fecha}T00:00:00`;
         const fechaHasta = `${fecha}T23:59:59`;
 
@@ -2917,27 +2956,25 @@ async function cargarEstadisticas() {
         if (!respDist.ok) throw new Error(`Error consultando distribuciones: ${respDist.status}`);
         const dists = await respDist.json();
 
-        if (!dists || dists.length === 0) {
+        _estadRawDists = dists || [];
+
+        if (!_estadRawDists || _estadRawDists.length === 0) {
             if (contenido) contenido.innerHTML = `
                 <div class="alert alert-info mb-0" style="border-radius:var(--radius-md);">
                     <i class="fas fa-info-circle me-2"></i>
                     No hay distribuciones registradas para esta fecha.
                 </div>`;
             if (tarjetasEl) tarjetasEl.innerHTML = estad_tarjetasVacias();
+            if (_estadChartInstance) {
+                _estadChartInstance.destroy();
+                _estadChartInstance = null;
+            }
             return;
         }
 
-        // ── 2. Calcular cantidades desde datos_distribucion JSONB ─────────────
-        //
-        //  datos_distribucion.Clientes[nombre].distribucion[].cantidad
-        //  Sumamos todas las unidades distribuidas a todos los clientes.
-        //  Esta es la cantidad real separada — igual a lo que muestra la tabla.
-        //
-        //  Fallback: cruzar con window.datosGlobales / documentosGlobales si JSONB vacío.
-
+        // Calcular cantidades desde JSONB y memoria
         const cantMap = {};
 
-        // Pre-cargar desde memoria (activos)
         const pool = [
             ...(window.datosGlobales        || []),
             ...(window.printingDatosGlobales || []),
@@ -2955,14 +2992,12 @@ async function cargarEstadisticas() {
             });
         }
 
-        // Calcular desde JSONB para los que no estén en memoria o sean 0
-        dists.forEach(dist => {
+        _estadRawDists.forEach(dist => {
             const rec = String(dist.id_distribucion);
-            if (cantMap[rec] > 0) return; // ya lo tenemos
+            if (cantMap[rec] > 0) return;
 
             let cantJSONB = 0;
             try {
-                // datos_distribucion puede venir como string o como objeto
                 const dd = typeof dist.datos_distribucion === 'string'
                     ? JSON.parse(dist.datos_distribucion)
                     : dist.datos_distribucion;
@@ -2981,73 +3016,10 @@ async function cargarEstadisticas() {
             cantMap[rec] = cantJSONB;
         });
 
-        // ── 3. Agrupar por colaborador ────────────────────────────────────────
-        const porColaborador = {};
+        _estadCantMap = cantMap;
 
-        dists.forEach(dist => {
-            const nombre = (dist.colaborador || '').trim();
-            if (!nombre) return;
-
-            if (!porColaborador[nombre]) {
-                porColaborador[nombre] = {
-                    nombre,
-                    lotes: 0,
-                    unidades: 0,
-                    secTrabajados: 0,
-                    secPausas: 0,
-                    numPausas: 0,
-                    tieneActivos: false,
-                };
-            }
-
-            const c       = porColaborador[nombre];
-            const rec     = String(dist.id_distribucion);
-            const cant    = cantMap[rec] || 0;
-            const secTrab = estad_hmsASegundos(dist.duracion);
-            const secPaus = estad_hmsASegundos(dist.duracion_pausas);
-            const nPausas = parseInt(dist.pausas) || 0;
-
-            c.lotes++;
-            c.unidades      += cant;
-            c.secTrabajados += secTrab;
-            c.secPausas     += secPaus;
-            c.numPausas     += nPausas;
-
-            if (['ELABORACION', 'PENDIENTE', 'PAUSADO', 'DIRECTO'].includes(dist.estado)) {
-                c.tieneActivos = true;
-            }
-        });
-
-        const colaboradores = Object.values(porColaborador)
-            .map(c => {
-                const sp    = c.unidades > 0 ? c.secTrabajados / c.unidades : Infinity;
-                const efPct = sp < Infinity && sp > 0 ? Math.round((META_SEG / sp) * 100) : 0;
-                return { ...c, _efPct: efPct };
-            })
-            .sort((a, b) => b._efPct - a._efPct);
-
-        // ── 4. Totales globales ───────────────────────────────────────────────────
-        const tot = colaboradores.reduce((a, c) => ({
-            lotes:         a.lotes         + c.lotes,
-            unidades:      a.unidades      + c.unidades,
-            secTrabajados: a.secTrabajados + c.secTrabajados,
-            secPausas:     a.secPausas     + c.secPausas,
-            numPausas:     a.numPausas     + c.numPausas,
-        }), { lotes: 0, unidades: 0, secTrabajados: 0, secPausas: 0, numPausas: 0 });
-
-        const totSegPrenda  = tot.unidades > 0 ? tot.secTrabajados / tot.unidades : 0;
-        const totEficPct    = totSegPrenda > 0 ? Math.round((META_SEG / totSegPrenda) * 100) : 0;
-
-        // ── 5. Cachear y renderizar ───────────────────────────────────────────────
-        _estadColaboradores = colaboradores;  // guardar para el switch
-        _estadMeta          = META_SEG;
-
-        if (tarjetasEl) {
-            tarjetasEl.innerHTML = estad_tarjetasGlobales(tot, totSegPrenda, totEficPct);
-        }
-        if (contenido) {
-            contenido.innerHTML = estad_renderCuerpo(colaboradores, META_SEG, dists.length);
-        }
+        // Renderizar según el filtro actual
+        estad_procesarYRenderizar();
 
     } catch (err) {
         const msg = err.message || String(err);
@@ -3059,6 +3031,135 @@ async function cargarEstadisticas() {
                     <i class="fas fa-redo me-1"></i>Reintentar
                 </button>
             </div>`;
+    }
+}
+
+// ── Procesamiento y Renderizado según filtro ──────────────────────────────────
+
+function estad_procesarYRenderizar() {
+    const contenido  = document.getElementById('estadContenido');
+    const tarjetasEl = document.getElementById('estadTarjetasGlobal');
+    const META_SEG   = 4;
+
+    // Actualizar visualmente el switch en el header
+    const swEl  = document.getElementById('estadFiltroFinalizadosSwitch');
+    const lblEl = document.getElementById('estadFiltroFinalizadosLabel');
+    if (swEl)  swEl.classList.toggle('activo', _estadSoloFinalizados);
+    if (lblEl) lblEl.textContent = _estadSoloFinalizados ? 'Solo Finalizados' : 'Todos los Lotes';
+
+    // Filtrar distribuciones
+    const dists = _estadSoloFinalizados
+        ? _estadRawDists.filter(d => d.estado === 'FINALIZADO')
+        : _estadRawDists;
+
+    if (!dists || dists.length === 0) {
+        if (contenido) contenido.innerHTML = `
+            <div class="alert alert-info mb-0" style="border-radius:var(--radius-md);">
+                <i class="fas fa-info-circle me-2"></i>
+                ${_estadSoloFinalizados
+                    ? 'No hay lotes <strong>finalizados</strong> para esta fecha.'
+                    : 'No hay distribuciones registradas para esta fecha.'}
+            </div>`;
+        if (tarjetasEl) tarjetasEl.innerHTML = estad_tarjetasVacias();
+        if (_estadChartInstance) {
+            _estadChartInstance.destroy();
+            _estadChartInstance = null;
+        }
+        return;
+    }
+
+    // Agrupar por colaborador
+    const porColaborador = {};
+
+    dists.forEach(dist => {
+        const nombre = (dist.colaborador || '').trim();
+        if (!nombre) return;
+
+        if (!porColaborador[nombre]) {
+            porColaborador[nombre] = {
+                nombre,
+                lotes: 0,
+                unidades: 0,
+                secTrabajados: 0,
+                secPausas: 0,
+                numPausas: 0,
+                tieneActivos: false,
+            };
+        }
+
+        const c       = porColaborador[nombre];
+        const rec     = String(dist.id_distribucion);
+        const cant    = _estadCantMap[rec] || 0;
+        const secTrab = estad_hmsASegundos(dist.duracion);
+        const secPaus = estad_hmsASegundos(dist.duracion_pausas);
+        const nPausas = estad_calcularNumPausas(dist, secPaus);
+
+        c.lotes++;
+        c.unidades      += cant;
+        c.secTrabajados += secTrab;
+        c.secPausas     += secPaus;
+        c.numPausas     += nPausas;
+
+        if (['ELABORACION', 'PENDIENTE', 'PAUSADO', 'DIRECTO'].includes(dist.estado)) {
+            c.tieneActivos = true;
+        }
+    });
+
+    const colaboradores = Object.values(porColaborador)
+        .map(c => {
+            const sp    = c.unidades > 0 ? c.secTrabajados / c.unidades : Infinity;
+            const efPct = sp < Infinity && sp > 0 ? Math.round((META_SEG / sp) * 100) : 0;
+            return { ...c, _efPct: efPct };
+        })
+        .sort((a, b) => b._efPct - a._efPct);
+
+    const tot = colaboradores.reduce((a, c) => ({
+        lotes:         a.lotes         + c.lotes,
+        unidades:      a.unidades      + c.unidades,
+        secTrabajados: a.secTrabajados + c.secTrabajados,
+        secPausas:     a.secPausas     + c.secPausas,
+        numPausas:     a.numPausas     + c.numPausas,
+    }), { lotes: 0, unidades: 0, secTrabajados: 0, secPausas: 0, numPausas: 0 });
+
+    const totSegPrenda = tot.unidades > 0 ? tot.secTrabajados / tot.unidades : 0;
+    const totEficPct   = totSegPrenda > 0 ? Math.round((META_SEG / totSegPrenda) * 100) : 0;
+
+    _estadColaboradores = colaboradores;
+    _estadMeta          = META_SEG;
+
+    if (tarjetasEl) {
+        tarjetasEl.innerHTML = estad_tarjetasGlobales(tot, totSegPrenda, totEficPct);
+    }
+
+    const numPersonas = colaboradores.length;
+
+    if (contenido) {
+        contenido.innerHTML = estad_renderCuerpo(colaboradores, META_SEG, dists.length);
+        // Dibujar gráficas e inicializar controles tras insertar en DOM
+        setTimeout(() => {
+            estad_dibujarGraficoHora(dists, _estadCantMap, numPersonas, totEficPct);
+            
+            // Inicializar Flatpickr en el input de rango individual (predeterminado: semana en curso)
+            const inputRangoPersona = document.getElementById('estadPersonaRangoInput');
+            const rangoSemana = estad_obtenerRangoSemanaActual();
+            if (inputRangoPersona && typeof flatpickr !== 'undefined') {
+                if (!inputRangoPersona._flatpickr) {
+                    flatpickr(inputRangoPersona, {
+                        mode: "range",
+                        locale: "es",
+                        dateFormat: "Y-m-d",
+                        defaultDate: rangoSemana,
+                        onChange: function(selectedDates) {
+                            if (selectedDates.length === 1 || selectedDates.length === 2) {
+                                estad_cargarEvaluacionPersona();
+                            }
+                        }
+                    });
+                }
+            }
+            // Cargar evaluación por persona inicial
+            estad_cargarEvaluacionPersona();
+        }, 50);
     }
 }
 
@@ -3109,18 +3210,17 @@ function estad_tarjetasVacias() {
 function estad_toggleTopMode() {
     _estadTopPorEfic = !_estadTopPorEfic;
 
-    // Actualizar label y estado visual del switch
-    const lbl    = document.getElementById('estadSwitchLabel');
-    const sw     = document.querySelector('.estad-switch');
+    const lbl = document.getElementById('estadSwitchLabel');
+    // El switch del top está dentro del podio container — buscamos por ID de hermano
+    const sw = document.querySelector('#estadPodioContainer')?.parentElement?.querySelector('.estad-switch');
     const titulo = document.querySelector('#estadPodioContainer')
-        ?.closest('.mb-3')
+        ?.closest('.mb-3, .mb-4')
         ?.querySelector('p');
 
     if (lbl)    lbl.textContent = _estadTopPorEfic ? 'Por eficiencia' : 'Por cantidad';
     if (sw)     sw.classList.toggle('activo', !_estadTopPorEfic);
     if (titulo) titulo.innerHTML = `<i class="fas fa-trophy me-1" style="color:var(--warning-color);"></i>Top del día — ${_estadTopPorEfic ? 'por eficiencia' : 'por cantidad'}`;
 
-    // Re-ordenar sin recargar datos
     if (!_estadColaboradores.length) return;
 
     const ordenados = _estadTopPorEfic
@@ -3153,14 +3253,13 @@ function estad_renderPodio(top3, META_SEG) {
         const icono  = podioIconos[idx];
         const esTop1 = idx === 0;
 
-        // Stat principal depende del modo activo
         const statPrincipalVal   = _estadTopPorEfic
             ? `${efPct}%`
             : c.unidades.toLocaleString();
         const statPrincipalLabel = _estadTopPorEfic ? 'eficiencia' : 'unidades';
         const barraW             = _estadTopPorEfic
             ? Math.min(efPct, 100)
-            : 0; // no mostrar barra en modo cantidad (no hay máximo relativo)
+            : 0;
 
         return `
             <div class="estad-podio-item${esTop1 ? ' estad-podio-top' : ''}">
@@ -3197,7 +3296,6 @@ function estad_renderCuerpo(colaboradores, META_SEG, totalDists) {
         return `<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Sin datos para mostrar.</div>`;
     }
 
-    // ── Filas de tabla (ya ordenadas por eficiencia)
     const filas = colaboradores.map(c => {
         const sp      = c.unidades > 0 ? c.secTrabajados / c.unidades : 0;
         const efPct   = c._efPct || 0;
@@ -3246,12 +3344,11 @@ function estad_renderCuerpo(colaboradores, META_SEG, totalDists) {
 
         <!-- Top del día -->
         ${colaboradores.length >= 2 ? `
-        <div class="mb-3">
+        <div class="mb-4">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <p class="small fw-semibold mb-0" style="color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; font-size:0.72rem;">
                     <i class="fas fa-trophy me-1" style="color:var(--warning-color);"></i>Top del día — por eficiencia
                 </p>
-                <!-- Switch modo -->
                 <div class="d-flex align-items-center gap-2">
                     <span id="estadSwitchLabel" style="font-size:0.72rem; color:var(--text-muted); font-weight:500;">Por eficiencia</span>
                     <div class="estad-switch" onclick="estad_toggleTopMode()" title="Cambiar criterio del top">
@@ -3263,6 +3360,28 @@ function estad_renderCuerpo(colaboradores, META_SEG, totalDists) {
                 ${estad_renderPodio(colaboradores, META_SEG)}
             </div>
         </div>` : ''}
+
+        <!-- Sección Producción por Hora y Capacidad Instalada -->
+        <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <p class="small fw-semibold mb-0" style="color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; font-size:0.72rem;">
+                    <i class="fas fa-chart-area me-1" style="color:var(--accent-color);"></i>Producción por Hora & Estimado Capacidad Instalada
+                </p>
+                <span class="badge bg-light text-dark border" style="font-size:0.68rem; font-weight:500;" id="estadJornadaBadge">
+                    <i class="fas fa-clock me-1 text-primary"></i>504 min (30,240 s) / jornada
+                </span>
+            </div>
+
+            <!-- Resumen Capacidad Instalada KPIs -->
+            <div id="estadCapacidadKPIs" class="row g-2 mb-3"></div>
+
+            <!-- Gráfico Chart.js Container -->
+            <div class="card border-0 p-3" style="border-radius:var(--radius-md); box-shadow:var(--shadow-sm); background:var(--bg-primary); border:1px solid var(--border-light) !important;">
+                <div style="position: relative; height: 260px; width: 100%;">
+                    <canvas id="estadGraficoHoraCanvas"></canvas>
+                </div>
+            </div>
+        </div>
 
         <!-- Tabla detalle -->
         <p class="small fw-semibold mb-2" style="color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; font-size:0.72rem;">
@@ -3289,11 +3408,617 @@ function estad_renderCuerpo(colaboradores, META_SEG, totalDists) {
         </div>
 
         <!-- Nota metodología -->
-        <p class="mt-2 mb-0" style="font-size:0.7rem; color:var(--text-muted);">
+        <p class="mt-2 mb-3" style="font-size:0.7rem; color:var(--text-muted);">
             <i class="fas fa-info-circle me-1"></i>
             Eficiencia = (4s ÷ seg/prenda) × 100. Meta: 4 seg/prenda.
             Valores &gt;100% indican rendimiento sobre la meta.
-        </p>`;
+        </p>
+
+        <!-- Sección Evaluación Individual de Desempeño por Persona y Rango -->
+        <div class="mt-4 pt-3 border-top">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <div>
+                    <p class="small fw-semibold mb-0" style="color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; font-size:0.75rem;">
+                        <i class="fas fa-user-check me-1" style="color:var(--accent-color);"></i>Evaluación de Desempeño Individual
+                    </p>
+                    <span style="font-size:0.7rem; color:var(--text-muted);">Evaluación por día basada en el tiempo real dedicado a separación (meta 4s/prenda)</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <!-- Selector de Colaborador -->
+                    <select id="estadPersonaSelect" class="form-select form-select-sm" style="width: auto; min-width: 170px; font-size: 0.78rem;" onchange="estad_cargarEvaluacionPersona()">
+                        ${colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                    </select>
+                    <!-- Selector de Rango de Fechas con Flatpickr -->
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <span class="input-group-text bg-light" style="font-size: 0.75rem;"><i class="fas fa-calendar-alt text-primary"></i></span>
+                        <input type="text" id="estadPersonaRangoInput" class="form-control form-control-sm bg-white" placeholder="Seleccionar rango..." style="width: 190px; font-size: 0.78rem; cursor: pointer;" readonly>
+                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="estad_cargarEvaluacionPersona()" style="font-size:0.75rem;">
+                        <i class="fas fa-chart-line me-1"></i>Evaluar
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPIs de Calificación Individual -->
+            <div id="estadPersonaKPIs" class="row g-2 mb-3"></div>
+
+            <!-- Contenedor del Gráfico Individual -->
+            <div class="card border-0 p-3" style="border-radius:var(--radius-md); box-shadow:var(--shadow-sm); background:var(--bg-primary); border:1px solid var(--border-light) !important;">
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="estadPersonaCanvas"></canvas>
+                </div>
+            </div>
+        </div>`;
+}
+
+function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
+
+    // ── Jornada real ──────────────────────────────────────────────────────────
+    // Inicio: 7:10  |  Desayuno: 8:00-8:15  |  Almuerzo: 12:00-12:30
+    const HORA_INICIO  = { h: 7,  m: 10 };
+    const DESAYUNO     = { ini: { h: 8, m: 0 }, fin: { h: 8, m: 15 } };
+    const ALMUERZO     = { ini: { h: 12, m: 0 }, fin: { h: 12, m: 30 } };
+
+    // Minutos efectivos de trabajo dentro de cada hora del día
+    function minEfectivos(hora) {
+        if (hora < HORA_INICIO.h) return 0;                           // antes de iniciar
+        let min = 60;
+        if (hora === HORA_INICIO.h)  min -= HORA_INICIO.m;           // 7→ 50 min (7:10-8:00)
+        if (hora === DESAYUNO.ini.h) min -= (DESAYUNO.fin.m - DESAYUNO.ini.m); // 8→ 45 min
+        if (hora === ALMUERZO.ini.h) min -= (ALMUERZO.fin.m - ALMUERZO.ini.m); // 12→ 30 min
+        return Math.max(0, min);
+    }
+
+    function esDescanso(hora) {
+        return hora === DESAYUNO.ini.h || hora === ALMUERZO.ini.h;
+    }
+
+    // ── Rango de horas: 07:00 → 17:00 ────────────────────────────────────────
+    const H_INI = 7;
+    const H_FIN = 17;
+    const horasLabels = [];
+    for (let h = H_INI; h <= H_FIN; h++) {
+        horasLabels.push(`${String(h).padStart(2,'0')}:00`);
+    }
+
+    // ── Acumular producción real por hora (usando campo fin) ──────────────────
+    const horasMap = {};
+    for (let h = H_INI; h <= H_FIN; h++) horasMap[h] = 0;
+
+    dists.forEach(dist => {
+        const timestamp = dist.fin || dist.inicio;
+        if (!timestamp) return;
+        const dt = new Date(timestamp);
+        if (isNaN(dt.getTime())) return;
+        const h = dt.getHours();
+        const rec = String(dist.id_distribucion);
+        const cant = cantMap[rec] || 0;
+        if (horasMap[h] !== undefined) horasMap[h] += cant;
+    });
+
+    const datosHoras = [];
+    for (let h = H_INI; h <= H_FIN; h++) datosHoras.push(horasMap[h]);
+
+    // ── Cálculos de capacidad ─────────────────────────────────────────────────
+    const N = Math.max(1, numPersonas);
+    const metaHora100         = N * 900;
+    const metaHoraActual      = Math.round(N * 900 * (eficGlobalPct / 100));
+    const capacidadDiaria     = N * 7560;
+    const capacidadDiariaEfic = Math.round(N * 7560 * (eficGlobalPct / 100));
+
+    // Meta por hora ajustada a los minutos efectivos reales de cada franja
+    const metaActualPorHora = [];
+    const meta100PorHora    = [];
+    for (let h = H_INI; h <= H_FIN; h++) {
+        const factor = minEfectivos(h) / 60;
+        metaActualPorHora.push(Math.round(metaHoraActual * factor));
+        meta100PorHora.push(Math.round(metaHora100 * factor));
+    }
+
+    // ── Notas de descanso / inicio para tooltip ───────────────────────────────
+    const notaHora = {};
+    notaHora[7]  = `⏱ Inicio de jornada: 7:10 am (10 min iniciales)`;
+    notaHora[8]  = `☕ Desayuno: 8:00 - 8:15 am (15 min descanso)`;
+    notaHora[12] = `🍽 Almuerzo: 12:00 - 12:30 pm (30 min descanso)`;
+
+    // ── KPIs ──────────────────────────────────────────────────────────────────
+    const kpiEl = document.getElementById('estadCapacidadKPIs');
+    if (kpiEl) {
+        kpiEl.innerHTML = `
+            <div class="col-6 col-md-6">
+                <div class="p-2 rounded" style="background:var(--bg-secondary); border:1px solid var(--border-light);">
+                    <div class="text-muted" style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em;">Meta Hora (${eficGlobalPct}% Efic.)</div>
+                    <div class="fw-bold" style="font-size:0.95rem; color:var(--warning-color);"><i class="fas fa-bullseye me-1"></i>${metaHoraActual.toLocaleString()} <span style="font-size:0.72rem; font-weight:normal;">uds/h</span></div>
+                    <div class="text-muted" style="font-size:0.65rem;">meta según ritmo actual</div>
+                    <div style="font-size:0.63rem; border-top:1px dashed var(--border-light); margin-top:3px; padding-top:3px; color:var(--success-color); font-weight:600;"><i class="fas fa-tachometer-alt me-1"></i>100% efic: ${metaHora100.toLocaleString()} uds/h <span style="font-weight:normal; color:var(--text-muted);">— 900/h por pers.</span></div>
+                </div>
+            </div>
+            <div class="col-6 col-md-6">
+                <div class="p-2 rounded" style="background:var(--bg-secondary); border:1px solid var(--border-light);">
+                    <div class="text-muted" style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em;">Capacidad Instalada Día</div>
+                    <div class="fw-bold" style="font-size:0.95rem; color:var(--accent-color);"><i class="fas fa-industry me-1"></i>${capacidadDiariaEfic.toLocaleString()} <span style="font-size:0.72rem; font-weight:normal;">uds/día</span></div>
+                    <div class="text-muted" style="font-size:0.65rem;">${eficGlobalPct}% efic. actual</div>
+                    <div style="font-size:0.63rem; border-top:1px dashed var(--border-light); margin-top:3px; padding-top:3px; color:var(--success-color); font-weight:600;"><i class="fas fa-arrow-up me-1"></i>100% efic: ${capacidadDiaria.toLocaleString()} uds/día <span style="font-weight:normal; color:var(--text-muted);">— 7,560/d por pers.</span></div>
+                </div>
+            </div>
+        `;
+
+        // Actualizar badge de jornada con número de personas
+        const badgeJornada = document.getElementById('estadJornadaBadge');
+        if (badgeJornada) {
+            badgeJornada.innerHTML = `<i class="fas fa-users me-1 text-primary"></i>${N} ${N === 1 ? 'persona' : 'personas'} &nbsp;&middot;&nbsp; <i class="fas fa-clock me-1 text-primary"></i>504 min (30,240 s) / jornada`;
+        }
+    }
+
+    // ── Gráfico ───────────────────────────────────────────────────────────────
+    const canvas = document.getElementById('estadGraficoHoraCanvas');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    if (_estadChartInstance) {
+        _estadChartInstance.destroy();
+        _estadChartInstance = null;
+    }
+
+    // Plugin inline para sombrear la proporción EXACTA en el eje X timeline
+    const pluginDescansos = {
+        id: 'descansos',
+        beforeDraw(chart) {
+            const { ctx, chartArea, scales } = chart;
+            if (!chartArea) return;
+            const xScale = scales.x;
+            ctx.save();
+
+            // Configuración de sombreado proporcional por hora
+            // minIni: minuto donde inicia el descanso/no laboral dentro de la hora
+            // durMin: duración en minutos del descanso
+            const franjasEspeciales = {
+                7:  { minIni: 0, durMin: 10, color: 'rgba(148, 163, 184, 0.15)', border: '#94a3b8' }, // 7:00-7:10 (10m)
+                8:  { minIni: 0, durMin: 15, color: 'rgba(245, 158, 11, 0.18)',  border: '#f59e0b' }, // 8:00-8:15 (15m)
+                12: { minIni: 0, durMin: 30, color: 'rgba(239, 68, 68, 0.16)',   border: '#ef4444' }  // 12:00-12:30 (30m)
+            };
+
+            horasLabels.forEach((lbl, i) => {
+                const hora = H_INI + i;
+                const config = franjasEspeciales[hora];
+                if (!config) return;
+
+                const x0 = xScale.getPixelForValue(i - 0.5);
+                const x1 = xScale.getPixelForValue(i + 0.5);
+                const anchoHora = x1 - x0;
+
+                // Ancho proporcional exacto en el eje X
+                const xInicioFranja = x0 + (anchoHora * (config.minIni / 60));
+                const anchoFranja   = anchoHora * (config.durMin / 60);
+
+                // Relleno de fondo del descanso
+                ctx.fillStyle = config.color;
+                ctx.fillRect(xInicioFranja, chartArea.top, anchoFranja, chartArea.bottom - chartArea.top);
+
+                // Lógica de borde/indicador vertical sutil
+                ctx.strokeStyle = config.border;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([2, 2]);
+                ctx.beginPath();
+                ctx.moveTo(xInicioFranja + anchoFranja, chartArea.top);
+                ctx.lineTo(xInicioFranja + anchoFranja, chartArea.bottom);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+
+            ctx.restore();
+        }
+    };
+
+    const ctx = canvas.getContext('2d');
+    _estadChartInstance = new Chart(ctx, {
+        type: 'bar',
+        plugins: [pluginDescansos],
+        data: {
+            labels: horasLabels,
+            datasets: [
+                {
+                    label: 'Producción Real (unidades)',
+                    data: datosHoras,
+                    backgroundColor: 'rgba(59, 130, 246, 0.78)',
+                    borderColor: '#2563eb',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    order: 2
+                },
+                {
+                    label: `Meta Hora Actual (${eficGlobalPct}% Efic.)`,
+                    data: metaActualPorHora,
+                    type: 'line',
+                    borderColor: '#f59e0b',
+                    borderWidth: 2.5,
+                    borderDash: [6, 4],
+                    pointRadius: metaActualPorHora.map((v, i) => (H_INI + i === 7 || H_INI + i === 8 || H_INI + i === 12) ? 4 : 0),
+                    pointHoverRadius: 4,
+                    pointBackgroundColor: '#f59e0b',
+                    fill: false,
+                    order: 1
+                },
+                {
+                    label: 'Meta Hora 100%',
+                    data: meta100PorHora,
+                    type: 'line',
+                    borderColor: '#10b981',
+                    borderWidth: 1.5,
+                    borderDash: [3, 3],
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    fill: false,
+                    order: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, font: { size: 11 }, usePointStyle: true }
+                },
+                tooltip: {
+                    callbacks: {
+                        title(items) {
+                            const i   = items[0]?.dataIndex ?? 0;
+                            const h   = H_INI + i;
+                            const min = minEfectivos(h);
+                            let tit = `${horasLabels[i]} — ${min} min productivos`;
+                            if (notaHora[h]) tit += `\n${notaHora[h]}`;
+                            return tit;
+                        },
+                        footer(tooltipItems) {
+                            let prodReal = 0;
+                            tooltipItems.forEach(item => {
+                                if (item.datasetIndex === 0) prodReal = item.raw || 0;
+                            });
+                            const i = tooltipItems[0]?.dataIndex ?? 0;
+                            const metaEstaHora = metaActualPorHora[i];
+                            if (metaEstaHora > 0) {
+                                const pct = Math.round((prodReal / metaEstaHora) * 100);
+                                return `Cumplimiento meta hora: ${pct}%`;
+                            }
+                            return '';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 10 },
+                        color(ctx) {
+                            const h = H_INI + ctx.index;
+                            if (h === 7)  return '#64748b'; // gris 7am (inicio 7:10)
+                            if (h === 8)  return '#d97706'; // ámbar 8am (desayuno)
+                            if (h === 12) return '#dc2626'; // rojo 12pm (almuerzo)
+                            return undefined;
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: { font: { size: 10 } }
+                }
+            }
+        }
+    });
+}
+
+
+let _estadPersonaChartInstance = null;
+
+async function estad_cargarEvaluacionPersona() {
+    const selPersona  = document.getElementById('estadPersonaSelect');
+    const inputRango  = document.getElementById('estadPersonaRangoInput');
+    const kpiEl       = document.getElementById('estadPersonaKPIs');
+    const canvas      = document.getElementById('estadPersonaCanvas');
+
+    if (!selPersona || !selPersona.value) return;
+    const persona = selPersona.value;
+
+    const rangoSemanaDef = estad_obtenerRangoSemanaActual();
+    let fechaDesde = rangoSemanaDef[0];
+    let fechaHasta = rangoSemanaDef[1];
+
+    if (inputRango && inputRango.value) {
+        const partes = inputRango.value.split(' a ');
+        if (partes.length === 2) {
+            fechaDesde = partes[0].trim();
+            fechaHasta = partes[1].trim();
+        } else if (partes.length === 1 && partes[0].trim()) {
+            fechaDesde = partes[0].trim();
+            fechaHasta = fechaDesde;
+        }
+    }
+
+    if (kpiEl) {
+        kpiEl.innerHTML = `
+            <div class="col-12 text-center py-2 text-muted" style="font-size:0.75rem;">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Procesando evaluación por día para <strong>${persona}</strong>...
+            </div>`;
+    }
+
+    try {
+        const resp = await fetch(
+            `${SUPABASE_URL_DT}/rest/v1/distribuciones` +
+            `?colaborador=eq.${encodeURIComponent(persona)}` +
+            `&inicio=gte.${encodeURIComponent(fechaDesde + 'T00:00:00')}` +
+            `&inicio=lte.${encodeURIComponent(fechaHasta + 'T23:59:59')}` +
+            `&select=id_distribucion,colaborador,estado,inicio,fin,duracion,duracion_pausas,datos_distribucion` +
+            `&order=inicio.asc`,
+            { headers: { 'apikey': SUPABASE_ANON_KEY_DT, 'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}` } }
+        );
+
+        if (!resp.ok) throw new Error('Error al consultar datos');
+        let dists = await resp.json() || [];
+
+        if (_estadSoloFinalizados) {
+            dists = dists.filter(d => d.estado === 'FINALIZADO');
+        }
+
+        let totalUnidades = 0;
+        let totalSecTrabajados = 0;
+
+        dists.forEach(d => {
+            const rec = String(d.id_distribucion);
+            let cant = _estadCantMap[rec] || 0;
+            if (!cant && d.datos_distribucion) {
+                try {
+                    const dd = typeof d.datos_distribucion === 'string' ? JSON.parse(d.datos_distribucion) : d.datos_distribucion;
+                    if (dd && dd.Clientes) {
+                        Object.values(dd.Clientes).forEach(cli => {
+                            if (Array.isArray(cli.distribucion)) {
+                                cli.distribucion.forEach(item => cant += parseInt(item.cantidad) || 0);
+                            }
+                        });
+                    }
+                } catch (_) {}
+            }
+            totalUnidades += cant;
+            totalSecTrabajados += estad_hmsASegundos(d.duracion);
+        });
+
+        // Meta esperada de unidades según el tiempo real dedicado a la operación (4 seg / prenda)
+        const metaUnidadesEsperadas = Math.round(totalSecTrabajados / 4);
+        const segPorPrenda = totalUnidades > 0 ? (totalSecTrabajados / totalUnidades) : 0;
+        const eficPct = segPorPrenda > 0 ? Math.round((4 / segPorPrenda) * 100) : 0;
+
+        // Calificación cualitativa basada en eficiencia sobre el tiempo dedicado
+        let calificacion = { texto: 'SIN DATOS EN PERIODO', color: 'var(--text-muted)', bg: '#f1f5f9' };
+        if (dists.length > 0 && totalUnidades > 0) {
+            if (eficPct >= 100)      calificacion = { texto: 'SOBRESALIENTE ⭐', color: '#047857', bg: '#d1fae5' };
+            else if (eficPct >= 80) calificacion = { texto: 'BUENO 👍',         color: '#b45309', bg: '#fef3c7' };
+            else if (eficPct >= 60) calificacion = { texto: 'REGULAR ⚠️',       color: '#c2410c', bg: '#ffedd5' };
+            else                     calificacion = { texto: 'BAJO RENDIMIENTO 🔴', color: '#b91c1c', bg: '#fee2e2' };
+        }
+
+        if (kpiEl) {
+            kpiEl.innerHTML = `
+                <div class="col-6 col-md-3">
+                    <div class="p-2 rounded h-100" style="background:var(--bg-secondary); border:1px solid var(--border-light);">
+                        <div class="text-muted" style="font-size:0.65rem; font-weight:700; text-transform:uppercase;">Calificación</div>
+                        <div class="fw-bold mt-1" style="font-size:0.82rem; color:${calificacion.color}; background:${calificacion.bg}; padding:3px 8px; border-radius:6px; display:inline-block;">
+                            ${calificacion.texto}
+                        </div>
+                        <div class="text-muted mt-1" style="font-size:0.63rem;">${dists.length} lote${dists.length !== 1 ? 's' : ''} en operación</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2 rounded h-100" style="background:var(--bg-secondary); border:1px solid var(--border-light);">
+                        <div class="text-muted" style="font-size:0.65rem; font-weight:700; text-transform:uppercase;">Eficiencia en Operación</div>
+                        <div class="fw-bold" style="font-size:0.95rem; color:${estad_colorEfic(eficPct)};">${eficPct}%</div>
+                        <div class="text-muted" style="font-size:0.63rem;">${segPorPrenda > 0 ? segPorPrenda.toFixed(1) + 's / prenda' : '—'} (meta 4s)</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2 rounded h-100" style="background:var(--bg-secondary); border:1px solid var(--border-light);">
+                        <div class="text-muted" style="font-size:0.65rem; font-weight:700; text-transform:uppercase;">Tiempo Empleado</div>
+                        <div class="fw-bold" style="font-size:0.95rem; color:var(--text-primary);"><i class="fas fa-stopwatch text-primary me-1"></i>${estad_segAHMS(totalSecTrabajados)}</div>
+                        <div class="text-muted" style="font-size:0.63rem;">dedicado a separación</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2 rounded h-100" style="background:var(--bg-secondary); border:1px solid var(--border-light);">
+                        <div class="text-muted" style="font-size:0.65rem; font-weight:700; text-transform:uppercase;">Producción vs Meta</div>
+                        <div class="fw-bold" style="font-size:0.95rem; color:var(--info-color);">${totalUnidades.toLocaleString()} <span style="font-size:0.7rem; font-weight:normal;">/ ${metaUnidadesEsperadas.toLocaleString()} meta</span></div>
+                        <div class="text-muted" style="font-size:0.63rem;">según tiempo empleado</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ── Agrupar SIEMPRE por Día ─────────────────────────────────────────────
+        const diasMap   = {};
+        const segMap    = {};
+        const lotesMap  = {};
+
+        // Construir rango completo de fechas entre desde y hasta para mostrar días sin actividad
+        const fechaIter = new Date(fechaDesde + 'T12:00:00');
+        const fechaFin  = new Date(fechaHasta + 'T12:00:00');
+        while (fechaIter <= fechaFin) {
+            const key = fechaIter.toISOString().split('T')[0];
+            diasMap[key]  = 0;
+            segMap[key]   = 0;
+            lotesMap[key] = 0;
+            fechaIter.setDate(fechaIter.getDate() + 1);
+        }
+
+        dists.forEach(d => {
+            const f = (d.inicio || d.fecha_distribucion || '').split('T')[0];
+            if (!f) return;
+            const rec = String(d.id_distribucion);
+            let cant = _estadCantMap[rec] || 0;
+            const sec = estad_hmsASegundos(d.duracion);
+            
+            if (diasMap[f] !== undefined) {
+                diasMap[f]  += cant;
+                segMap[f]   += sec;
+                lotesMap[f] += 1;
+            } else {
+                diasMap[f]  = cant;
+                segMap[f]   = sec;
+                lotesMap[f] = 1;
+            }
+        });
+
+        const labels             = [];
+        const datosUnidades      = [];
+        const datosMetaTiempo    = [];
+        const datosEficiencia    = [];
+        const metaEficienciaLine = [];
+        const tiemposFormateados = [];
+
+        const fechasOrdenadas = Object.keys(diasMap).sort();
+        fechasOrdenadas.forEach(f => {
+            const dt = new Date(f + 'T12:00:00');
+            const labelDia = dt.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+            labels.push(labelDia);
+
+            const uds = diasMap[f];
+            const sec = segMap[f];
+            const metaUdsTiempo = Math.round(sec / 4); // Meta de unidades estrictamente para los segundos trabajados ese día
+
+            datosUnidades.push(uds);
+            datosMetaTiempo.push(metaUdsTiempo);
+            tiemposFormateados.push(estad_segAHMS(sec));
+
+            const sp = (uds > 0 && sec > 0) ? (sec / uds) : 0;
+            const ef = sp > 0 ? Math.round((4 / sp) * 100) : 0;
+            datosEficiencia.push(ef);
+            metaEficienciaLine.push(100);
+        });
+
+        // Renderizar gráfica combo con Chart.js
+        if (!canvas || typeof Chart === 'undefined') return;
+
+        if (_estadPersonaChartInstance) {
+            _estadPersonaChartInstance.destroy();
+            _estadPersonaChartInstance = null;
+        }
+
+        const ctx = canvas.getContext('2d');
+        _estadPersonaChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Unidades Producidas',
+                        data: datosUnidades,
+                        backgroundColor: 'rgba(59, 130, 246, 0.78)',
+                        borderColor: '#2563eb',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'yUnits',
+                        order: 3
+                    },
+                    {
+                        label: 'Meta Esperada (según tiempo empleado)',
+                        data: datosMetaTiempo,
+                        type: 'line',
+                        borderColor: '#94a3b8',
+                        borderWidth: 1.5,
+                        borderDash: [3, 3],
+                        pointRadius: 3,
+                        pointBackgroundColor: '#94a3b8',
+                        fill: false,
+                        yAxisID: 'yUnits',
+                        order: 2
+                    },
+                    {
+                        label: 'Eficiencia % Real (vs Meta 4s)',
+                        data: datosEficiencia,
+                        type: 'line',
+                        borderColor: '#f59e0b',
+                        backgroundColor: '#f59e0b',
+                        borderWidth: 2.5,
+                        pointRadius: 4,
+                        yAxisID: 'yEfic',
+                        order: 1
+                    },
+                    {
+                        label: 'Meta Eficiencia (100%)',
+                        data: metaEficienciaLine,
+                        type: 'line',
+                        borderColor: '#10b981',
+                        borderWidth: 1.5,
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        fill: false,
+                        yAxisID: 'yEfic',
+                        order: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { boxWidth: 12, font: { size: 11 }, usePointStyle: true }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title(items) {
+                                const idx = items[0]?.dataIndex ?? 0;
+                                const tForm = tiemposFormateados[idx] || '0s';
+                                return `${labels[idx]} — Tiempo en separación: ${tForm}`;
+                            },
+                            footer(tooltipItems) {
+                                const idx = tooltipItems[0]?.dataIndex ?? 0;
+                                const udsReal = datosUnidades[idx] || 0;
+                                const udsMeta = datosMetaTiempo[idx] || 0;
+                                const ef      = datosEficiencia[idx] || 0;
+                                if (udsMeta > 0) {
+                                    return `Uds Reales: ${udsReal.toLocaleString()} / Meta esperada: ${udsMeta.toLocaleString()}\nEficiencia: ${ef}%`;
+                                }
+                                return 'Sin actividad de separación este día.';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                    yUnits: {
+                        type: 'linear',
+                        position: 'left',
+                        beginAtZero: true,
+                        title: { display: true, text: 'Unidades', font: { size: 10 } },
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: { font: { size: 10 } }
+                    },
+                    yEfic: {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        suggestedMax: 120,
+                        title: { display: true, text: 'Eficiencia %', font: { size: 10 } },
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: 10 },
+                            callback: value => value + '%'
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error('Error cargando evaluación persona:', err);
+        if (kpiEl) {
+            kpiEl.innerHTML = `<div class="col-12 alert alert-warning p-2 small mb-0"><i class="fas fa-exclamation-triangle me-1"></i>No se pudieron cargar los datos de evaluación para esta selección.</div>`;
+        }
+    }
 }
 
 function estad_nombreCorto(nombre) {
@@ -3303,3 +4028,7 @@ function estad_nombreCorto(nombre) {
 
 window.mostrarEstadisticas = mostrarEstadisticas;
 window.cargarEstadisticas  = cargarEstadisticas;
+window.estad_toggleFiltroFinalizados = estad_toggleFiltroFinalizados;
+window.estad_cargarEvaluacionPersona = estad_cargarEvaluacionPersona;
+
+

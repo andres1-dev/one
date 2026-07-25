@@ -192,9 +192,17 @@
                                 <small id="estadFechaLabel" style="color:var(--text-muted); font-size:0.72rem;"></small>
                             </div>
                         </div>
-                        <div class="ms-auto d-flex align-items-center gap-2">
+                        <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+                            <!-- Switch Solo Finalizados -->
+                            <div class="d-flex align-items-center gap-2 px-2 py-1 rounded"
+                                style="font-size:0.75rem; background:var(--bg-primary); border:1px solid var(--border-light);">
+                                <span id="estadFiltroFinalizadosLabel" style="font-weight:600; color:var(--text-primary); cursor:pointer;" onclick="estad_toggleFiltroFinalizados()">Solo Finalizados</span>
+                                <div class="estad-switch activo" id="estadFiltroFinalizadosSwitch" onclick="estad_toggleFiltroFinalizados()" title="Alternar entre Solo Finalizados y Todos los lotes">
+                                    <div class="estad-switch-thumb"></div>
+                                </div>
+                            </div>
                             <input type="date" id="estadFechaInput" class="form-control form-control-sm"
-                                style="max-width:150px; font-size:0.8rem;" onchange="cargarEstadisticas()">
+                                style="max-width:140px; font-size:0.8rem;" onchange="cargarEstadisticas()">
                             <button class="btn btn-sm btn-primary" onclick="cargarEstadisticas()" title="Actualizar">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
@@ -473,6 +481,9 @@
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+
+    <!-- Chart.js para gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Supabase JS (necesario para Realtime) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
