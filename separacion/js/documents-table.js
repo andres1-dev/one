@@ -1,4 +1,4 @@
-﻿// Configuración de DataTable para documentos disponibles - ERROR SOLUCIONADO
+// Configuración de DataTable para documentos disponibles
 let documentosTable = null;
 let listaResponsables = [];
 let timers = {};
@@ -12,8 +12,111 @@ let filtrosActivos = {
 let actualizacionEnProgreso = false;
 let timeoutActualizacion = null;
 let filtroTarjetaActivo = null;
+let filtroFacturadosActivo = false;
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzeG16VGHb63ePAwm00QveNsdbMEHi9dFbNsmQCreNOXDtwIh22NHxzRpwuzZBZ-oIJWg/exec';
+// ─── Configuración Supabase ───────────────────────────────────────────────────
+const SUPABASE_URL_DT      = "https://iladaofarozipitwaeti.supabase.co";
+const SUPABASE_ANON_KEY_DT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsYWRhb2Zhcm96aXBpdHdhZXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjYzMDksImV4cCI6MjA5MzA0MjMwOX0.4fyiibeZS10DCgov62d7tIFVzJHsklsBrbokAJ9ptK8";
+const SUPABASE_RPC_BASE    = `${SUPABASE_URL_DT}/rest/v1/rpc`;
+
+// ─── Cliente Supabase para Realtime ──────────────────────────────────────────
+let supabaseClient = null;
+let realtimeChannel = null;
+
+function inicializarSupabaseRealtime() {
+    // Crear cliente solo si la lib está cargada
+    if (typeof window.supabase === 'undefined') {
+        console.warn('Supabase JS no cargado — Realtime deshabilitado');
+        return;
+    }
+
+    supabaseClient = window.supabase.createClient(SUPABASE_URL_DT, SUPABASE_ANON_KEY_DT, {
+        realtime: { params: { eventsPerSecond: 10 } }
+    });
+
+    // Suscribirse a cambios en la tabla distribuciones
+    realtimeChannel = supabaseClient
+        .channel('distribuciones-cambios')
+        .on(
+            'postgres_changes',
+            {
+                event:  '*',          // INSERT, UPDATE, DELETE
+                schema: 'public',
+                table:  'distribuciones',
+            },
+            (payload) => manejarCambioRealtime(payload)
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('✅ Realtime conectado — distribuciones');
+                updateStatusIndicator('success');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.warn('⚠️ Realtime error:', status);
+                updateStatusIndicator('error');
+            }
+        });
+}
+
+// ─── Manejador de eventos Realtime ───────────────────────────────────────────
+
+async function manejarCambioRealtime(payload) {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    const rec = String((newRecord?.id_distribucion || oldRecord?.id_distribucion) ?? '');
+
+    if (!rec) return;
+
+    const ESTADOS_ACTIVOS = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
+
+    if (eventType === 'DELETE') {
+        // Eliminar fila de la tabla
+        if (documentosTable) {
+            const fila = documentosTable.row((idx, data) => data.rec === rec);
+            if (fila.any()) {
+                fila.remove().draw(false);
+                if (timers[rec]) { clearInterval(timers[rec]); delete timers[rec]; }
+            }
+        }
+        documentosGlobales = documentosGlobales.filter(d => d.rec !== rec);
+        return;
+    }
+
+    const nuevoEstado = String(newRecord?.estado ?? '').toUpperCase();
+
+    // Si pasó a FINALIZADO o TERMINADO → sacar de la tabla
+    if (!ESTADOS_ACTIVOS.includes(nuevoEstado)) {
+        if (documentosTable) {
+            const fila = documentosTable.row((idx, data) => data.rec === rec);
+            if (fila.any()) {
+                fila.remove().draw(false);
+                if (timers[rec]) { clearInterval(timers[rec]); delete timers[rec]; }
+            }
+        }
+        documentosGlobales = documentosGlobales.filter(d => d.rec !== rec);
+
+        const consolidados = calcularConsolidados(documentosGlobales);
+        actualizarTarjetasResumen(consolidados);
+        return;
+    }
+
+    // Para INSERT o UPDATE con estado activo → refrescar esa fila via Edge Function
+    // Usamos un pequeño debounce para no saturar si llegan varios eventos seguidos
+    clearTimeout(realtimeDebounce[rec]);
+    realtimeDebounce[rec] = setTimeout(async () => {
+        await actualizarFilaEspecifica(rec);
+
+        // Reiniciar timer si pasó a ELABORACION
+        if (nuevoEstado === 'ELABORACION') {
+            if (!timers[rec]) {
+                timers[rec] = setInterval(() => actualizarDuracionEnTabla(rec), 1000);
+            }
+        } else if (nuevoEstado === 'PAUSADO' || nuevoEstado === 'FINALIZADO') {
+            if (timers[rec]) { clearInterval(timers[rec]); delete timers[rec]; }
+        }
+    }, 300);
+}
+
+// Debounce map por REC para no saturar con múltiples eventos simultáneos
+const realtimeDebounce = {};
 
 let mostrarFinalizados = false;
 const ESTADOS_VISIBLES = ['PENDIENTE', 'DIRECTO', 'ELABORACION', 'PAUSADO'];
@@ -123,95 +226,154 @@ function restaurarEstadoTabla(estado) {
     }
 }
 
-async function llamarAPI(params) {
-    try {
-        const queryString = new URLSearchParams(params).toString();
-        const url = `${API_URL}?${queryString}`;
+// ─── llamarAPI — reemplaza el Google Apps Script con RPCs de Supabase ────────
+//
+//  Acciones soportadas:
+//    asignarResponsable  → sep_asignar_responsable(p_id, p_responsable)
+//    pausar              → sep_pausar(p_id)
+//    reanudar            → sep_reanudar(p_id)
+//    finalizar           → sep_finalizar(p_id)
+//    restablecer         → sep_restablecer(p_id)
 
-        const response = await fetch(url, {
-            method: 'POST',
-            redirect: 'follow'
+async function llamarAPI(params) {
+    const { action, id, responsable } = params;
+
+    // Mapa action → nombre de RPC
+    const rpcMap = {
+        asignarResponsable: 'sep_asignar_responsable',
+        pausar:             'sep_pausar',
+        reanudar:           'sep_reanudar',
+        finalizar:          'sep_finalizar',
+        restablecer:        'sep_restablecer',
+    };
+
+    const rpcName = rpcMap[action];
+    if (!rpcName) {
+        return { success: false, message: `Acción desconocida: ${action}` };
+    }
+
+    // Construir body según la RPC
+    let body = { p_id: String(id) };
+    if (action === 'asignarResponsable') {
+        body.p_responsable = responsable;
+    }
+
+    try {
+        const response = await fetch(`${SUPABASE_RPC_BASE}/${rpcName}`, {
+            method:  'POST',
+            headers: {
+                'Content-Type':  'application/json',
+                'apikey':         SUPABASE_ANON_KEY_DT,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}`,
+                'Prefer':         'return=representation',
+            },
+            body: JSON.stringify(body),
         });
 
-        if (response.redirected) {
-            const finalUrl = response.url;
-            const finalResponse = await fetch(finalUrl);
-            const text = await finalResponse.text();
+        const raw = await response.json();
 
-            try {
-                return JSON.parse(text);
-            } catch (e) {
-                return { success: true };
-            }
-        } else {
-            const text = await response.text();
-            try {
-                return JSON.parse(text);
-            } catch (e) {
-                return { success: true };
-            }
+        if (!response.ok) {
+            // Supabase devuelve { code, message, details, hint } en errores
+            const msg = raw?.message || raw?.hint || `Error HTTP ${response.status}`;
+            console.error(`RPC ${rpcName} error:`, raw);
+            return { success: false, message: msg };
         }
+
+        // Supabase devuelve el JSONB de la RPC directamente como objeto
+        // Nuestras RPCs ya devuelven { success, message, data }
+        const result = Array.isArray(raw) ? raw[0] : raw;
+        return result ?? { success: true };
+
     } catch (error) {
         return {
             success: false,
-            error: error.message,
-            message: 'Error de conexión con el servidor'
+            error:   error.message,
+            message: 'Error de conexión con Supabase',
         };
     }
 }
+
+// ─── actualizarFilaEspecifica — usa la Edge Function para evitar RLS ─────────
 
 async function actualizarFilaEspecifica(rec) {
     if (!documentosTable) return;
 
     try {
-        const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        // Llamar a la Edge Function con filtro por ID específico
+        const response = await fetch(
+            `${SUPABASE_URL_DT}/functions/v1/separacion-datos?id=${rec}`,
+            {
+                method:  'GET',
+                headers: {
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}`,
+                    'apikey':         SUPABASE_ANON_KEY_DT,
+                },
+            }
+        );
 
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/DATA!A2:K?key=${API_KEY}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        const values = data.values || [];
+        if (!response.ok) return;
 
-        const rowData = values.find(row => String(row[0] || '').trim() === rec);
+        const json = await response.json();
+        if (!json.success || !json.data || json.data.length === 0) return;
 
-        if (!rowData) {
-            return;
-        }
+        const item = json.data[0];
 
-        const documento = String(rowData[0] || '').trim();
-        const estado = String(rowData[3] || '').trim().toUpperCase();
-        const colaborador = String(rowData[4] || '').trim();
-        const fechaHora = rowData[1] || '';
-        const fechaSolo = formatearFechaSolo(fechaHora);
+        const documento   = String(item.DOCUMENTO || '').trim();
+        const estado      = String(item.ESTADO    || '').trim().toUpperCase();
+        const colaborador = String(item.COLABORADOR || '').trim();
+        const fechaHora   = item.FECHA_DISTRIBUCION || item.FECHA || '';
+        const fechaSolo   = formatearFechaSolo(fechaHora);
         const fechaObjeto = parsearFecha(fechaSolo);
 
-        const datosCompletos = datosGlobales.find(d => d.REC === documento);
-        const cantidadTotal = datosCompletos ? calcularCantidadTotal({ datosCompletos }) : 0;
+        // Actualizar datosGlobales con el item fresco
+        const indexGlobal = datosGlobales.findIndex(d => d.REC === documento);
+        if (indexGlobal !== -1) {
+            datosGlobales[indexGlobal] = { ...datosGlobales[indexGlobal], ...item };
+        } else {
+            datosGlobales.push(item);
+        }
+        window.printingDatosGlobales = datosGlobales;
+        window.datosGlobales         = datosGlobales;
+
+        const cantidadTotal = parseInt(item.CANTIDAD) || 0;
+
+        // Extraer clientes y género
+        let clientesList = [];
+        if (item.DISTRIBUCION && item.DISTRIBUCION.Clientes) {
+            clientesList = Object.keys(item.DISTRIBUCION.Clientes);
+        } else if (item.CLIENTES) {
+            clientesList = Object.keys(item.CLIENTES);
+        }
+        const cantClientes = clientesList.length;
 
         const documentoActualizado = {
-            rec: documento,
-            estado: estado,
-            colaborador: colaborador,
-            fecha: fechaSolo,
+            rec:            documento,
+            estado:         estado,
+            colaborador:    colaborador,
+            fecha:          fechaSolo,
             fecha_completa: fechaHora,
-            fecha_objeto: fechaObjeto,
-            cantidad: cantidadTotal,
-            lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
-            refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
-            prenda: datosCompletos ? (datosCompletos.PRENDA || '') : '',
-            tieneClientes: datosCompletos ?
-                (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes &&
-                    Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
-            datosCompletos: datosCompletos,
-            datetime_inicio: rowData[5] || '',
-            datetime_fin: rowData[6] || '',
-            duracion_guardada: rowData[7] || '',
-            pausas: rowData[8] || '',
-            datetime_pausas: rowData[9] || '',
-            duracion_pausas: rowData[10] || ''
+            fecha_objeto:   fechaObjeto,
+            cantidad:       cantidadTotal,
+            lote:           item.LOTE    || '',
+            refProv:        item.REFPROV || '',
+            prenda:         item.PRENDA  || '',
+            genero:         item.GENERO  || '',
+            cantClientes:   cantClientes,
+            clientesList:   clientesList,
+            tieneClientes:  cantClientes > 0,
+            datosCompletos:       item,
+            datetime_inicio:      item.INICIO                  || '',
+            datetime_fin:         item.FIN                     || '',
+            duracion_guardada:    item.DURACION                || '',
+            pausas:               item.PAUSAS                  || '',
+            datetime_pausas:      item.DATETIME_ULTIMA_PAUSA   || '',
+            duracion_pausas:      item.DURACION_PAUSAS         || '',
+            tieneFactura:         item.TIENE_FACTURA     || false,
+            nroFactura:           item.NRO_FACTURA       || '',
+            facturasDetalle:      item.FACTURAS_DETALLE  || [],
         };
 
-        // ACTUALIZAR EN documentosGlobales PRIMERO
+        // Actualizar en documentosGlobales
         const index = documentosGlobales.findIndex(d => d.rec === rec);
         if (index !== -1) {
             documentosGlobales[index] = documentoActualizado;
@@ -219,46 +381,36 @@ async function actualizarFilaEspecifica(rec) {
             documentosGlobales.push(documentoActualizado);
         }
 
-        // VERIFICAR SI DEBE MOSTRARSE SEGÚN FILTRO DE FINALIZADOS
         const estadosParaMostrar = obtenerEstadosParaMostrar();
-        const debeMostrarse = estadosParaMostrar.includes(estado);
+        const debeMostrarse      = estadosParaMostrar.includes(estado);
 
         const fila = documentosTable.row((idx, data) => data.rec === rec);
 
         if (fila.any()) {
             if (debeMostrarse) {
-                // ACTUALIZAR LA FILA EXISTENTE
                 fila.data(documentoActualizado).draw(false);
-
                 const rowNode = fila.node();
                 $(rowNode).removeClass('actualizando-fila');
-
-                // Actualizar el select de responsables si es necesario
                 const selectCell = $(rowNode).find('td:eq(2)');
                 selectCell.html(generarSelectResponsables(rec, colaborador, documentosGlobales, documentoActualizado));
             } else {
-                // ELIMINAR LA FILA SI NO DEBE MOSTRARSE (ej: finalizado con filtro desactivado)
                 fila.remove();
-
-                // Si hay un timer activo, detenerlo
                 if (timers[rec]) {
                     clearInterval(timers[rec]);
                     delete timers[rec];
                 }
             }
         } else if (debeMostrarse) {
-            // AGREGAR NUEVA FILA SI NO EXISTÍA PERO DEBE MOSTRARSE
             documentosTable.row.add(documentoActualizado).draw(false);
         }
 
-        // ACTUALIZAR CONSOLIDADOS Y TARJETAS
-        const consolidados = calcularConsolidados(documentosGlobales.filter(doc =>
-            obtenerEstadosParaMostrar().includes(doc.estado)
-        ));
+        const consolidados = calcularConsolidados(
+            documentosGlobales.filter(doc => obtenerEstadosParaMostrar().includes(doc.estado))
+        );
         actualizarTarjetasResumen(consolidados);
 
     } catch (error) {
-        // Error actualizando fila específica
+        console.error('Error actualizando fila:', error);
     }
 }
 
@@ -338,8 +490,15 @@ function formatearFechaSolo(fechaHoraStr) {
     if (!fechaHoraStr) return '-';
 
     try {
-        if (fechaHoraStr.includes(' ')) {
-            return fechaHoraStr.split(' ')[0];
+        // Acepta ISO 8601 (2026-07-08T14:04:21-05:00),
+        // con espacio (2026-07-08 14:04:21) o solo fecha (2026-07-08)
+        const d = new Date(fechaHoraStr);
+        if (!isNaN(d.getTime())) {
+            // Formatear como dd/mm/yyyy usando la fecha LOCAL del servidor
+            // (extraemos de la cadena original para evitar problemas de TZ)
+            const partesSolo = fechaHoraStr.split('T')[0].split(' ')[0]; // "2026-07-08"
+            const [yyyy, mm, dd] = partesSolo.split('-');
+            if (yyyy && mm && dd) return `${dd}/${mm}/${yyyy}`;
         }
         return fechaHoraStr;
     } catch (e) {
@@ -351,20 +510,20 @@ function parsearFecha(fechaStr) {
     if (!fechaStr || fechaStr === '-') return null;
 
     try {
-        const partes = fechaStr.split('/');
-        if (partes.length !== 3) return null;
+        // Acepta dd/mm/yyyy (formato de display) o yyyy-mm-dd (ISO)
+        if (fechaStr.includes('/')) {
+            const [dd, mm, yyyy] = fechaStr.split('/');
+            if (!dd || !mm || !yyyy) return null;
+            const fecha = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+            return isNaN(fecha.getTime()) ? null : fecha;
+        }
 
-        const dia = parseInt(partes[0], 10);
-        const mes = parseInt(partes[1], 10);
-        const año = parseInt(partes[2], 10);
+        if (fechaStr.includes('-')) {
+            const fecha = new Date(fechaStr);
+            return isNaN(fecha.getTime()) ? null : fecha;
+        }
 
-        if (isNaN(dia) || isNaN(mes) || isNaN(año)) return null;
-
-        const fecha = new Date(año, mes - 1, dia);
-
-        if (isNaN(fecha.getTime())) return null;
-
-        return fecha;
+        return null;
     } catch (e) {
         return null;
     }
@@ -588,37 +747,38 @@ function limpiarFiltros() {
     }
 }
 
-async function cargarResponsables() {
-    const SPREADSHEET_ID = "1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE";
-    const API_KEY = 'AIzaSyC1QqwUAZmDbOVrOo3Iwq90J_lJ5PmAYVg';
+// ─── cargarResponsables — lee de Supabase en vez de Sheets ──────────────────
 
+async function cargarResponsables() {
     try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/RESPONSABLES!A2:B?key=${API_KEY}`;
-        const response = await fetch(url);
+        const response = await fetch(
+            `${SUPABASE_URL_DT}/rest/v1/responsables?activo=eq.true&select=nombre&order=nombre.asc`,
+            {
+                headers: {
+                    'apikey':         SUPABASE_ANON_KEY_DT,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}`,
+                },
+            }
+        );
 
         if (!response.ok) throw new Error('Error al obtener responsables');
 
         const data = await response.json();
-        const values = data.values || [];
-
-        listaResponsables = values
-            .filter(row => row[1] === 'true' || row[1] === 'TRUE')
-            .map(row => row[0].trim())
-            .filter(nombre => nombre !== '');
-
+        listaResponsables = data.map(r => r.nombre).filter(n => n);
         return listaResponsables;
 
     } catch (error) {
+        // Fallback por si Supabase no responde
         listaResponsables = [
             'NICOLE VALERIA MONCALEANO DIAZ',
             'KELLY TATIANA FERNANDEZ ASTUDILLO',
-            'PILAR CRISTINA JARAMILLO SANCHEZ',
-            'LESLY CAMILA OCHOA PEDRAZA',
-            'ANGIE LIZETH POLO CAPERA',
-            'REYES PADILLA DONELLY',
-            'NAILEN GABRIELA ZAPATA VIERA',
+            'MARI YEINS MORENO GUERRERO',
+            'KAROL VALENTINA MERCADO CORTES',
             'PAULA VANESSA SANCHEZ ERAZO',
-            'PAOLA ANDREA ESCOBEDO JUSPIAN'
+            'YAMILETH ARDILA PASAJE',
+            'ALVAREZ RAMOS JHON SEBASTIAN',
+            'GUADIR OCAMPO KAROL FABIANA',
+            'IBARGUEN ARROYO KEVIN JULIAN',
         ];
         return listaResponsables;
     }
@@ -660,6 +820,65 @@ function toggleFinalizados() {
     actualizarInmediatamente(true);
 }
 
+function toggleFacturados() {
+    filtroFacturadosActivo = !filtroFacturadosActivo;
+    const btn = document.getElementById('btnToggleFacturados');
+    const modalText = document.getElementById('modalFacturadosText');
+
+    if (btn) {
+        if (filtroFacturadosActivo) {
+            btn.classList.add('active');
+            btn.style.background = '#10b981';
+            btn.style.color = 'white';
+            btn.style.borderColor = '#10b981';
+            btn.innerHTML = '<i class="fas fa-file-invoice-dollar"></i><span class="hide-xs"> Todos</span>';
+        } else {
+            btn.classList.remove('active');
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.style.borderColor = '';
+            btn.innerHTML = '<i class="fas fa-file-invoice-dollar"></i><span class="hide-xs"> Facturados</span>';
+        }
+    }
+
+    if (modalText) {
+        modalText.textContent = filtroFacturadosActivo ? 'Mostrar Todos' : 'Solo Facturados';
+    }
+
+    aplicarFiltroFacturados();
+}
+
+function ejecutarToggleFacturados() {
+    cerrarModalControles();
+    toggleFacturados();
+}
+
+function aplicarFiltroFacturados() {
+    if (!documentosTable) return;
+
+    // Limpiar filtros de facturados existentes
+    $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function(searchFunc) {
+        return searchFunc.name !== 'filtroFacturados';
+    });
+
+    // Si el filtro está activo, agregar el nuevo filtro
+    if (filtroFacturadosActivo) {
+        const filtroFacturados = function(settings, data, dataIndex) {
+            const rowData = documentosTable.row(dataIndex).data();
+            return rowData && rowData.tieneFactura === true;
+        };
+        filtroFacturados.name = 'filtroFacturados';
+        $.fn.dataTable.ext.search.push(filtroFacturados);
+    }
+
+    documentosTable.draw();
+
+    // Actualizar tarjetas con los datos filtrados
+    const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
+    const consolidados = calcularConsolidados(datosFiltrados);
+    actualizarTarjetasResumen(consolidados, true);
+}
+
 async function cargarTablaDocumentos() {
     try {
         vaciarTablaCompletamente();
@@ -684,6 +903,7 @@ async function cargarTablaDocumentos() {
 
         if (documentosDisponibles.length > 0) {
             inicializarDataTable(documentosDisponibles);
+            poblarFiltrosDinamicos(documentosDisponibles);
 
             // INICIALIZAR TARJETAS DESPUÉS DE CREAR LA TABLA
             setTimeout(() => {
@@ -699,15 +919,18 @@ async function cargarTablaDocumentos() {
                         <th>Fecha</th>
                         <th>Duración</th>
                         <th>Cantidad</th>
-                        <th>Línea</th>
+                        <th>Clientes</th>
+                        <th>Género</th>
+                        <th>Prenda</th>
                         <th>Lote</th>
                         <th>RefProv</th>
+                        <th>Factura</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-4">
+                        <td colspan="13" class="text-center text-muted py-4">
                             No se encontraron documentos
                         </td>
                     </tr>
@@ -717,6 +940,11 @@ async function cargarTablaDocumentos() {
 
         if (loader) {
             loader.style.display = 'none';
+        }
+
+        // Inicializar Realtime la primera vez que carga la tabla
+        if (!realtimeChannel) {
+            inicializarSupabaseRealtime();
         }
 
     } catch (error) {
@@ -734,15 +962,18 @@ async function cargarTablaDocumentos() {
                     <th>Fecha</th>
                     <th>Duración</th>
                     <th>Cantidad</th>
-                    <th>Línea</th>
+                    <th>Clientes</th>
+                    <th>Género</th>
+                    <th>Prenda</th>
                     <th>Lote</th>
                     <th>RefProv</th>
+                    <th>Factura</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td colspan="10" class="text-center text-danger py-4">
+                    <td colspan="13" class="text-center text-danger py-4">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         Error al cargar los documentos: ${error.message}
                     </td>
@@ -810,6 +1041,14 @@ async function obtenerDocumentosCombinados() {
                 const datosCompletos = datosGlobalesMap[documento];
                 const cantidadTotal = datosCompletos ? calcularCantidadTotal({ rec: documento, datosCompletos }) : 0;
 
+                let clientesList = [];
+                if (datosCompletos && datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes) {
+                    clientesList = Object.keys(datosCompletos.DISTRIBUCION.Clientes);
+                } else if (datosCompletos && datosCompletos.CLIENTES) {
+                    clientesList = Object.keys(datosCompletos.CLIENTES);
+                }
+                const cantClientes = clientesList.length;
+
                 return {
                     rec: documento,
                     estado: estado,
@@ -821,16 +1060,20 @@ async function obtenerDocumentosCombinados() {
                     lote: datosCompletos ? (datosCompletos.LOTE || '') : '',
                     refProv: datosCompletos ? (datosCompletos.REFPROV || '') : '',
                     prenda: datosCompletos ? (datosCompletos.PRENDA || '') : '',
-                    tieneClientes: datosCompletos ?
-                        (datosCompletos.DISTRIBUCION && datosCompletos.DISTRIBUCION.Clientes &&
-                            Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0) : false,
+                    genero: datosCompletos ? (datosCompletos.GENERO || '') : '',
+                    cantClientes: cantClientes,
+                    clientesList: clientesList,
+                    tieneClientes: cantClientes > 0,
                     datosCompletos: datosCompletos,
                     datetime_inicio: datetime_inicio,
                     datetime_fin: datetime_fin,
                     duracion_guardada: duracion_guardada,
                     pausas: pausas,
                     datetime_pausas: datetime_pausas,
-                    duracion_pausas: duracion_pausas
+                    duracion_pausas: duracion_pausas,
+                    tieneFactura: datosCompletos ? (datosCompletos.TIENE_FACTURA || false) : false,
+                    nroFactura: datosCompletos ? (datosCompletos.NRO_FACTURA || '') : '',
+                    facturasDetalle: datosCompletos ? (datosCompletos.FACTURAS_DETALLE || []) : [],
                 };
             })
             .filter(doc => doc.rec && estadosParaMostrar.includes(doc.estado));
@@ -910,15 +1153,18 @@ function vaciarTablaCompletamente() {
                     <th>Fecha</th>
                     <th>Duración</th>
                     <th>Cantidad</th>
-                    <th>Línea</th>
+                    <th>Clientes</th>
+                    <th>Género</th>
+                    <th>Prenda</th>
                     <th>Lote</th>
                     <th>RefProv</th>
+                    <th>Factura</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td colspan="10" class="text-center text-muted py-4">
+                    <td colspan="13" class="text-center text-muted py-4">
                         <div class="spinner-border spinner-border-sm me-2" role="status">
                             <span class="visually-hidden">Cargando...</span>
                         </div>
@@ -942,43 +1188,26 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
         if (nuevoEstado === 'FINALIZADO' && estadoActual === 'PAUSADO') {
             const confirmar = await mostrarConfirmacion(
                 '¿Finalizar documento desde estado PAUSADO?',
-                `REC${rec} se encuentra actualmente PAUSADO. Para garantizar el registro correcto de tiempos, el sistema reanudará y finalizará automáticamente. ¿Continuar?`,
+                `REC${rec} se encuentra actualmente PAUSADO. ¿Continuar?`,
                 'warning'
             );
 
             if (!confirmar) return;
 
-            // Marcar fila como actualizando
             marcarFilaComoActualizando(rec);
             actualizacionEnProgreso = true;
 
             const loadingToast = Swal.fire({
-                title: 'Procesando...',
-                html: `REC${rec}<br>Reanudando → Finalizando`,
+                title: 'Finalizando...',
+                text: `REC${rec}`,
                 icon: 'info',
                 position: 'center',
                 showConfirmButton: false,
                 allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                didOpen: () => { Swal.showLoading(); }
             });
 
-            const resultReanudar = await llamarAPI({
-                action: 'reanudar',
-                id: rec
-            });
-
-            if (!resultReanudar.success) {
-                Swal.close();
-                await mostrarNotificacion('Error', 'Error al reanudar: ' + (resultReanudar.message || 'Error desconocido'), 'error');
-                await actualizarFilaEspecifica(rec);
-                actualizacionEnProgreso = false;
-                return;
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 500));
-
+            // Una sola llamada — sep_finalizar maneja el estado PAUSADO internamente
             const resultFinalizar = await llamarAPI({
                 action: 'finalizar',
                 id: rec
@@ -987,16 +1216,9 @@ async function cambiarEstadoDocumento(rec, nuevoEstado) {
             Swal.close();
 
             if (resultFinalizar.success) {
-                if (timers[rec]) {
-                    clearInterval(timers[rec]);
-                    delete timers[rec];
-                }
-
+                if (timers[rec]) { clearInterval(timers[rec]); delete timers[rec]; }
                 await mostrarNotificacion('✓ Finalizado', `REC${rec} completado`, 'success');
-
-                // RECARGAR COMPLETA SOLO PARA FINALIZADO
                 await actualizarInmediatamente(true);
-
             } else {
                 await mostrarNotificacion('Error', 'Error al finalizar: ' + (resultFinalizar.message || 'Error desconocido'), 'error');
                 await actualizarFilaEspecifica(rec);
@@ -1313,6 +1535,245 @@ function obtenerBotonesAccion(data) {
     `;
 }
 
+// ===== FILTROS AVANZADOS DINÁMICOS (CLIENTES, GÉNERO, PRENDA) =====
+let filtrosAvanzadosTabla = {
+    cliente: '',
+    genero: '',
+    prenda: ''
+};
+
+function evaluarFiltrosAvanzadosTabla(settings, data, dataIndex, rowData) {
+    const row = rowData || (settings && settings.aoData && settings.aoData[dataIndex] ? settings.aoData[dataIndex]._aData : null);
+    if (!row) return true;
+
+    // 1. Filtro Cliente
+    if (filtrosAvanzadosTabla.cliente) {
+        const targetCliente = filtrosAvanzadosTabla.cliente.toLowerCase().trim();
+        const tieneCliente = Array.isArray(row.clientesList) &&
+            row.clientesList.some(c => String(c).toLowerCase().trim() === targetCliente);
+        if (!tieneCliente) return false;
+    }
+
+    // 2. Filtro Género
+    if (filtrosAvanzadosTabla.genero) {
+        const targetGenero = filtrosAvanzadosTabla.genero.toLowerCase().trim();
+        const rowGenero = String(row.genero || '').toLowerCase().trim();
+        if (rowGenero !== targetGenero) return false;
+    }
+
+    // 3. Filtro Prenda
+    if (filtrosAvanzadosTabla.prenda) {
+        const targetPrenda = filtrosAvanzadosTabla.prenda.toLowerCase().trim();
+        const rowPrenda = String(row.prenda || '').toLowerCase().trim();
+        if (rowPrenda !== targetPrenda) return false;
+    }
+
+    return true;
+}
+
+function poblarFiltrosDinamicos(documentos) {
+    if (!documentos || !Array.isArray(documentos)) return;
+
+    // Actualizar badge de conteo total
+    const $badgeTotal = $('#totalDocsCountBadge');
+    if ($badgeTotal.length) {
+        $badgeTotal.text(`${documentos.length} ${documentos.length === 1 ? 'doc' : 'docs'}`);
+    }
+
+    const selectCliente = document.getElementById('filtroCliente');
+    const selectGenero  = document.getElementById('filtroGenero');
+    const selectPrenda  = document.getElementById('filtroPrenda');
+
+    if (!selectCliente || !selectGenero || !selectPrenda) return;
+
+    const clienteActual = selectCliente.value || '';
+    const generoActual  = selectGenero.value  || '';
+    const prendaActual  = selectPrenda.value  || '';
+
+    const clientesMap = {};
+    const generosMap  = {};
+    const prendasMap  = {};
+
+    documentos.forEach(doc => {
+        // Clientes
+        if (doc.clientesList && Array.isArray(doc.clientesList)) {
+            doc.clientesList.forEach(cli => {
+                const cTrim = String(cli || '').trim();
+                if (cTrim) {
+                    clientesMap[cTrim] = (clientesMap[cTrim] || 0) + 1;
+                }
+            });
+        }
+
+        // Género
+        const gTrim = String(doc.genero || '').trim();
+        if (gTrim) {
+            generosMap[gTrim] = (generosMap[gTrim] || 0) + 1;
+        }
+
+        // Prenda
+        const pTrim = String(doc.prenda || '').trim();
+        if (pTrim) {
+            prendasMap[pTrim] = (prendasMap[pTrim] || 0) + 1;
+        }
+    });
+
+    // 1. Poblar Clientes
+    const clientesOrdenados = Object.keys(clientesMap).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    selectCliente.innerHTML = '<option value="">Todos los Clientes</option>';
+    clientesOrdenados.forEach(cli => {
+        const count = clientesMap[cli];
+        const option = document.createElement('option');
+        option.value = cli;
+        option.textContent = `${cli} (${count})`;
+        if (cli === clienteActual) option.selected = true;
+        selectCliente.appendChild(option);
+    });
+
+    // 2. Poblar Géneros
+    const generosOrdenados = Object.keys(generosMap).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    selectGenero.innerHTML = '<option value="">Todos los Géneros</option>';
+    generosOrdenados.forEach(gen => {
+        const count = generosMap[gen];
+        const option = document.createElement('option');
+        option.value = gen;
+        option.textContent = `${gen} (${count})`;
+        if (gen === generoActual) option.selected = true;
+        selectGenero.appendChild(option);
+    });
+
+    // 3. Poblar Prendas
+    const prendasOrdenadas = Object.keys(prendasMap).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    selectPrenda.innerHTML = '<option value="">Todas las Prendas</option>';
+    prendasOrdenadas.forEach(pre => {
+        const count = prendasMap[pre];
+        const option = document.createElement('option');
+        option.value = pre;
+        option.textContent = `${pre} (${count})`;
+        if (pre === prendaActual) option.selected = true;
+        selectPrenda.appendChild(option);
+    });
+}
+
+function aplicarFiltrosAvanzadosTabla() {
+    const valCliente = $('#filtroCliente').val() || '';
+    const valGenero  = $('#filtroGenero').val() || '';
+    const valPrenda  = $('#filtroPrenda').val() || '';
+
+    filtrosAvanzadosTabla = {
+        cliente: valCliente,
+        genero: valGenero,
+        prenda: valPrenda
+    };
+
+
+    const hayFiltros = Boolean(valCliente || valGenero || valPrenda);
+    if (hayFiltros) {
+        $('#btnResetFiltrosTabla').removeClass('d-none');
+    } else {
+        $('#btnResetFiltrosTabla').addClass('d-none');
+    }
+
+    if (documentosTable) {
+        if (!$.fn.dataTable.ext.search.includes(evaluarFiltrosAvanzadosTabla)) {
+            $.fn.dataTable.ext.search.push(evaluarFiltrosAvanzadosTabla);
+        }
+
+        documentosTable.draw();
+
+        const datosFiltrados = documentosTable.rows({ search: 'applied' }).data().toArray();
+        const consolidadosFiltrados = calcularConsolidados(datosFiltrados);
+        actualizarTarjetasResumen(consolidadosFiltrados, hayFiltros);
+    }
+}
+
+function limpiarFiltrosAvanzadosTabla() {
+    $('#filtroCliente').val('');
+    $('#filtroGenero').val('');
+    $('#filtroPrenda').val('');
+    aplicarFiltrosAvanzadosTabla();
+}
+
+// ===== ORDENAMIENTO POR ANTIGÜEDAD =====
+let ordenAntiguedadEstado = 'none'; // 'none' | 'asc' (más viejos primero) | 'desc' (más recientes primero)
+
+function ordenarPorAntiguedad(direccionForzada) {
+    if (!documentosTable) return;
+
+    let nuevaDireccion = direccionForzada;
+    if (!nuevaDireccion) {
+        if (ordenAntiguedadEstado === 'asc') {
+            nuevaDireccion = 'desc';
+        } else if (ordenAntiguedadEstado === 'desc') {
+            nuevaDireccion = 'none';
+        } else {
+            nuevaDireccion = 'asc';
+        }
+    }
+
+    ordenAntiguedadEstado = nuevaDireccion;
+    actualizarBotonSortAntiguedadUI();
+
+    if (ordenAntiguedadEstado === 'asc') {
+        // Ordenar por fecha asc (lo más viejo primero) y REC asc secundario
+        documentosTable.order([[3, 'asc'], [0, 'asc']]).draw();
+    } else if (ordenAntiguedadEstado === 'desc') {
+        // Ordenar por fecha desc (lo más reciente primero) y REC desc secundario
+        documentosTable.order([[3, 'desc'], [0, 'desc']]).draw();
+    } else {
+        // Restablecer a orden por defecto (Responsable asc)
+        documentosTable.order([[2, 'asc']]).draw();
+    }
+}
+
+function actualizarBotonSortAntiguedadUI() {
+    const $btn = $('#btnSortAntiguedad');
+    const $icon = $('#iconSortAntiguedad');
+    const $label = $('#labelSortAntiguedad');
+
+    if ($btn.length === 0) return;
+
+    if (ordenAntiguedadEstado === 'asc') {
+        $btn.addClass('active').attr('title', 'Ordenado por antigüedad: más viejos primero. Clic para ver más recientes.');
+        $icon.attr('class', 'fas fa-arrow-up-wide-short filter-pill-icon');
+        $label.text('Más Viejos');
+    } else if (ordenAntiguedadEstado === 'desc') {
+        $btn.addClass('active').attr('title', 'Ordenado por antigüedad: más recientes primero. Clic para quitar orden.');
+        $icon.attr('class', 'fas fa-arrow-down-wide-short filter-pill-icon');
+        $label.text('Más Recientes');
+    } else {
+        $btn.removeClass('active').attr('title', 'Ordenar por antigüedad (lo más viejo primero)');
+        $icon.attr('class', 'fas fa-clock filter-pill-icon');
+        $label.text('Antigüedad');
+    }
+
+    const $modalText = $('#modalSortText');
+    if ($modalText.length) {
+        if (ordenAntiguedadEstado === 'asc') {
+            $modalText.text('Antigüedad: Más Viejos Primero');
+        } else if (ordenAntiguedadEstado === 'desc') {
+            $modalText.text('Antigüedad: Más Recientes Primero');
+        } else {
+            $modalText.text('Ordenar por Antigüedad');
+        }
+    }
+}
+
+function ejecutarSortAntiguedad() {
+    const controlsModal = bootstrap.Modal.getInstance(document.getElementById('controlsModal'));
+    if (controlsModal) {
+        controlsModal.hide();
+    }
+    ordenarPorAntiguedad();
+}
+
+window.poblarFiltrosDinamicos = poblarFiltrosDinamicos;
+window.aplicarFiltrosAvanzadosTabla = aplicarFiltrosAvanzadosTabla;
+window.limpiarFiltrosAvanzadosTabla = limpiarFiltrosAvanzadosTabla;
+window.ordenarPorAntiguedad = ordenarPorAntiguedad;
+window.ejecutarSortAntiguedad = ejecutarSortAntiguedad;
+
+
 function inicializarDataTable(documentos) {
     // VERIFICAR QUE DATATABLES ESTÉ CARGADO ANTES DE INICIALIZAR
     if (!isDataTableLoaded()) {
@@ -1326,8 +1787,9 @@ function inicializarDataTable(documentos) {
 
     const table = $('#documentosTable');
 
-    // LIMPIAR FILTROS EXISTENTES
-    $.fn.dataTable.ext.search = [];
+    // MANTENER Y REGISTRAR EL EVALUADOR DE FILTROS AVANZADOS
+    $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(f => f !== evaluarFiltrosAvanzadosTabla);
+    $.fn.dataTable.ext.search.push(evaluarFiltrosAvanzadosTabla);
 
     documentosTable = table.DataTable({
         data: documentos,
@@ -1360,6 +1822,23 @@ function inicializarDataTable(documentos) {
             {
                 data: 'fecha',
                 render: function (data, type, row) {
+                    if (type === 'sort' || type === 'type') {
+                        if (row.fecha_objeto && row.fecha_objeto instanceof Date && !isNaN(row.fecha_objeto.getTime())) {
+                            return row.fecha_objeto.getTime();
+                        }
+                        if (row.fecha_completa) {
+                            const parsed = Date.parse(row.fecha_completa);
+                            if (!isNaN(parsed)) return parsed;
+                        }
+                        if (typeof data === 'string' && data.includes('/')) {
+                            const parts = data.split('/');
+                            if (parts.length === 3) {
+                                return parts[2] + parts[1].padStart(2, '0') + parts[0].padStart(2, '0');
+                            }
+                        }
+                        const recNum = parseInt(row.rec, 10);
+                        return !isNaN(recNum) ? recNum : 0;
+                    }
                     const fechaCompleta = row.fecha_completa || data;
                     return `
                         <span class="small" title="${fechaCompleta}">
@@ -1380,7 +1859,46 @@ function inicializarDataTable(documentos) {
             {
                 data: 'cantidad',
                 render: function (data) {
-                    return data ? `<span class="badge bg-light text-dark">${data}</span>` : '-';
+                    return data ? `<span class="fw-semibold text-body">${data}</span>` : '-';
+                }
+            },
+            {
+                data: null,
+                render: function (data, type, row) {
+                    const cant = row.cantClientes || 0;
+                    const lista = row.clientesList && row.clientesList.length > 0 ? row.clientesList.join(', ') : 'Sin clientes';
+                    if (cant === 0) {
+                        return `<span class="badge badge-tabla-simetrico badge-clientes-grey" title="Sin clientes asignados"><i class="fas fa-user-slash"></i>0</span>`;
+                    }
+                    return `<span class="badge badge-tabla-simetrico badge-clientes-grey" title="Clientes (${cant}): ${lista}"><i class="fas fa-users"></i>${cant} ${cant === 1 ? 'cliente' : 'clientes'}</span>`;
+                }
+            },
+            {
+                data: 'genero',
+                render: function (data) {
+                    if (!data) return '<span class="text-muted small">-</span>';
+                    const rawUpper = String(data).toUpperCase();
+
+                    let iconClass = 'fa-venus-mars';
+                    let badgeClass = 'bg-secondary-subtle text-secondary';
+
+                    // HOMBRE, NIÑO / NINO, MASCULINO, BOY(S) -> AZUL
+                    if (rawUpper.includes('HOMBRE') || rawUpper.includes('NIÑO') || rawUpper.includes('NINO') || rawUpper.includes('MASCULINO') || rawUpper.includes('BOY') || rawUpper === 'M') {
+                        iconClass = (rawUpper.includes('NIÑ') || rawUpper.includes('NIN') || rawUpper.includes('BOY')) ? 'fa-child' : 'fa-mars';
+                        badgeClass = 'badge-genero-azul';
+                    }
+                    // DAMA, MUJER, NIÑA / NINA, FEMENINO, GIRL(S) -> ROSADO
+                    else if (rawUpper.includes('DAMA') || rawUpper.includes('MUJER') || rawUpper.includes('NIÑA') || rawUpper.includes('NINA') || rawUpper.includes('FEMENINO') || rawUpper.includes('GIRL') || rawUpper === 'F') {
+                        iconClass = (rawUpper.includes('NIÑ') || rawUpper.includes('NIN') || rawUpper.includes('GIRL')) ? 'fa-child-dress' : 'fa-venus';
+                        badgeClass = 'badge-genero-rosado';
+                    }
+                    // UNISEX
+                    else if (rawUpper.includes('UNISEX')) {
+                        iconClass = 'fa-genderless';
+                        badgeClass = 'badge-genero-unisex';
+                    }
+
+                    return `<span class="badge badge-tabla-simetrico ${badgeClass}" title="Género: ${data}"><i class="fas ${iconClass}"></i>${data}</span>`;
                 }
             },
             {
@@ -1399,6 +1917,16 @@ function inicializarDataTable(documentos) {
                 data: 'refProv',
                 render: function (data) {
                     return data ? `<span class="small">${data}</span>` : '-';
+                }
+            },
+            {
+                data: null,
+                render: function (data) {
+                    if (data.tieneFactura) {
+                        return `<span class="badge badge-tabla-simetrico badge-factura-si" title="Factura: ${data.nroFactura}"><i class="fas fa-check"></i><span class="hide-xs">Facturado</span></span>`;
+                    } else {
+                        return `<span class="badge badge-tabla-simetrico badge-factura-no" title="Sin factura"><i class="fas fa-times"></i><span class="hide-xs">Sin factura</span></span>`;
+                    }
                 }
             },
             {
@@ -1457,7 +1985,7 @@ function inicializarDataTable(documentos) {
 
             if (pageInfo.recordsTotal === 0) {
                 $('#documentosTable tbody').html(
-                    '<tr><td colspan="10" class="text-center text-muted py-4">No se encontraron documentos</td></tr>'
+                    '<tr><td colspan="13" class="text-center text-muted py-4">No se encontraron documentos</td></tr>'
                 );
             }
 
@@ -1468,6 +1996,7 @@ function inicializarDataTable(documentos) {
     });
 
     configurarFiltroFecha();
+    actualizarBotonSortAntiguedadUI();
 
     $('#documentosTable').on('change', '.select-responsable', function () {
         const rec = $(this).data('rec');
@@ -1649,13 +2178,18 @@ function aplicarFiltroPorEstado(tipoFiltro) {
         return;
     }
 
-    // Aplicar filtro
-    $.fn.dataTable.ext.search.push(
-        function (settings, data, dataIndex) {
-            const rowData = documentosTable.row(dataIndex).data();
-            if (!rowData) return false;
+    // Remover filtros de estado previos manteniendo la función de filtros avanzados y fechas
+    $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(filter => {
+        return filter === evaluarFiltrosAvanzadosTabla || filter.name === 'evaluarFiltrosAvanzadosTabla' || filter.toString().includes('fecha_objeto') || filter.toString().includes('rangoFechasSeleccionado');
+    });
 
-            return estadosFiltro.includes(rowData.estado);
+    // Aplicar filtro de estado
+    $.fn.dataTable.ext.search.push(
+        function evaluarFiltroEstado(settings, data, dataIndex, rowData) {
+            const row = rowData || (settings && settings.aoData && settings.aoData[dataIndex] ? settings.aoData[dataIndex]._aData : null);
+            if (!row) return false;
+
+            return estadosFiltro.includes(row.estado);
         }
     );
 
@@ -1702,9 +2236,9 @@ function limpiarFiltroTarjetas() {
         return;
     }
 
-    // Remover filtros de estado
+    // Remover filtros de estado manteniendo los filtros avanzados y fechas
     $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(filter => {
-        return filter.toString().includes('fecha_objeto') || filter.toString().includes('rangoFechasSeleccionado');
+        return filter === evaluarFiltrosAvanzadosTabla || filter.name === 'evaluarFiltrosAvanzadosTabla' || filter.toString().includes('fecha_objeto') || filter.toString().includes('rangoFechasSeleccionado');
     });
 
     // RESTAURAR PAGINACIÓN POR DEFECTO (5 registros)
@@ -1873,3 +2407,899 @@ window.toggleFinalizados = toggleFinalizados;
 window.aplicarFiltroPorEstado = aplicarFiltroPorEstado;
 window.limpiarFiltroTarjetas = limpiarFiltroTarjetas;
 window.inicializarTarjetasInteractivas = inicializarTarjetasInteractivas;
+
+// ─── BÚSQUEDA DE FINALIZADOS ─────────────────────────────────────────────────
+//
+//  Flujo:
+//    1. El usuario ingresa un número de OP (REC) o un Lote
+//    2. Se busca en la tabla `ingresos` de Supabase para obtener el id_ingreso
+//    3. Con ese id se busca en `distribuciones` filtrando por estado = FINALIZADO
+//    4. Se enriquece con la Edge Function y se muestran los resultados en el modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function buscarFinalizados() {
+    const input = document.getElementById('finalizadosInput');
+    const resultadosEl = document.getElementById('finalizadosResultados');
+    const btn = document.getElementById('btnBuscarFinalizados');
+
+    const valor = (input ? input.value : '').trim();
+    if (!valor) {
+        if (resultadosEl) resultadosEl.innerHTML = `
+            <div class="alert alert-warning mb-0">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Ingrese un número de OP o Lote para buscar.
+            </div>`;
+        return;
+    }
+
+    // Estado: cargando
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Buscando...'; }
+    if (resultadosEl) resultadosEl.innerHTML = `
+        <div class="text-center text-muted py-4">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            Buscando en Supabase...
+        </div>`;
+
+    try {
+        // ── Estrategia de búsqueda ────────────────────────────────────────────
+        //
+        //  Tabla ingresos:     id_ingreso (= número de OP/REC), lote
+        //  Tabla distribuciones: id_distribucion (= id_ingreso), estado
+        //
+        //  Caso A — búsqueda por OP/REC:
+        //    Buscar directo en distribuciones donde id_distribucion = valor AND estado = FINALIZADO
+        //
+        //  Caso B — búsqueda por Lote:
+        //    1. Buscar en ingresos donde lote = valor → obtener lista de id_ingreso
+        //    2. Buscar en distribuciones donde id_distribucion IN (ids) AND estado = FINALIZADO
+        //
+        //  Ejecutamos ambas búsquedas en paralelo y deduplicamos
+
+        const valorEncoded = encodeURIComponent(valor);
+
+        const [respPorOP, respIngresosLote] = await Promise.all([
+            // Búsqueda directa por OP en distribuciones
+            fetch(
+                `${SUPABASE_URL_DT}/rest/v1/distribuciones?id_distribucion=eq.${valorEncoded}&estado=eq.FINALIZADO&select=id_distribucion,estado,colaborador,fecha_distribucion,inicio,fin,duracion&limit=50`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY_DT,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}`,
+                    },
+                }
+            ),
+            // Búsqueda por Lote en ingresos
+            fetch(
+                `${SUPABASE_URL_DT}/rest/v1/ingresos?lote=eq.${valorEncoded}&select=id_ingreso,lote&limit=50`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY_DT,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}`,
+                    },
+                }
+            ),
+        ]);
+
+        const distsPorOP  = respPorOP.ok           ? await respPorOP.json()           : [];
+        const ingresosLote = respIngresosLote.ok   ? await respIngresosLote.json()    : [];
+
+        // Si hay ingresos por lote, buscar sus distribuciones finalizadas
+        let distsPorLote = [];
+        if (ingresosLote.length > 0) {
+            const ids = ingresosLote.map(i => i.id_ingreso);
+            const filtro = ids.map(id => `id_distribucion.eq.${id}`).join(',');
+            const respDistLote = await fetch(
+                `${SUPABASE_URL_DT}/rest/v1/distribuciones?or=(${filtro})&estado=eq.FINALIZADO&select=id_distribucion,estado,colaborador,fecha_distribucion,inicio,fin,duracion&limit=50`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY_DT,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}`,
+                    },
+                }
+            );
+            distsPorLote = respDistLote.ok ? await respDistLote.json() : [];
+        }
+
+        // Unificar y deduplicar por id_distribucion
+        const distMap = {};
+        [...distsPorOP, ...distsPorLote].forEach(d => { distMap[d.id_distribucion] = d; });
+        const distribuciones = Object.values(distMap);
+
+        if (distribuciones.length === 0) {
+            resultadosEl.innerHTML = `
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No se encontraron documentos <strong>finalizados</strong> para <strong>"${valor}"</strong>.
+                    <br><small class="text-muted">Puede que estén en otro estado activo o no exista ese OP/Lote.</small>
+                </div>`;
+            return;
+        }
+
+        // ── Enriquecer con la Edge Function ──────────────────────────────────
+        const resultadosEnriquecidos = await Promise.all(
+            distribuciones.map(async (dist) => {
+                try {
+                    const resp = await fetch(
+                        `${SUPABASE_URL_DT}/functions/v1/separacion-datos?id=${dist.id_distribucion}&finalizado=true`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}`,
+                                'apikey': SUPABASE_ANON_KEY_DT,
+                            },
+                        }
+                    );
+                    if (!resp.ok) return { dist, datosCompletos: null };
+                    const json = await resp.json();
+                    const item = (json.success && json.data && json.data.length > 0) ? json.data[0] : null;
+                    return { dist, datosCompletos: item };
+                } catch {
+                    return { dist, datosCompletos: null };
+                }
+            })
+        );
+
+        // ── Renderizar resultados ─────────────────────────────────────────────
+        resultadosEl.innerHTML = renderizarResultadosFinalizados(resultadosEnriquecidos, valor);
+
+    } catch (error) {
+        if (resultadosEl) resultadosEl.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                Error al buscar: ${error.message}
+            </div>`;
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-search me-1"></i>Buscar'; }
+    }
+}
+
+function renderizarResultadosFinalizados(resultados, terminoBusqueda) {
+    if (!resultados || resultados.length === 0) {
+        return `<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Sin resultados.</div>`;
+    }
+
+    const filas = resultados.map(({ dist, datosCompletos }) => {
+        const rec        = dist.id_distribucion || '';
+        const colaborador = dist.colaborador || datosCompletos?.COLABORADOR || 'Sin asignar';
+        const fechaStr   = formatearFechaSolo(dist.fecha_distribucion || datosCompletos?.FECHA_DISTRIBUCION || '');
+        const duracion   = dist.duracion || datosCompletos?.DURACION || '-';
+        const lote       = datosCompletos?.LOTE       || '-';
+        const refProv    = datosCompletos?.REFPROV     || '-';
+        const prenda     = datosCompletos?.PRENDA      || '-';
+        const cantidad   = datosCompletos?.CANTIDAD    || '-';
+
+        const tieneClientes = datosCompletos?.DISTRIBUCION?.Clientes &&
+            Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0;
+
+        const btnImprimir = (tieneClientes || datosCompletos) ? `
+            <button class="btn btn-sm btn-primary" 
+                    onclick="imprimirFinalizadoDesdeModal('${rec}')"
+                    title="Imprimir plantillas">
+                <i class="fas fa-print"></i>
+            </button>` : `
+            <button class="btn btn-sm btn-secondary" disabled title="Sin datos para imprimir">
+                <i class="fas fa-print"></i>
+            </button>`;
+
+        const btnRestablecer = `
+            <button class="btn btn-sm btn-danger"
+                    onclick="restablecerFinalizadoDesdeModal('${rec}')"
+                    title="Restablecer documento">
+                <i class="fas fa-undo"></i>
+            </button>`;
+
+        return `
+            <tr>
+                <td><strong>REC${rec}</strong></td>
+                <td><span class="badge bg-dark">FINALIZADO</span></td>
+                <td class="small">${colaborador}</td>
+                <td class="small">${fechaStr}</td>
+                <td class="small">${duracion}</td>
+                <td class="small">${cantidad}</td>
+                <td class="small hide-sm">${prenda}</td>
+                <td class="small hide-sm">${lote}</td>
+                <td class="small hide-md">${refProv}</td>
+                <td>
+                    <div class="d-flex gap-1">
+                        ${btnImprimir}
+                        ${btnRestablecer}
+                    </div>
+                </td>
+            </tr>`;
+    }).join('');
+
+    return `
+        <div class="table-responsive">
+            <p class="text-muted small mb-2">
+                <i class="fas fa-check-circle text-success me-1"></i>
+                ${resultados.length} resultado(s) encontrado(s) para <strong>"${terminoBusqueda}"</strong>
+            </p>
+            <table class="table table-hover table-sm w-100 mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Documento</th>
+                        <th>Estado</th>
+                        <th>Responsable</th>
+                        <th>Fecha</th>
+                        <th>Duración</th>
+                        <th>Cantidad</th>
+                        <th class="hide-sm">Prenda</th>
+                        <th class="hide-sm">Lote</th>
+                        <th class="hide-md">RefProv</th>
+                        <th>Factura</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+async function imprimirFinalizadoDesdeModal(rec) {
+    // Cerrar el modal de Bootstrap antes del Swal para evitar conflicto de foco
+    const modalEl = document.getElementById('finalizadosModal');
+    const modalInstance = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+    if (modalInstance) {
+        await new Promise(resolve => {
+            modalEl.addEventListener('hidden.bs.modal', resolve, { once: true });
+            modalInstance.hide();
+        });
+    }
+
+    // Obtener datos completos desde la Edge Function (con ?finalizado=true para saltear filtro de estados)
+    let datosCompletos = null;
+    try {
+        const resp = await fetch(
+            `${SUPABASE_URL_DT}/functions/v1/separacion-datos?id=${rec}&finalizado=true`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}`,
+                    'apikey': SUPABASE_ANON_KEY_DT,
+                },
+            }
+        );
+        if (resp.ok) {
+            const json = await resp.json();
+            if (json.success && json.data && json.data.length > 0) {
+                datosCompletos = json.data[0];
+            }
+        }
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo obtener los datos del documento.', timer: 2000, showConfirmButton: false });
+        if (modalInstance) modalInstance.show();
+        return;
+    }
+
+    if (!datosCompletos) {
+        Swal.fire({ icon: 'warning', title: 'Sin datos', text: `No se encontraron datos para REC${rec}.`, timer: 2000, showConfirmButton: false });
+        if (modalInstance) modalInstance.show();
+        return;
+    }
+
+    const tieneClientes = datosCompletos.DISTRIBUCION?.Clientes &&
+        Object.keys(datosCompletos.DISTRIBUCION.Clientes).length > 0;
+
+    if (!tieneClientes) {
+        // Sin clientes — imprimir principal directo (no necesita Swal)
+        if (typeof print_abrirPlantillaImpresion === 'function') {
+            print_abrirPlantillaImpresion(datosCompletos, { modo: 'completo', soloImpresionPrincipal: true });
+        }
+        if (modalInstance) modalInstance.show();
+        return;
+    }
+
+    // Mostrar opciones: principal + clientes
+    const clientes = Object.keys(datosCompletos.DISTRIBUCION.Clientes);
+
+    const { value: seleccion } = await Swal.fire({
+        title: `Imprimir REC${rec}`,
+        html: `
+            <div style="text-align:left">
+                <p class="mb-2 text-muted small">Seleccione qué imprimir:</p>
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" id="swal_principal" checked>
+                    <label class="form-check-label" for="swal_principal">Plantilla Principal</label>
+                </div>
+                ${clientes.map(c => `
+                <div class="form-check mb-1">
+                    <input class="form-check-input fin-cliente-check" type="checkbox" value="${c}" id="swal_c_${c.replace(/\s+/g,'_')}" checked>
+                    <label class="form-check-label" for="swal_c_${c.replace(/\s+/g,'_')}">${c}</label>
+                </div>`).join('')}
+            </div>`,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-print me-1"></i>Imprimir',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3085d6',
+        preConfirm: () => {
+            const items = [];
+            if (document.getElementById('swal_principal')?.checked) {
+                items.push({ datos: datosCompletos, options: { modo: 'completo', soloImpresionPrincipal: true } });
+            }
+            document.querySelectorAll('.fin-cliente-check:checked').forEach(cb => {
+                items.push({ datos: datosCompletos, options: { modo: 'cliente', clienteNombre: cb.value } });
+            });
+            if (items.length === 0) {
+                Swal.showValidationMessage('Selecciona al menos una opción');
+                return false;
+            }
+            return items;
+        }
+    });
+
+    if (seleccion && seleccion.length > 0 && typeof print_imprimirLoteDocumentos === 'function') {
+        print_imprimirLoteDocumentos(seleccion, `Separación REC${rec}`);
+    }
+
+    // Reabrir el modal de finalizados después de imprimir
+    if (modalInstance) modalInstance.show();
+}
+
+async function restablecerFinalizadoDesdeModal(rec) {
+    // Cerrar el modal de Bootstrap ANTES de mostrar SweetAlert
+    // para que el input de contraseña reciba el foco correctamente
+    const modalEl = document.getElementById('finalizadosModal');
+    const modalInstance = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+
+    if (modalInstance) {
+        // Esperar a que el modal se cierre antes de abrir Swal
+        await new Promise(resolve => {
+            modalEl.addEventListener('hidden.bs.modal', resolve, { once: true });
+            modalInstance.hide();
+        });
+    }
+
+    // Ahora sí ejecutar el restablecer (Swal puede recibir input sin problema)
+    const password = await Swal.fire({
+        title: 'Restablecer Documento',
+        input: 'password',
+        inputLabel: 'Ingrese la contraseña para restablecer REC' + rec,
+        showCancelButton: true,
+        confirmButtonText: 'Aceptar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        inputValidator: (value) => {
+            if (!value) return 'Este campo es obligatorio';
+        }
+    });
+
+    if (!password.isConfirmed || !password.value) {
+        // Reabrir el modal si canceló
+        if (modalInstance) modalInstance.show();
+        return;
+    }
+
+    if (password.value !== 'one') {
+        await Swal.fire({ icon: 'error', title: 'Error', text: 'Contraseña incorrecta', timer: 2000, showConfirmButton: false });
+        if (modalInstance) modalInstance.show();
+        return;
+    }
+
+    const loadingSwal = Swal.fire({
+        title: 'Restableciendo...',
+        text: `REC${rec}`,
+        icon: 'info',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    const result = await llamarAPI({ action: 'restablecer', id: rec });
+    Swal.close();
+
+    if (result.success) {
+        await Swal.fire({ icon: 'success', title: '✓ Restablecido', text: `REC${rec}`, timer: 1500, showConfirmButton: false });
+        // Reabrir modal y actualizar búsqueda
+        if (modalInstance) {
+            modalInstance.show();
+            modalEl.addEventListener('shown.bs.modal', () => buscarFinalizados(), { once: true });
+        }
+        // También actualizar la tabla principal
+        actualizarInmediatamente(true);
+    } else {
+        await Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'Error al restablecer', timer: 2500, showConfirmButton: false });
+        if (modalInstance) modalInstance.show();
+    }
+}
+
+window.buscarFinalizados              = buscarFinalizados;
+window.imprimirFinalizadoDesdeModal   = imprimirFinalizadoDesdeModal;
+window.restablecerFinalizadoDesdeModal = restablecerFinalizadoDesdeModal;
+window.abrirBusquedaFinalizados       = function() {
+    if (typeof abrirBusquedaFinalizados === 'function') abrirBusquedaFinalizados();
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ESTADÍSTICAS DEL DÍA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Estado del módulo de estadísticas
+let _estadColaboradores = [];   // cache tras la última carga
+let _estadMeta          = 4;    // seg/prenda meta
+let _estadTopPorEfic    = true; // true = eficiencia, false = cantidad
+
+function mostrarEstadisticas() {
+    const inputFecha = document.getElementById('estadFechaInput');
+    if (inputFecha && !inputFecha.value) {
+        inputFecha.value = new Date().toISOString().split('T')[0];
+    }
+    const modal = new bootstrap.Modal(document.getElementById('estadisticasModal'));
+    modal.show();
+    document.getElementById('estadisticasModal').addEventListener('shown.bs.modal', () => {
+        cargarEstadisticas();
+    }, { once: true });
+}
+
+// ── Utilidades de tiempo ──────────────────────────────────────────────────────
+
+function estad_hmsASegundos(t) {
+    if (!t || t === '-') return 0;
+    const p = String(t).trim().split(':').map(Number);
+    if (p.length === 3) return (p[0] || 0) * 3600 + (p[1] || 0) * 60 + (p[2] || 0);
+    if (p.length === 2) return (p[0] || 0) * 60 + (p[1] || 0);
+    return 0;
+}
+
+function estad_segAHMS(s) {
+    s = Math.max(0, Math.floor(s));
+    if (s === 0) return '0s';
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${sec}s`;
+    return `${sec}s`;
+}
+
+function estad_colorEfic(pct) {
+    if (pct >= 100) return 'var(--success-color)';
+    if (pct >= 80)  return 'var(--warning-color)';
+    if (pct >= 60)  return '#e67e22';
+    return 'var(--danger-color)';
+}
+
+function estad_badgeEfic(pct) {
+    if (pct >= 100) return 'badge bg-success';
+    if (pct >= 80)  return 'badge bg-warning';
+    return 'badge bg-danger';
+}
+
+// ── Carga principal ───────────────────────────────────────────────────────────
+
+async function cargarEstadisticas() {
+    const inputFecha = document.getElementById('estadFechaInput');
+    const fechaLabel = document.getElementById('estadFechaLabel');
+    const contenido  = document.getElementById('estadContenido');
+    const tarjetasEl = document.getElementById('estadTarjetasGlobal');
+
+    const fecha = (inputFecha && inputFecha.value)
+        ? inputFecha.value
+        : new Date().toISOString().split('T')[0];
+
+    // Label legible
+    if (fechaLabel) {
+        const d = new Date(fecha + 'T12:00:00');
+        fechaLabel.textContent = d.toLocaleDateString('es-ES', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+    }
+
+    // Spinner
+    if (contenido)  contenido.innerHTML  = `
+        <div class="text-center py-5">
+            <div class="spinner-border" style="color:var(--accent-color); width:2rem; height:2rem;" role="status"></div>
+            <p class="mt-2 small" style="color:var(--text-muted);">Procesando datos...</p>
+        </div>`;
+    if (tarjetasEl) tarjetasEl.innerHTML = '';
+
+    const META_SEG = 4;
+
+    try {
+        // ── 1. Obtener distribuciones del día desde Supabase ──────────────────
+        // Incluimos datos_distribucion para calcular cantidades directamente del JSONB
+        // sin depender de la tabla ingresos (evita problemas de RLS y relaciones)
+        const fechaDesde = `${fecha}T00:00:00`;
+        const fechaHasta = `${fecha}T23:59:59`;
+
+        const respDist = await fetch(
+            `${SUPABASE_URL_DT}/rest/v1/distribuciones` +
+            `?inicio=gte.${encodeURIComponent(fechaDesde)}` +
+            `&inicio=lte.${encodeURIComponent(fechaHasta)}` +
+            `&select=id_distribucion,colaborador,estado,inicio,fin,duracion,duracion_pausas,pausas,datos_distribucion` +
+            `&order=colaborador.asc`,
+            { headers: { 'apikey': SUPABASE_ANON_KEY_DT, 'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}` } }
+        );
+
+        if (!respDist.ok) throw new Error(`Error consultando distribuciones: ${respDist.status}`);
+        const dists = await respDist.json();
+
+        if (!dists || dists.length === 0) {
+            if (contenido) contenido.innerHTML = `
+                <div class="alert alert-info mb-0" style="border-radius:var(--radius-md);">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No hay distribuciones registradas para esta fecha.
+                </div>`;
+            if (tarjetasEl) tarjetasEl.innerHTML = estad_tarjetasVacias();
+            return;
+        }
+
+        // ── 2. Calcular cantidades desde datos_distribucion JSONB ─────────────
+        //
+        //  datos_distribucion.Clientes[nombre].distribucion[].cantidad
+        //  Sumamos todas las unidades distribuidas a todos los clientes.
+        //  Esta es la cantidad real separada — igual a lo que muestra la tabla.
+        //
+        //  Fallback: cruzar con window.datosGlobales / documentosGlobales si JSONB vacío.
+
+        const cantMap = {};
+
+        // Pre-cargar desde memoria (activos)
+        const pool = [
+            ...(window.datosGlobales        || []),
+            ...(window.printingDatosGlobales || []),
+        ];
+        pool.forEach(item => {
+            const rec  = String(item.REC || item.DOCUMENTO || '');
+            const cant = parseInt(item.CANTIDAD) || 0;
+            if (rec && cant > 0) cantMap[rec] = cant;
+        });
+        if (documentosGlobales && documentosGlobales.length > 0) {
+            documentosGlobales.forEach(doc => {
+                const rec  = String(doc.rec || '');
+                const cant = parseInt(doc.cantidad) || 0;
+                if (rec && cant > 0) cantMap[rec] = cant;
+            });
+        }
+
+        // Calcular desde JSONB para los que no estén en memoria o sean 0
+        dists.forEach(dist => {
+            const rec = String(dist.id_distribucion);
+            if (cantMap[rec] > 0) return; // ya lo tenemos
+
+            let cantJSONB = 0;
+            try {
+                // datos_distribucion puede venir como string o como objeto
+                const dd = typeof dist.datos_distribucion === 'string'
+                    ? JSON.parse(dist.datos_distribucion)
+                    : dist.datos_distribucion;
+
+                if (dd && dd.Clientes) {
+                    Object.values(dd.Clientes).forEach(cliente => {
+                        if (Array.isArray(cliente.distribucion)) {
+                            cliente.distribucion.forEach(item => {
+                                cantJSONB += parseInt(item.cantidad) || 0;
+                            });
+                        }
+                    });
+                }
+            } catch (_) { cantJSONB = 0; }
+
+            cantMap[rec] = cantJSONB;
+        });
+
+        // ── 3. Agrupar por colaborador ────────────────────────────────────────
+        const porColaborador = {};
+
+        dists.forEach(dist => {
+            const nombre = (dist.colaborador || '').trim();
+            if (!nombre) return;
+
+            if (!porColaborador[nombre]) {
+                porColaborador[nombre] = {
+                    nombre,
+                    lotes: 0,
+                    unidades: 0,
+                    secTrabajados: 0,
+                    secPausas: 0,
+                    numPausas: 0,
+                    tieneActivos: false,
+                };
+            }
+
+            const c       = porColaborador[nombre];
+            const rec     = String(dist.id_distribucion);
+            const cant    = cantMap[rec] || 0;
+            const secTrab = estad_hmsASegundos(dist.duracion);
+            const secPaus = estad_hmsASegundos(dist.duracion_pausas);
+            const nPausas = parseInt(dist.pausas) || 0;
+
+            c.lotes++;
+            c.unidades      += cant;
+            c.secTrabajados += secTrab;
+            c.secPausas     += secPaus;
+            c.numPausas     += nPausas;
+
+            if (['ELABORACION', 'PENDIENTE', 'PAUSADO', 'DIRECTO'].includes(dist.estado)) {
+                c.tieneActivos = true;
+            }
+        });
+
+        const colaboradores = Object.values(porColaborador)
+            .map(c => {
+                const sp    = c.unidades > 0 ? c.secTrabajados / c.unidades : Infinity;
+                const efPct = sp < Infinity && sp > 0 ? Math.round((META_SEG / sp) * 100) : 0;
+                return { ...c, _efPct: efPct };
+            })
+            .sort((a, b) => b._efPct - a._efPct);
+
+        // ── 4. Totales globales ───────────────────────────────────────────────────
+        const tot = colaboradores.reduce((a, c) => ({
+            lotes:         a.lotes         + c.lotes,
+            unidades:      a.unidades      + c.unidades,
+            secTrabajados: a.secTrabajados + c.secTrabajados,
+            secPausas:     a.secPausas     + c.secPausas,
+            numPausas:     a.numPausas     + c.numPausas,
+        }), { lotes: 0, unidades: 0, secTrabajados: 0, secPausas: 0, numPausas: 0 });
+
+        const totSegPrenda  = tot.unidades > 0 ? tot.secTrabajados / tot.unidades : 0;
+        const totEficPct    = totSegPrenda > 0 ? Math.round((META_SEG / totSegPrenda) * 100) : 0;
+
+        // ── 5. Cachear y renderizar ───────────────────────────────────────────────
+        _estadColaboradores = colaboradores;  // guardar para el switch
+        _estadMeta          = META_SEG;
+
+        if (tarjetasEl) {
+            tarjetasEl.innerHTML = estad_tarjetasGlobales(tot, totSegPrenda, totEficPct);
+        }
+        if (contenido) {
+            contenido.innerHTML = estad_renderCuerpo(colaboradores, META_SEG, dists.length);
+        }
+
+    } catch (err) {
+        const msg = err.message || String(err);
+        if (contenido) contenido.innerHTML = `
+            <div class="alert alert-danger mb-0" style="border-radius:var(--radius-md);">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                Error: <strong>${msg}</strong>
+                <button class="btn btn-sm btn-danger ms-3" onclick="cargarEstadisticas()">
+                    <i class="fas fa-redo me-1"></i>Reintentar
+                </button>
+            </div>`;
+    }
+}
+
+// ── Tarjetas globales ─────────────────────────────────────────────────────────
+
+function estad_tarjeta(icono, colorIcon, label, valor, sub) {
+    const subHtml = `<div style="font-size:0.67rem; font-weight:600; height:0.9rem; line-height:0.9rem; ${sub ? `color:${colorIcon};` : 'visibility:hidden;'}">${sub || '&nbsp;'}</div>`;
+    return `
+        <div class="col-6 col-sm-4 col-lg-2">
+            <div class="estad-card h-100" style="--card-accent:${colorIcon};">
+                <!-- Ícono watermark de fondo -->
+                <i class="${icono} estad-card-bg-icon"></i>
+                <!-- Contenido -->
+                <div class="estad-card-body">
+                    <div class="estad-card-valor">${valor}</div>
+                    <div class="estad-card-label">${label}</div>
+                    ${subHtml}
+                </div>
+            </div>
+        </div>`;
+}
+
+function estad_tarjetasGlobales(tot, totSegPrenda, totEficPct) {
+    const efColor = estad_colorEfic(totEficPct);
+    return `
+        ${estad_tarjeta('fas fa-tshirt',       'var(--info-color)',    'Unidades',      tot.unidades.toLocaleString(), null)}
+        ${estad_tarjeta('fas fa-boxes',        'var(--accent-color)', 'Lotes',         tot.lotes, null)}
+        ${estad_tarjeta('fas fa-clock',        'var(--success-color)','T. Activo',     estad_segAHMS(tot.secTrabajados), null)}
+        ${estad_tarjeta('fas fa-pause-circle', 'var(--danger-color)', 'En Pausas',     estad_segAHMS(tot.secPausas), `${tot.numPausas} pausa${tot.numPausas !== 1 ? 's' : ''}`)}
+        ${estad_tarjeta('fas fa-stopwatch',    'var(--warning-color)','Seg / Prenda',  totSegPrenda > 0 ? totSegPrenda.toFixed(1) + 's' : '-', 'meta: 4s')}
+        ${estad_tarjeta('fas fa-bolt',         efColor,               'Efic. Global',  totEficPct + '%', totEficPct >= 100 ? '✓ Sobre meta' : 'vs meta 4s')}
+    `;
+}
+
+function estad_tarjetasVacias() {
+    return `
+        ${estad_tarjeta('fas fa-tshirt',       'var(--info-color)',    'Unidades',     '—', null)}
+        ${estad_tarjeta('fas fa-boxes',        'var(--accent-color)', 'Lotes',        '—', null)}
+        ${estad_tarjeta('fas fa-clock',        'var(--success-color)','T. Activo',    '—', null)}
+        ${estad_tarjeta('fas fa-pause-circle', 'var(--danger-color)', 'En Pausas',    '—', null)}
+        ${estad_tarjeta('fas fa-stopwatch',    'var(--warning-color)','Seg / Prenda', '—', null)}
+        ${estad_tarjeta('fas fa-bolt',         'var(--text-muted)',    'Efic. Global', '—', null)}
+    `;
+}
+
+// ── Cuerpo: ranking + tabla ───────────────────────────────────────────────────
+
+function estad_toggleTopMode() {
+    _estadTopPorEfic = !_estadTopPorEfic;
+
+    // Actualizar label y estado visual del switch
+    const lbl    = document.getElementById('estadSwitchLabel');
+    const sw     = document.querySelector('.estad-switch');
+    const titulo = document.querySelector('#estadPodioContainer')
+        ?.closest('.mb-3')
+        ?.querySelector('p');
+
+    if (lbl)    lbl.textContent = _estadTopPorEfic ? 'Por eficiencia' : 'Por cantidad';
+    if (sw)     sw.classList.toggle('activo', !_estadTopPorEfic);
+    if (titulo) titulo.innerHTML = `<i class="fas fa-trophy me-1" style="color:var(--warning-color);"></i>Top del día — ${_estadTopPorEfic ? 'por eficiencia' : 'por cantidad'}`;
+
+    // Re-ordenar sin recargar datos
+    if (!_estadColaboradores.length) return;
+
+    const ordenados = _estadTopPorEfic
+        ? [..._estadColaboradores].sort((a, b) => b._efPct - a._efPct)
+        : [..._estadColaboradores].sort((a, b) => b.unidades - a.unidades);
+
+    const podioEl = document.getElementById('estadPodioContainer');
+    if (podioEl) {
+        podioEl.innerHTML = estad_renderPodio(ordenados, _estadMeta);
+    }
+}
+
+function estad_renderPodio(top3, META_SEG) {
+    const podioLabels  = ['1°', '2°', '3°'];
+    const podioAcentos = ['#f59e0b', '#94a3b8', '#cd7f32'];
+    const podioIconos  = ['fas fa-crown', 'fas fa-medal', 'fas fa-award'];
+
+    const top = top3.slice(0, 3);
+    const ordenVisual = top.length === 1 ? [0]
+        : top.length === 2              ? [1, 0]
+        : [1, 0, 2];
+
+    return ordenVisual.map(idx => {
+        const c      = top[idx];
+        if (!c) return '';
+        const efPct  = c._efPct || 0;
+        const sp     = c.unidades > 0 ? c.secTrabajados / c.unidades : 0;
+        const nombre = estad_nombreCorto(c.nombre);
+        const acento = podioAcentos[idx];
+        const icono  = podioIconos[idx];
+        const esTop1 = idx === 0;
+
+        // Stat principal depende del modo activo
+        const statPrincipalVal   = _estadTopPorEfic
+            ? `${efPct}%`
+            : c.unidades.toLocaleString();
+        const statPrincipalLabel = _estadTopPorEfic ? 'eficiencia' : 'unidades';
+        const barraW             = _estadTopPorEfic
+            ? Math.min(efPct, 100)
+            : 0; // no mostrar barra en modo cantidad (no hay máximo relativo)
+
+        return `
+            <div class="estad-podio-item${esTop1 ? ' estad-podio-top' : ''}">
+                <i class="${icono} estad-podio-bg-icon" style="color:${acento};"></i>
+                <div class="estad-podio-pos" style="color:${acento};">${podioLabels[idx]}</div>
+                <div class="estad-podio-nombre" title="${c.nombre}">${nombre}</div>
+                <div class="estad-podio-efic" style="color:${acento};">${statPrincipalVal}</div>
+                <div class="estad-podio-efic-label">${statPrincipalLabel}</div>
+                <div class="estad-podio-barra" style="${barraW === 0 ? 'opacity:0;' : ''}">
+                    <div class="estad-podio-barra-fill" style="width:${barraW}%; background:${acento};"></div>
+                </div>
+                <div class="estad-podio-stats">
+                    <div class="estad-podio-stat">
+                        <span class="estad-podio-stat-val">${c.unidades.toLocaleString()}</span>
+                        <span class="estad-podio-stat-lbl">uds</span>
+                    </div>
+                    <div class="estad-podio-sep"></div>
+                    <div class="estad-podio-stat">
+                        <span class="estad-podio-stat-val">${efPct}%</span>
+                        <span class="estad-podio-stat-lbl">efic.</span>
+                    </div>
+                    <div class="estad-podio-sep"></div>
+                    <div class="estad-podio-stat">
+                        <span class="estad-podio-stat-val">${sp > 0 ? sp.toFixed(1)+'s' : '—'}</span>
+                        <span class="estad-podio-stat-lbl">seg/pda</span>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function estad_renderCuerpo(colaboradores, META_SEG, totalDists) {
+    if (!colaboradores.length) {
+        return `<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Sin datos para mostrar.</div>`;
+    }
+
+    // ── Filas de tabla (ya ordenadas por eficiencia)
+    const filas = colaboradores.map(c => {
+        const sp      = c.unidades > 0 ? c.secTrabajados / c.unidades : 0;
+        const efPct   = c._efPct || 0;
+        const efColor = estad_colorEfic(efPct);
+        const barW    = Math.min(efPct, 100);
+        const nombre  = estad_nombreCorto(c.nombre);
+
+        const badgeEstado = c.tieneActivos
+            ? `<span class="badge" style="background:#d1fae5; color:#065f46; font-size:0.6rem; font-weight:600; padding:2px 6px; border-radius:99px;">EN PROCESO</span>`
+            : `<span class="badge" style="background:#f1f5f9; color:#475569; font-size:0.6rem; font-weight:600; padding:2px 6px; border-radius:99px;">FINALIZADO</span>`;
+
+        return `
+            <tr>
+                <td style="max-width:160px;">
+                    <div class="fw-semibold" style="font-size:0.8rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.nombre}">${nombre}</div>
+                    ${badgeEstado}
+                </td>
+                <td class="text-center fw-bold" style="color:var(--text-primary); font-size:0.875rem;">${c.unidades > 0 ? c.unidades.toLocaleString() : '<span style="color:var(--text-muted);">—</span>'}</td>
+                <td class="text-center" style="font-size:0.8rem;">${c.lotes}</td>
+                <td class="text-center" style="font-size:0.8rem; color:var(--text-secondary); font-variant-numeric:tabular-nums;">${estad_segAHMS(c.secTrabajados)}</td>
+                <td class="text-center" style="font-size:0.8rem;">
+                    <span style="color:var(--danger-color); font-variant-numeric:tabular-nums;">${estad_segAHMS(c.secPausas)}</span>
+                    <div style="font-size:0.67rem; color:var(--text-muted);">${c.numPausas} pausa${c.numPausas !== 1 ? 's' : ''}</div>
+                </td>
+                <td class="text-center" style="font-size:0.8rem; color:var(--text-secondary);">${sp > 0 ? sp.toFixed(1) + 's' : '—'}</td>
+                <td style="min-width:100px;">
+                    <div class="d-flex align-items-center gap-1">
+                        <div class="progress flex-grow-1" style="height:5px; background:var(--border-light); border-radius:99px;">
+                            <div style="width:${barW}%; background:${efColor}; height:100%; border-radius:99px; transition:width .6s ease;"></div>
+                        </div>
+                        <span class="fw-bold" style="color:${efColor}; font-size:0.75rem; min-width:36px; text-align:right;">${efPct}%</span>
+                    </div>
+                </td>
+            </tr>`;
+    }).join('');
+
+    return `
+        <!-- Nota unidades sin datos -->
+        ${colaboradores.some(c => c.unidades === 0) ? `
+        <div class="alert alert-info mb-3" style="border-radius:var(--radius-md); padding:.6rem .875rem; font-size:.78rem;">
+            <i class="fas fa-info-circle me-2"></i>
+            Algunos colaboradores muestran <strong>— unidades</strong> porque sus documentos estaban
+            finalizados antes de que la app los cargara. Actualiza la tabla principal
+            (<i class="fas fa-sync-alt"></i>) y vuelve a abrir las estadísticas.
+        </div>` : ''}
+
+        <!-- Top del día -->
+        ${colaboradores.length >= 2 ? `
+        <div class="mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <p class="small fw-semibold mb-0" style="color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; font-size:0.72rem;">
+                    <i class="fas fa-trophy me-1" style="color:var(--warning-color);"></i>Top del día — por eficiencia
+                </p>
+                <!-- Switch modo -->
+                <div class="d-flex align-items-center gap-2">
+                    <span id="estadSwitchLabel" style="font-size:0.72rem; color:var(--text-muted); font-weight:500;">Por eficiencia</span>
+                    <div class="estad-switch" onclick="estad_toggleTopMode()" title="Cambiar criterio del top">
+                        <div class="estad-switch-thumb"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="estadPodioContainer" class="estad-podio-container">
+                ${estad_renderPodio(colaboradores, META_SEG)}
+            </div>
+        </div>` : ''}
+
+        <!-- Tabla detalle -->
+        <p class="small fw-semibold mb-2" style="color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; font-size:0.72rem;">
+            <i class="fas fa-table me-1" style="color:var(--accent-color);"></i>Detalle por colaborador
+            <span class="ms-2 fw-normal" style="font-size:0.7rem; color:var(--text-muted); text-transform:none;">${totalDists} distribución${totalDists !== 1 ? 'es' : ''} del día</span>
+        </p>
+        <div class="card border-0" style="border-radius:var(--radius-md); box-shadow:var(--shadow-sm); overflow:hidden;">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:0.8rem;">
+                    <thead>
+                        <tr>
+                            <th>Colaborador</th>
+                            <th class="text-center">Unidades</th>
+                            <th class="text-center">Lotes</th>
+                            <th class="text-center">T. Activo</th>
+                            <th class="text-center">T. Pausas</th>
+                            <th class="text-center">Seg/Prenda</th>
+                            <th class="text-center">Eficiencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filas}</tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Nota metodología -->
+        <p class="mt-2 mb-0" style="font-size:0.7rem; color:var(--text-muted);">
+            <i class="fas fa-info-circle me-1"></i>
+            Eficiencia = (4s ÷ seg/prenda) × 100. Meta: 4 seg/prenda.
+            Valores &gt;100% indican rendimiento sobre la meta.
+        </p>`;
+}
+
+function estad_nombreCorto(nombre) {
+    const p = (nombre || '').trim().split(/\s+/);
+    return p.length >= 2 ? `${p[0]} ${p[p.length - 1]}` : nombre;
+}
+
+window.mostrarEstadisticas = mostrarEstadisticas;
+window.cargarEstadisticas  = cargarEstadisticas;
