@@ -3749,40 +3749,90 @@ async function estad_cargarEvaluacionPersona() {
     try {
         const resp = await fetch(
             `${SUPABASE_URL_DT}/rest/v1/distribuciones` +
-            `?colaborador=eq.${encodeURIComponent(persona)}` +
-            `&inicio=gte.${encodeURIComponent(fechaDesde + 'T00:00:00')}` +
-            `&inicio=lte.${encodeURIComponent(fechaHasta + 'T23:59:59')}` +
-            `&select=id_distribucion,colaborador,estado,inicio,fin,duracion,duracion_pausas,datos_distribucion` +
-            `&order=inicio.asc`,
+            `?colaborador=ilike.${encodeURIComponent(persona)}` +
+            `&select=id_distribucion,colaborador,estado,inicio,fin,duracion,duracion_pausas,datos_distribucion,fecha_distribucion,created_at` +
+            `&order=created_at.desc` +
+            `&limit=1000`,
             { headers: { 'apikey': SUPABASE_ANON_KEY_DT, 'Authorization': `Bearer ${SUPABASE_ANON_KEY_DT}` } }
         );
 
         if (!resp.ok) throw new Error('Error al consultar datos');
-        let dists = await resp.json() || [];
+        let allDists = await resp.json() || [];
 
-        if (_estadSoloFinalizados) {
-            dists = dists.filter(d => d.estado === 'FINALIZADO');
+        // Solo distribuciones finalizadas para evaluación de rendimiento
+        allDists = allDists.filter(d => d.estado === 'FINALIZADO');
+
+        const ahora = new Date();
+        const hoyStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+
+        console.log('[EvalPersona] persona:', persona, '| fechaDesde:', fechaDesde, '| fechaHasta:', fechaHasta, '| hoyStr:', hoyStr);
+        console.log('[EvalPersona] Total FINALIZADOS de Supabase:', allDists.length);
+
+        // Extraer fecha YYYY-MM-DD: prioridad = inicio > fin > fecha_distribucion > created_at
+        // inicio/fin = cuándo se HIZO el trabajo real
+        // fecha_distribucion = fecha del documento (generalmente coincide con el día de trabajo)
+        // created_at = fecha de inserción en BD (NO confiable, puede ser importación masiva)
+        const extraerFechaLocal = d => {
+            const raw = d.inicio || d.fin || d.fecha_distribucion || d.created_at;
+            if (!raw) return hoyStr;
+            const match = String(raw).match(/^(\d{4}-\d{2}-\d{2})/);
+            if (match) return match[1];
+            return hoyStr;
+        };
+
+        // Filtrar distribuciones dentro del rango de fechas (fechaDesde -> fechaHasta)
+        const dists = allDists.filter(d => {
+            const fStr = extraerFechaLocal(d);
+            return fStr >= fechaDesde && fStr <= fechaHasta;
+        });
+
+        console.log('[EvalPersona] Distribuciones en rango:', dists.length);
+        if (dists.length > 0) {
+            const conteoFechas = {};
+            dists.forEach(d => {
+                const f = extraerFechaLocal(d);
+                conteoFechas[f] = (conteoFechas[f] || 0) + 1;
+            });
+            console.log('[EvalPersona] Conteo por fecha:', conteoFechas);
+        }
+
+        // Helper interno para obtener cantidad exacta de un lote
+        function obtenerCant(d) {
+            const rec = String(d.id_distribucion);
+
+            if (d.cantidad && parseInt(d.cantidad) > 0) return parseInt(d.cantidad);
+            if (d.CANTIDAD && parseInt(d.CANTIDAD) > 0) return parseInt(d.CANTIDAD);
+
+            if (d.datos_distribucion) {
+                try {
+                    const dd = typeof d.datos_distribucion === 'string'
+                        ? JSON.parse(d.datos_distribucion)
+                        : d.datos_distribucion;
+                    if (dd) {
+                        if (dd.CANTIDAD || dd.cantidad) return parseInt(dd.CANTIDAD || dd.cantidad) || 0;
+                        if (dd.total_cantidad || dd.CANTIDAD_TOTAL) return parseInt(dd.total_cantidad || dd.CANTIDAD_TOTAL) || 0;
+                        if (dd.Clientes) {
+                            let totalCli = 0;
+                            Object.values(dd.Clientes).forEach(cli => {
+                                if (Array.isArray(cli.distribucion)) {
+                                    cli.distribucion.forEach(item => totalCli += parseInt(item.cantidad) || 0);
+                                } else if (cli.cantidad) {
+                                    totalCli += parseInt(cli.cantidad) || 0;
+                                }
+                            });
+                            if (totalCli > 0) return totalCli;
+                        }
+                    }
+                } catch (_) {}
+            }
+            return 0;
         }
 
         let totalUnidades = 0;
         let totalSecTrabajados = 0;
 
         dists.forEach(d => {
-            const rec = String(d.id_distribucion);
-            let cant = _estadCantMap[rec] || 0;
-            if (!cant && d.datos_distribucion) {
-                try {
-                    const dd = typeof d.datos_distribucion === 'string' ? JSON.parse(d.datos_distribucion) : d.datos_distribucion;
-                    if (dd && dd.Clientes) {
-                        Object.values(dd.Clientes).forEach(cli => {
-                            if (Array.isArray(cli.distribucion)) {
-                                cli.distribucion.forEach(item => cant += parseInt(item.cantidad) || 0);
-                            }
-                        });
-                    }
-                } catch (_) {}
-            }
-            totalUnidades += cant;
+            totalUnidades += obtenerCant(d);
             totalSecTrabajados += estad_hmsASegundos(d.duracion);
         });
 
@@ -3835,28 +3885,34 @@ async function estad_cargarEvaluacionPersona() {
             `;
         }
 
-        // ── Agrupar SIEMPRE por Día ─────────────────────────────────────────────
+        // ── Agrupar SIEMPRE por Día (Formato Local sin desfase UTC) ─────────────
         const diasMap   = {};
         const segMap    = {};
         const lotesMap  = {};
 
-        // Construir rango completo de fechas entre desde y hasta para mostrar días sin actividad
-        const fechaIter = new Date(fechaDesde + 'T12:00:00');
-        const fechaFin  = new Date(fechaHasta + 'T12:00:00');
+        const [y1, m1, d1] = fechaDesde.split('-').map(Number);
+        const [y2, m2, d2] = fechaHasta.split('-').map(Number);
+
+        const fechaIter = new Date(y1, m1 - 1, d1, 12, 0, 0);
+        const fechaFin  = new Date(y2, m2 - 1, d2, 12, 0, 0);
+
         while (fechaIter <= fechaFin) {
-            const key = fechaIter.toISOString().split('T')[0];
+            const yr = fechaIter.getFullYear();
+            const mo = String(fechaIter.getMonth() + 1).padStart(2, '0');
+            const dy = String(fechaIter.getDate()).padStart(2, '0');
+            const key = `${yr}-${mo}-${dy}`;
+
             diasMap[key]  = 0;
             segMap[key]   = 0;
             lotesMap[key] = 0;
+
             fechaIter.setDate(fechaIter.getDate() + 1);
         }
 
         dists.forEach(d => {
-            const f = (d.inicio || d.fecha_distribucion || '').split('T')[0];
-            if (!f) return;
-            const rec = String(d.id_distribucion);
-            let cant = _estadCantMap[rec] || 0;
-            const sec = estad_hmsASegundos(d.duracion);
+            const f = extraerFechaLocal(d);
+            const cant = obtenerCant(d);
+            const sec  = estad_hmsASegundos(d.duracion);
             
             if (diasMap[f] !== undefined) {
                 diasMap[f]  += cant;
