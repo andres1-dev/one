@@ -194,19 +194,22 @@
                         </div>
                         <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
                             <!-- Switch Solo Finalizados -->
-                            <div class="d-flex align-items-center gap-2 px-2 py-1 rounded"
-                                style="font-size:0.75rem; background:var(--bg-primary); border:1px solid var(--border-light);">
+                            <div class="d-inline-flex align-items-center gap-2"
+                                style="height:32px; font-size:0.75rem; background:transparent;">
                                 <span id="estadFiltroFinalizadosLabel" style="font-weight:600; color:var(--text-primary); cursor:pointer;" onclick="estad_toggleFiltroFinalizados()">Solo Finalizados</span>
                                 <div class="estad-switch activo" id="estadFiltroFinalizadosSwitch" onclick="estad_toggleFiltroFinalizados()" title="Alternar entre Solo Finalizados y Todos los lotes">
                                     <div class="estad-switch-thumb"></div>
                                 </div>
                             </div>
-                            <input type="date" id="estadFechaInput" class="form-control form-control-sm"
-                                style="max-width:140px; font-size:0.8rem;" onchange="cargarEstadisticas()">
-                            <button class="btn btn-sm btn-primary" onclick="cargarEstadisticas()" title="Actualizar">
+                            <!-- Selector de Fecha -->
+                            <input type="date" id="estadFechaInput" class="form-control form-control-sm bg-white"
+                                style="height:32px; width:auto; font-size:0.75rem; border-radius:6px;" onchange="cargarEstadisticas()">
+                            <!-- Botón Actualizar (Solo ícono) -->
+                            <button class="btn btn-sm btn-outline-secondary" onclick="cargarEstadisticas()" title="Actualizar"
+                                style="height:32px; width:32px; padding:0; font-size:0.75rem; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; background:transparent; border-color:var(--border-light); color:var(--text-secondary);">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <button type="button" class="btn-close ms-1" data-bs-dismiss="modal"></button>
                         </div>
                     </div>
                 </div>

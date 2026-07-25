@@ -2874,6 +2874,54 @@ function estad_obtenerRangoSemanaActual() {
     return [fmt(lunes), fmt(domingo)];
 }
 
+function estad_calcularMinutosProductivosTranscurridos(fechaStr) {
+    const MIN_JORNADA_FULL = 504; // 504 min productivos por jornada completa
+
+    const hoy = new Date();
+    const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+
+    // Si es un día pasado o futuro, la jornada se considera completa al 100% (504 min)
+    if (!fechaStr || fechaStr !== hoyStr) return MIN_JORNADA_FULL;
+
+    // Día de HOY: calcular minutos productivos exactos transcurridos desde las 7:10 am
+    const h = hoy.getHours();
+    const m = hoy.getMinutes();
+    const minActual = h * 60 + m; // minutos desde medianoche
+
+    const minInicioJornada = 7 * 60 + 10;  // 7:10 -> 430 min
+    const minFinJornada    = 16 * 60 + 19; // 16:19 -> 979 min
+
+    if (minActual <= minInicioJornada) return 0;
+    if (minActual >= minFinJornada)    return MIN_JORNADA_FULL;
+
+    // Minutos brutos transcurridos
+    let minBrutos = minActual - minInicioJornada;
+
+    // Desayuno: 8:00 - 8:15 (minutos 480 a 495)
+    const minIniDes = 8 * 60;
+    const minFinDes = 8 * 60 + 15;
+    if (minActual > minIniDes) {
+        if (minActual >= minFinDes) {
+            minBrutos -= 15;
+        } else {
+            minBrutos -= (minActual - minIniDes);
+        }
+    }
+
+    // Almuerzo: 12:00 - 12:30 (minutos 720 a 750)
+    const minIniAlm = 12 * 60;
+    const minFinAlm = 12 * 60 + 30;
+    if (minActual > minIniAlm) {
+        if (minActual >= minFinAlm) {
+            minBrutos -= 30;
+        } else {
+            minBrutos -= (minActual - minIniAlm);
+        }
+    }
+
+    return Math.max(1, minBrutos);
+}
+
 function estad_calcularNumPausas(dist, secPaus) {
     if (dist.pausas !== undefined && dist.pausas !== null && dist.pausas !== '') {
         if (typeof dist.pausas === 'number') return dist.pausas;
@@ -3137,7 +3185,9 @@ function estad_procesarYRenderizar() {
         contenido.innerHTML = estad_renderCuerpo(colaboradores, META_SEG, dists.length);
         // Dibujar gráficas e inicializar controles tras insertar en DOM
         setTimeout(() => {
-            estad_dibujarGraficoHora(dists, _estadCantMap, numPersonas, totEficPct);
+            const inputFecha = document.getElementById('estadFechaInput');
+            const fechaStr = (inputFecha && inputFecha.value) ? inputFecha.value : new Date().toISOString().split('T')[0];
+            estad_dibujarGraficoHora(dists, _estadCantMap, numPersonas, totEficPct, tot.secTrabajados, fechaStr);
             
             // Inicializar Flatpickr en el input de rango individual (predeterminado: semana en curso)
             const inputRangoPersona = document.getElementById('estadPersonaRangoInput');
@@ -3425,17 +3475,14 @@ function estad_renderCuerpo(colaboradores, META_SEG, totalDists) {
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <!-- Selector de Colaborador -->
-                    <select id="estadPersonaSelect" class="form-select form-select-sm" style="width: auto; min-width: 170px; font-size: 0.78rem;" onchange="estad_cargarEvaluacionPersona()">
+                    <select id="estadPersonaSelect" class="form-select form-select-sm" style="width:auto; min-width:180px; height:32px; font-size:0.75rem; border-radius:6px;" onchange="estad_cargarEvaluacionPersona()">
                         ${colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                     </select>
                     <!-- Selector de Rango de Fechas con Flatpickr -->
-                    <div class="input-group input-group-sm" style="width: auto;">
-                        <span class="input-group-text bg-light" style="font-size: 0.75rem;"><i class="fas fa-calendar-alt text-primary"></i></span>
-                        <input type="text" id="estadPersonaRangoInput" class="form-control form-control-sm bg-white" placeholder="Seleccionar rango..." style="width: 190px; font-size: 0.78rem; cursor: pointer;" readonly>
+                    <div class="input-group" style="width:auto; height:32px;">
+                        <span class="input-group-text" style="font-size:0.75rem; height:32px; border-radius:6px 0 0 6px; background:var(--bg-secondary); border-color:var(--border-light);"><i class="fas fa-calendar-alt text-primary"></i></span>
+                        <input type="text" id="estadPersonaRangoInput" class="form-control bg-white" placeholder="Seleccionar rango..." style="width:180px; height:32px; font-size:0.75rem; cursor:pointer; border-radius:0 6px 6px 0;" readonly>
                     </div>
-                    <button class="btn btn-sm btn-primary" onclick="estad_cargarEvaluacionPersona()" style="font-size:0.75rem;">
-                        <i class="fas fa-chart-line me-1"></i>Evaluar
-                    </button>
                 </div>
             </div>
 
@@ -3451,7 +3498,7 @@ function estad_renderCuerpo(colaboradores, META_SEG, totalDists) {
         </div>`;
 }
 
-function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
+function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct, totalSecTrabajados, fechaStr) {
 
     // ── Jornada real ──────────────────────────────────────────────────────────
     // Inicio: 7:10  |  Desayuno: 8:00-8:15  |  Almuerzo: 12:00-12:30
@@ -3499,12 +3546,24 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
     const datosHoras = [];
     for (let h = H_INI; h <= H_FIN; h++) datosHoras.push(horasMap[h]);
 
-    // ── Cálculos de capacidad ─────────────────────────────────────────────────
-    const N = Math.max(1, numPersonas);
+    // ── Minutos productivos netos transcurridos en la jornada actual (relativo a la hora actual) ──
+    const minTranscurridos = estad_calcularMinutosProductivosTranscurridos(fechaStr);
+    const secTranscurridosPorOp = Math.max(60, minTranscurridos * 60);
+
+    // Operarios reales estimados = tiempo total trabajado consolidado / tiempo productivo transcurrido por operario
+    const operariosEstimados = (totalSecTrabajados && totalSecTrabajados > 0)
+        ? Math.max(1, Math.round(totalSecTrabajados / secTranscurridosPorOp))
+        : Math.max(1, numPersonas);
+
+    const N = operariosEstimados;
     const metaHora100         = N * 900;
     const metaHoraActual      = Math.round(N * 900 * (eficGlobalPct / 100));
     const capacidadDiaria     = N * 7560;
     const capacidadDiariaEfic = Math.round(N * 7560 * (eficGlobalPct / 100));
+
+    // Capacidad y meta esperada acumulada relativa al porcentaje de avance transcurrido de la jornada
+    const pctAvanceJornada = Math.round((minTranscurridos / 504) * 100);
+    const metaAcumuladaEsperada = Math.round((N * (minTranscurridos * 60 / 4)) * (eficGlobalPct / 100));
 
     // Meta por hora ajustada a los minutos efectivos reales de cada franja
     const metaActualPorHora = [];
@@ -3517,9 +3576,9 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
 
     // ── Notas de descanso / inicio para tooltip ───────────────────────────────
     const notaHora = {};
-    notaHora[7]  = `⏱ Inicio de jornada: 7:10 am (10 min iniciales)`;
-    notaHora[8]  = `☕ Desayuno: 8:00 - 8:15 am (15 min descanso)`;
-    notaHora[12] = `🍽 Almuerzo: 12:00 - 12:30 pm (30 min descanso)`;
+    notaHora[7]  = `Inicio de jornada: 7:10 am (10 min iniciales)`;
+    notaHora[8]  = `Desayuno: 8:00 - 8:15 am (15 min descanso)`;
+    notaHora[12] = `Almuerzo: 12:00 - 12:30 pm (30 min descanso)`;
 
     // ── KPIs ──────────────────────────────────────────────────────────────────
     const kpiEl = document.getElementById('estadCapacidadKPIs');
@@ -3529,24 +3588,24 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
                 <div class="p-2 rounded" style="background:var(--bg-secondary); border:1px solid var(--border-light);">
                     <div class="text-muted" style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em;">Meta Hora (${eficGlobalPct}% Efic.)</div>
                     <div class="fw-bold" style="font-size:0.95rem; color:var(--warning-color);"><i class="fas fa-bullseye me-1"></i>${metaHoraActual.toLocaleString()} <span style="font-size:0.72rem; font-weight:normal;">uds/h</span></div>
-                    <div class="text-muted" style="font-size:0.65rem;">meta según ritmo actual</div>
-                    <div style="font-size:0.63rem; border-top:1px dashed var(--border-light); margin-top:3px; padding-top:3px; color:var(--success-color); font-weight:600;"><i class="fas fa-tachometer-alt me-1"></i>100% efic: ${metaHora100.toLocaleString()} uds/h <span style="font-weight:normal; color:var(--text-muted);">— 900/h por pers.</span></div>
+                    <div class="text-muted" style="font-size:0.65rem;">meta según ritmo actual (${N} ${N === 1 ? 'op. est.' : 'ops. est.'})</div>
+                    <div style="font-size:0.63rem; border-top:1px dashed var(--border-light); margin-top:3px; padding-top:3px; color:var(--success-color); font-weight:600;"><i class="fas fa-tachometer-alt me-1"></i>100% efic: ${metaHora100.toLocaleString()} uds/h <span style="font-weight:normal; color:var(--text-muted);">— 900/h por operario.</span></div>
                 </div>
             </div>
             <div class="col-6 col-md-6">
                 <div class="p-2 rounded" style="background:var(--bg-secondary); border:1px solid var(--border-light);">
                     <div class="text-muted" style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em;">Capacidad Instalada Día</div>
                     <div class="fw-bold" style="font-size:0.95rem; color:var(--accent-color);"><i class="fas fa-industry me-1"></i>${capacidadDiariaEfic.toLocaleString()} <span style="font-size:0.72rem; font-weight:normal;">uds/día</span></div>
-                    <div class="text-muted" style="font-size:0.65rem;">${eficGlobalPct}% efic. actual</div>
-                    <div style="font-size:0.63rem; border-top:1px dashed var(--border-light); margin-top:3px; padding-top:3px; color:var(--success-color); font-weight:600;"><i class="fas fa-arrow-up me-1"></i>100% efic: ${capacidadDiaria.toLocaleString()} uds/día <span style="font-weight:normal; color:var(--text-muted);">— 7,560/d por pers.</span></div>
+                    <div class="text-muted" style="font-size:0.65rem;">${eficGlobalPct}% efic. (${N} ${N === 1 ? 'op. est.' : 'ops. est.'})</div>
+                    <div style="font-size:0.63rem; border-top:1px dashed var(--border-light); margin-top:3px; padding-top:3px; color:var(--success-color); font-weight:600;"><i class="fas fa-arrow-up me-1"></i>Meta a esta hora (${pctAvanceJornada}% jornada): ${metaAcumuladaEsperada.toLocaleString()} uds</div>
                 </div>
             </div>
         `;
 
-        // Actualizar badge de jornada con número de personas
+        // Actualizar badge de jornada con estimado de operarios y minutos transcurridos
         const badgeJornada = document.getElementById('estadJornadaBadge');
         if (badgeJornada) {
-            badgeJornada.innerHTML = `<i class="fas fa-users me-1 text-primary"></i>${N} ${N === 1 ? 'persona' : 'personas'} &nbsp;&middot;&nbsp; <i class="fas fa-clock me-1 text-primary"></i>504 min (30,240 s) / jornada`;
+            badgeJornada.innerHTML = `<i class="fas fa-users me-1 text-primary"></i>${N} ${N === 1 ? 'operario estimado' : 'operarios estimados'} (${numPersonas} pers. activas) &nbsp;&middot;&nbsp; <i class="fas fa-clock me-1 text-primary"></i>${minTranscurridos} min / 504 min transcurridos (${pctAvanceJornada}% jornada)`;
         }
     }
 
@@ -3569,8 +3628,6 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
             ctx.save();
 
             // Configuración de sombreado proporcional por hora
-            // minIni: minuto donde inicia el descanso/no laboral dentro de la hora
-            // durMin: duración en minutos del descanso
             const franjasEspeciales = {
                 7:  { minIni: 0, durMin: 10, color: 'rgba(148, 163, 184, 0.15)', border: '#94a3b8' }, // 7:00-7:10 (10m)
                 8:  { minIni: 0, durMin: 15, color: 'rgba(245, 158, 11, 0.18)',  border: '#f59e0b' }, // 8:00-8:15 (15m)
@@ -3586,15 +3643,12 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
                 const x1 = xScale.getPixelForValue(i + 0.5);
                 const anchoHora = x1 - x0;
 
-                // Ancho proporcional exacto en el eje X
                 const xInicioFranja = x0 + (anchoHora * (config.minIni / 60));
                 const anchoFranja   = anchoHora * (config.durMin / 60);
 
-                // Relleno de fondo del descanso
                 ctx.fillStyle = config.color;
                 ctx.fillRect(xInicioFranja, chartArea.top, anchoFranja, chartArea.bottom - chartArea.top);
 
-                // Lógica de borde/indicador vertical sutil
                 ctx.strokeStyle = config.border;
                 ctx.lineWidth = 1;
                 ctx.setLineDash([2, 2]);
@@ -3609,10 +3663,119 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
         }
     };
 
+    // Plugin inline para renderizar el eje X con intervalos de 15 min, muescas largas am/pm y extremos azules (7:10 am - 4:19 pm)
+    const pluginEjeXTimeline = {
+        id: 'ejeXTimeline',
+        afterDraw(chart) {
+            const { ctx, chartArea, scales } = chart;
+            if (!chartArea || !scales.x) return;
+            const xScale = scales.x;
+            const yTop = chartArea.bottom;
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            // Línea base continua del eje X
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(chartArea.left, yTop);
+            ctx.lineTo(chartArea.right, yTop);
+            ctx.stroke();
+
+            // Formateador am/pm para horas
+            const fmt12 = (h, m) => {
+                const period = h >= 12 ? 'pm' : 'am';
+                let h12 = h % 12;
+                if (h12 === 0) h12 = 12;
+                return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+            };
+
+            // Lista de marcas en la línea de tiempo
+            const marcas = [];
+            // Inicio de jornada (7:10 am)
+            marcas.push({ h: 7, m: 10, label: '7:10 am', esHora: false, esExtremo: true });
+
+            for (let h = 7; h <= 16; h++) {
+                const mins = [0, 15, 30, 45];
+                for (let m of mins) {
+                    if (h === 7 && m < 15) continue;  // 7:10 reemplaza 7:00/7:05
+                    if (h === 16 && m > 19) continue; // no sobrepasar fin de jornada
+
+                    const esHora = (m === 0);
+                    const label = esHora ? fmt12(h, m) : `${h}:${String(m).padStart(2, '0')}`;
+                    marcas.push({ h, m, label, esHora, esExtremo: false });
+                }
+            }
+
+            // Fin de jornada (4:19 pm)
+            marcas.push({ h: 16, m: 19, label: '4:19 pm', esHora: false, esExtremo: true });
+
+            marcas.forEach(marca => {
+                const valIndex = (marca.h - H_INI) - 0.5 + (marca.m / 60);
+                const x = xScale.getPixelForValue(valIndex);
+
+                if (x < chartArea.left - 2 || x > chartArea.right + 2) return;
+
+                if (marca.esExtremo) {
+                    // ── Extremos de jornada (7:10 am y 4:19 pm): Línea guía vertical completa sobre la gráfica ──
+                    ctx.strokeStyle = '#2563eb';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([4, 3]);
+
+                    // Línea vertical que cruza toda la gráfica de arriba a abajo
+                    ctx.beginPath();
+                    ctx.moveTo(x, chartArea.top);
+                    ctx.lineTo(x, yTop + 7);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Texto azul destacado en negrita con am/pm
+                    ctx.font = 'bold 9px sans-serif';
+                    ctx.fillStyle = '#2563eb';
+                    ctx.fillText(marca.label, x, yTop + 9);
+
+                } else if (marca.esHora) {
+                    // ── Horas completas (8:00 am, 9:00 am, 10:00 am...) ───────────────
+                    // Muesca limpia en tono slate medio (6px)
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, yTop);
+                    ctx.lineTo(x, yTop + 6);
+                    ctx.stroke();
+
+                    // Texto gris slate elegante y suave (sin tono negro agresivo)
+                    ctx.font = '600 9px sans-serif';
+                    ctx.fillStyle = '#475569';
+                    ctx.fillText(marca.label, x, yTop + 8);
+
+                } else {
+                    // ── Marcas intermedias de 15 min (7:15, 7:30...) ──────────────────
+                    // Muesca sutil (3px)
+                    ctx.strokeStyle = '#cbd5e1';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, yTop);
+                    ctx.lineTo(x, yTop + 3);
+                    ctx.stroke();
+
+                    // Texto tenue y ordenado
+                    ctx.font = '7.5px sans-serif';
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillText(marca.label, x, yTop + 5);
+                }
+            });
+
+            ctx.restore();
+        }
+    };
+
     const ctx = canvas.getContext('2d');
     _estadChartInstance = new Chart(ctx, {
         type: 'bar',
-        plugins: [pluginDescansos],
+        plugins: [pluginDescansos, pluginEjeXTimeline],
         data: {
             labels: horasLabels,
             datasets: [
@@ -3655,6 +3818,11 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    bottom: 28
+                }
+            },
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: {
@@ -3690,16 +3858,7 @@ function estad_dibujarGraficoHora(dists, cantMap, numPersonas, eficGlobalPct) {
             scales: {
                 x: {
                     grid: { display: false },
-                    ticks: {
-                        font: { size: 10 },
-                        color(ctx) {
-                            const h = H_INI + ctx.index;
-                            if (h === 7)  return '#64748b'; // gris 7am (inicio 7:10)
-                            if (h === 8)  return '#d97706'; // ámbar 8am (desayuno)
-                            if (h === 12) return '#dc2626'; // rojo 12pm (almuerzo)
-                            return undefined;
-                        }
-                    }
+                    ticks: { display: false } // Desactivar texto por defecto para usar las muescas y marcas de 15 min
                 },
                 y: {
                     beginAtZero: true,
@@ -3842,12 +4001,12 @@ async function estad_cargarEvaluacionPersona() {
         const eficPct = segPorPrenda > 0 ? Math.round((4 / segPorPrenda) * 100) : 0;
 
         // Calificación cualitativa basada en eficiencia sobre el tiempo dedicado
-        let calificacion = { texto: 'SIN DATOS EN PERIODO', color: 'var(--text-muted)', bg: '#f1f5f9' };
+        let calificacion = { texto: '<i class="fas fa-minus-circle me-1"></i>SIN DATOS EN PERIODO', color: 'var(--text-muted)', bg: '#f1f5f9', icono: '' };
         if (dists.length > 0 && totalUnidades > 0) {
-            if (eficPct >= 100)      calificacion = { texto: 'SOBRESALIENTE ⭐', color: '#047857', bg: '#d1fae5' };
-            else if (eficPct >= 80) calificacion = { texto: 'BUENO 👍',         color: '#b45309', bg: '#fef3c7' };
-            else if (eficPct >= 60) calificacion = { texto: 'REGULAR ⚠️',       color: '#c2410c', bg: '#ffedd5' };
-            else                     calificacion = { texto: 'BAJO RENDIMIENTO 🔴', color: '#b91c1c', bg: '#fee2e2' };
+            if (eficPct >= 100)      calificacion = { texto: '<i class="fas fa-star me-1"></i>SOBRESALIENTE', color: '#047857', bg: '#d1fae5' };
+            else if (eficPct >= 80) calificacion = { texto: '<i class="fas fa-thumbs-up me-1"></i>BUENO',      color: '#b45309', bg: '#fef3c7' };
+            else if (eficPct >= 60) calificacion = { texto: '<i class="fas fa-exclamation-triangle me-1"></i>REGULAR', color: '#c2410c', bg: '#ffedd5' };
+            else                     calificacion = { texto: '<i class="fas fa-arrow-down me-1"></i>BAJO RENDIMIENTO', color: '#b91c1c', bg: '#fee2e2' };
         }
 
         if (kpiEl) {
