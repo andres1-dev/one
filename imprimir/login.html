@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingresar — Módulo de Impresión</title>
+    <meta name="description" content="Acceso al módulo de impresión del Catálogo Master.">
+
+    <!-- Redirigir si ya hay sesión válida -->
+    <script>
+        (function () {
+            const token = sessionStorage.getItem('supabase_token');
+            const user  = sessionStorage.getItem('supabase_user');
+            if (!token || !user) return;
+            try {
+                const p = JSON.parse(atob(token.split('.')[1]));
+                if (Date.now() < p.exp * 1000) window.location.replace('index.html');
+            } catch (_) {}
+        })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.32/dist/codicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="css/impresion.css">
+
+    <style>
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* ── Header flotante minimalista en login ── */
+        .login-topbar {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            z-index: 100;
+        }
+
+        /* ── Card Glassmorphism ── */
+        .login-card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 410px;
+            padding: 42px 38px;
+            background: var(--glass-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            backdrop-filter: blur(40px) saturate(210%);
+            -webkit-backdrop-filter: blur(40px) saturate(210%);
+            box-shadow: var(--shadow-glass);
+            animation: cardIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ── Branding ── */
+        .login-brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .brand-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #0071e3, #42a5f5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 26px;
+            color: #fff;
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        body.dark .brand-icon {
+            background: linear-gradient(135deg, #0a84ff, #5e5ce6);
+        }
+
+        .login-brand h1 {
+            font-size: 21px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.03em;
+            margin-bottom: 6px;
+        }
+
+        .login-brand p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ── Formulario ── */
+        .field {
+            margin-bottom: 18px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--text-subtle);
+            margin-bottom: 7px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .field-wrap {
+            position: relative;
+        }
+
+        .field-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 15px;
+            pointer-events: none;
+            z-index: 5;
+            transition: color .2s;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 12px 14px 12px 42px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            outline: none;
+            backdrop-filter: blur(16px);
+            transition: background .3s var(--ease-apple), border-color .3s var(--ease-apple), color .3s var(--ease-apple), box-shadow .3s var(--ease-apple);
+        }
+
+        .field input:hover {
+            border-color: var(--input-border-hover);
+        }
+
+        .field input:focus {
+            border-color: var(--accent-bright);
+            box-shadow: 0 0 0 3.5px var(--accent-glow);
+            background: var(--glass-bg-hover);
+        }
+
+        /* Anular fondo blanco de autocompletado (Autofill) con adaptación 100% dinámica al tema */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px var(--glass-input) inset !important;
+            -webkit-text-fill-color: var(--text) !important;
+            caret-color: var(--text);
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        .field input::placeholder { color: var(--text-subtle); font-weight: 400; }
+
+        .field input#loginPassword {
+            padding-right: 44px;
+        }
+
+        .btn-toggle-pw {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 15px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            transition: color .2s, transform .15s;
+        }
+
+        .btn-toggle-pw:hover {
+            color: var(--accent-bright);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .btn-toggle-pw:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .field input:focus {
+            border-color: var(--accent-bright);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+            background: var(--glass-bg-hover);
+        }
+
+        .field:focus-within .field-icon { color: var(--accent-bright); }
+
+        /* ── Botón submit ── */
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            margin-top: 8px;
+            background: linear-gradient(135deg, #0071e3, #005bb5);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 6px 20px var(--accent-glow);
+            transition: all .2s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        body.dark .btn-login {
+            background: linear-gradient(135deg, #0a84ff, #0066cc);
+        }
+
+        .btn-login:hover:not(:disabled) {
+            transform: translateY(-1.5px) scale(1.01);
+            box-shadow: 0 8px 26px var(--accent-glow);
+        }
+
+        .btn-login:active:not(:disabled) { transform: scale(0.98); }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .75s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Error ── */
+        .login-error {
+            display: none;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+            border-radius: 12px;
+            font-size: 12.5px;
+            color: var(--error);
+            backdrop-filter: blur(16px);
+        }
+
+        .login-error.visible { display: flex; }
+
+        /* ── Footer ── */
+        .login-footer {
+            text-align: center;
+            margin-top: 26px;
+            font-size: 11.5px;
+            color: var(--text-subtle);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Canvas Partículas de Fondo -->
+    <canvas id="particlesCanvas"></canvas>
+
+    <!-- Card de Login Glassmorphism -->
+    <div class="login-card">
+
+        <!-- MARCA -->
+        <div class="login-brand">
+            <div class="brand-icon">
+                <i class="fa-solid fa-print"></i>
+            </div>
+            <h1>Módulo de Impresión</h1>
+            <p>Catálogo Master · Credenciales de acceso</p>
+        </div>
+
+        <!-- FORMULARIO -->
+        <form onsubmit="doLogin(event)" novalidate>
+
+            <div class="field">
+                <label for="loginEmail">Correo electrónico</label>
+                <div class="field-wrap">
+                    <i class="fa-solid fa-envelope field-icon"></i>
+                    <input
+                        type="email"
+                        id="loginEmail"
+                        placeholder="usuario@empresa.com"
+                        required
+                        autocomplete="email">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="loginPassword">Contraseña</label>
+                <div class="field-wrap">
+                    <i class="fa-solid fa-lock field-icon"></i>
+                    <input
+                        type="password"
+                        id="loginPassword"
+                        placeholder="••••••••••"
+                        required
+                        autocomplete="current-password">
+                    <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility()" title="Mostrar u ocultar contraseña">
+                        <i class="fa-solid fa-eye" id="togglePwIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login" id="loginBtn">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                Ingresar
+            </button>
+
+        </form>
+
+        <!-- ERROR -->
+        <div class="login-error" id="loginError">
+            <i class="fa-solid fa-circle-xmark" style="font-size:16px;margin-top:1px"></i>
+            <span id="loginErrorMsg">Credenciales incorrectas.</span>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="login-footer">
+            Developed by Andrés Mendoza
+        </div>
+
+    </div>
+
+    <!-- Dependencias y Lógica de Tema/Partículas -->
+    <script src="js/impresion-config.js"></script>
+    <script src="js/impresion-logger.js"></script>
+
+    <script>
+        // ─── CANVA PARTÍCULAS ──────────────────────────────
+        function initParticles() {
+            const canvas = document.getElementById('particlesCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let width = (canvas.width = window.innerWidth);
+            let height = (canvas.height = window.innerHeight);
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+
+            const particles = [];
+            const count = 45;
+
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: Math.random() * 2.2 + 0.8,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    alpha: Math.random() * 0.45 + 0.15
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                const particleColor = '0, 113, 227';
+
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    if (p.x < 0) p.x = width;
+                    if (p.x > width) p.x = 0;
+                    if (p.y < 0) p.y = height;
+                    if (p.y > height) p.y = 0;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${particleColor}, ${p.alpha})`;
+                    ctx.fill();
+                });
+
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        initParticles();
+
+        // ─── MOSTRAR/OCULTAR CONTRASEÑA ───────────────────────
+        function togglePasswordVisibility() {
+            const pwInput = document.getElementById('loginPassword');
+            const icon = document.getElementById('togglePwIcon');
+            if (!pwInput || !icon) return;
+
+            if (pwInput.type === 'password') {
+                pwInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                pwInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // ─── AUTENTICACIÓN ──────────────────────────────────
+        async function doLogin(e) {
+            e.preventDefault();
+
+            const email    = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const btn      = document.getElementById('loginBtn');
+            const errEl    = document.getElementById('loginError');
+            const errMsg   = document.getElementById('loginErrorMsg');
+
+            errEl.classList.remove('visible');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="btn-spinner"></div> Verificando…';
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey':       SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error_description || err.message || 'Credenciales incorrectas');
+                }
+
+                const data = await res.json();
+                sessionStorage.setItem('supabase_token', data.access_token);
+                sessionStorage.setItem('supabase_user',  JSON.stringify(data.user));
+
+                Logger.success('login', `Sesión iniciada: ${data.user.email}`);
+
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Accediendo…';
+                btn.style.background = 'linear-gradient(135deg, #34c759, #28a745)';
+
+                setTimeout(() => window.location.replace('index.html'), 500);
+
+            } catch (err) {
+                errMsg.textContent = err.message;
+                errEl.classList.add('visible');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Ingresar';
+                Logger.error('login', 'Error de autenticación', err);
+            }
+        }
+    </script>
+</body>
+</html>
