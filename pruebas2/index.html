@@ -62,8 +62,7 @@
                 <button class="chip" id="chip-week" onclick="setPreset('week',event)">Semana</button>
                 <button class="chip active" id="chip-month" onclick="setPreset('month',event)">Este Mes</button>
                 <button class="chip" id="chip-last" onclick="setPreset('last',event)">Mes Anterior</button>
-                <button class="chip" id="chip-year" onclick="setPreset('year',event)">Año</button>
-                <button class="chip" id="chip-all" onclick="setPreset('all',event)">Todo</button>
+                <button class="chip" id="chip-two-months" onclick="setPreset('two-months',event)">Mes Actual + Anterior</button>
             </div>
             <div class="dates-row">
                 <div class="field">
@@ -83,7 +82,7 @@
                 <i class="fa-solid fa-file-excel"></i> Descargar por Fechas / Búsqueda
             </button>
             <button class="btn btn-outline" id="btn-full" onclick="exportExcel(false)" disabled>
-                <i class="fa-solid fa-download"></i> Descargar Todo
+                <i class="fa-solid fa-download"></i> Descargar Todo (Mes Actual + Anterior)
             </button>
         </div>
 

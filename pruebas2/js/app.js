@@ -16,10 +16,29 @@ let allRows = [];
 let currentPage = 1;
 let pageSize = 30;
 
+// ── Utility: Minimum Allowed Date (Current Month & Preceding Month) ───────────
+function getMinAllowedDate() {
+    const now = new Date();
+    // 1st day of the previous month
+    const minDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const yyyy = minDate.getFullYear();
+    const mm = String(minDate.getMonth() + 1).padStart(2, '0');
+    return `${yyyy}-${mm}-01`;
+}
+
+function enforceMinDateInputs() {
+    const minDate = getMinAllowedDate();
+    const from = document.getElementById('date-from');
+    const to = document.getElementById('date-to');
+    if (from) from.min = minDate;
+    if (to) to.min = minDate;
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     updateAuthUI();
+    enforceMinDateInputs();
     setPreset('month');
     setupEvents();
     loadData();
@@ -85,12 +104,14 @@ async function loadData() {
     allRows = [];
 
     const token = getToken();
+    const minDate = getMinAllowedDate();
     const PAGE = 1000;
     let offset = 0, total = 0;
 
     try {
         while (true) {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/ingresos?select=*`, {
+            // Estricta restricción de PostgREST: descargar exclusivamente mes actual y anterior
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/ingresos?select=*&fecha_traslado=gte.${minDate}`, {
                 headers: {
                     'apikey': SUPABASE_ANON,
                     'Authorization': `Bearer ${token}`,
@@ -101,10 +122,18 @@ async function loadData() {
             if (!res.ok) break;
             const rows = await res.json();
             if (!Array.isArray(rows)) break;
-            allRows = allRows.concat(rows);
-            total += rows.length;
+
+            // Filtro de seguridad cliente: descartar cualquier registro previo a minDate
+            const validRows = rows.filter(r => {
+                const raw = r.fecha_traslado || r.created_at || r.fecha_ingreso || '';
+                const f = typeof raw === 'string' ? raw.substring(0, 10) : '';
+                return !f || f >= minDate;
+            });
+
+            allRows = allRows.concat(validRows);
+            total += validRows.length;
             progressCount.textContent = `${total.toLocaleString('es-CO')} registros`;
-            progressFill.style.width = `${Math.min(Math.round(total / 35000 * 100), 95)}%`;
+            progressFill.style.width = `${Math.min(Math.round(total / 10000 * 100), 95)}%`;
             if (rows.length < PAGE) break;
             offset += PAGE;
         }
@@ -118,13 +147,13 @@ async function loadData() {
         }
 
         dot.className = 'dot ok';
-        statusText.textContent = 'Listo';
+        statusText.textContent = 'Listo (Mes actual + anterior)';
         progressFill.style.width = '100%';
         document.getElementById('btn-filtered').disabled = false;
         document.getElementById('btn-full').disabled = false;
 
         renderTable();
-        toast('Cargados', `${total.toLocaleString('es-CO')} registros disponibles.`, 'success');
+        toast('Cargados', `${total.toLocaleString('es-CO')} registros (mes actual y anterior).`, 'success');
 
     } catch (e) {
         console.error(e);
@@ -148,13 +177,23 @@ function setupEvents() {
         });
     }
 
-    document.getElementById('date-from')?.addEventListener('change', () => {
+    const minDate = getMinAllowedDate();
+
+    document.getElementById('date-from')?.addEventListener('change', (e) => {
+        if (e.target.value && e.target.value < minDate) {
+            e.target.value = minDate;
+            toast('Límite de descarga', 'Por control de egreso en Supabase, no se permiten datos anteriores al mes pasado.', 'warning');
+        }
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         currentPage = 1;
         renderTable();
     });
 
-    document.getElementById('date-to')?.addEventListener('change', () => {
+    document.getElementById('date-to')?.addEventListener('change', (e) => {
+        if (e.target.value && e.target.value < minDate) {
+            e.target.value = minDate;
+            toast('Límite de descarga', 'Por control de egreso en Supabase, no se permiten datos anteriores al mes pasado.', 'warning');
+        }
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         currentPage = 1;
         renderTable();
@@ -179,6 +218,7 @@ function setPreset(preset, evt) {
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
 
     const now = new Date();
+    const minDate = getMinAllowedDate();
     const fmt = d => {
         const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
         return `${y}-${m}-${dd}`;
@@ -192,7 +232,10 @@ function setPreset(preset, evt) {
         case 'week': {
             const f = new Date(now);
             f.setDate(now.getDate() - (now.getDay() || 7) + 1);
-            from.value = fmt(f); to.value = fmt(now);
+            let fromStr = fmt(f);
+            if (fromStr < minDate) fromStr = minDate;
+            from.value = fromStr;
+            to.value = fmt(now);
             document.getElementById('chip-week')?.classList.add('active');
             break;
         }
@@ -204,20 +247,23 @@ function setPreset(preset, evt) {
         case 'last': {
             const f = new Date(now.getFullYear(), now.getMonth()-1, 1);
             const l = new Date(now.getFullYear(), now.getMonth(), 0);
-            from.value = fmt(f); to.value = fmt(l);
+            from.value = fmt(f);
+            to.value = fmt(l);
             document.getElementById('chip-last')?.classList.add('active');
             break;
         }
+        case 'two-months':
         case 'year':
-            from.value = fmt(new Date(now.getFullYear(), 0, 1));
-            to.value = fmt(now);
-            document.getElementById('chip-year')?.classList.add('active');
-            break;
         case 'all':
-            from.value = ''; to.value = '';
-            document.getElementById('chip-all')?.classList.add('active');
+        default:
+            from.value = minDate;
+            to.value = fmt(now);
+            document.getElementById('chip-two-months')?.classList.add('active');
             break;
     }
+
+    from.min = minDate;
+    to.min = minDate;
 
     currentPage = 1;
     renderTable();
@@ -226,6 +272,14 @@ function setPreset(preset, evt) {
 // ── Filter Data ──────────────────────────────────────────────────────────────
 function getFilteredRows() {
     let rows = allRows;
+    const minDate = getMinAllowedDate();
+
+    // Estricta salvaguarda: no retornar nunca datos previos al mes anterior
+    rows = rows.filter(r => {
+        const raw = r.fecha_traslado || r.created_at || r.fecha_ingreso || '';
+        const f = typeof raw === 'string' ? raw.substring(0, 10) : '';
+        return !f || f >= minDate;
+    });
 
     // Date filter
     const from = document.getElementById('date-from')?.value;
