@@ -3,8 +3,8 @@
  * Carga de datos, vista previa interactiva, buscador ultrarrápido y exportación Excel.
  */
 
-const SUPABASE_URL = 'https://ymaojqjdnrpfkrtuezcw.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltYW9qcWpkbnJwZmtydHVlemN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTIwMTAsImV4cCI6MjEwMTQyODAxMH0.3Zzsw_sriPPjNM8emcOslLNSnadPs8cSguNUCA2MNu8';
+const SUPABASE_URL = 'https://iladaofarozipitwaeti.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsYWRhb2Zhcm96aXBpdHdhZXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjYzMDksImV4cCI6MjA5MzA0MjMwOX0.4fyiibeZS10DCgov62d7tIFVzJHsklsBrbokAJ9ptK8';
 
 const HEADERS = [
     "Documento","Fecha","Taller","Línea","Auditor","Escáner","Lote",
@@ -35,27 +35,13 @@ function enforceMinDateInputs() {
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    updateAuthUI();
     enforceMinDateInputs();
     setPreset('month');
     setupEvents();
-
-    // Validar sesión real contra Supabase al cargar la página
-    const dot = document.getElementById('dot');
-    const statusText = document.getElementById('status-text');
-    if (dot) dot.className = 'dot loading';
-    if (statusText) statusText.textContent = 'Verificando sesión...';
-
-    const user = await validateSession();
-    updateAuthUI(user?.email || null);
-
-    if (user) document.getElementById('rls-banner')?.classList.remove('show');
-
-    if (dot) dot.className = 'dot';
-    if (statusText) statusText.textContent = user
-        ? 'Sesión activa. Selecciona fechas y presiona Cargar Datos.'
-        : 'Selecciona fechas y presiona Cargar Datos';
+    loadData();
 });
 
 // ── Theme Toggle ─────────────────────────────────────────────────────────────
@@ -95,45 +81,13 @@ function getToken() {
     return SUPABASE_ANON;
 }
 
-// Valida el token actual contra Supabase (/auth/v1/user)
-// Retorna el objeto user si es válido, null si no
-async function validateSession() {
-    const token = getToken();
-    if (token === SUPABASE_ANON) return null;
-    try {
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-            headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) {
-            // Token inválido o expirado — limpiar
-            localStorage.removeItem('exportador_sb_token');
-            return null;
-        }
-        return await res.json();
-    } catch (_) {
-        return null;
-    }
-}
-
-function updateAuthUI(userEmail) {
+function updateAuthUI() {
     const el = document.getElementById('auth-label');
     const btn = document.getElementById('btn-auth');
     if (!el) return;
-    if (userEmail) {
-        el.textContent = userEmail;
-        if (btn) {
-            btn.classList.add('active');
-            btn.title = 'Cerrar sesión';
-            btn.onclick = handleLogout;
-        }
-    } else {
-        el.textContent = 'Autenticar';
-        if (btn) {
-            btn.classList.remove('active');
-            btn.title = '';
-            btn.onclick = openAuthModal;
-        }
-    }
+    const isAuth = getToken() !== SUPABASE_ANON;
+    el.textContent = isAuth ? 'Conectado' : 'Autenticar';
+    if (btn) btn.classList.toggle('active', isAuth);
 }
 
 // ── Load Data ────────────────────────────────────────────────────────────────
@@ -151,23 +105,13 @@ async function loadData() {
 
     const token = getToken();
     const minDate = getMinAllowedDate();
-
-    // Usar las fechas seleccionadas en el UI para la consulta (respetando el mínimo permitido)
-    const fromInput = document.getElementById('date-from')?.value;
-    const toInput = document.getElementById('date-to')?.value;
-    const queryFrom = (fromInput && fromInput >= minDate) ? fromInput : minDate;
-    const queryTo = toInput || null;
-
     const PAGE = 1000;
     let offset = 0, total = 0;
 
     try {
         while (true) {
-            // Construir URL con filtros de fecha desde el UI
-            let url = `${SUPABASE_URL}/rest/v1/ingresos?select=*&fecha_traslado=gte.${queryFrom}&order=fecha_traslado.desc`;
-            if (queryTo) url += `&fecha_traslado=lte.${queryTo}`;
-
-            const res = await fetch(url, {
+            // Estricta restricción de PostgREST: descargar exclusivamente mes actual y anterior
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/ingresos?select=*&fecha_traslado=gte.${minDate}`, {
                 headers: {
                     'apikey': SUPABASE_ANON,
                     'Authorization': `Bearer ${token}`,
@@ -203,13 +147,13 @@ async function loadData() {
         }
 
         dot.className = 'dot ok';
-        statusText.textContent = `Listo (${queryFrom}${queryTo ? ' → ' + queryTo : ''})`;
+        statusText.textContent = 'Listo (Mes actual + anterior)';
         progressFill.style.width = '100%';
         document.getElementById('btn-filtered').disabled = false;
         document.getElementById('btn-full').disabled = false;
 
         renderTable();
-        toast('Cargados', `${total.toLocaleString('es-CO')} registros descargados.`, 'success');
+        toast('Cargados', `${total.toLocaleString('es-CO')} registros (mes actual y anterior).`, 'success');
 
     } catch (e) {
         console.error(e);
@@ -528,47 +472,16 @@ async function handleLogin(e) {
         if (!res.ok || !d.access_token) throw new Error(d.msg || d.error_description || 'Credenciales inválidas');
 
         localStorage.setItem('exportador_sb_token', d.access_token);
-        updateAuthUI(d.user?.email || email);
+        updateAuthUI();
         closeAuthModal();
-        document.getElementById('rls-banner')?.classList.remove('show');
-        toast('Autenticado', 'Sesión iniciada. Selecciona fechas y presiona Cargar Datos.', 'success');
+        toast('Autenticado', 'Sesión iniciada correctamente.', 'success');
+        loadData();
     } catch (err) {
         toast('Error', err.message, 'warning');
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Entrar';
     }
-}
-
-async function handleLogout() {
-    const token = getToken();
-    // Llamar al endpoint de logout de Supabase para invalidar el token en el servidor
-    try {
-        await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
-            method: 'POST',
-            headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${token}` }
-        });
-    } catch (_) { /* si falla la red igual limpiamos local */ }
-
-    localStorage.removeItem('exportador_sb_token');
-    updateAuthUI(null);
-
-    // Limpiar datos en memoria y resetear UI
-    allRows = [];
-    renderTable();
-    const dot = document.getElementById('dot');
-    const statusText = document.getElementById('status-text');
-    const progressFill = document.getElementById('progress-fill');
-    const progressCount = document.getElementById('progress-count');
-    if (dot) dot.className = 'dot';
-    if (statusText) statusText.textContent = 'Sesión cerrada. Autentícate para continuar.';
-    if (progressFill) progressFill.style.width = '0%';
-    if (progressCount) progressCount.textContent = '0 registros';
-    document.getElementById('btn-filtered').disabled = true;
-    document.getElementById('btn-full').disabled = true;
-    document.getElementById('rls-banner')?.classList.add('show');
-
-    toast('Sesión cerrada', 'Has cerrado sesión correctamente.', 'info');
 }
 
 // ── Toast ────────────────────────────────────────────────────────────────────
