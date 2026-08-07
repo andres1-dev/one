@@ -2,7 +2,7 @@
 
 const SiesaConfig = {
   // URL de las Edge Functions de Supabase
-  FUNCTIONS_URL: 'https://iladaofarozipitwaeti.supabase.co/functions/v1',
+  FUNCTIONS_URL: 'https://ymaojqjdnrpfkrtuezcw.supabase.co/functions/v1',
   
   // Configuración de archivos
   FILES: {

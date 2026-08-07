@@ -1,11 +1,11 @@
 // Configuración global del sistema SIESA 
 const SiesaConfig = {
   // URL de las Edge Functions de Supabase
-  FUNCTIONS_URL: 'https://ymaojqjdnrpfkrtuezcw.supabase.co/functions/v1',
+  FUNCTIONS_URL: 'https://iladaofarozipitwaeti.supabase.co/functions/v1',
 
   // Credenciales Supabase (propias del index raíz, independientes de delivery/)
-  SUPABASE_URL: 'https://ymaojqjdnrpfkrtuezcw.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltYW9qcWpkbnJwZmtydHVlemN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTIwMTAsImV4cCI6MjEwMTQyODAxMH0.3Zzsw_sriPPjNM8emcOslLNSnadPs8cSguNUCA2MNu8',
+  SUPABASE_URL: 'https://iladaofarozipitwaeti.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsYWRhb2Zhcm96aXBpdHdhZXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjYzMDksImV4cCI6MjA5MzA0MjMwOX0.4fyiibeZS10DCgov62d7tIFVzJHsklsBrbokAJ9ptK8',
   
   // Configuración de archivos
   FILES: {
