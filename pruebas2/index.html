@@ -22,14 +22,14 @@
         <div class="header">
             <div class="header-left">
                 <div class="logo"><i class="fa-solid fa-file-excel"></i></div>
-                <h1>Exportar Ingresos</h1>
+                <h1>Exportar Ingresos (Google Sheets)</h1>
             </div>
             <div class="header-actions">
                 <button class="btn-icon" id="btn-theme" onclick="toggleTheme()" title="Cambiar tema">
                     <i class="fa-solid fa-sun" id="theme-icon"></i>
                 </button>
-                <button class="btn-link" id="btn-auth" onclick="openAuthModal()">
-                    <i class="fa-solid fa-key"></i> <span id="auth-label">Autenticar</span>
+                <button class="btn-icon" id="btn-config-sheet" onclick="openSheetModal()" title="Configurar Google Sheet">
+                    <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
         </div>
@@ -39,20 +39,13 @@
             <div class="progress-info">
                 <div class="progress-status">
                     <span class="dot loading" id="dot"></span>
-                    <span id="status-text">Conectando...</span>
+                    <span id="status-text">Conectando a Google Sheets...</span>
                 </div>
                 <span id="progress-count">0 registros</span>
             </div>
             <div class="progress-bar">
                 <div class="progress-fill" id="progress-fill"></div>
             </div>
-        </div>
-
-        <!-- RLS Banner -->
-        <div class="rls-banner" id="rls-banner">
-            <i class="fa-solid fa-shield-halved"></i>
-            <span>Seguridad RLS activa. Inicie sesión para acceder.</span>
-            <button onclick="openAuthModal()">Iniciar Sesión</button>
         </div>
 
         <!-- Dates -->
@@ -62,7 +55,8 @@
                 <button class="chip" id="chip-week" onclick="setPreset('week',event)">Semana</button>
                 <button class="chip active" id="chip-month" onclick="setPreset('month',event)">Este Mes</button>
                 <button class="chip" id="chip-last" onclick="setPreset('last',event)">Mes Anterior</button>
-                <button class="chip" id="chip-two-months" onclick="setPreset('two-months',event)">Mes Actual + Anterior</button>
+                <button class="chip" id="chip-two-months" onclick="setPreset('two-months',event)">Últimos 2 Meses</button>
+                <button class="chip" id="chip-all" onclick="setPreset('all',event)">Todo</button>
             </div>
             <div class="dates-row">
                 <div class="field">
@@ -74,9 +68,6 @@
                     <input type="date" id="date-to">
                 </div>
             </div>
-            <button class="btn btn-load" id="btn-load" onclick="loadData()">
-                <i class="fa-solid fa-cloud-arrow-down"></i> Cargar Datos
-            </button>
         </div>
 
         <!-- Actions -->
@@ -85,7 +76,7 @@
                 <i class="fa-solid fa-file-excel"></i> Descargar por Fechas / Búsqueda
             </button>
             <button class="btn btn-outline" id="btn-full" onclick="exportExcel(false)" disabled>
-                <i class="fa-solid fa-download"></i> Descargar Todo (Mes Actual + Anterior)
+                <i class="fa-solid fa-download"></i> Descargar Todo
             </button>
         </div>
 
@@ -159,24 +150,24 @@
 
     </div>
 
-    <!-- Auth Modal -->
-    <div class="modal-overlay" id="auth-modal">
+    <!-- Sheet Config Modal -->
+    <div class="modal-overlay" id="sheet-modal">
         <div class="modal-card">
-            <h2>Conectar a Supabase</h2>
-            <p>Autentícate para acceder a los datos protegidos</p>
-            <form id="login-form" onsubmit="handleLogin(event)">
+            <h2>Configuración de Google Sheet</h2>
+            <p>Ingresa el ID del documento y el nombre de la hoja</p>
+            <form id="sheet-config-form" onsubmit="saveSheetConfig(event)">
                 <div class="field" style="margin-bottom:12px">
-                    <label for="auth-email">Correo</label>
-                    <input type="email" id="auth-email" placeholder="usuario@empresa.com" required>
+                    <label for="cfg-sheet-id">ID del Spreadsheet</label>
+                    <input type="text" id="cfg-sheet-id" placeholder="1O67ydfwQCnW-J-x..." required>
                 </div>
                 <div class="field" style="margin-bottom:16px">
-                    <label for="auth-pass">Contraseña</label>
-                    <input type="password" id="auth-pass" placeholder="••••••••" required>
+                    <label for="cfg-sheet-name">Nombre de la Hoja / Pestaña</label>
+                    <input type="text" id="cfg-sheet-name" placeholder="Ingresos" required>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-ghost" onclick="closeAuthModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btn-submit-login">
-                        <i class="fa-solid fa-right-to-bracket"></i> Entrar
+                    <button type="button" class="btn btn-ghost" onclick="closeSheetModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar y Cargar
                     </button>
                 </div>
             </form>

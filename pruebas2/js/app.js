@@ -1,10 +1,14 @@
 /**
- * Exportador de Ingresos MP — Módulo Independiente Minimalista
- * Carga de datos, vista previa interactiva, buscador ultrarrápido y exportación Excel.
+ * Exportador de Ingresos MP — Módulo Google Sheets v4 API
+ * Carga de datos directa desde Google Sheets, vista previa interactiva,
+ * buscador ultrarrápido y exportación a Excel sin restricciones de rango.
  */
 
-const SUPABASE_URL = 'https://ymaojqjdnrpfkrtuezcw.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltYW9qcWpkbnJwZmtydHVlemN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTIwMTAsImV4cCI6MjEwMTQyODAxMH0.3Zzsw_sriPPjNM8emcOslLNSnadPs8cSguNUCA2MNu8';
+const SHEETS_API_KEY = 'AIzaSyC9aOd5MicrxG2Bh_fDVKDaqfSA3_H0tmo';
+
+// ID del Spreadsheet por defecto e ID/Nombre personalizable
+let SPREADSHEET_ID = localStorage.getItem('exportador_sheet_id') || '1O67ydfwQCnW-J-xDwzkghTFUMX9KF4tqizKLCJrz9LM';
+let SHEET_NAME = localStorage.getItem('exportador_sheet_name') || 'Ingresos';
 
 const HEADERS = [
     "Documento","Fecha","Taller","Línea","Auditor","Escáner","Lote",
@@ -16,46 +20,12 @@ let allRows = [];
 let currentPage = 1;
 let pageSize = 30;
 
-// ── Utility: Minimum Allowed Date (Current Month & Preceding Month) ───────────
-function getMinAllowedDate() {
-    const now = new Date();
-    // 1st day of the previous month
-    const minDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const yyyy = minDate.getFullYear();
-    const mm = String(minDate.getMonth() + 1).padStart(2, '0');
-    return `${yyyy}-${mm}-01`;
-}
-
-function enforceMinDateInputs() {
-    const minDate = getMinAllowedDate();
-    const from = document.getElementById('date-from');
-    const to = document.getElementById('date-to');
-    if (from) from.min = minDate;
-    if (to) to.min = minDate;
-}
-
 // ── Init ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     initTheme();
-    enforceMinDateInputs();
     setPreset('month');
     setupEvents();
-
-    // Validar sesión real contra Supabase al cargar la página
-    const dot = document.getElementById('dot');
-    const statusText = document.getElementById('status-text');
-    if (dot) dot.className = 'dot loading';
-    if (statusText) statusText.textContent = 'Verificando sesión...';
-
-    const user = await validateSession();
-    updateAuthUI(user?.email || null);
-
-    if (user) document.getElementById('rls-banner')?.classList.remove('show');
-
-    if (dot) dot.className = 'dot';
-    if (statusText) statusText.textContent = user
-        ? 'Sesión activa. Selecciona fechas y presiona Cargar Datos.'
-        : 'Selecciona fechas y presiona Cargar Datos';
+    loadData();
 });
 
 // ── Theme Toggle ─────────────────────────────────────────────────────────────
@@ -79,143 +49,119 @@ function updateThemeIcon(theme) {
     icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
 }
 
-// ── Auth Token ───────────────────────────────────────────────────────────────
-function getToken() {
-    const saved = localStorage.getItem('exportador_sb_token');
-    if (saved) return saved;
-    try {
-        for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
-                const s = JSON.parse(localStorage.getItem(k));
-                if (s?.access_token) return s.access_token;
-            }
-        }
-    } catch (_) {}
-    return SUPABASE_ANON;
+// ── Sheet Config Modal ───────────────────────────────────────────────────────
+function openSheetModal() {
+    const modal = document.getElementById('sheet-modal');
+    const inputId = document.getElementById('cfg-sheet-id');
+    const inputName = document.getElementById('cfg-sheet-name');
+    if (inputId) inputId.value = SPREADSHEET_ID;
+    if (inputName) inputName.value = SHEET_NAME;
+    if (modal) modal.classList.add('show');
 }
 
-// Valida el token actual contra Supabase (/auth/v1/user)
-// Retorna el objeto user si es válido, null si no
-async function validateSession() {
-    const token = getToken();
-    if (token === SUPABASE_ANON) return null;
-    try {
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-            headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) {
-            // Token inválido o expirado — limpiar
-            localStorage.removeItem('exportador_sb_token');
-            return null;
-        }
-        return await res.json();
-    } catch (_) {
-        return null;
-    }
+function closeSheetModal() {
+    document.getElementById('sheet-modal')?.classList.remove('show');
 }
 
-function updateAuthUI(userEmail) {
-    const el = document.getElementById('auth-label');
-    const btn = document.getElementById('btn-auth');
-    if (!el) return;
-    if (userEmail) {
-        el.textContent = userEmail;
-        if (btn) {
-            btn.classList.add('active');
-            btn.title = 'Cerrar sesión';
-            btn.onclick = handleLogout;
-        }
-    } else {
-        el.textContent = 'Autenticar';
-        if (btn) {
-            btn.classList.remove('active');
-            btn.title = '';
-            btn.onclick = openAuthModal;
-        }
-    }
+function saveSheetConfig(e) {
+    e.preventDefault();
+    const id = document.getElementById('cfg-sheet-id')?.value.trim();
+    const name = document.getElementById('cfg-sheet-name')?.value.trim();
+    if (!id || !name) return;
+
+    SPREADSHEET_ID = id;
+    SHEET_NAME = name;
+    localStorage.setItem('exportador_sheet_id', id);
+    localStorage.setItem('exportador_sheet_name', name);
+
+    closeSheetModal();
+    toast('Configuración guardada', `Spreadsheet: ${id.substring(0, 10)}... | Hoja: ${name}`, 'success');
+    loadData();
 }
 
-// ── Load Data ────────────────────────────────────────────────────────────────
+// ── Load Data desde Google Sheets API v4 ─────────────────────────────────────
 async function loadData() {
     const dot = document.getElementById('dot');
     const statusText = document.getElementById('status-text');
     const progressCount = document.getElementById('progress-count');
     const progressFill = document.getElementById('progress-fill');
-    const rlsBanner = document.getElementById('rls-banner');
 
-    dot.className = 'dot loading';
-    statusText.textContent = 'Descargando...';
-    rlsBanner.classList.remove('show');
+    if (dot) dot.className = 'dot loading';
+    if (statusText) statusText.textContent = 'Cargando registros desde Google Sheets...';
+    if (progressCount) progressCount.textContent = 'Consultando...';
+    if (progressFill) progressFill.style.width = '30%';
+
     allRows = [];
 
-    const token = getToken();
-    const minDate = getMinAllowedDate();
-
-    // Usar las fechas seleccionadas en el UI para la consulta (respetando el mínimo permitido)
-    const fromInput = document.getElementById('date-from')?.value;
-    const toInput = document.getElementById('date-to')?.value;
-    const queryFrom = (fromInput && fromInput >= minDate) ? fromInput : minDate;
-    const queryTo = toInput || null;
-
-    const PAGE = 1000;
-    let offset = 0, total = 0;
+    const rangeParam = encodeURIComponent(SHEET_NAME) + '!A1:ZZ';
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${rangeParam}?key=${SHEETS_API_KEY}`;
 
     try {
-        while (true) {
-            // Construir URL con filtros de fecha desde el UI
-            let url = `${SUPABASE_URL}/rest/v1/ingresos?select=*&fecha_traslado=gte.${queryFrom}&order=fecha_traslado.desc`;
-            if (queryTo) url += `&fecha_traslado=lte.${queryTo}`;
-
-            const res = await fetch(url, {
-                headers: {
-                    'apikey': SUPABASE_ANON,
-                    'Authorization': `Bearer ${token}`,
-                    'Range': `${offset}-${offset + PAGE - 1}`,
-                    'Range-Unit': 'items'
-                }
-            });
-            if (!res.ok) break;
-            const rows = await res.json();
-            if (!Array.isArray(rows)) break;
-
-            // Filtro de seguridad cliente: descartar cualquier registro previo a minDate
-            const validRows = rows.filter(r => {
-                const raw = r.fecha_traslado || r.created_at || r.fecha_ingreso || '';
-                const f = typeof raw === 'string' ? raw.substring(0, 10) : '';
-                return !f || f >= minDate;
-            });
-
-            allRows = allRows.concat(validRows);
-            total += validRows.length;
-            progressCount.textContent = `${total.toLocaleString('es-CO')} registros`;
-            progressFill.style.width = `${Math.min(Math.round(total / 10000 * 100), 95)}%`;
-            if (rows.length < PAGE) break;
-            offset += PAGE;
+        const res = await fetch(url);
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            if (res.status === 403) {
+                throw new Error('Acceso denegado (403). Verifique que el documento de Google Sheets esté compartido como "Cualquier persona con el enlace puede ver".');
+            } else if (res.status === 404) {
+                throw new Error(`Hoja "${SHEET_NAME}" o Spreadsheet ID no encontrado (404).`);
+            } else {
+                throw new Error(errData.error?.message || `Error HTTP ${res.status}`);
+            }
         }
 
-        if (total === 0 && token === SUPABASE_ANON) {
-            dot.className = 'dot loading';
-            statusText.textContent = 'Requiere autenticación';
-            rlsBanner.classList.add('show');
+        const data = await res.json();
+        const values = data.values || [];
+
+        if (values.length < 2) {
+            if (dot) dot.className = 'dot ok';
+            if (statusText) statusText.textContent = 'Hoja vacía o sin registros';
+            if (progressCount) progressCount.textContent = '0 registros';
+            if (progressFill) progressFill.style.width = '100%';
             renderTable();
             return;
         }
 
-        dot.className = 'dot ok';
-        statusText.textContent = `Listo (${queryFrom}${queryTo ? ' → ' + queryTo : ''})`;
-        progressFill.style.width = '100%';
+        // Fila 1 es la cabecera
+        const headers = values[0].map(h => String(h || '').trim().toLowerCase());
+
+        // Mapear filas a objetos JavaScript
+        for (let i = 1; i < values.length; i++) {
+            const rowValues = values[i];
+            if (!rowValues || rowValues.length === 0) continue;
+
+            const rowObj = {};
+            headers.forEach((h, idx) => {
+                rowObj[h] = rowValues[idx] !== undefined ? rowValues[idx] : '';
+            });
+
+            // Normalización de números y tipos
+            if (rowObj.total !== undefined && rowObj.total !== '') rowObj.total = Number(rowObj.total) || rowObj.total;
+            if (rowObj.cantidad !== undefined && rowObj.cantidad !== '') rowObj.cantidad = Number(rowObj.cantidad) || rowObj.cantidad;
+            if (rowObj.pvp !== undefined && rowObj.pvp !== '') {
+                const cleanedPvp = String(rowObj.pvp).replace(/[^0-9.-]+/g, '');
+                if (cleanedPvp) rowObj.pvp = Number(cleanedPvp);
+            }
+
+            allRows.push(rowObj);
+        }
+
+        if (dot) dot.className = 'dot ok';
+        if (statusText) statusText.textContent = `Listo (${allRows.length.toLocaleString('es-CO')} registros)`;
+        if (progressCount) progressCount.textContent = `${allRows.length.toLocaleString('es-CO')} registros`;
+        if (progressFill) progressFill.style.width = '100%';
+
         document.getElementById('btn-filtered').disabled = false;
         document.getElementById('btn-full').disabled = false;
 
         renderTable();
-        toast('Cargados', `${total.toLocaleString('es-CO')} registros descargados.`, 'success');
+        toast('Datos cargados', `${allRows.length.toLocaleString('es-CO')} registros listos para filtrar o exportar.`, 'success');
 
     } catch (e) {
-        console.error(e);
-        dot.className = 'dot error';
-        statusText.textContent = 'Error de conexión';
-        toast('Error', 'No se pudo conectar a Supabase.', 'warning');
+        console.error('[Google Sheets API]', e);
+        if (dot) dot.className = 'dot error';
+        if (statusText) statusText.textContent = 'Error de conexión a Sheets';
+        if (progressFill) progressFill.style.width = '0%';
+        toast('Error de Carga', e.message, 'warning');
         renderTable();
     }
 }
@@ -224,7 +170,7 @@ async function loadData() {
 function setupEvents() {
     const input = document.getElementById('search-input');
     const clearBtn = document.getElementById('search-clear');
-    
+
     if (input && clearBtn) {
         input.addEventListener('input', () => {
             clearBtn.style.display = input.value.length > 0 ? 'flex' : 'none';
@@ -233,23 +179,13 @@ function setupEvents() {
         });
     }
 
-    const minDate = getMinAllowedDate();
-
-    document.getElementById('date-from')?.addEventListener('change', (e) => {
-        if (e.target.value && e.target.value < minDate) {
-            e.target.value = minDate;
-            toast('Límite de descarga', 'Por control de egreso en Supabase, no se permiten datos anteriores al mes pasado.', 'warning');
-        }
+    document.getElementById('date-from')?.addEventListener('change', () => {
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         currentPage = 1;
         renderTable();
     });
 
-    document.getElementById('date-to')?.addEventListener('change', (e) => {
-        if (e.target.value && e.target.value < minDate) {
-            e.target.value = minDate;
-            toast('Límite de descarga', 'Por control de egreso en Supabase, no se permiten datos anteriores al mes pasado.', 'warning');
-        }
+    document.getElementById('date-to')?.addEventListener('change', () => {
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         currentPage = 1;
         renderTable();
@@ -265,7 +201,7 @@ function clearSearch() {
     renderTable();
 }
 
-// ── Date Presets ─────────────────────────────────────────────────────────────
+// ── Date Presets (Sin restricciones) ─────────────────────────────────────────
 function setPreset(preset, evt) {
     const from = document.getElementById('date-from');
     const to = document.getElementById('date-to');
@@ -274,7 +210,6 @@ function setPreset(preset, evt) {
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
 
     const now = new Date();
-    const minDate = getMinAllowedDate();
     const fmt = d => {
         const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
         return `${y}-${m}-${dd}`;
@@ -288,9 +223,7 @@ function setPreset(preset, evt) {
         case 'week': {
             const f = new Date(now);
             f.setDate(now.getDate() - (now.getDay() || 7) + 1);
-            let fromStr = fmt(f);
-            if (fromStr < minDate) fromStr = minDate;
-            from.value = fromStr;
+            from.value = fmt(f);
             to.value = fmt(now);
             document.getElementById('chip-week')?.classList.add('active');
             break;
@@ -308,18 +241,20 @@ function setPreset(preset, evt) {
             document.getElementById('chip-last')?.classList.add('active');
             break;
         }
-        case 'two-months':
-        case 'year':
-        case 'all':
-        default:
-            from.value = minDate;
+        case 'two-months': {
+            const f = new Date(now.getFullYear(), now.getMonth()-1, 1);
+            from.value = fmt(f);
             to.value = fmt(now);
             document.getElementById('chip-two-months')?.classList.add('active');
             break;
+        }
+        case 'all':
+        default:
+            from.value = '';
+            to.value = '';
+            document.getElementById('chip-all')?.classList.add('active');
+            break;
     }
-
-    from.min = minDate;
-    to.min = minDate;
 
     currentPage = 1;
     renderTable();
@@ -328,14 +263,6 @@ function setPreset(preset, evt) {
 // ── Filter Data ──────────────────────────────────────────────────────────────
 function getFilteredRows() {
     let rows = allRows;
-    const minDate = getMinAllowedDate();
-
-    // Estricta salvaguarda: no retornar nunca datos previos al mes anterior
-    rows = rows.filter(r => {
-        const raw = r.fecha_traslado || r.created_at || r.fecha_ingreso || '';
-        const f = typeof raw === 'string' ? raw.substring(0, 10) : '';
-        return !f || f >= minDate;
-    });
 
     // Date filter
     const from = document.getElementById('date-from')?.value;
@@ -408,7 +335,6 @@ function renderTable() {
         if (fs.includes('-')) { const p = fs.split('-'); if (p.length===3) fd = `${p[2]}/${p[1]}/${p[0]}`; }
         const qty = Number(r.total ?? r.cantidad) || 0;
         const lote = r.lote != null && r.lote !== '' ? r.lote : '-';
-        const pvp = r.pvp != null && r.pvp !== '' ? `$ ${Number(r.pvp).toLocaleString('es-CO')}` : '-';
 
         html += `<tr>
             <td><strong>${escapeHtml(doc)}</strong></td>
@@ -458,7 +384,7 @@ function exportExcel(filtered) {
     if (!data.length) { toast('Sin datos', 'No hay registros para exportar.', 'warning'); return; }
     if (typeof XLSX === 'undefined') { toast('Error', 'SheetJS no cargado aún.', 'warning'); return; }
 
-    toast('Generando', `${data.length.toLocaleString('es-CO')} registros...`, 'info');
+    toast('Generando Excel', `${data.length.toLocaleString('es-CO')} registros...`, 'info');
 
     setTimeout(() => {
         try {
@@ -470,8 +396,8 @@ function exportExcel(filtered) {
                 let fd = fs;
                 if (fs.includes('-')) { const p = fs.split('-'); if (p.length===3) fd = `${p[2]}/${p[1]}/${p[0]}`; }
                 const qty = Number(r.total ?? r.cantidad) || 0;
-                const lote = r.lote != null && r.lote !== '' ? Number(r.lote) : '';
-                const pvp = r.pvp != null && r.pvp !== '' ? Number(r.pvp) : '';
+                const lote = r.lote != null && r.lote !== '' ? (Number(r.lote) || r.lote) : '';
+                const pvp = r.pvp != null && r.pvp !== '' ? (Number(r.pvp) || r.pvp) : '';
 
                 matrix.push([
                     doc, fd, r.taller||'', r.linea||'', r.auditor||'', r.escaner||'',
@@ -502,73 +428,6 @@ function exportExcel(filtered) {
             toast('Error', 'Problema al generar el Excel.', 'warning');
         }
     }, 50);
-}
-
-// ── Auth Modal ───────────────────────────────────────────────────────────────
-function openAuthModal() { document.getElementById('auth-modal')?.classList.add('show'); }
-function closeAuthModal() { document.getElementById('auth-modal')?.classList.remove('show'); }
-
-async function handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('auth-email').value.trim();
-    const pass = document.getElementById('auth-pass').value;
-    const btn = document.getElementById('btn-submit-login');
-    if (!email || !pass) return;
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
-
-    try {
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-            method: 'POST',
-            headers: { 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password: pass })
-        });
-        const d = await res.json();
-        if (!res.ok || !d.access_token) throw new Error(d.msg || d.error_description || 'Credenciales inválidas');
-
-        localStorage.setItem('exportador_sb_token', d.access_token);
-        updateAuthUI(d.user?.email || email);
-        closeAuthModal();
-        document.getElementById('rls-banner')?.classList.remove('show');
-        toast('Autenticado', 'Sesión iniciada. Selecciona fechas y presiona Cargar Datos.', 'success');
-    } catch (err) {
-        toast('Error', err.message, 'warning');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Entrar';
-    }
-}
-
-async function handleLogout() {
-    const token = getToken();
-    // Llamar al endpoint de logout de Supabase para invalidar el token en el servidor
-    try {
-        await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
-            method: 'POST',
-            headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${token}` }
-        });
-    } catch (_) { /* si falla la red igual limpiamos local */ }
-
-    localStorage.removeItem('exportador_sb_token');
-    updateAuthUI(null);
-
-    // Limpiar datos en memoria y resetear UI
-    allRows = [];
-    renderTable();
-    const dot = document.getElementById('dot');
-    const statusText = document.getElementById('status-text');
-    const progressFill = document.getElementById('progress-fill');
-    const progressCount = document.getElementById('progress-count');
-    if (dot) dot.className = 'dot';
-    if (statusText) statusText.textContent = 'Sesión cerrada. Autentícate para continuar.';
-    if (progressFill) progressFill.style.width = '0%';
-    if (progressCount) progressCount.textContent = '0 registros';
-    document.getElementById('btn-filtered').disabled = true;
-    document.getElementById('btn-full').disabled = true;
-    document.getElementById('rls-banner')?.classList.add('show');
-
-    toast('Sesión cerrada', 'Has cerrado sesión correctamente.', 'info');
 }
 
 // ── Toast ────────────────────────────────────────────────────────────────────
