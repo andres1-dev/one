@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Impresión — Catálogo Master</title>
+    <meta name="description" content="Módulo independiente de impresión de plantillas de separación de terceros.">
+
+    <!-- Auth guard inmediato -->
+    <script>
+        (function () {
+            const token = sessionStorage.getItem('supabase_token');
+            const user  = sessionStorage.getItem('supabase_user');
+            if (!token || !user) { window.location.replace('login.html'); throw new Error('No auth'); }
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (Date.now() >= payload.exp * 1000) {
+                    sessionStorage.clear();
+                    alert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+                    window.location.replace('login.html');
+                    throw new Error('Expired');
+                }
+            } catch (e) {
+                if (e.message === 'Expired') throw e;
+                sessionStorage.clear();
+                window.location.replace('login.html');
+            }
+        })();
+    </script>
+
+    <!-- Fuente Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Iconos -->
+    <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.32/dist/codicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- CSS del módulo -->
+    <link rel="stylesheet" href="css/impresion.css">
+</head>
+
+<body>
+
+    <!-- ══════════════════════════════════════════
+         HEADER
+    ══════════════════════════════════════════ -->
+    <header class="imp-header">
+
+        <!-- MARCA -->
+        <div class="imp-header-brand">
+            <div class="brand-icon-wrap">
+                <i class="fa-solid fa-print"></i>
+            </div>
+            <div>
+                <span>Módulo de Impresión</span>
+                <span class="brand-sub">Catálogo Master</span>
+            </div>
+        </div>
+
+        <!-- CONTROLES DERECHA -->
+        <div class="imp-header-right">
+
+            <!-- Badge usuario -->
+            <div class="user-badge" id="userBadge" title="Usuario autenticado">
+                <i class="codicon codicon-person"></i>
+                <span id="userLabel">…</span>
+            </div>
+
+            <div class="vdivider"></div>
+
+            <!-- Refrescar -->
+            <button class="btn-icon" onclick="print_cargarDatos()" title="Recargar clientes (F5)">
+                <i class="codicon codicon-refresh"></i>
+            </button>
+
+            <!-- Cerrar Sesión -->
+            <button class="btn-icon btn-logout" onclick="doLogout()" title="Cerrar sesión">
+                <i class="codicon codicon-sign-out"></i>
+            </button>
+
+        </div>
+    </header>
+
+    <!-- Canvas de Partículas de Fondo -->
+    <canvas id="particlesCanvas"></canvas>
+
+    <!-- ══════════════════════════════════════════
+         CONTENIDO PRINCIPAL
+    ══════════════════════════════════════════ -->
+    <main class="imp-main">
+
+        <!-- ── CARD: BÚSQUEDA ── -->
+        <div class="imp-card">
+            <div class="card-label">
+                <i class="fa-solid fa-magnifying-glass" style="color:var(--accent-bright)"></i>
+                Buscar documento
+            </div>
+
+            <!-- Input + botón Buscar -->
+            <div class="form-row">
+                <div class="input-wrap">
+                    <input
+                        type="text"
+                        id="printRecInput"
+                        class="form-control"
+                        placeholder="Ej: 2450   ó   2450, 2451, 2452"
+                        autocomplete="off"
+                        spellcheck="false"
+                        onkeydown="if(event.key==='Enter') print_buscarPorREC()">
+                    <i class="codicon codicon-tag input-icon"></i>
+                </div>
+                <button class="btn-primary" id="btnBuscar" onclick="print_buscarPorREC()">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    Buscar
+                </button>
+            </div>
+
+            <!-- Hint -->
+            <p class="form-hint">
+                <i class="fa-solid fa-circle-info"></i>
+                Separe múltiples RECs con comas para procesar en lote.
+            </p>
+
+            <!-- Botones de acción adicionales -->
+            <div class="action-strip">
+                <button class="btn-action" id="btnMultiples" onclick="print_buscarLoteRECs()" title="Imprimir varios RECs (solo página principal de cada uno)">
+                    <i class="fa-solid fa-copy"></i>
+                    Múltiples · Solo Principal
+                </button>
+                <button class="btn-action green" id="btnClientes" onclick="print_imprimirSoloClientes()" title="Imprimir una página por cada cliente del REC">
+                    <i class="fa-solid fa-users"></i>
+                    Solo Clientes
+                </button>
+                <button class="btn-action purple" id="btnSeleccionar" onclick="print_mostrarOpcionesImpresion()" title="Elegir qué imprimir con detalle">
+                    <i class="fa-solid fa-sliders"></i>
+                    Seleccionar
+                </button>
+            </div>
+        </div>
+
+        <!-- ── LOADER ── -->
+        <div id="printLoader" class="imp-loader">
+            <div class="spinner-ring"></div>
+            <span id="loaderMsg">Cargando…</span>
+        </div>
+
+        <!-- ── RESULTADO ── -->
+        <div id="printResultContainer" class="results-panel">
+            <div class="empty-state">
+                <div class="empty-icon-wrap">
+                    <i class="fa-solid fa-print"></i>
+                </div>
+                <h5>Sin resultados aún</h5>
+                <p>Ingrese un número de REC y presione <strong>Buscar</strong> o <kbd>Enter</kbd>.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ══════════════════════════════════════════
+         STATUS BAR
+    ══════════════════════════════════════════ -->
+    <footer class="imp-statusbar">
+        <div class="status-left">
+            <div class="status-item">
+                <div class="status-dot loading" id="statusDot"></div>
+                <span id="statusMsg">Iniciando…</span>
+            </div>
+        </div>
+        <div class="status-right">
+            <div class="status-item" id="cacheStatus" style="display:none">
+                <i class="codicon codicon-database" style="font-size:11px"></i>
+                <span id="cacheLabel">—</span>
+            </div>
+            <div class="status-item" style="opacity:.6">
+                <span class="kbd">Ctrl+Shift+L</span>
+                <span>logs</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ══════════════════════════════════════════
+         SCRIPTS — orden de carga obligatorio
+         1. config    → constantes (SUPABASE_URL, KEY)
+         2. logger    → Logger global
+         3. supabase  → cliente supabase (usa config)
+         4. templates → genera HTML de impresión
+         5. search    → funciones de búsqueda
+         6. main      → lógica de datos + init
+         7. init      → arranca la página
+    ══════════════════════════════════════════ -->
+    <script src="js/impresion-config.js"></script>
+    <script src="js/impresion-logger.js"></script>
+    <script src="js/impresion-supabase.js"></script>
+    <script src="js/printing-templates.js"></script>
+    <script src="js/printing-search.js"></script>
+    <script src="js/printing-main.js"></script>
+    <script src="js/impresion-init.js"></script>
+
+</body>
+</html>
