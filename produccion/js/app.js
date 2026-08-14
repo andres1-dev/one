@@ -375,7 +375,21 @@ async function cargarDatos(fechaInicio, fechaFin) {
                 return tipo !== 'NOTAS' && tipo !== 'DEVOLUCION';
             });
         
-        allData = dataFiltrada.map(f => ({...f, confirmacion: (f.entregas || []).length > 0 ? 'ENTREGADO' : 'PENDIENTE'}));
+        allData = dataFiltrada.map(f => {
+            // Normalizar URLs de imágenes: reemplazar proyecto viejo por el activo
+            if (f.entregas && f.entregas.length > 0) {
+                f.entregas = f.entregas.map(e => {
+                    if (e.Url_Ih3 && typeof e.Url_Ih3 === 'string') {
+                        e.Url_Ih3 = e.Url_Ih3.replace(
+                            /https:\/\/iladaofarozipitwaeti\.supabase\.co/g,
+                            'https://ymaojqjdnrpfkrtuezcw.supabase.co'
+                        );
+                    }
+                    return e;
+                });
+            }
+            return {...f, confirmacion: (f.entregas || []).length > 0 ? 'ENTREGADO' : 'PENDIENTE'};
+        });
         filteredData = [...allData];
         poblarFiltros(allData);
         
