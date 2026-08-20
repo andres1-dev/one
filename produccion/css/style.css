@@ -1569,6 +1569,79 @@ body {
     display: block;
 }
 
+/* Segmented toggle for date filter mode */
+.glass-cal-mode-toggle {
+    display: flex;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 16px;
+    position: relative;
+    gap: 2px;
+}
+
+.glass-cal-mode-btn {
+    flex: 1;
+    padding: 7px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--gray-600);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+}
+
+.glass-cal-mode-btn i {
+    font-size: 10px;
+    transition: all 0.25s ease;
+}
+
+.glass-cal-mode-btn:hover:not(.active) {
+    color: var(--gray-800);
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.glass-cal-mode-btn.active {
+    background: white;
+    color: var(--siesa-blue);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.glass-cal-mode-btn.active i {
+    color: var(--siesa-blue);
+}
+
+/* Entrega mode active indicator */
+.glass-cal-mode-btn.mode-entrega.active {
+    color: var(--siesa-green);
+}
+
+.glass-cal-mode-btn.mode-entrega.active i {
+    color: var(--siesa-green);
+}
+
+/* Subtle info text below toggle */
+.glass-cal-mode-hint {
+    font-size: 10px;
+    color: var(--gray-600);
+    text-align: center;
+    margin-bottom: 12px;
+    opacity: 0.7;
+    letter-spacing: 0.1px;
+    transition: all 0.2s ease;
+    min-height: 15px;
+}
+
 .glass-calendar {
     width: 100%;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;

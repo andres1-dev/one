@@ -1126,16 +1126,19 @@ function initSpotlight() {
 
         // Fecha
         if (glassCalState.startDate && glassCalState.endDate) {
-            const esDefaultFecha = (
+            const isEntregaMode = glassCalState.dateFilterMode === 'entrega';
+            const esDefaultFecha = !isEntregaMode && (
                 glassCalState.startDate.getTime() === primerDia.getTime() && 
                 glassCalState.endDate.getTime() === hoy.getTime()
             );
 
             if (!esDefaultFecha) {
                 const fmt = d => d.toLocaleDateString('es-CO', {day:'2-digit', month:'short'});
-                addTag(container, 'Fecha', `${fmt(glassCalState.startDate)} - ${fmt(glassCalState.endDate)}`, () => {
+                const label = isEntregaMode ? 'F. Entrega' : 'Fecha';
+                addTag(container, label, `${fmt(glassCalState.startDate)} - ${fmt(glassCalState.endDate)}`, () => {
                     glassCalState.startDate = primerDia;
                     glassCalState.endDate = hoy;
+                    glassCalState.dateFilterMode = 'documento';
                     cargarDatos(primerDia, hoy);
                     renderActiveFiltersInSpotlight();
                 }, () => {
@@ -1247,11 +1250,54 @@ function initSpotlight() {
         year: new Date().getFullYear(),
         month: new Date().getMonth(),
         startDate: null,
-        endDate: null
+        endDate: null,
+        dateFilterMode: 'documento' // 'documento' or 'entrega'
     };
 
     const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    // Helper: parse delivery date from entregas[0].Registro
+    // Handles ISO format (2026-08-20T09:29:00) and locale format (20/08/2026, 09:29 a. m.)
+    function parseDeliveryDate(registro) {
+        if (!registro || registro === '-') return null;
+        // Try native Date parse first (works for ISO strings)
+        let d = new Date(registro);
+        if (!isNaN(d.getTime())) return d;
+        // Fallback: try parsing "dd/mm/yyyy, hh:mm a. m." or "dd/mm/yyyy, hh:mm p. m."
+        const match = registro.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (match) {
+            const day = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10) - 1;
+            const year = parseInt(match[3], 10);
+            d = new Date(year, month, day);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    }
+
+    // Get the delivery date for a row (first entrega's Registro)
+    function getDeliveryDate(row) {
+        if (!row.entregas || row.entregas.length === 0) return null;
+        const registro = row.entregas[0].Registro;
+        return parseDeliveryDate(registro);
+    }
+
+    function updateDateModeUI() {
+        const mode = glassCalState.dateFilterMode;
+        const docBtn = $('#glassCalModeDoc');
+        const entBtn = $('#glassCalModeEntrega');
+        const hint = $('#glassCalModeHint');
+
+        docBtn.toggleClass('active', mode === 'documento');
+        entBtn.toggleClass('active', mode === 'entrega');
+
+        if (mode === 'documento') {
+            hint.text('Filtra por la fecha del documento en SIESA');
+        } else {
+            hint.text('Filtra por la fecha de confirmación de entrega');
+        }
+    }
 
     function initGlassCalendar() {
         // Tomar fechas actuales del estado si existen
@@ -1263,7 +1309,19 @@ function initSpotlight() {
             glassCalState.endDate = hoy;
         }
 
+        updateDateModeUI();
         renderGlassCalendar();
+
+        // Toggle mode buttons
+        $('#glassCalModeDoc').off('click').on('click', () => {
+            glassCalState.dateFilterMode = 'documento';
+            updateDateModeUI();
+        });
+
+        $('#glassCalModeEntrega').off('click').on('click', () => {
+            glassCalState.dateFilterMode = 'entrega';
+            updateDateModeUI();
+        });
 
         $('#glassCalPrev').off('click').on('click', () => {
             glassCalState.month--;
@@ -1279,13 +1337,20 @@ function initSpotlight() {
 
         $('#glassCalApply').off('click').on('click', () => {
             if (glassCalState.startDate && glassCalState.endDate) {
-                cargarDatos(glassCalState.startDate, glassCalState.endDate);
+                if (glassCalState.dateFilterMode === 'entrega') {
+                    // Client-side filter by delivery date
+                    applyDeliveryDateFilter(glassCalState.startDate, glassCalState.endDate);
+                } else {
+                    // Server-side fetch by document date (original behavior)
+                    cargarDatos(glassCalState.startDate, glassCalState.endDate);
+                }
                 
                 if ($('#switchPersistencia').is(':checked')) {
                     localStorage.setItem('siesa_date_range', JSON.stringify([
                         glassCalState.startDate.toISOString(),
                         glassCalState.endDate.toISOString()
                     ]));
+                    localStorage.setItem('siesa_date_filter_mode', glassCalState.dateFilterMode);
                 }
                 
                 closeSpotlight();
@@ -1293,8 +1358,45 @@ function initSpotlight() {
         });
     }
 
+    // Filter allData client-side by delivery date range
+    function applyDeliveryDateFilter(startDate, endDate) {
+        // Normalize dates to start/end of day
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        filteredData = allData.filter(row => {
+            const deliveryDate = getDeliveryDate(row);
+            // Skip rows without valid delivery dates
+            if (!deliveryDate) return false;
+            return deliveryDate >= start && deliveryDate <= end;
+        });
+
+        // Re-apply other active filters on top of delivery-date-filtered data
+        const filtroCliente = $('#filtroCliente').val();
+        const filtroProveedor = $('#filtroProveedor').val();
+        const filtroEstados = $('#filtroEstadoDropdown input[type=checkbox]:checked').map(function() { return this.value; }).get();
+        const filtroTipos = $('#filtroTipoDropdown input[type=checkbox]:checked').map(function() { return this.value; }).get();
+        const filtroConfirmacion = $('#filtroConfirmacion').val();
+
+        filteredData = filteredData.filter(row => {
+            if (filtroCliente && row['Razón social cliente factura'] !== filtroCliente) return false;
+            if (filtroProveedor && row.proveedor !== filtroProveedor) return false;
+            if (filtroEstados.length > 0 && !filtroEstados.includes(row.Estado)) return false;
+            if (filtroTipos.length > 0 && !filtroTipos.includes(row.tipo)) return false;
+            if (filtroConfirmacion && row.confirmacion !== filtroConfirmacion) return false;
+            return true;
+        });
+
+        actualizarGrid();
+        renderizarTarjetas();
+        actualizarStats();
+    }
+
     function renderGlassCalendar() {
         const { year, month, startDate, endDate } = glassCalState;
+        const isEntregaMode = glassCalState.dateFilterMode === 'entrega';
         const today = new Date();
         today.setHours(0,0,0,0);
 
@@ -1320,7 +1422,8 @@ function initSpotlight() {
             const date = new Date(year, month, d);
             date.setHours(0,0,0,0);
 
-            const isFuture = date > today;
+            // In entrega mode, allow future dates
+            const isFuture = !isEntregaMode && date > today;
             let classes = 'glass-day';
             if (isFuture) classes += ' other-month';
             if (date.getTime() === today.getTime()) classes += ' today';
@@ -1343,9 +1446,14 @@ function initSpotlight() {
 
         // Etiqueta de rango
         updateGlassLabel();
-        // Botón aplicar
+        // Botón aplicar - update text based on mode
         const applyBtn = $('#glassCalApply');
         applyBtn.prop('disabled', !(glassCalState.startDate && glassCalState.endDate));
+        if (isEntregaMode) {
+            applyBtn.html('Filtrar por Entrega <i class="fa-solid fa-truck-fast"></i>');
+        } else {
+            applyBtn.html('Aplicar Rango <i class="fa-solid fa-arrow-right"></i>');
+        }
     }
 
     function handleGlassDayClick(date) {
