@@ -87,20 +87,20 @@ function renderQuadSection(items, tbodyElem, totalUnits, totalLotes, fieldKey, f
     items.forEach(it => {
         tbodyHtml += `
             <tr class="clickable-row" data-field="${fieldKey}" data-value="${escapeHtml(it.name)}" data-label="${fieldLabel}: ${escapeHtml(it.name)}" title="Haz clic para ver las OPs y Referencias">
-                <td>${escapeHtml(it.name)}</td>
-                <td class="text-right">${formatNumber(it.unidades)}</td>
-                <td class="text-right">${formatNumber(it.lotes)}</td>
-                <td class="text-right">${it.pct.toFixed(2).replace('.', ',')}%</td>
+                <td style="font-weight: 500;">${escapeHtml(it.name)}</td>
+                <td class="text-right cell-num">${formatNumber(it.unidades)}</td>
+                <td class="text-right cell-num">${formatNumber(it.lotes)}</td>
+                <td class="text-right cell-num" style="color: var(--text);">${it.pct.toFixed(2).replace('.', ',')}%</td>
             </tr>
         `;
     });
 
     tbodyHtml += `
         <tr class="total-row">
-            <td>Total</td>
-            <td class="text-right">${formatNumber(totalUnits)}</td>
-            <td class="text-right">${formatNumber(totalLotes)}</td>
-            <td class="text-right">100,00%</td>
+            <td><strong>Total</strong></td>
+            <td class="text-right cell-num"><strong>${formatNumber(totalUnits)}</strong></td>
+            <td class="text-right cell-num"><strong>${formatNumber(totalLotes)}</strong></td>
+            <td class="text-right cell-num"><strong>100,00%</strong></td>
         </tr>
     `;
 
@@ -175,11 +175,11 @@ function computeAndRenderAntiguedad(totalInventario) {
     listGeneral.forEach(it => {
         generalHtml += `
             <tr class="clickable-row" data-fecha="${escapeHtml(it.fecha)}" title="Haz clic para ver las OPs cortadas en esta fecha">
-                <td><strong>${escapeHtml(it.fecha)}</strong></td>
-                <td class="text-right">${formatNumber(it.unidades)}</td>
-                <td class="text-right">${formatNumber(it.lotes)}</td>
-                <td class="text-right">${it.diasAntiguedad} d</td>
-                <td class="text-right">${it.pct.toFixed(2).replace('.', ',')}%</td>
+                <td style="font-weight: 500;">${escapeHtml(it.fecha)}</td>
+                <td class="text-right cell-num">${formatNumber(it.unidades)}</td>
+                <td class="text-right cell-num">${formatNumber(it.lotes)}</td>
+                <td class="text-right cell-num">${it.diasAntiguedad} d</td>
+                <td class="text-right cell-num">${it.pct.toFixed(2).replace('.', ',')}%</td>
             </tr>
         `;
     });
@@ -213,11 +213,11 @@ function computeAndRenderAntiguedad(totalInventario) {
 
             criticosHtml += `
                 <tr class="clickable-row" data-fecha="${escapeHtml(it.fecha)}" title="Haz clic para ver las OPs críticas">
-                    <td><strong>${escapeHtml(it.fecha)}</strong></td>
-                    <td class="text-right" style="font-weight:600; color: #ef4444;">${formatNumber(it.unidades)}</td>
-                    <td class="text-right">${formatNumber(it.lotes)}</td>
-                    <td class="text-right"><strong>${it.diasAntiguedad} Días</strong></td>
-                    <td class="text-right">${it.pct.toFixed(2).replace('.', ',')}%</td>
+                    <td style="font-weight: 500;">${escapeHtml(it.fecha)}</td>
+                    <td class="text-right cell-num" style="font-weight:600; color: #ef4444;">${formatNumber(it.unidades)}</td>
+                    <td class="text-right cell-num">${formatNumber(it.lotes)}</td>
+                    <td class="text-right cell-num"><strong>${it.diasAntiguedad} Días</strong></td>
+                    <td class="text-right cell-num">${it.pct.toFixed(2).replace('.', ',')}%</td>
                     <td class="text-center">${alertBadge}</td>
                 </tr>
             `;

@@ -410,27 +410,8 @@ export function renderExcelGrid() {
 function buildEmptyStateHtml() {
     return `
         <div class="prog-paste-hint" id="progPasteZonePrompt">
-            <!-- Marca de agua decorativa de fondo (100% visible) -->
-            <div class="prog-watermark-bg" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                    <rect x="8" y="2" width="8" height="4" rx="1.5" ry="1.5"/>
-                    <line x1="8" y1="11" x2="16" y2="11"/>
-                    <line x1="8" y1="15" x2="16" y2="15"/>
-                    <line x1="8" y1="19" x2="13" y2="19"/>
-                </svg>
-            </div>
-
             <!-- Contenido flotante transparente -->
             <div class="prog-hub-card">
-                <div class="prog-hub-icon-wrap">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                        <path d="M12 11v6M9 14l3-3 3 3"/>
-                    </svg>
-                </div>
-                
                 <h3 class="prog-hub-title">Importar Programación de Taller</h3>
                 <p class="prog-hub-subtitle">Copia la tabla desde tu correo o archivo y pégala aquí</p>
 
@@ -443,17 +424,7 @@ function buildEmptyStateHtml() {
                     <kbd class="prog-hub-kbd">Ctrl + V</kbd>
                 </div>
 
-                <div class="prog-hub-cols-preview">
-                    <span class="prog-hub-col-pill">OP</span>
-                    <span class="prog-hub-col-pill">REFERENCIA</span>
-                    <span class="prog-hub-col-pill">CANTIDAD</span>
-                    <span class="prog-hub-col-pill">SESGO</span>
-                    <span class="prog-hub-col-pill">MUESTRA</span>
-                    <span class="prog-hub-col-pill">TALLER</span>
-                    <span class="prog-hub-col-pill">PRECIO</span>
-                    <span class="prog-hub-col-pill">FACTURACION</span>
-                    <span class="prog-hub-col-pill">LINEA</span>
-                </div>
+
             </div>
         </div>`;
 }

@@ -15,8 +15,10 @@ html {
 }
 
 body {
+    position: relative;
     font-family: var(--font-sans);
-    background-color: var(--bg);
+    background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f1f5f9 55%, #e2e8f0 100%);
+    background-attachment: fixed;
     color: var(--text);
     line-height: 1.45;
     font-size: 13px;
@@ -30,7 +32,28 @@ body {
     touch-action: manipulation;
 }
 
+/* Marca de agua de fondo (Tahoe Liquid Watermark — Muy Sutil) */
+body::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(85vw, 780px);
+    height: min(85vh, 780px);
+    background-image: url('../assets/app.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.055;
+    filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.04));
+    pointer-events: none;
+    z-index: 0;
+}
+
 .layout {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 1600px;
     margin: 0 auto;

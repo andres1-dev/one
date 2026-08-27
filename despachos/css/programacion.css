@@ -40,32 +40,45 @@
 }
 
 .prog-header-actions .btn-ghost {
-    padding: 0.35rem 0.65rem;
+    padding: 0 0.75rem;
     font-size: 0.775rem;
-    height: 30px;
-    box-sizing: border-box;
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    box-sizing: border-box !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0;
 }
 
 .btn-prog-save:not(:disabled) {
     background: #4f46e5;
-    border-color: #4f46e5;
+    border: 1px solid #4338ca;
     color: #ffffff;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.28);
 }
 
 .btn-prog-save:not(:disabled):hover {
     background: #4338ca;
-    border-color: #4338ca;
+    border-color: #3730a3;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.38);
+    color: #ffffff;
 }
 
 .btn-prog-asentar:not(:disabled) {
     background: #059669;
-    border-color: #059669;
+    border: 1px solid #047857;
     color: #ffffff;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.28);
 }
 
 .btn-prog-asentar:not(:disabled):hover {
     background: #047857;
-    border-color: #047857;
+    border-color: #065f46;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.38);
+    color: #ffffff;
 }
 
 
@@ -73,14 +86,14 @@
 .prog-excel-zone {
     flex: 1;
     min-height: 0;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: var(--radius);
-    background: var(--bg);
+    background: transparent;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     position: relative;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: none;
 }
 
 /* ── Barra de Herramientas de la Hoja ───────────────────── */
@@ -97,8 +110,10 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.45rem 0.85rem;
-    background: var(--bg-subtle);
-    border-bottom: 1px solid var(--border);
+    background: rgba(240, 245, 255, 0.52);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: var(--glass-blur-sm);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
     flex-shrink: 0;
     font-size: 0.75rem;
 }
@@ -133,7 +148,7 @@
     flex: 1;
     overflow: auto;
     position: relative;
-    background: #f8fafc;
+    background: transparent;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -145,7 +160,7 @@
     width: max-content;
     min-width: 100%;
     table-layout: fixed;
-    background: #fff;
+    background: transparent;
 }
 
 /* Celda de esquina superior izquierda */
@@ -153,13 +168,15 @@
     width: 44px;
     min-width: 44px;
     max-width: 44px;
-    background: #e2e8f0;
+    background: rgba(240, 245, 255, 0.55);
+    backdrop-filter: var(--glass-blur-sm);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
     position: sticky;
     top: 0;
     left: 0;
     z-index: 30;
-    border-right: 2px solid #cbd5e1;
-    border-bottom: 2px solid #cbd5e1;
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 /* Encabezados de Columna (A, B, C...) */
@@ -169,9 +186,11 @@
     z-index: 20;
     min-width: 140px;
     max-width: 220px;
-    background: #f1f5f9;
-    border-right: 1px solid #cbd5e1;
-    border-bottom: 2px solid #cbd5e1;
+    background: rgba(240, 245, 255, 0.65);
+    backdrop-filter: var(--glass-blur-sm);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    border-right: 1px solid rgba(255, 255, 255, 0.45);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.55);
     padding: 0.35rem 0.45rem;
     text-align: left;
     user-select: none;
@@ -251,13 +270,13 @@
     width: 44px;
     min-width: 44px;
     max-width: 44px;
-    background: #f1f5f9;
+    background: rgba(240, 245, 255, 0.42);
     color: #64748b;
     font-size: 0.68rem;
     font-weight: 600;
     text-align: center;
-    border-right: 2px solid #cbd5e1;
-    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid rgba(255, 255, 255, 0.45);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
     position: sticky;
     left: 0;
     z-index: 10;
@@ -309,35 +328,35 @@
     min-width: 140px;
     max-width: 220px;
     padding: 0.35rem 0.55rem;
-    border-right: 1px solid #e2e8f0;
-    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
     color: #0f172a;
-    background: #ffffff;
+    background: transparent;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     outline: none;
-    transition: background 0.1s ease;
+    transition: background 0.15s ease;
 }
 
 .xls-cell:hover {
-    background: #f8fafc;
+    background: rgba(255, 255, 255, 0.45);
 }
 
 .xls-cell:focus {
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.82);
     box-shadow: inset 0 0 0 2px #4f46e5;
     z-index: 5;
     position: relative;
 }
 
 .xls-cell.is-mapped-cell {
-    background: #fbfbfe;
+    background: rgba(238, 242, 255, 0.35);
     font-weight: 500;
 }
 
 .xls-cell.is-mapped-cell:hover {
-    background: #f1f5fd;
+    background: rgba(238, 242, 255, 0.65);
 }
 
 /* ── Estado Vacío con Marca de Agua y Hub Central ────────── */

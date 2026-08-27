@@ -28,6 +28,8 @@ import { initProgramacionView, closeAsentarModal } from './views/programacionVie
 export function switchTab(tabName) {
     state.activeTab = tabName;
     DOM.navTabs.forEach(tab => {
+        // El tab de programación nunca se marca ni se muestra en la barra de navegación
+        if (tab.id === 'tabProgramacion') return;
         tab.classList.toggle('active', tab.dataset.view === tabName);
     });
 
@@ -54,10 +56,16 @@ function setupEventListeners() {
     // 2. Acciones Globales
     if (DOM.btnOpenProgramar) {
         DOM.btnOpenProgramar.addEventListener('click', () => {
-            if (DOM.tabProgramacion) {
-                DOM.tabProgramacion.classList.remove('hidden');
-            }
+            // Guarda la vista actual antes de ir a programación
+            state.previousTab = state.activeTab !== 'programacion' ? state.activeTab : (state.previousTab || 'kpis');
+            // Abre la vista directamente sin mostrar la pestaña en el nav
             switchTab('programacion');
+        });
+    }
+
+    if (DOM.btnProgBack) {
+        DOM.btnProgBack.addEventListener('click', () => {
+            switchTab(state.previousTab || 'kpis');
         });
     }
 

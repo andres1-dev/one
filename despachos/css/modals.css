@@ -8,9 +8,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -25,10 +25,13 @@
 }
 
 .modal-container {
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: rgba(240, 245, 255, 0.82);
+    backdrop-filter: var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-top: 1px solid rgba(255, 255, 255, 0.9);
     border-radius: var(--radius-lg);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--glass-shadow), 0 24px 48px rgba(31, 38, 135, 0.12);
     width: 100%;
     max-width: 1050px;
     max-height: 88vh;
@@ -49,9 +52,13 @@
 /* ── Popover de Calendario Compacto para Asentar ──────────── */
 .calendar-modal-box {
     width: 290px;
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    background: rgba(240, 245, 255, 0.78);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--glass-shadow), 0 20px 40px rgba(31, 38, 135, 0.1);
     padding: 0.9rem;
     display: flex;
     flex-direction: column;
@@ -192,8 +199,11 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-subtle);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(240, 245, 255, 0.55);
+    backdrop-filter: var(--glass-blur-sm);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
     gap: 1rem;
 }
 
@@ -244,17 +254,20 @@
 
 .modal-controls {
     padding: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(240, 245, 255, 0.35);
     display: flex;
-    align-items: center;
+    align-items: stretch;
     position: relative;
     width: 100%;
+    flex-shrink: 0;
 }
 
 .modal-controls .search-wrap {
-    width: 100%;
-    max-width: 100% !important;
+    flex: 1 1 100%;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
     position: relative;
     display: flex;
     align-items: center;
@@ -262,14 +275,15 @@
 }
 
 .modal-controls .search-wrap input {
-    height: 38px !important;
-    min-height: 38px !important;
-    font-size: 0.825rem !important;
-    padding: 0.4rem 1rem 0.4rem 2.25rem !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    font-size: 0.855rem !important;
+    padding: 0 1.1rem 0 2.5rem !important;
     border: none !important;
     border-radius: 0 !important;
     background: transparent !important;
-    width: 100%;
+    width: 100% !important;
+    flex: 1 1 auto;
     color: var(--text);
     box-sizing: border-box;
     outline: none !important;
@@ -279,31 +293,34 @@
 
 .modal-controls .search-wrap input::placeholder {
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.825rem;
 }
 
 .modal-controls .search-wrap input:focus {
-    background: var(--bg-subtle) !important;
+    background: rgba(255, 255, 255, 0.3) !important;
 }
 
 .modal-controls .search-wrap svg {
     position: absolute;
-    left: 0.85rem;
+    left: 0.9rem;
     color: var(--text-muted);
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
     pointer-events: none;
+    flex-shrink: 0;
     transition: color 0.15s ease;
 }
 
 .modal-controls:focus-within .search-wrap svg {
-    color: var(--text);
+    color: var(--primary);
 }
 
 .modal-body {
     flex: 1;
     overflow-y: auto;
-    background: var(--bg);
+    background: rgba(240, 245, 255, 0.68);
+    backdrop-filter: var(--glass-blur-sm);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
     min-height: 180px;
     max-height: 55vh;
     padding: 0;
@@ -327,13 +344,40 @@
     position: sticky;
     top: 0;
     z-index: 20;
-    background: var(--bg-subtle);
-    border-bottom: 1px solid var(--border);
+    background: rgba(240, 245, 255, 0.75);
+    backdrop-filter: var(--glass-blur-sm);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
     padding: 0.6rem 0.85rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.045em;
+    color: var(--text-muted);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Filas del modal: sin zebra striping, sin líneas divisoras */
+#tblModalDetail tbody td {
+    background: transparent !important;
+    border-bottom: none !important;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+#tblModalDetail tbody tr:nth-child(even) td {
+    background: transparent !important;
+}
+
+#tblModalDetail tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* Solo se nota al pasar por encima */
+#tblModalDetail tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.55) !important;
+    color: var(--text);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 .modal-footer {
@@ -341,8 +385,10 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1.25rem;
-    border-top: 1px solid var(--border);
-    background: var(--bg-subtle);
+    border-top: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(240, 245, 255, 0.55);
+    backdrop-filter: var(--glass-blur-sm);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
     font-size: 0.775rem;
     color: var(--text-muted);
 }
@@ -387,7 +433,7 @@
     color: var(--text-muted);
     font-size: 0.775rem;
     font-style: italic;
-    background: var(--bg);
+    background: transparent;
 }
 
 /* Modal 1: Lot Summary Card & Form */

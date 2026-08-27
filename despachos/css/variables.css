@@ -2,29 +2,42 @@
    DESIGN TOKENS & VARIABLES (LIGHT CLEAN PALETTE)
    ========================================================= */
 :root {
-    --bg: #ffffff;
-    --bg-subtle: #f9fafb;
-    --bg-hover: #f3f4f6;
-    --border: #e5e7eb;
-    --border-subtle: #f3f4f6;
+    --bg-solid: #ffffff;
+    --bg: rgba(255, 255, 255, 0.32);
+    --bg-card: rgba(255, 255, 255, 0.28);
+    --bg-subtle: rgba(255, 255, 255, 0.22);
+    --bg-hover: rgba(255, 255, 255, 0.55);
     
-    --text: #111827;
-    --text-secondary: #4b5563;
-    --text-muted: #9ca3af;
+    /* Tahoe Specular Highlights & Borders */
+    --border: rgba(255, 255, 255, 0.55);
+    --border-subtle: rgba(255, 255, 255, 0.32);
+    --border-dark: rgba(0, 0, 0, 0.06);
+    
+    /* Tahoe Liquid Glass Blur & Saturation */
+    --glass-blur: blur(24px) saturate(190%);
+    --glass-blur-sm: blur(14px) saturate(180%);
+    --glass-blur-lg: blur(32px) saturate(210%);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
+    --glass-shadow-sm: 0 4px 16px 0 rgba(31, 38, 135, 0.03), inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.9);
+    --glass-shadow-hover: 0 12px 36px 0 rgba(31, 38, 135, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+    
+    --text: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
 
-    --accent: #111827;
-    --accent-bg: #f3f4f6;
-    --primary: #6366f1;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
+    --accent: #0f172a;
+    --accent-bg: rgba(255, 255, 255, 0.7);
+    --primary: #4f46e5;
+    --success: #059669;
+    --warning: #d97706;
+    --danger: #dc2626;
 
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
-    --radius-sm: 4px;
-    --radius: 6px;
-    --radius-lg: 10px;
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
     --radius-full: 9999px;
-    --transition: 0.15s ease;
+    --transition: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }

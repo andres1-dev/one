@@ -144,6 +144,7 @@ export const DOM = {
     asentarProgSubtitle: document.getElementById('asentarProgSubtitle'),
     btnChipProgHoy: document.getElementById('btnChipProgHoy'),
     btnChipProgAyer: document.getElementById('btnChipProgAyer'),
-    btnChipProgManana: document.getElementById('btnChipProgManana')
+    btnChipProgManana: document.getElementById('btnChipProgManana'),
+    btnProgBack: document.getElementById('btnProgBack')
 };
 
