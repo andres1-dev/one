@@ -151,13 +151,99 @@ export function updateStatus(type) {
     }
 }
 
+export function renderSkeletons() {
+    // 1. Skeletons en métricas del Header
+    if (DOM.statTotalRows) DOM.statTotalRows.innerHTML = '<span class="skeleton" style="width: 32px; height: 14px; display: inline-block;"></span>';
+    if (DOM.statTotalCort) DOM.statTotalCort.innerHTML = '<span class="skeleton" style="width: 52px; height: 14px; display: inline-block;"></span>';
+    if (DOM.statTotalBodega) DOM.statTotalBodega.innerHTML = '<span class="skeleton" style="width: 52px; height: 14px; display: inline-block;"></span>';
+
+    // 2. Skeletons en KPI Banner (Números y subtextos)
+    const bannerItems = [
+        DOM.kpiTotalInventario, DOM.kpiMediaPonderada, DOM.kpiPendienteDespacho,
+        DOM.kpiMediaMensual, DOM.kpiMediaSemanal, DOM.kpiMediaDiaria
+    ];
+    bannerItems.forEach(el => {
+        if (el) el.innerHTML = '<span class="skeleton skeleton-num"></span>';
+    });
+
+    if (DOM.kpiLotesPendientes) {
+        DOM.kpiLotesPendientes.innerHTML = '<span class="skeleton" style="width: 80px; height: 10px; display: inline-block;"></span>';
+    }
+
+    if (DOM.badgeDiarioPendiente) {
+        DOM.badgeDiarioPendiente.innerHTML = '<span class="skeleton" style="width: 90px; height: 16px; display: inline-block; border-radius: 4px;"></span>';
+    }
+
+    if (DOM.badgeTotalCriticos) {
+        DOM.badgeTotalCriticos.innerHTML = '<span class="skeleton" style="width: 60px; height: 16px; display: inline-block; border-radius: 4px;"></span>';
+    }
+
+    // 3. Skeletons en mini-tablas de KPIs (4 filas con barras)
+    const kpiTables = [
+        DOM.tblClase, DOM.tblTejido, DOM.tblGenero, DOM.tblCuento,
+        DOM.tblAntiguedad, DOM.tblCriticos, DOM.tblMensual, DOM.tblSemanal, DOM.tblDiario
+    ];
+    kpiTables.forEach(tbody => {
+        if (tbody) {
+            tbody.innerHTML = Array(4).fill(0).map(() => `
+                <tr class="skeleton-row">
+                    <td><div class="skeleton skeleton-text" style="width: 75%;"></div></td>
+                    <td class="text-right"><div class="skeleton skeleton-text" style="width: 55px; margin-left: auto;"></div></td>
+                    <td class="text-right"><div class="skeleton skeleton-text" style="width: 40px; margin-left: auto;"></div></td>
+                    <td class="text-right"><div class="skeleton skeleton-text" style="width: 45px; margin-left: auto;"></div></td>
+                </tr>
+            `).join('');
+        }
+    });
+
+    // 4. Skeletons en Tabla FILTER
+    if (DOM.tableBody) {
+        DOM.tableBody.innerHTML = Array(8).fill(0).map(() => `
+            <tr class="skeleton-row">
+                <td><div class="skeleton skeleton-text" style="width: 60px;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 80px;"></div></td>
+                <td class="text-right"><div class="skeleton skeleton-text" style="width: 45px; margin-left: auto;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 70px;"></div></td>
+                <td class="text-center"><div class="skeleton skeleton-badge" style="margin: 0 auto;"></div></td>
+                <td class="text-right"><div class="skeleton skeleton-text" style="width: 45px; margin-left: auto;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 150px;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 70px;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 55px;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 65px;"></div></td>
+                <td class="text-right"><div class="skeleton skeleton-text" style="width: 50px; margin-left: auto;"></div></td>
+                <td class="text-center"><div class="skeleton skeleton-badge" style="margin: 0 auto;"></div></td>
+            </tr>
+        `).join('');
+    }
+
+    // 5. Skeletons en Tabla DESPACHOS
+    if (DOM.tableDespachosBody) {
+        DOM.tableDespachosBody.innerHTML = Array(8).fill(0).map(() => `
+            <tr class="skeleton-row">
+                <td class="text-center"><div class="skeleton skeleton-text" style="width: 25px; margin: 0 auto;"></div></td>
+                <td class="text-center"><div class="skeleton skeleton-badge" style="width: 75px; margin: 0 auto;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 70px;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 60px;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 80px;"></div></td>
+                <td class="text-right"><div class="skeleton skeleton-text" style="width: 50px; margin-left: auto;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 90px;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 70px;"></div></td>
+                <td><div class="skeleton skeleton-text" style="width: 130px;"></div></td>
+            </tr>
+        `).join('');
+    }
+}
+
 export function setLoadingState(isLoading) {
-    if (DOM.loadingContainer) DOM.loadingContainer.classList.toggle('hidden', !isLoading);
-    if (DOM.errorContainer) DOM.errorContainer.classList.add('hidden');
+    document.body.classList.toggle('app-loading', isLoading);
+    if (isLoading) {
+        renderSkeletons();
+        if (DOM.errorContainer) DOM.errorContainer.classList.add('hidden');
+    }
 }
 
 export function showError(msg) {
-    if (DOM.loadingContainer) DOM.loadingContainer.classList.add('hidden');
+    document.body.classList.remove('app-loading');
     if (DOM.errorContainer) {
         DOM.errorContainer.classList.remove('hidden');
         if (DOM.errorMessage) DOM.errorMessage.textContent = msg;

@@ -288,7 +288,10 @@ function setupEventListeners() {
     });
 }
 
+import { renderSkeletons } from './utils.js';
+
 function init() {
+    renderSkeletons();
     setupEventListeners();
     fetchAllData();
 }

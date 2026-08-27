@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/main.css">
 </head>
-<body>
+<body class="app-loading">
     <div class="layout">
         <!-- Minimal Top Nav -->
         <header class="top-nav">
@@ -55,12 +55,6 @@
                 </div>
             </div>
         </header>
-
-        <!-- Loading State -->
-        <div id="loadingContainer" class="state-msg">
-            <div class="spinner"></div>
-            <p>Cargando y sincronizando con Google Sheets...</p>
-        </div>
 
         <!-- Error State -->
         <div id="errorContainer" class="state-msg hidden">
@@ -118,7 +112,7 @@
             </section>
 
             <main class="content-body">
-                <div id="tableWrapper" class="table-container hidden">
+                <div id="tableWrapper" class="table-container">
                     <table id="dataTable">
                         <thead>
                             <tr>

@@ -10,7 +10,6 @@ export const DOM = {
     viewKPIs: document.getElementById('viewKPIs'),
     
     // Status & Actions
-    loadingContainer: document.getElementById('loadingContainer'),
     errorContainer: document.getElementById('errorContainer'),
     errorMessage: document.getElementById('errorMessage'),
     statusDot: document.getElementById('statusDot'),

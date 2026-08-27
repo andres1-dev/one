@@ -8,7 +8,12 @@ Thumbs.db
 *.tmp
 *.bak
 
-# Si decides usar archivo local personalizado
+# Carpetas y archivos privados
+private/
+gas/
+
+# Archivos locales de configuración
 config.local.js
 .env
 .env.local
+.env.*

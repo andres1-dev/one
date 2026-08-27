@@ -29,8 +29,8 @@
 // ── ID del libro de Google Sheets ────────────────────────────────────────
 var SPREADSHEET_ID = '11kcA7CYcaAHAreSGt9uFOTciSFfXLYTumFiWJvkRRcU';
 
-// ── Google Sheets API v4 Key (para lecturas de alta velocidad) ───────────
-var SHEETS_API_KEY = 'AIzaSyA_kb-IRMSJAK0C-jGraYcHNQcMO8PoUYI';
+// ── Google Sheets API v4 Key (Pegar tu clave real en el editor de Apps Script) ──
+var SHEETS_API_KEY = 'TU_GOOGLE_SHEETS_API_KEY_AQUI';
 
 // ── Nombres de las pestañas ───────────────────────────────────────────────
 var SHEET_DESPACHOS = 'DESPACHOS';
