@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
@@ -7,30 +8,51 @@
     <title>Despachos — Monitor & Gestión</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body class="app-loading">
     <div class="layout">
         <!-- Minimal Top Nav -->
         <header class="top-nav">
             <div class="brand">
-                <div class="dot-indicator" id="statusDot" title="Conexión"></div>
-                <h1 class="brand-title">Despachos</h1>
-                
+                <div class="brand-title-wrap">
+                    <div class="dot-indicator" id="statusDot" title="Conexión"></div>
+                    <h1 class="brand-title">Despachos</h1>
+                </div>
+
                 <!-- 3 Tabs Switcher -->
                 <nav class="nav-tabs">
                     <button class="nav-tab active" data-view="kpis">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-                        KPIs & Inventario
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M18 20V10" />
+                            <path d="M12 20V4" />
+                            <path d="M6 20v-6" />
+                        </svg>
+                        KPIs
                     </button>
                     <button class="nav-tab" data-view="despachos">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-                        Gestión Despachos
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="1" y="3" width="15" height="13"></rect>
+                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                        </svg>
+                        Despachos
                     </button>
                     <button class="nav-tab" data-view="table">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-                        Master de Datos
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
+                        Datos
                     </button>
                 </nav>
             </div>
@@ -46,8 +68,9 @@
 
                 <div class="action-buttons">
                     <button id="btnRefresh" class="btn-ghost" title="Actualizar datos">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
                         </svg>
                         <span>Actualizar</span>
                     </button>
@@ -72,7 +95,8 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" id="searchInput" placeholder="Filtrar por OP, Ref, Descripción..." autocomplete="off">
+                    <input type="text" id="searchInput" placeholder="Filtrar por OP, Ref, Descripción..."
+                        autocomplete="off">
                 </div>
 
                 <div class="filters-wrap">
@@ -104,8 +128,14 @@
                         <option value="all">Todas</option>
                     </select>
 
-                    <button id="btnOpenUploadCsv" class="btn-ghost" title="Subir archivo CSV para actualizar la hoja DATA en Google Sheets">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <button id="btnOpenUploadCsv" class="btn-ghost"
+                        title="Subir archivo CSV para actualizar la hoja DATA en Google Sheets">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
                         <span>Cargar CSV</span>
                     </button>
                 </div>
@@ -141,7 +171,8 @@
 
             <footer class="footer-bar" id="tableFooter">
                 <div class="footer-info">
-                    <span id="showingStart">0</span>–<span id="showingEnd">0</span> de <strong id="totalFiltered">0</strong> registros
+                    <span id="showingStart">0</span>–<span id="showingEnd">0</span> de <strong
+                        id="totalFiltered">0</strong> registros
                 </div>
                 <div class="footer-pagination">
                     <button id="btnPrevPage" class="btn-page" disabled>Anterior</button>
@@ -177,7 +208,8 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" id="searchDespachosInput" placeholder="Buscar OP, Ref o Taller..." autocomplete="off">
+                    <input type="text" id="searchDespachosInput" placeholder="Buscar OP, Ref o Taller..."
+                        autocomplete="off">
                 </div>
 
                 <div class="filters-wrap">
@@ -192,8 +224,6 @@
                         <option value="100">100 filas</option>
                         <option value="all">Todas</option>
                     </select>
-
-                    <button id="btnExportDespachosCSV" class="btn-ghost" title="Exportar tabla de despachos">CSV</button>
                 </div>
             </section>
 
@@ -224,7 +254,8 @@
 
             <footer class="footer-bar" id="despachosFooter">
                 <div class="footer-info">
-                    <span id="showingDespStart">0</span>–<span id="showingDespEnd">0</span> de <strong id="totalDespFiltered">0</strong> registros
+                    <span id="showingDespStart">0</span>–<span id="showingDespEnd">0</span> de <strong
+                        id="totalDespFiltered">0</strong> registros
                 </div>
                 <div class="footer-pagination">
                     <button id="btnPrevDespPage" class="btn-page" disabled>Anterior</button>
@@ -240,47 +271,129 @@
         <div id="viewKPIs" class="view-panel">
             <!-- Top Summary Badges -->
             <section class="kpi-banner">
-                <div class="kpi-banner-item">
-                    <span class="kpi-caption">Inventario Total</span>
-                    <strong class="kpi-num" id="kpiTotalInventario">0</strong>
-                    <span class="kpi-sub">Lotes en producción</span>
+                <!-- 1. Inventario Total -->
+                <div class="kpi-banner-item kpi-theme-blue">
+                    <div class="kpi-icon-wrap">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                    </div>
+                    <div class="kpi-item-content">
+                        <span class="kpi-caption">Inventario Total</span>
+                        <strong class="kpi-num" id="kpiTotalInventario">0</strong>
+                        <span class="kpi-sub">Lotes en producción</span>
+                    </div>
                 </div>
+
                 <div class="kpi-banner-divider"></div>
-                <div class="kpi-banner-item">
-                    <span class="kpi-caption">Media Antigüedad</span>
-                    <strong class="kpi-num text-highlight" id="kpiMediaPonderada">0 Días</strong>
-                    <span class="kpi-sub">Rotación general</span>
+
+                <!-- 2. Ponderada -->
+                <div class="kpi-banner-item kpi-theme-purple">
+                    <div class="kpi-icon-wrap">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div class="kpi-item-content">
+                        <span class="kpi-caption">Ponderada</span>
+                        <strong class="kpi-num text-highlight" id="kpiMediaPonderada">0 Días</strong>
+                        <span class="kpi-sub">Rotación general</span>
+                    </div>
                 </div>
+
                 <div class="kpi-banner-divider"></div>
-                <div class="kpi-banner-item">
-                    <span class="kpi-caption">Pendiente Despacho</span>
-                    <strong class="kpi-num text-warning" id="kpiPendienteDespacho">0</strong>
-                    <span class="kpi-sub" id="kpiLotesPendientes">0 Lotes sin 'X'</span>
+
+                <!-- 3. Pendiente Despacho -->
+                <div class="kpi-banner-item kpi-theme-amber">
+                    <div class="kpi-icon-wrap">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="1" y="3" width="15" height="13"></rect>
+                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                        </svg>
+                    </div>
+                    <div class="kpi-item-content">
+                        <span class="kpi-caption">Pendiente Despacho</span>
+                        <strong class="kpi-num text-warning" id="kpiPendienteDespacho">0</strong>
+                        <span class="kpi-sub" id="kpiLotesPendientes">0 Lotes sin 'X'</span>
+                    </div>
                 </div>
+
                 <div class="kpi-banner-divider"></div>
-                <div class="kpi-banner-item">
-                    <span class="kpi-caption">Media Mensual</span>
-                    <strong class="kpi-num" id="kpiMediaMensual">0</strong>
-                    <span class="kpi-sub">Unidades / Mes</span>
+
+                <!-- 4. Media Mensual -->
+                <div class="kpi-banner-item kpi-theme-emerald">
+                    <div class="kpi-icon-wrap">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+                    <div class="kpi-item-content">
+                        <span class="kpi-caption">Media Mensual</span>
+                        <strong class="kpi-num" id="kpiMediaMensual">0</strong>
+                        <span class="kpi-sub">Unidades / Mes</span>
+                    </div>
                 </div>
+
                 <div class="kpi-banner-divider"></div>
-                <div class="kpi-banner-item">
-                    <span class="kpi-caption">Media Semanal</span>
-                    <strong class="kpi-num" id="kpiMediaSemanal">0</strong>
-                    <span class="kpi-sub">Unidades / Sem</span>
+
+                <!-- 5. Media Semanal -->
+                <div class="kpi-banner-item kpi-theme-teal">
+                    <div class="kpi-icon-wrap">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                    </div>
+                    <div class="kpi-item-content">
+                        <span class="kpi-caption">Media Semanal</span>
+                        <strong class="kpi-num" id="kpiMediaSemanal">0</strong>
+                        <span class="kpi-sub">Unidades / Sem</span>
+                    </div>
                 </div>
+
                 <div class="kpi-banner-divider"></div>
-                <div class="kpi-banner-item">
-                    <span class="kpi-caption">Media Diaria</span>
-                    <strong class="kpi-num" id="kpiMediaDiaria">0</strong>
-                    <span class="kpi-sub">Unidades / Día</span>
+
+                <!-- 6. Media Diaria -->
+                <div class="kpi-banner-item kpi-theme-rose">
+                    <div class="kpi-icon-wrap">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                    </div>
+                    <div class="kpi-item-content">
+                        <span class="kpi-caption">Media Diaria</span>
+                        <strong class="kpi-num" id="kpiMediaDiaria">0</strong>
+                        <span class="kpi-sub">Unidades / Día</span>
+                    </div>
                 </div>
             </section>
 
             <!-- Hint: Clic en cualquier fila para ver el detalle de lotes -->
             <div class="kpi-interactive-hint">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>Consejo: Haz clic sobre cualquier fila de las tablas de KPIs para abrir la ventana emergente con el desglose exacto de <strong>OP, Referencia, Cantidades y Detalles</strong>.</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>Consejo: Haz clic sobre cualquier fila de las tablas de KPIs para abrir la ventana emergente con
+                    el desglose exacto de <strong>OP, Referencia, Cantidades y Detalles</strong>.</span>
             </div>
 
             <!-- Grid 1: Distribución por 4 Dimensiones -->
@@ -374,8 +487,7 @@
             <!-- Grid 2: SECCIÓN DE ANTIGÜEDAD (2 TABLAS PARALELAS) -->
             <section class="section-title" style="margin-top: 1.5rem;">
                 <div class="title-with-badge">
-                    <h2>Inventario según Fecha de Corte & Antigüedad de Lotes</h2>
-                    <span class="tag tag-integrated">Media Ponderada</span>
+                    <h2>Antigüedad de Lotes</h2>
                 </div>
                 <span class="section-subtitle">Separación de lotes recientes vs críticos (>30 días)</span>
             </section>
@@ -405,14 +517,14 @@
                     </div>
                 </div>
 
-                <!-- TABLA B: Lotes Críticos > 30 Días (Del MÁS VIEJO al más reciente) -->
+                <!-- TABLA B: Lotes Críticos > 30 Días -->
                 <div class="kpi-card card-warning-border">
                     <div class="kpi-card-header">
                         <div class="title-with-badge">
-                            <h3>Lotes con > 30 Días de Antigüedad</h3>
+                            <h3>Lotes Criticos</h3>
                             <span class="tag tag-pending" id="badgeTotalCriticos">0 Unds</span>
                         </div>
-                        <span class="tag">Del más viejo al más reciente</span>
+                        <span class="tag tag-pending">> 30 Días</span>
                     </div>
                     <div class="kpi-card-body">
                         <div class="table-scroll-wrap" style="max-height: 380px;">
@@ -487,8 +599,7 @@
             <div class="kpi-card full-width" style="margin-top: 1rem; margin-bottom: 2rem;">
                 <div class="kpi-card-header">
                     <div class="title-with-badge">
-                        <h3>Seguimiento de Despacho Diario y Cumplimiento</h3>
-                        <span class="tag tag-integrated">Columna G: 'X' = Despachado Real</span>
+                        <h3>Seguimiento de Despacho</h3>
                     </div>
                     <div class="header-pills">
                         <span class="tag tag-pending" id="badgeDiarioPendiente">Pendiente: 0</span>
@@ -528,7 +639,11 @@
                         <h2 class="modal-title">Confirmar Salida</h2>
                     </div>
                     <button id="btnCloseDispatchModal" class="btn-icon" title="Cerrar [Esc]">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
                     </button>
                 </div>
 
@@ -556,7 +671,8 @@
                     <!-- Date Selection Field with Quick Chips -->
                     <div class="form-group">
                         <div class="label-with-chips">
-                            <label for="inputDispatchDate" style="font-weight: 600; font-size: 0.8rem;">Fecha en que se despachó:</label>
+                            <label for="inputDispatchDate" style="font-weight: 600; font-size: 0.8rem;">Fecha en que se
+                                despachó:</label>
                             <div class="quick-chips">
                                 <button type="button" class="btn-chip active" id="btnChipHoy">Hoy</button>
                                 <button type="button" class="btn-chip" id="btnChipAyer">Ayer</button>
@@ -566,15 +682,20 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="inputDispatchObs" style="font-weight: 600; font-size: 0.8rem;">Observación (Opcional):</label>
-                        <input type="text" id="inputDispatchObs" placeholder="Ej: Entregado completo..." class="input-modal-text">
+                        <label for="inputDispatchObs" style="font-weight: 600; font-size: 0.8rem;">Observación
+                            (Opcional):</label>
+                        <input type="text" id="inputDispatchObs" placeholder="Ej: Entregado completo..."
+                            class="input-modal-text">
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button id="btnCancelDispatchModal" class="btn-ghost">Cancelar</button>
                     <button id="btnSubmitDispatchModal" class="btn-modal-primary">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
                         <span>Asentar Despacho (X)</span>
                     </button>
                 </div>
@@ -599,7 +720,8 @@
                             <span id="modalTotalLotes">0 Lotes</span>
                         </div>
                         <button id="btnModalClose" class="btn-icon" title="Cerrar ventana [Esc]" aria-label="Cerrar">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
@@ -609,11 +731,13 @@
 
                 <div class="modal-controls">
                     <div class="search-wrap" style="max-width: 100%;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <circle cx="11" cy="11" r="8"></circle>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
-                        <input type="text" id="modalSearchInput" placeholder="Buscar OP, Ref o descripción en este detalle..." autocomplete="off">
+                        <input type="text" id="modalSearchInput"
+                            placeholder="Buscar OP, Ref o descripción en este detalle..." autocomplete="off">
                     </div>
                 </div>
 
@@ -628,7 +752,12 @@
                     <span class="modal-footer-info" id="modalFooterInfo">Mostrando 0 registros</span>
                     <div class="modal-footer-actions">
                         <button id="btnExportModalCSV" class="btn-ghost">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
                             Exportar Detalle CSV
                         </button>
                         <button id="btnModalCloseFooter" class="btn-ghost">Cerrar</button>
@@ -648,15 +777,25 @@
                         <h2 class="modal-title">Cargar CSV</h2>
                     </div>
                     <button id="btnCloseUploadModal" class="btn-icon" title="Cerrar [Esc]">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
                     </button>
                 </div>
 
                 <div class="modal-body" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
                     <!-- Explicación amigable -->
                     <div class="kpi-interactive-hint" style="margin-bottom: 0;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        <span>Este proceso actualiza directamente la pestaña <strong>DATA</strong> de tu Google Sheets (la hoja <strong>FILTER</strong> no se toca).</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                        <span>Este proceso actualiza directamente la pestaña <strong>DATA</strong> de tu Google Sheets
+                            (la hoja <strong>FILTER</strong> no se toca).</span>
                     </div>
 
                     <!-- Input de archivo oculto -->
@@ -665,7 +804,12 @@
                     <!-- Zona Dropzone de arrastrar y soltar -->
                     <div id="csvDropzone" class="csv-dropzone">
                         <div class="dropzone-icon-wrap">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
                         </div>
                         <h4>Arrastra tu archivo CSV aquí o haz clic para seleccionar</h4>
                         <p>Soporta archivos .CSV delimitados por comas o punto y coma</p>
@@ -684,7 +828,8 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <span id="csvValidationBadge" class="tag tag-integrated">Validado</span>
-                                <button type="button" id="btnChangeCsvFile" class="btn-ghost" style="font-size: 0.75rem;">Cambiar Archivo</button>
+                                <button type="button" id="btnChangeCsvFile" class="btn-ghost"
+                                    style="font-size: 0.75rem;">Cambiar Archivo</button>
                             </div>
                         </div>
 
@@ -701,7 +846,12 @@
                 <div class="modal-footer">
                     <button id="btnCancelUploadModal" class="btn-ghost">Cancelar</button>
                     <button id="btnConfirmUploadCsv" class="btn-modal-primary" disabled>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
                         <span>Subir a Hoja DATA</span>
                     </button>
                 </div>
@@ -714,4 +864,5 @@
 
     <script type="module" src="js/main.js"></script>
 </body>
+
 </html>

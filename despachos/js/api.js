@@ -101,22 +101,22 @@ export function processRawFilter(rows) {
     
     state.records = dataRows.map((row, index) => {
         const rawEstado = row[COLUMN_INDICES.estadoIntegracion];
-        const rawFecha = (row[COLUMN_INDICES.fechaCorte] || '').trim();
+        const rawFecha = String(row[COLUMN_INDICES.fechaCorte] || '').trim();
         return {
             id: index + 1,
-            op: (row[COLUMN_INDICES.op] || '').trim(),
-            ref: (row[COLUMN_INDICES.ref] || '').trim(),
+            op: String(row[COLUMN_INDICES.op] || '').trim(),
+            ref: String(row[COLUMN_INDICES.ref] || '').trim(),
             undCort: parseNumber(row[COLUMN_INDICES.undCort]),
             fechaCorte: rawFecha,
             parsedFechaCorte: parseDateString(rawFecha),
             estadoIntegracion: normalizeIntegracion(rawEstado),
             bodegaDespacho: parseNumber(row[COLUMN_INDICES.bodegaDespacho]),
-            descripcion: (row[COLUMN_INDICES.descripcion] || '').trim(),
-            cuento: (row[COLUMN_INDICES.cuento] || '').trim(),
-            genero: (row[COLUMN_INDICES.genero] || '').trim(),
-            tipoTejido: (row[COLUMN_INDICES.tipoTejido] || '').trim(),
-            pvp: (row[COLUMN_INDICES.pvp] || '').trim(),
-            clase: (row[COLUMN_INDICES.clase] || '').trim()
+            descripcion: String(row[COLUMN_INDICES.descripcion] || '').trim(),
+            cuento: String(row[COLUMN_INDICES.cuento] || '').trim(),
+            genero: String(row[COLUMN_INDICES.genero] || '').trim(),
+            tipoTejido: String(row[COLUMN_INDICES.tipoTejido] || '').trim(),
+            pvp: String(row[COLUMN_INDICES.pvp] || '').trim(),
+            clase: String(row[COLUMN_INDICES.clase] || '').trim()
         };
     }).filter(r => r.op || r.ref || r.undCort > 0);
 
@@ -137,20 +137,20 @@ export function processRawDespachos(rows) {
 
     const dataRows = rows.slice(1);
     state.despachosRecords = dataRows.map((row, i) => {
-        const rawId = (row[COL_DESP.id] || (i + 1)).trim();
-        const rawFecha = (row[COL_DESP.fecha] || '').trim();
+        const rawId = String(row[COL_DESP.id] != null ? row[COL_DESP.id] : (i + 1)).trim();
+        const rawFecha = String(row[COL_DESP.fecha] || '').trim();
         return {
             id: parseInt(rawId, 10) || (i + 1),
             rowNumber: i + 2,
             fecha: rawFecha,
             parsedDate: parseDateString(rawFecha),
-            op: (row[COL_DESP.op] || '').trim(),
-            ref: (row[COL_DESP.ref] || '').trim(),
+            op: String(row[COL_DESP.op] || '').trim(),
+            ref: String(row[COL_DESP.ref] || '').trim(),
             cantidad: parseNumber(row[COL_DESP.cantidad]),
-            taller: (row[COL_DESP.taller] || '').trim(),
+            taller: String(row[COL_DESP.taller] || '').trim(),
             isDespachado: String(row[COL_DESP.despachado] || '').trim().toUpperCase() === 'X',
-            observacion: (row[COL_DESP.observacion] || '').trim(),
-            fechaDespacho: (row[COL_DESP.fechaDespacho] || '').trim()
+            observacion: String(row[COL_DESP.observacion] || '').trim(),
+            fechaDespacho: String(row[COL_DESP.fechaDespacho] || '').trim()
         };
     }).filter(r => r.op || r.ref || r.cantidad > 0);
 

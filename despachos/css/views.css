@@ -28,37 +28,53 @@
 .search-wrap {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    background-color: var(--bg-subtle);
+    position: relative;
+    background-color: var(--bg);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.35rem 0.65rem;
+    border-radius: var(--radius-sm);
     flex: 1;
-    max-width: 320px;
-    transition: border-color var(--transition);
+    max-width: 280px;
+    height: 34px;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
 }
 
 .search-wrap:focus-within {
-    border-color: var(--accent);
-    background-color: var(--bg);
+    border-color: var(--text);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
 }
 
 .search-wrap svg {
+    position: absolute;
+    left: 0.65rem;
     color: var(--text-muted);
+    width: 13px;
+    height: 13px;
+    pointer-events: none;
+    transition: color 0.15s ease;
+}
+
+.search-wrap:focus-within svg {
+    color: var(--text);
 }
 
 .search-wrap input {
-    border: none;
-    background: transparent;
+    border: none !important;
+    background: transparent !important;
     color: var(--text);
     font-size: 0.8rem;
     width: 100%;
-    outline: none;
+    height: 100%;
+    padding: 0 0.65rem 0 2rem !important;
+    margin: 0;
+    outline: none !important;
     font-family: inherit;
+    box-sizing: border-box;
 }
 
 .search-wrap input::placeholder {
     color: var(--text-muted);
+    font-size: 0.775rem;
 }
 
 .filters-wrap {
@@ -250,34 +266,95 @@ tbody tr:last-child td {
     border-radius: var(--radius);
     padding: 0.75rem 1.25rem;
     overflow-x: auto;
-    gap: 1.5rem;
+    gap: 1.25rem;
 }
 
 .kpi-banner-item {
     display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 135px;
+    flex: 1;
+}
+
+.kpi-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.kpi-banner-item:hover .kpi-icon-wrap {
+    transform: scale(1.08);
+}
+
+.kpi-item-content {
+    display: flex;
     flex-direction: column;
-    gap: 0.15rem;
-    min-width: 120px;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+/* Subtle Color Themes for Cutout Badges */
+.kpi-theme-blue .kpi-icon-wrap {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.kpi-theme-purple .kpi-icon-wrap {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.kpi-theme-amber .kpi-icon-wrap {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.kpi-theme-emerald .kpi-icon-wrap {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.kpi-theme-teal .kpi-icon-wrap {
+    background: rgba(20, 184, 166, 0.1);
+    color: #0d9488;
+    border: 1px solid rgba(20, 184, 166, 0.2);
+}
+
+.kpi-theme-rose .kpi-icon-wrap {
+    background: rgba(244, 63, 94, 0.1);
+    color: #e11d48;
+    border: 1px solid rgba(244, 63, 94, 0.2);
 }
 
 .kpi-caption {
-    font-size: 0.7rem;
+    font-size: 0.675rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: var(--text-muted);
     font-weight: 600;
 }
 
 .kpi-num {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 700;
     font-family: var(--font-mono);
     color: var(--text);
     letter-spacing: -0.02em;
+    line-height: 1.2;
 }
 
 .kpi-sub {
-    font-size: 0.675rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
 }
 
@@ -285,6 +362,7 @@ tbody tr:last-child td {
     width: 1px;
     height: 32px;
     background: var(--border);
+    flex-shrink: 0;
 }
 
 .kpi-interactive-hint {

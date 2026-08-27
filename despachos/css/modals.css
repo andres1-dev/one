@@ -86,29 +86,116 @@
 
 .metric-pill {
     font-family: var(--font-mono);
-    font-size: 0.775rem;
+    font-size: 0.75rem;
+    font-weight: 500;
     color: var(--text-secondary);
     background: var(--bg);
     border: 1px solid var(--border);
     padding: 0.25rem 0.65rem;
-    border-radius: var(--radius);
-    display: flex;
+    border-radius: 9999px;
+    display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    white-space: nowrap;
+}
+
+.metric-pill .metric-divider {
+    color: var(--border);
 }
 
 .modal-controls {
-    padding: 0.65rem 1.25rem;
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 0;
+    border-bottom: 1px solid var(--border);
     background: var(--bg);
+    display: flex;
+    align-items: center;
+    position: relative;
+    width: 100%;
+}
+
+.modal-controls .search-wrap {
+    width: 100%;
+    max-width: 100% !important;
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+
+.modal-controls .search-wrap input {
+    height: 38px !important;
+    min-height: 38px !important;
+    font-size: 0.825rem !important;
+    padding: 0.4rem 1rem 0.4rem 2.25rem !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    width: 100%;
+    color: var(--text);
+    box-sizing: border-box;
+    outline: none !important;
+    box-shadow: none !important;
+    transition: background 0.15s ease;
+}
+
+.modal-controls .search-wrap input::placeholder {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.modal-controls .search-wrap input:focus {
+    background: var(--bg-subtle) !important;
+}
+
+.modal-controls .search-wrap svg {
+    position: absolute;
+    left: 0.85rem;
+    color: var(--text-muted);
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    transition: color 0.15s ease;
+}
+
+.modal-controls:focus-within .search-wrap svg {
+    color: var(--text);
 }
 
 .modal-body {
     flex: 1;
     overflow-y: auto;
     background: var(--bg);
-    min-height: 200px;
+    min-height: 180px;
     max-height: 55vh;
+    padding: 0;
+    margin: 0;
+}
+
+#tblModalDetail {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0;
+}
+
+#tblModalDetail thead {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+#tblModalDetail thead th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .modal-footer {
@@ -247,29 +334,39 @@
 }
 
 .btn-modal-primary {
-    background: var(--success);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #ffffff;
     border: none;
-    border-radius: var(--radius);
-    padding: 0.55rem 1rem;
-    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 1.15rem;
+    font-size: 0.825rem;
     font-weight: 600;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    transition: all var(--transition);
+    justify-content: center;
+    gap: 0.45rem;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
 }
 
 .btn-modal-primary:hover {
-    opacity: 0.92;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-modal-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
 }
 
 .btn-modal-primary:disabled {
-    opacity: 0.5;
+    opacity: 0.55;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
+    background: var(--text-muted);
 }
 
 .btn-spinner {

@@ -19,6 +19,12 @@
     gap: 1rem;
 }
 
+.brand-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .dot-indicator {
     width: 7px;
     height: 7px;
@@ -129,22 +135,30 @@
 }
 
 .btn-icon {
-    background: transparent;
+    background: var(--bg);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius);
-    display: flex;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all var(--transition);
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
 }
 
 .btn-icon:hover {
-    color: var(--text);
-    background-color: var(--bg-hover);
+    color: var(--danger);
+    background-color: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.25);
+    transform: scale(1.06);
+}
+
+.btn-icon:active {
+    transform: scale(0.94);
 }
 
 /* Segmented Filter Control */
@@ -234,43 +248,64 @@
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
-    padding: 0.3rem 0.65rem;
-    font-size: 0.725rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
     font-weight: 600;
     font-family: var(--font-sans);
-    color: #ffffff;
-    background: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
+    color: #065f46;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08);
+    white-space: nowrap;
+}
+
+.btn-clean-dispatch svg {
+    color: #059669;
+    transition: transform 0.15s ease;
 }
 
 .btn-clean-dispatch:hover {
-    background: var(--success);
+    background: #10b981;
     color: #ffffff;
-    border-color: var(--success);
+    border-color: #059669;
     transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 3px 8px rgba(16, 185, 129, 0.28);
+}
+
+.btn-clean-dispatch:hover svg {
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.btn-clean-dispatch:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.15);
 }
 
 .btn-undo {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
     font-size: 0.7rem;
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
+    font-weight: 500;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     margin-left: 0.35rem;
-    transition: var(--transition);
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .btn-undo:hover {
-    color: var(--danger);
-    border-color: var(--danger);
-    background: rgba(239, 68, 68, 0.08);
+    color: #ffffff;
+    border-color: #dc2626;
+    background: #ef4444;
+    box-shadow: 0 2px 5px rgba(239, 68, 68, 0.25);
 }
 
 .btn-num {

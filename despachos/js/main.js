@@ -175,8 +175,6 @@ function setupEventListeners() {
         });
     }
 
-    if (DOM.btnExportDespachosCSV) DOM.btnExportDespachosCSV.addEventListener('click', exportDespachosToCSV);
-
     // Segmented Buttons (Pendientes / Despachados / Todos)
     const segButtons = [DOM.btnSegPendientes, DOM.btnSegDespachados, DOM.btnSegTodos];
     segButtons.forEach(btn => {

@@ -43,7 +43,10 @@ export async function revertDispatchToPending(item) {
 export function populateDespachosFilterOptions() {
     const talleres = new Set();
     state.despachosRecords.forEach(r => {
-        if (r.taller) talleres.add(r.taller);
+        // Solo mostrar talleres de los registros pendientes (sin 'X')
+        if (!r.isDespachado && r.taller) {
+            talleres.add(r.taller);
+        }
     });
 
     if (DOM.filterDespachoTaller) {

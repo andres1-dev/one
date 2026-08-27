@@ -47,7 +47,6 @@ export const DOM = {
     searchDespachosInput: document.getElementById('searchDespachosInput'),
     filterDespachoTaller: document.getElementById('filterDespachoTaller'),
     pageSizeDespachos: document.getElementById('pageSizeDespachos'),
-    btnExportDespachosCSV: document.getElementById('btnExportDespachosCSV'),
     showingDespStart: document.getElementById('showingDespStart'),
     showingDespEnd: document.getElementById('showingDespEnd'),
     totalDespFiltered: document.getElementById('totalDespFiltered'),
