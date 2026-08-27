@@ -1,0 +1,65 @@
+/* =========================================================
+   BASE RESETS, TYPOGRAPHY & LAYOUT
+   ========================================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    overflow-x: hidden;
+    width: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--bg);
+    color: var(--text);
+    line-height: 1.45;
+    font-size: 13px;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    width: 100%;
+    overflow-x: hidden;
+    transition: background-color var(--transition), color var(--transition);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+}
+
+.layout {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: clamp(0.75rem, 2vw, 1.5rem);
+    padding-top: max(clamp(0.75rem, 2vw, 1.5rem), env(safe-area-inset-top));
+    padding-bottom: max(clamp(0.75rem, 2vw, 1.5rem), env(safe-area-inset-bottom));
+    padding-left: max(clamp(0.75rem, 2vw, 1.5rem), env(safe-area-inset-left));
+    padding-right: max(clamp(0.75rem, 2vw, 1.5rem), env(safe-area-inset-right));
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* Custom Minimal Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}

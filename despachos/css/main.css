@@ -1,0 +1,9 @@
+/* =========================================================
+   DESPACHOS 2.0 - MAIN STYLESHEET BUNDLE
+   ========================================================= */
+@import url('variables.css');
+@import url('base.css');
+@import url('components.css');
+@import url('views.css');
+@import url('modals.css');
+@import url('responsive.css');

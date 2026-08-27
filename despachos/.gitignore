@@ -1,0 +1,14 @@
+# Entornos locales y temporales
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+
+# Backups y temporales
+*.tmp
+*.bak
+
+# Si decides usar archivo local personalizado
+config.local.js
+.env
+.env.local

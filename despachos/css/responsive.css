@@ -1,0 +1,595 @@
+/* =========================================================
+   DESPACHOS 2.0 - ULTRA-RESPONSIVE & ACCESSIBLE STYLESHEET
+   Symmetrical, fluid, and optimized for Desktop, Tablet, iPad,
+   Mobile (iPhone / Android) & Foldables.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   0. DESKTOP & WIDESCREEN (MIN 1200px) - PIXEL PERFECT PC VIEW
+   --------------------------------------------------------- */
+@media (min-width: 1200px) {
+    .layout {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 1.25rem 2rem;
+    }
+
+    .top-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 1rem;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .nav-tabs {
+        display: inline-flex;
+        gap: 3px;
+    }
+
+    .controls-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .search-wrap {
+        max-width: 340px;
+        flex: 0 0 340px;
+    }
+
+    .filters-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        flex: 1;
+    }
+
+    .kpi-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .kpi-banner-item {
+        min-width: 140px;
+    }
+
+    .kpi-banner-divider {
+        display: block;
+        width: 1px;
+        height: 36px;
+        background-color: var(--border);
+    }
+
+    .kpi-quad-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    .kpi-dual-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+    }
+
+    /* Modal PC View Centered with Dialog Box */
+    .modal-backdrop {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .modal-container {
+        border-radius: var(--radius-lg);
+        max-width: 1100px;
+        max-height: 85vh;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+}
+
+/* ---------------------------------------------------------
+   1. LAPTOPS & TABLETS (1024px - 1199px)
+   --------------------------------------------------------- */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .kpi-quad-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .kpi-dual-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .top-nav {
+        gap: 1rem;
+    }
+
+    .nav-tabs {
+        flex-shrink: 0;
+    }
+
+    .filters-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+
+/* ---------------------------------------------------------
+   2. TABLETS & LARGE PHONES (MAX 768px)
+   --------------------------------------------------------- */
+@media (max-width: 768px) {
+    .layout {
+        padding: 0.75rem;
+        padding-top: max(0.75rem, env(safe-area-inset-top));
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+        padding-left: max(0.75rem, env(safe-area-inset-left));
+        padding-right: max(0.75rem, env(safe-area-inset-right));
+        gap: 0.75rem;
+    }
+
+    /* Top Nav Symmetrical Flow */
+    .top-nav {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .brand {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+        width: 100%;
+    }
+
+    .brand-title {
+        font-size: 1.05rem;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    /* Tabs Bar (Equal Symmetrical 3 Columns) */
+    .nav-tabs {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding: 3px;
+        gap: 3px;
+        box-sizing: border-box;
+    }
+
+    .nav-tab {
+        flex: 1;
+        justify-content: center;
+        text-align: center;
+        white-space: nowrap;
+        padding: 0.55rem 0.4rem;
+        font-size: 0.775rem;
+        min-height: 42px;
+        touch-action: manipulation;
+        border-radius: calc(var(--radius) - 2px);
+    }
+
+    .nav-tab svg {
+        flex-shrink: 0;
+        width: 14px;
+        height: 14px;
+    }
+
+    /* Right Nav (Metrics + Action Buttons) */
+    .nav-right {
+        width: 100%;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .metric-group {
+        width: 100%;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background: var(--bg-subtle);
+        padding: 0.55rem 0.75rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        font-size: 0.775rem;
+        box-sizing: border-box;
+    }
+
+    .action-buttons {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .action-buttons .btn-ghost {
+        width: 100%;
+        justify-content: center;
+        min-height: 42px;
+        font-size: 0.8rem;
+        touch-action: manipulation;
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* Controls Bar & Filters (Symmetrical Layout) */
+    .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+        padding: 0.5rem 0;
+    }
+
+    .search-wrap {
+        max-width: 100% !important;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .search-wrap input {
+        font-size: 16px !important; /* Previene auto-zoom en iOS Safari */
+        padding: 0.6rem 0.75rem 0.6rem 2.3rem;
+        min-height: 42px;
+    }
+
+    .search-wrap svg {
+        left: 0.85rem;
+    }
+
+    /* Segmented Control (Pendientes / Despachados / Todos) */
+    .segmented-control {
+        width: 100%;
+        display: flex;
+        padding: 3px;
+        box-sizing: border-box;
+    }
+
+    .seg-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 0.55rem 0.35rem;
+        font-size: 0.775rem;
+        min-height: 42px;
+        touch-action: manipulation;
+        text-align: center;
+    }
+
+    .seg-badge {
+        margin-left: 0.25rem;
+    }
+
+    /* Filter Selects Grid */
+    .filters-wrap {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .select-clean {
+        width: 100%;
+        min-height: 42px;
+        font-size: 16px !important; /* Previene auto-zoom en iOS Safari */
+        padding: 0.5rem 0.65rem;
+        box-sizing: border-box;
+    }
+
+    #btnOpenUploadCsv {
+        grid-column: 1 / -1;
+        min-height: 42px;
+        justify-content: center;
+        font-size: 0.825rem;
+        touch-action: manipulation;
+    }
+
+    /* KPI Banner (Symmetrical 2x2 Grid) */
+    .kpi-banner {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.65rem;
+        padding: 0.75rem;
+        box-sizing: border-box;
+    }
+
+    .kpi-banner-divider {
+        display: none;
+    }
+
+    .kpi-banner-item {
+        background: var(--bg);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        padding: 0.55rem 0.65rem;
+        min-width: 0;
+    }
+
+    .kpi-num {
+        font-size: 1.15rem;
+    }
+
+    .kpi-caption {
+        font-size: 0.675rem;
+    }
+
+    .kpi-interactive-hint {
+        font-size: 0.725rem;
+        padding: 0.55rem 0.75rem;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .kpi-quad-grid,
+    .kpi-dual-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    /* Tables Mobile & Touch Optimization */
+    .table-container,
+    .table-scroll-wrap {
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius);
+        max-width: 100%;
+    }
+
+    table th, table td {
+        padding: 0.6rem 0.65rem;
+        font-size: 0.775rem;
+    }
+
+    .btn-clean-dispatch {
+        padding: 0.5rem 0.85rem;
+        min-height: 38px;
+        font-size: 0.775rem;
+        touch-action: manipulation;
+        border-radius: 6px;
+    }
+
+    .btn-undo {
+        min-height: 36px;
+        min-width: 36px;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
+    }
+
+    /* Pagination Symmetrical Layout */
+    .footer-bar {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.65rem;
+        padding-top: 0.65rem;
+        text-align: center;
+    }
+
+    .footer-pagination {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .btn-page {
+        min-height: 40px;
+        min-width: 40px;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.825rem;
+        touch-action: manipulation;
+    }
+
+    .btn-num {
+        min-width: 38px;
+        height: 38px;
+        font-size: 0.825rem;
+        touch-action: manipulation;
+    }
+
+    /* =========================================================
+       MODALS: MODERN BOTTOM-SHEET ON MOBILE
+       ========================================================= */
+    .modal-backdrop {
+        padding: 0;
+        align-items: flex-end;
+        justify-content: center;
+    }
+
+    .modal-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        max-height: 92vh !important;
+        border-radius: 20px 20px 0 0 !important;
+        margin: 0;
+        border-bottom: none;
+        border-left: none;
+        border-right: none;
+        animation: modalSlideUpMobile 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    @keyframes modalSlideUpMobile {
+        from {
+            opacity: 0;
+            transform: translateY(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-header {
+        padding: 0.85rem 1rem;
+        flex-shrink: 0;
+    }
+
+    .modal-header-actions {
+        gap: 0.5rem;
+    }
+
+    .modal-body {
+        padding: 1rem;
+        max-height: 60vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+    }
+
+    .modal-footer {
+        padding: 0.75rem 1rem;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .modal-footer button,
+    .modal-footer .modal-footer-actions,
+    .modal-footer .modal-footer-actions button {
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+        font-size: 0.85rem;
+        touch-action: manipulation;
+    }
+
+    .input-modal-date,
+    .input-modal-text {
+        font-size: 16px !important; /* Previene auto-zoom en iOS */
+        min-height: 44px;
+        padding: 0.6rem 0.75rem;
+        box-sizing: border-box;
+    }
+
+    .label-with-chips {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .quick-chips .btn-chip {
+        min-height: 36px;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+        touch-action: manipulation;
+    }
+
+    /* CSV Upload Mobile */
+    .csv-dropzone {
+        padding: 1.5rem 1rem;
+    }
+
+    .csv-meta-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    /* Toast Container Mobile */
+    .toast-container {
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: max(0.75rem, env(safe-area-inset-bottom));
+        width: auto;
+    }
+
+    .toast {
+        width: 100%;
+        font-size: 0.8rem;
+        padding: 0.75rem 1rem;
+        box-sizing: border-box;
+    }
+}
+
+/* ---------------------------------------------------------
+   3. SMALL MOBILE & FOLDABLES (MAX 420px)
+   --------------------------------------------------------- */
+@media (max-width: 420px) {
+    .nav-tab {
+        padding: 0.45rem 0.2rem;
+        font-size: 0.725rem;
+        gap: 0.25rem;
+    }
+
+    .nav-tab svg {
+        display: none; /* Simplifica tabs en pantallas extra angostas */
+    }
+
+    .filters-wrap {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-banner {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-group {
+        font-size: 0.725rem;
+        gap: 0.35rem;
+    }
+}
+
+/* ---------------------------------------------------------
+   4. PRINT MEDIA STYLES
+   --------------------------------------------------------- */
+@media print {
+    .top-nav,
+    .controls-bar,
+    .footer-bar,
+    .modal-backdrop,
+    .toast-container,
+    .action-buttons,
+    .btn-clean-dispatch,
+    .btn-undo {
+        display: none !important;
+    }
+
+    .layout {
+        padding: 0;
+        max-width: 100%;
+    }
+
+    .table-container,
+    .kpi-card {
+        border: 1px solid #ccc;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+
+    body {
+        background: #fff;
+        color: #000;
+    }
+}

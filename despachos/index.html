@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <title>Despachos — Monitor & Gestión</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- Minimal Top Nav -->
+        <header class="top-nav">
+            <div class="brand">
+                <div class="dot-indicator" id="statusDot" title="Conexión"></div>
+                <h1 class="brand-title">Despachos</h1>
+                
+                <!-- 3 Tabs Switcher -->
+                <nav class="nav-tabs">
+                    <button class="nav-tab active" data-view="kpis">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                        KPIs & Inventario
+                    </button>
+                    <button class="nav-tab" data-view="despachos">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                        Gestión Despachos
+                    </button>
+                    <button class="nav-tab" data-view="table">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                        Master de Datos
+                    </button>
+                </nav>
+            </div>
+
+            <div class="nav-right">
+                <div class="metric-group">
+                    <span class="metric"><strong id="statTotalRows">0</strong> OPs</span>
+                    <span class="metric-divider">/</span>
+                    <span class="metric"><strong id="statTotalCort">0</strong> Und Cort</span>
+                    <span class="metric-divider">/</span>
+                    <span class="metric"><strong id="statTotalBodega">0</strong> Despacho</span>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btnRefresh" class="btn-ghost" title="Actualizar datos">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                        </svg>
+                        <span>Actualizar</span>
+                    </button>
+                    <button id="btnExportCSV" class="btn-ghost" title="Exportar CSV">Exportar</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loadingContainer" class="state-msg">
+            <div class="spinner"></div>
+            <p>Cargando y sincronizando con Google Sheets...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorContainer" class="state-msg hidden">
+            <p class="text-error" id="errorMessage">Error al cargar datos.</p>
+            <button id="btnRetry" class="btn-ghost">Reintentar</button>
+        </div>
+
+        <!-- =========================================================
+             VIEW 1: REGISTROS / TABLA FILTER
+             ========================================================= -->
+        <div id="viewTable" class="view-panel hidden">
+            <section class="controls-bar">
+                <div class="search-wrap">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Filtrar por OP, Ref, Descripción..." autocomplete="off">
+                </div>
+
+                <div class="filters-wrap">
+                    <select id="filterIntegracion" class="select-clean">
+                        <option value="">Integración: Todas</option>
+                    </select>
+
+                    <select id="filterCuento" class="select-clean">
+                        <option value="">Cuento: Todos</option>
+                    </select>
+
+                    <select id="filterTejido" class="select-clean">
+                        <option value="">Tejido: Todos</option>
+                    </select>
+
+                    <select id="filterGenero" class="select-clean">
+                        <option value="">Género: Todos</option>
+                    </select>
+
+                    <select id="filterClase" class="select-clean">
+                        <option value="">Clase: Todas</option>
+                    </select>
+
+                    <select id="pageSize" class="select-clean">
+                        <option value="10" selected>10 filas</option>
+                        <option value="25">25 filas</option>
+                        <option value="50">50 filas</option>
+                        <option value="100">100 filas</option>
+                        <option value="all">Todas</option>
+                    </select>
+
+                    <button id="btnOpenUploadCsv" class="btn-ghost" title="Subir archivo CSV para actualizar la hoja DATA en Google Sheets">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span>Cargar CSV</span>
+                    </button>
+                </div>
+            </section>
+
+            <main class="content-body">
+                <div id="tableWrapper" class="table-container hidden">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th data-col="op" class="sortable">OP</th>
+                                <th data-col="ref" class="sortable">Ref</th>
+                                <th data-col="undCort" class="sortable text-right">Und Cort</th>
+                                <th data-col="fechaCorte" class="sortable">Fecha Corte</th>
+                                <th data-col="estadoIntegracion" class="sortable text-center">Integración</th>
+                                <th data-col="bodegaDespacho" class="sortable text-right">Bodega</th>
+                                <th data-col="descripcion" class="sortable">Descripción</th>
+                                <th data-col="cuento" class="sortable">Cuento</th>
+                                <th data-col="genero" class="sortable">Género</th>
+                                <th data-col="tipoTejido" class="sortable">Tejido</th>
+                                <th data-col="pvp" class="sortable text-right">PVP</th>
+                                <th data-col="clase" class="sortable text-center">Clase</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="noResultsContainer" class="state-msg hidden">
+                    <p>No se encontraron resultados para los filtros seleccionados.</p>
+                </div>
+            </main>
+
+            <footer class="footer-bar" id="tableFooter">
+                <div class="footer-info">
+                    <span id="showingStart">0</span>–<span id="showingEnd">0</span> de <strong id="totalFiltered">0</strong> registros
+                </div>
+                <div class="footer-pagination">
+                    <button id="btnPrevPage" class="btn-page" disabled>Anterior</button>
+                    <div id="pageNumbersContainer" class="page-numbers"></div>
+                    <button id="btnNextPage" class="btn-page" disabled>Siguiente</button>
+                </div>
+            </footer>
+        </div>
+
+        <!-- =========================================================
+             VIEW 2: GESTIÓN DE DESPACHOS
+             ========================================================= -->
+        <div id="viewDespachos" class="view-panel hidden">
+            <section class="controls-bar">
+                <!-- Segmented Filter: Pendientes (Default) vs Despachados vs Todos -->
+                <div class="segmented-control">
+                    <button class="seg-btn active" data-filter="pendiente" id="btnSegPendientes">
+                        <span class="seg-dot pending"></span>
+                        <span>Pendientes</span>
+                        <span class="seg-badge" id="badgeCountPendientes">0</span>
+                    </button>
+                    <button class="seg-btn" data-filter="despachado" id="btnSegDespachados">
+                        <span class="seg-dot done"></span>
+                        <span>Historial Despachados</span>
+                    </button>
+                    <button class="seg-btn" data-filter="" id="btnSegTodos">
+                        <span>Todos</span>
+                    </button>
+                </div>
+
+                <div class="search-wrap" style="max-width: 260px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="searchDespachosInput" placeholder="Buscar OP, Ref o Taller..." autocomplete="off">
+                </div>
+
+                <div class="filters-wrap">
+                    <select id="filterDespachoTaller" class="select-clean">
+                        <option value="">Taller: Todos</option>
+                    </select>
+
+                    <select id="pageSizeDespachos" class="select-clean">
+                        <option value="15">15 filas</option>
+                        <option value="30" selected>30 filas</option>
+                        <option value="50">50 filas</option>
+                        <option value="100">100 filas</option>
+                        <option value="all">Todas</option>
+                    </select>
+
+                    <button id="btnExportDespachosCSV" class="btn-ghost" title="Exportar tabla de despachos">CSV</button>
+                </div>
+            </section>
+
+            <main class="content-body">
+                <div id="tableDespachosWrapper" class="table-container">
+                    <table id="dataDespachosTable">
+                        <thead>
+                            <tr>
+                                <th data-dcol="id" class="sortable text-center" style="width: 45px;">#</th>
+                                <th class="text-center" style="width: 120px;">Acción</th>
+                                <th data-dcol="fecha" class="sortable">Fecha Corte</th>
+                                <th data-dcol="op" class="sortable">OP</th>
+                                <th data-dcol="ref" class="sortable">Referencia</th>
+                                <th data-dcol="cantidad" class="sortable text-right">Cantidad</th>
+                                <th data-dcol="taller" class="sortable">Taller / Destino</th>
+                                <th data-dcol="fechaDespacho" class="sortable">Fecha Despachado</th>
+                                <th data-dcol="observacion" class="sortable">Observación</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableDespachosBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="noResultsDespachosContainer" class="state-msg hidden">
+                    <p id="noResultsDespachosText">No hay despachos pendientes en este momento.</p>
+                </div>
+            </main>
+
+            <footer class="footer-bar" id="despachosFooter">
+                <div class="footer-info">
+                    <span id="showingDespStart">0</span>–<span id="showingDespEnd">0</span> de <strong id="totalDespFiltered">0</strong> registros
+                </div>
+                <div class="footer-pagination">
+                    <button id="btnPrevDespPage" class="btn-page" disabled>Anterior</button>
+                    <div id="pageNumbersDespContainer" class="page-numbers"></div>
+                    <button id="btnNextDespPage" class="btn-page" disabled>Siguiente</button>
+                </div>
+            </footer>
+        </div>
+
+        <!-- =========================================================
+             VIEW 3: KPIS & ANALÍTICA DE INVENTARIO
+             ========================================================= -->
+        <div id="viewKPIs" class="view-panel">
+            <!-- Top Summary Badges -->
+            <section class="kpi-banner">
+                <div class="kpi-banner-item">
+                    <span class="kpi-caption">Inventario Total</span>
+                    <strong class="kpi-num" id="kpiTotalInventario">0</strong>
+                    <span class="kpi-sub">Lotes en producción</span>
+                </div>
+                <div class="kpi-banner-divider"></div>
+                <div class="kpi-banner-item">
+                    <span class="kpi-caption">Media Antigüedad</span>
+                    <strong class="kpi-num text-highlight" id="kpiMediaPonderada">0 Días</strong>
+                    <span class="kpi-sub">Rotación general</span>
+                </div>
+                <div class="kpi-banner-divider"></div>
+                <div class="kpi-banner-item">
+                    <span class="kpi-caption">Pendiente Despacho</span>
+                    <strong class="kpi-num text-warning" id="kpiPendienteDespacho">0</strong>
+                    <span class="kpi-sub" id="kpiLotesPendientes">0 Lotes sin 'X'</span>
+                </div>
+                <div class="kpi-banner-divider"></div>
+                <div class="kpi-banner-item">
+                    <span class="kpi-caption">Media Mensual</span>
+                    <strong class="kpi-num" id="kpiMediaMensual">0</strong>
+                    <span class="kpi-sub">Unidades / Mes</span>
+                </div>
+                <div class="kpi-banner-divider"></div>
+                <div class="kpi-banner-item">
+                    <span class="kpi-caption">Media Semanal</span>
+                    <strong class="kpi-num" id="kpiMediaSemanal">0</strong>
+                    <span class="kpi-sub">Unidades / Sem</span>
+                </div>
+                <div class="kpi-banner-divider"></div>
+                <div class="kpi-banner-item">
+                    <span class="kpi-caption">Media Diaria</span>
+                    <strong class="kpi-num" id="kpiMediaDiaria">0</strong>
+                    <span class="kpi-sub">Unidades / Día</span>
+                </div>
+            </section>
+
+            <!-- Hint: Clic en cualquier fila para ver el detalle de lotes -->
+            <div class="kpi-interactive-hint">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>Consejo: Haz clic sobre cualquier fila de las tablas de KPIs para abrir la ventana emergente con el desglose exacto de <strong>OP, Referencia, Cantidades y Detalles</strong>.</span>
+            </div>
+
+            <!-- Grid 1: Distribución por 4 Dimensiones -->
+            <section class="section-title">
+                <h2>Distribución del Inventario</h2>
+                <span class="section-subtitle">Toca una fila para ver sus OPs</span>
+            </section>
+
+            <div class="kpi-quad-grid">
+                <!-- 1. Clase -->
+                <div class="kpi-card">
+                    <div class="kpi-card-header">
+                        <h3>Inventario por Clasificación (PVP)</h3>
+                    </div>
+                    <div class="kpi-card-body">
+                        <table class="kpi-table" id="tblClase">
+                            <thead>
+                                <tr>
+                                    <th>Clase</th>
+                                    <th class="text-right">Unidades</th>
+                                    <th class="text-right">Lotes</th>
+                                    <th class="text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2. Tejido -->
+                <div class="kpi-card">
+                    <div class="kpi-card-header">
+                        <h3>Inventario por Tipo de Tejido</h3>
+                    </div>
+                    <div class="kpi-card-body">
+                        <table class="kpi-table" id="tblTejido">
+                            <thead>
+                                <tr>
+                                    <th>Tejido</th>
+                                    <th class="text-right">Unidades</th>
+                                    <th class="text-right">Lotes</th>
+                                    <th class="text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Género -->
+                <div class="kpi-card">
+                    <div class="kpi-card-header">
+                        <h3>Inventario por Género</h3>
+                    </div>
+                    <div class="kpi-card-body">
+                        <table class="kpi-table" id="tblGenero">
+                            <thead>
+                                <tr>
+                                    <th>Género</th>
+                                    <th class="text-right">Unidades</th>
+                                    <th class="text-right">Lotes</th>
+                                    <th class="text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. Cuento -->
+                <div class="kpi-card">
+                    <div class="kpi-card-header">
+                        <h3>Inventario por Cuento o Línea</h3>
+                    </div>
+                    <div class="kpi-card-body">
+                        <table class="kpi-table" id="tblCuento">
+                            <thead>
+                                <tr>
+                                    <th>Cuento</th>
+                                    <th class="text-right">Unidades</th>
+                                    <th class="text-right">Lotes</th>
+                                    <th class="text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid 2: SECCIÓN DE ANTIGÜEDAD (2 TABLAS PARALELAS) -->
+            <section class="section-title" style="margin-top: 1.5rem;">
+                <div class="title-with-badge">
+                    <h2>Inventario según Fecha de Corte & Antigüedad de Lotes</h2>
+                    <span class="tag tag-integrated">Media Ponderada</span>
+                </div>
+                <span class="section-subtitle">Separación de lotes recientes vs críticos (>30 días)</span>
+            </section>
+
+            <div class="kpi-dual-grid">
+                <!-- TABLA A: Inventario General -->
+                <div class="kpi-card">
+                    <div class="kpi-card-header">
+                        <h3>Antigüedad General de Lotes</h3>
+                        <span class="tag">Más recientes primero</span>
+                    </div>
+                    <div class="kpi-card-body">
+                        <div class="table-scroll-wrap" style="max-height: 380px;">
+                            <table class="kpi-table" id="tblAntiguedad">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha Corte</th>
+                                        <th class="text-right">Unidades</th>
+                                        <th class="text-right">Lotes</th>
+                                        <th class="text-right">Antigüedad</th>
+                                        <th class="text-right">% Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TABLA B: Lotes Críticos > 30 Días (Del MÁS VIEJO al más reciente) -->
+                <div class="kpi-card card-warning-border">
+                    <div class="kpi-card-header">
+                        <div class="title-with-badge">
+                            <h3>Lotes con > 30 Días de Antigüedad</h3>
+                            <span class="tag tag-pending" id="badgeTotalCriticos">0 Unds</span>
+                        </div>
+                        <span class="tag">Del más viejo al más reciente</span>
+                    </div>
+                    <div class="kpi-card-body">
+                        <div class="table-scroll-wrap" style="max-height: 380px;">
+                            <table class="kpi-table" id="tblCriticos">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha Corte</th>
+                                        <th class="text-right">Unidades</th>
+                                        <th class="text-right">Lotes</th>
+                                        <th class="text-right">Días Antigüedad</th>
+                                        <th class="text-right">% Total</th>
+                                        <th class="text-center">Alerta</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid 3: Despachos (Mensual, Semanal, Diario) -->
+            <section class="section-title" style="margin-top: 1.5rem;">
+                <h2>Análisis de Despachos</h2>
+                <span class="section-subtitle">Toca un mes, semana o día para ver el detalle</span>
+            </section>
+
+            <div class="kpi-dual-grid">
+                <!-- Despacho Mensual -->
+                <div class="kpi-card">
+                    <div class="kpi-card-header">
+                        <h3>Despacho Mensual</h3>
+                    </div>
+                    <div class="kpi-card-body">
+                        <table class="kpi-table" id="tblMensual">
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th class="text-right">Cantidad Despachada</th>
+                                    <th class="text-right">% del Periodo</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Despacho Semanal -->
+                <div class="kpi-card">
+                    <div class="kpi-card-header">
+                        <h3>Despacho Semanal</h3>
+                    </div>
+                    <div class="kpi-card-body">
+                        <div class="table-scroll-wrap" style="max-height: 310px;">
+                            <table class="kpi-table" id="tblSemanal">
+                                <thead>
+                                    <tr>
+                                        <th>Semana</th>
+                                        <th class="text-right">Cantidad</th>
+                                        <th class="text-right">Días</th>
+                                        <th class="text-right">Promedio / Día</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Despacho Diario & Seguimiento de Cumplimiento -->
+            <div class="kpi-card full-width" style="margin-top: 1rem; margin-bottom: 2rem;">
+                <div class="kpi-card-header">
+                    <div class="title-with-badge">
+                        <h3>Seguimiento de Despacho Diario y Cumplimiento</h3>
+                        <span class="tag tag-integrated">Columna G: 'X' = Despachado Real</span>
+                    </div>
+                    <div class="header-pills">
+                        <span class="tag tag-pending" id="badgeDiarioPendiente">Pendiente: 0</span>
+                    </div>
+                </div>
+                <div class="kpi-card-body">
+                    <div class="table-scroll-wrap" style="max-height: 380px;">
+                        <table class="kpi-table" id="tblDiario">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th class="text-right">Cantidad Prog.</th>
+                                    <th class="text-center">Semana</th>
+                                    <th>Mes</th>
+                                    <th class="text-right">Despacho Real ('X')</th>
+                                    <th class="text-right">% Despachado</th>
+                                    <th class="text-right">Pendiente (Sin 'X')</th>
+                                    <th class="text-right">% No Despachado</th>
+                                    <th class="text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL 1: CONFIRMAR Y ASENTAR DESPACHO (SOLICITA FECHA)
+             ========================================================= -->
+        <div id="confirmDispatchModal" class="modal-backdrop hidden">
+            <div class="modal-container" style="max-width: 460px;" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <div class="modal-title-wrap">
+                        <span class="tag tag-pending">Asentar Despacho</span>
+                        <h2 class="modal-title">Confirmar Salida</h2>
+                    </div>
+                    <button id="btnCloseDispatchModal" class="btn-icon" title="Cerrar [Esc]">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <div class="modal-body" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Lot Details Summary Card -->
+                    <div class="lot-summary-card">
+                        <div class="lot-row">
+                            <span class="lot-lbl">OP:</span>
+                            <strong class="lot-val cell-op" id="modalDispOp">-</strong>
+                        </div>
+                        <div class="lot-row">
+                            <span class="lot-lbl">Referencia:</span>
+                            <strong class="lot-val" id="modalDispRef">-</strong>
+                        </div>
+                        <div class="lot-row">
+                            <span class="lot-lbl">Cantidad:</span>
+                            <strong class="lot-val text-highlight" id="modalDispCantidad">-</strong>
+                        </div>
+                        <div class="lot-row">
+                            <span class="lot-lbl">Taller / Destino:</span>
+                            <span class="lot-val" id="modalDispTaller">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Date Selection Field with Quick Chips -->
+                    <div class="form-group">
+                        <div class="label-with-chips">
+                            <label for="inputDispatchDate" style="font-weight: 600; font-size: 0.8rem;">Fecha en que se despachó:</label>
+                            <div class="quick-chips">
+                                <button type="button" class="btn-chip active" id="btnChipHoy">Hoy</button>
+                                <button type="button" class="btn-chip" id="btnChipAyer">Ayer</button>
+                            </div>
+                        </div>
+                        <input type="date" id="inputDispatchDate" class="input-modal-date">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputDispatchObs" style="font-weight: 600; font-size: 0.8rem;">Observación (Opcional):</label>
+                        <input type="text" id="inputDispatchObs" placeholder="Ej: Entregado completo..." class="input-modal-text">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="btnCancelDispatchModal" class="btn-ghost">Cancelar</button>
+                    <button id="btnSubmitDispatchModal" class="btn-modal-primary">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Asentar Despacho (X)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL 2: DRILL-DOWN DETALLE DE LOTES
+             ========================================================= -->
+        <div id="drilldownModal" class="modal-backdrop hidden">
+            <div class="modal-container" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <div class="modal-title-wrap">
+                        <span class="tag" id="modalCategoryTag">Detalle de Lotes</span>
+                        <h2 class="modal-title" id="modalTitle">Desglose de Lotes</h2>
+                        <span class="modal-subtitle" id="modalSubtitle">OPs y Referencias asociadas</span>
+                    </div>
+                    <div class="modal-header-actions">
+                        <div class="metric-pill" id="modalMetricPill">
+                            <span id="modalTotalUnits">0 Unds</span>
+                            <span class="metric-divider">/</span>
+                            <span id="modalTotalLotes">0 Lotes</span>
+                        </div>
+                        <button id="btnModalClose" class="btn-icon" title="Cerrar ventana [Esc]" aria-label="Cerrar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-controls">
+                    <div class="search-wrap" style="max-width: 100%;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="modalSearchInput" placeholder="Buscar OP, Ref o descripción en este detalle..." autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="modal-body table-scroll-wrap">
+                    <table class="custom-table" id="tblModalDetail">
+                        <thead id="tblModalHead"></thead>
+                        <tbody id="tblModalBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="modal-footer">
+                    <span class="modal-footer-info" id="modalFooterInfo">Mostrando 0 registros</span>
+                    <div class="modal-footer-actions">
+                        <button id="btnExportModalCSV" class="btn-ghost">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Exportar Detalle CSV
+                        </button>
+                        <button id="btnModalCloseFooter" class="btn-ghost">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL: CARGAR CSV PARA ACTUALIZAR HOJA DATA
+             ========================================================= -->
+        <div id="uploadCsvModal" class="modal-backdrop hidden">
+            <div class="modal-container" style="max-width: 900px;" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <div class="modal-title-wrap">
+                        <span class="tag tag-integrated">Hoja DATA</span>
+                        <h2 class="modal-title">Cargar CSV</h2>
+                    </div>
+                    <button id="btnCloseUploadModal" class="btn-icon" title="Cerrar [Esc]">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <div class="modal-body" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Explicación amigable -->
+                    <div class="kpi-interactive-hint" style="margin-bottom: 0;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span>Este proceso actualiza directamente la pestaña <strong>DATA</strong> de tu Google Sheets (la hoja <strong>FILTER</strong> no se toca).</span>
+                    </div>
+
+                    <!-- Input de archivo oculto -->
+                    <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display: none;">
+
+                    <!-- Zona Dropzone de arrastrar y soltar -->
+                    <div id="csvDropzone" class="csv-dropzone">
+                        <div class="dropzone-icon-wrap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </div>
+                        <h4>Arrastra tu archivo CSV aquí o haz clic para seleccionar</h4>
+                        <p>Soporta archivos .CSV delimitados por comas o punto y coma</p>
+                    </div>
+
+                    <!-- Vista previa de los datos procesados -->
+                    <div id="csvPreviewContainer" class="csv-preview-container hidden">
+                        <div class="csv-meta-card">
+                            <div class="csv-file-info">
+                                <strong id="csvFileName">archivo.csv</strong>
+                                <div class="csv-file-stats">
+                                    <span id="csvRowCount">0 Registros</span>
+                                    <span>•</span>
+                                    <span id="csvColCount">23 Columnas</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span id="csvValidationBadge" class="tag tag-integrated">Validado</span>
+                                <button type="button" id="btnChangeCsvFile" class="btn-ghost" style="font-size: 0.75rem;">Cambiar Archivo</button>
+                            </div>
+                        </div>
+
+                        <!-- Mini tabla de previsualización -->
+                        <div class="csv-table-preview-wrap">
+                            <table>
+                                <thead id="csvPreviewTableHead"></thead>
+                                <tbody id="csvPreviewTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="btnCancelUploadModal" class="btn-ghost">Cancelar</button>
+                    <button id="btnConfirmUploadCsv" class="btn-modal-primary" disabled>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span>Subir a Hoja DATA</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

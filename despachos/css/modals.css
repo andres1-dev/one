@@ -1,0 +1,391 @@
+/* =========================================================
+   MODALS: DRILL-DOWN, ASENTAMIENTO DE DESPACHO & GAS
+   ========================================================= */
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+
+.modal-backdrop.hidden {
+    display: none !important;
+}
+
+.modal-container {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    max-width: 1050px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalAppear 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-subtle);
+    gap: 1rem;
+}
+
+.modal-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.modal-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.metric-pill {
+    font-family: var(--font-mono);
+    font-size: 0.775rem;
+    color: var(--text-secondary);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.modal-controls {
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg);
+}
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+    min-height: 200px;
+    max-height: 55vh;
+}
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-subtle);
+    font-size: 0.775rem;
+    color: var(--text-muted);
+}
+
+.modal-footer-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Modal Grouped Section Headers (Pendientes vs Despachados) */
+.modal-section-header {
+    font-weight: 600;
+    font-size: 0.775rem;
+    letter-spacing: 0.02em;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-section-header td {
+    padding: 0.55rem 0.85rem !important;
+}
+
+.modal-section-header.pending-header {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.modal-section-header.done-header {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.modal-section-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.modal-empty-row td {
+    padding: 1.25rem 0.85rem !important;
+    color: var(--text-muted);
+    font-size: 0.775rem;
+    font-style: italic;
+    background: var(--bg);
+}
+
+/* Modal 1: Lot Summary Card & Form */
+.lot-summary-card {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.lot-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+}
+
+.lot-lbl {
+    color: var(--text-muted);
+}
+
+.lot-val {
+    color: var(--text);
+    font-weight: 500;
+}
+
+.label-with-chips {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+}
+
+.quick-chips {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.btn-chip {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.btn-chip:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+}
+
+.btn-chip.active {
+    background: var(--accent-bg);
+    color: var(--text);
+    font-weight: 600;
+    border-color: var(--text-muted);
+}
+
+.input-modal-date,
+.input-modal-text {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.825rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    transition: border-color var(--transition);
+}
+
+.input-modal-date:focus,
+.input-modal-text:focus {
+    border-color: var(--accent);
+    background: var(--bg);
+}
+
+.btn-modal-primary {
+    background: var(--success);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.55rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all var(--transition);
+}
+
+.btn-modal-primary:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+}
+
+.btn-modal-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-spinner {
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* =========================================================
+   CSV UPLOAD MODAL & DROPZONE (HOJA "DATA")
+   ========================================================= */
+.csv-dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-subtle);
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.csv-dropzone:hover,
+.csv-dropzone.drag-over {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+    transform: scale(0.99);
+}
+
+.dropzone-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.csv-dropzone h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.csv-dropzone p {
+    font-size: 0.775rem;
+    color: var(--text-muted);
+}
+
+.csv-preview-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.csv-meta-card {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.csv-file-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.csv-file-info strong {
+    font-size: 0.85rem;
+    color: var(--text);
+    font-family: var(--font-mono);
+}
+
+.csv-file-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.csv-table-preview-wrap {
+    max-height: 240px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+}
+
+.csv-table-preview-wrap table {
+    font-size: 0.75rem;
+}
+
+.csv-table-preview-wrap th {
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-subtle);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.csv-table-preview-wrap td {
+    padding: 0.35rem 0.6rem;
+    font-family: var(--font-mono);
+}
