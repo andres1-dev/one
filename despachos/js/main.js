@@ -23,6 +23,7 @@ import {
     handleFileSelect,
     submitCsvUpload
 } from './modals/uploadModal.js';
+import { initProgramacionView, closeAsentarModal } from './views/programacionView.js';
 
 export function switchTab(tabName) {
     state.activeTab = tabName;
@@ -30,9 +31,10 @@ export function switchTab(tabName) {
         tab.classList.toggle('active', tab.dataset.view === tabName);
     });
 
-    if (DOM.viewTable) DOM.viewTable.classList.toggle('hidden', tabName !== 'table');
-    if (DOM.viewDespachos) DOM.viewDespachos.classList.toggle('hidden', tabName !== 'despachos');
-    if (DOM.viewKPIs) DOM.viewKPIs.classList.toggle('hidden', tabName !== 'kpis');
+    if (DOM.viewTable)        DOM.viewTable.classList.toggle('hidden', tabName !== 'table');
+    if (DOM.viewDespachos)    DOM.viewDespachos.classList.toggle('hidden', tabName !== 'despachos');
+    if (DOM.viewKPIs)         DOM.viewKPIs.classList.toggle('hidden', tabName !== 'kpis');
+    if (DOM.viewProgramacion) DOM.viewProgramacion.classList.toggle('hidden', tabName !== 'programacion');
 
     if (tabName === 'kpis') {
         computeAndRenderKPIs();
@@ -50,6 +52,15 @@ function setupEventListeners() {
     });
 
     // 2. Acciones Globales
+    if (DOM.btnOpenProgramar) {
+        DOM.btnOpenProgramar.addEventListener('click', () => {
+            if (DOM.tabProgramacion) {
+                DOM.tabProgramacion.classList.remove('hidden');
+            }
+            switchTab('programacion');
+        });
+    }
+
     if (DOM.btnRefresh) DOM.btnRefresh.addEventListener('click', fetchAllData);
     if (DOM.btnRetry) DOM.btnRetry.addEventListener('click', fetchAllData);
 
@@ -270,16 +281,18 @@ function setupEventListeners() {
             closeDispatchConfirmationModal();
             closeDrilldownModal();
             closeUploadModal();
+            closeAsentarModal();
         }
     });
 
-    [DOM.confirmDispatchModal, DOM.drilldownModal, DOM.uploadCsvModal].forEach(modal => {
+    [DOM.confirmDispatchModal, DOM.drilldownModal, DOM.uploadCsvModal, DOM.asentarProgModal].forEach(modal => {
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     closeDispatchConfirmationModal();
                     closeDrilldownModal();
                     closeUploadModal();
+                    closeAsentarModal();
                 }
             });
         }
@@ -291,6 +304,7 @@ import { renderSkeletons } from './utils.js';
 function init() {
     renderSkeletons();
     setupEventListeners();
+    initProgramacionView();
     fetchAllData();
 }
 

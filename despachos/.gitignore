@@ -10,7 +10,6 @@ Thumbs.db
 
 # Carpetas y archivos privados
 private/
-gas/
 
 # Archivos locales de configuración
 config.local.js

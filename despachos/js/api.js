@@ -13,20 +13,10 @@ import { applyFilters, populateFilterOptions } from './views/registrosView.js';
 import { applyDespachosFilters, populateDespachosFilterOptions } from './views/despachosView.js';
 
 /**
- * Obtiene la configuración (API Key y Spreadsheet ID) desde GAS
- * si no están ya en memoria o en caché.
+ * Obtiene la configuración (API Key y Spreadsheet ID) dinámicamente desde GAS
  */
 export async function ensureConfig() {
     if (CONFIG.API_KEY && CONFIG.SPREADSHEET_ID) {
-        return;
-    }
-
-    // Intentar desde sessionStorage primero (ultra rápido)
-    const cachedKey = sessionStorage.getItem('cached_gas_key');
-    const cachedId  = sessionStorage.getItem('cached_gas_id');
-    if (cachedKey && cachedId) {
-        CONFIG.API_KEY = cachedKey;
-        CONFIG.SPREADSHEET_ID = cachedId;
         return;
     }
 
@@ -37,11 +27,12 @@ export async function ensureConfig() {
         if (data && data.apiKey) {
             CONFIG.API_KEY = data.apiKey;
             if (data.spreadsheetId) CONFIG.SPREADSHEET_ID = data.spreadsheetId;
-            sessionStorage.setItem('cached_gas_key', data.apiKey);
-            sessionStorage.setItem('cached_gas_id', data.spreadsheetId || CONFIG.SPREADSHEET_ID);
+        } else {
+            throw new Error('La respuesta de Google Apps Script no contiene la API Key requerida.');
         }
     } catch (err) {
-        console.warn('No se pudo obtener config remota desde GAS, usando fallback local:', err);
+        console.error('Error al obtener la configuración desde GAS:', err);
+        throw new Error(`No se pudo obtener la configuración desde GAS: ${err.message}`);
     }
 }
 
@@ -51,24 +42,25 @@ export async function fetchAllData() {
     setLoadingState(true);
     updateStatus('loading');
 
-    // Garantizar que tenemos la API Key y Spreadsheet ID antes de consultar
-    await ensureConfig();
-
-    if (!CONFIG.API_KEY) {
-        setLoadingState(false);
-        updateStatus('error');
-        showError('No se pudo obtener la API Key de Google Sheets desde GAS. Verifica la conexión.');
-        return;
-    }
-
-    const urlFilter = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(CONFIG.SHEET_FILTER)}!${CONFIG.RANGE_FILTER}?key=${CONFIG.API_KEY}`;
-    const urlDespachos = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(CONFIG.SHEET_DESPACHOS)}!${CONFIG.RANGE_DESPACHOS}?key=${CONFIG.API_KEY}`;
-
     try {
+        // Garantizar que obtenemos la configuración dinámicamente desde GAS
+        await ensureConfig();
+
+        if (!CONFIG.API_KEY || !CONFIG.SPREADSHEET_ID) {
+            throw new Error('No se pudo obtener la configuración (API Key / Spreadsheet ID) desde Google Apps Script.');
+        }
+
+        const urlFilter = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(CONFIG.SHEET_FILTER)}!${CONFIG.RANGE_FILTER}?key=${CONFIG.API_KEY}`;
+        const urlDespachos = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(CONFIG.SHEET_DESPACHOS)}!${CONFIG.RANGE_DESPACHOS}?key=${CONFIG.API_KEY}`;
+
         const [resFilter, resDespachos] = await Promise.all([
             fetch(urlFilter).then(r => r.json()),
             fetch(urlDespachos).then(r => r.json()).catch(() => ({ values: [] }))
         ]);
+
+        if (resFilter.error) {
+            throw new Error(`Google Sheets API (${resFilter.error.code || 'Error'}): ${resFilter.error.message || 'Error al consultar hoja FILTER'}`);
+        }
 
         if (!resFilter.values || resFilter.values.length <= 1) {
             throw new Error('La hoja FILTER está vacía o no tiene registros.');
@@ -90,8 +82,9 @@ export async function fetchAllData() {
         updateStatus('online');
         setLoadingState(false);
     } catch (error) {
-        console.error('Error Google Sheets:', error);
+        console.error('Error al cargar datos:', error);
         updateStatus('error');
+        setLoadingState(false);
         showError(error.message);
     }
 }
@@ -182,3 +175,19 @@ export async function uploadDataToGAS(rows) {
         mode: 'no-cors'
     });
 }
+
+export async function asentarProgramacionToGAS(rows, fechaPrograma, observacion) {
+    const url = state.gasWebAppUrl || CONFIG.DEFAULT_GAS_URL;
+    return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+            action: 'asentardespachosn',
+            rows: rows,
+            fechaPrograma: fechaPrograma,
+            observacion: observacion || ''
+        }),
+        mode: 'no-cors'
+    });
+}
+

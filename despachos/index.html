@@ -54,6 +54,17 @@
                         </svg>
                         Datos
                     </button>
+                    <button class="nav-tab hidden" id="tabProgramacion" data-view="programacion">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        Programación
+                    </button>
                 </nav>
             </div>
 
@@ -67,6 +78,16 @@
                 </div>
 
                 <div class="action-buttons">
+                    <button id="btnOpenProgramar" class="btn-ghost" title="Capturar programación de taller">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                        <span>Programar</span>
+                    </button>
                     <button id="btnRefresh" class="btn-ghost" title="Actualizar datos">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -856,6 +877,98 @@
                     </button>
                 </div>
             </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL 4: CALENDARIO DE ASENTAMIENTO (COMPACTO)
+             ========================================================= -->
+        <div id="asentarProgModal" class="modal-backdrop hidden">
+            <div class="calendar-modal-box" role="dialog" aria-modal="true">
+                <!-- Barra superior de navegación de mes -->
+                <div class="cal-nav-bar">
+                    <button type="button" id="btnCalPrevMonth" class="btn-icon cal-arrow-btn" title="Mes anterior">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <span id="calCurrentMonthLabel" class="cal-month-title">Agosto 2026</span>
+                    <button type="button" id="btnCalNextMonth" class="btn-icon cal-arrow-btn" title="Mes siguiente">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                    <button id="btnCloseAsentarProgModal" class="btn-icon cal-close-btn" title="Cerrar [Esc]">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <!-- Días de la semana -->
+                <div class="cal-weekdays">
+                    <span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span>
+                </div>
+
+                <!-- Grilla de días -->
+                <div id="calDaysGrid" class="cal-days-grid"></div>
+
+                <!-- Input oculto para valor seleccionado -->
+                <input type="hidden" id="inputAsentarProgDate" value="">
+
+                <!-- Botón directo de Asentar -->
+                <div class="cal-footer">
+                    <button id="btnSubmitAsentarProgModal" class="btn-modal-primary cal-asentar-btn">
+                        <span>Asentar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             VIEW 4: CAPTURA DE PROGRAMACIÓN DE TALLER
+             ========================================================= -->
+        <div id="viewProgramacion" class="view-panel hidden">
+
+            <!-- Header de sección -->
+            <div class="prog-header">
+                <div class="prog-header-title">
+                    <h2>Programación</h2>
+                    <span class="kpi-sub">Mapeo de columnas: OP · REFERENCIA · CANTIDAD · SESGO · MUESTRA · TALLER · PRECIO · FACTURACION · LINEA</span>
+                </div>
+                <div class="prog-header-actions">
+                    <button id="btnProgClear" class="btn-ghost">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6l-1 14H6L5 6"></path>
+                            <path d="M10 11v6M14 11v6"></path>
+                            <path d="M9 6V4h6v2"></path>
+                        </svg>
+                        Limpiar
+                    </button>
+                    <button id="btnProgCopyJSON" class="btn-ghost" disabled>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copiar JSON
+                    </button>
+                    <button id="btnProgSave" class="btn-ghost btn-prog-save" disabled>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Exportar CSV
+                    </button>
+                    <button id="btnProgAsentar" class="btn-ghost btn-prog-asentar" disabled title="Guardar registros en la hoja DESPACHOS_N">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Asentar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Zona Excel — recibe el paste y renderiza la tabla -->
+            <div id="progExcelZone" class="prog-excel-zone" tabindex="0" role="grid"
+                aria-label="Área de pegado de tabla. Haz clic y pega con Ctrl+V">
+            </div>
+
+
         </div>
 
         <!-- Toast Notifications -->

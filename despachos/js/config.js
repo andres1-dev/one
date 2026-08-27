@@ -3,10 +3,10 @@
  */
 
 export const CONFIG = {
-    SPREADSHEET_ID: localStorage.getItem('gas_spreadsheet_id') || '11kcA7CYcaAHAreSGt9uFOTciSFfXLYTumFiWJvkRRcU',
+    SPREADSHEET_ID: '',
     SHEET_FILTER: 'FILTER',
     SHEET_DESPACHOS: 'DESPACHOS',
-    API_KEY: localStorage.getItem('gas_api_key') || '',
+    API_KEY: '',
     RANGE_FILTER: 'A:U',
     RANGE_DESPACHOS: 'A:I',
     DEFAULT_GAS_URL: 'https://script.google.com/macros/s/AKfycbzzox2Ki2k0oQEK8cpdo87Ryd4NEtF0JlK96rRY1bb1hrrAlkeQcFgzVN7NY6kEYHnQ/exec'

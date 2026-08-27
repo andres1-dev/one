@@ -8,6 +8,7 @@ export const DOM = {
     viewTable: document.getElementById('viewTable'),
     viewDespachos: document.getElementById('viewDespachos'),
     viewKPIs: document.getElementById('viewKPIs'),
+    viewProgramacion: document.getElementById('viewProgramacion'),
     
     // Status & Actions
     errorContainer: document.getElementById('errorContainer'),
@@ -128,5 +129,21 @@ export const DOM = {
     btnChangeCsvFile: document.getElementById('btnChangeCsvFile'),
 
     // Toast Container
-    toastContainer: document.getElementById('toastContainer')
+    toastContainer: document.getElementById('toastContainer'),
+
+    // Vista y Modal Programación
+    tabProgramacion: document.getElementById('tabProgramacion'),
+    btnOpenProgramar: document.getElementById('btnOpenProgramar'),
+    btnProgAsentar: document.getElementById('btnProgAsentar'),
+    asentarProgModal: document.getElementById('asentarProgModal'),
+    btnCloseAsentarProgModal: document.getElementById('btnCloseAsentarProgModal'),
+    btnCancelAsentarProgModal: document.getElementById('btnCancelAsentarProgModal'),
+    btnSubmitAsentarProgModal: document.getElementById('btnSubmitAsentarProgModal'),
+    inputAsentarProgDate: document.getElementById('inputAsentarProgDate'),
+    inputAsentarProgObs: document.getElementById('inputAsentarProgObs'),
+    asentarProgSubtitle: document.getElementById('asentarProgSubtitle'),
+    btnChipProgHoy: document.getElementById('btnChipProgHoy'),
+    btnChipProgAyer: document.getElementById('btnChipProgAyer'),
+    btnChipProgManana: document.getElementById('btnChipProgManana')
 };
+
