@@ -6,11 +6,11 @@ export class LoginUseCase {
     this.authPort = authPort;
   }
 
-  async execute(email, password) {
-    if (!email || !password) {
-      throw new Error("El correo y la contraseña son requeridos");
+  async execute(identificador, password) {
+    if (!identificador || !password) {
+      throw new Error("El usuario o correo y la contraseña son requeridos");
     }
-    return await this.authPort.login(email.trim(), password);
+    return await this.authPort.login(identificador.trim(), password);
   }
 
   async logout() {

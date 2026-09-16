@@ -1,23 +1,25 @@
 import { getSupabaseClient } from "./config.js";
 import { AuthPort } from "../../domain/ports/AuthPort.js";
+import { resolverEmailOperario, resolverNombreOperario } from "../../domain/services/LoginEmailResolver.js";
 
 /**
- * Adaptador de Autenticación usando SOLO el SDK de Supabase Auth.
- * No pide configuración al usuario - usa las constantes de config.js.
+ * Adaptador de Autenticación usando el SDK de Supabase Auth.
+ * Admite autenticación directa por nombre (kevin, yamileth, paula, tatiana, nicol) o correo.
  */
 export class SupabaseAuthAdapter extends AuthPort {
   client() {
     return getSupabaseClient();
   }
 
-  async login(email, password) {
+  async login(identificador, password) {
+    const email = await resolverEmailOperario(identificador);
     const { data, error } = await this.client().auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
     const user = data.user;
     return {
       user,
       session: data.session,
-      displayName: user?.user_metadata?.full_name || user?.email || "Operario"
+      displayName: resolverNombreOperario(user?.email, user?.user_metadata?.full_name)
     };
   }
 
@@ -33,7 +35,7 @@ export class SupabaseAuthAdapter extends AuthPort {
     return {
       user,
       session: data.session,
-      displayName: user?.user_metadata?.full_name || user?.email || "Operario"
+      displayName: resolverNombreOperario(user?.email, user?.user_metadata?.full_name)
     };
   }
 
@@ -43,7 +45,7 @@ export class SupabaseAuthAdapter extends AuthPort {
       callback(event, user ? {
         user,
         session,
-        displayName: user?.user_metadata?.full_name || user?.email || "Operario"
+        displayName: resolverNombreOperario(user?.email, user?.user_metadata?.full_name)
       } : null);
     });
     return () => data?.subscription?.unsubscribe();

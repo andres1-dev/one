@@ -37,10 +37,19 @@ export class AuthView {
 
           <form id="login-form">
             <div class="form-group">
-              <label for="login-email">Correo Electrónico</label>
+              <label for="login-email">Usuario o Correo</label>
               <div class="input-with-icon">
-                <i class="codicon codicon-mail input-icon-left"></i>
-                <input type="email" id="login-email" placeholder="operario@empresa.com" required autocomplete="username">
+                <i class="codicon codicon-account input-icon-left"></i>
+                <input 
+                  type="text" 
+                  id="login-email" 
+                  placeholder="Ej: kevin, yamileth, paula o correo..." 
+                  required 
+                  autocomplete="username"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                >
               </div>
             </div>
             <div class="form-group">

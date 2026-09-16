@@ -22,6 +22,7 @@ import { TiemposListView }  from "./components/TiemposListView.js";
 import { KPIsView }         from "./components/KPIsView.js";
 
 import { GoogleSheetsConfig } from "../infrastructure/googlesheets/GoogleSheetsConfig.js";
+import { cargarOperariosDesdeEF } from "../domain/services/LoginEmailResolver.js";
 
 class Application {
   constructor() {
@@ -102,6 +103,9 @@ class Application {
   }
 
   async start() {
+    // Pre-cargar mapa de operarios desde la EF en background
+    cargarOperariosDesdeEF();
+
     try {
       const session = await this.loginUseCase.getSession();
       if (session) {
