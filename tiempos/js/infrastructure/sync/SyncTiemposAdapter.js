@@ -69,10 +69,10 @@ export class SyncTiemposAdapter extends TiemposPort {
   /**
    * Finaliza tiempo en Supabase inmediatamente, Sheets en background async
    */
-  async finalizarTiempo(id_master, options = {}) {
+  async finalizarTiempo(id_master) {
     try {
       // Finalizar en Supabase inmediatamente
-      const supabaseResult = await this.supabaseAdapter.finalizarTiempo(id_master, options);
+      const supabaseResult = await this.supabaseAdapter.finalizarTiempo(id_master);
       
       // Sincronizar con Google Sheets en background (fire and forget) - SIN ESPERAR
       setTimeout(() => {

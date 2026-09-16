@@ -245,20 +245,22 @@ export class GoogleSheetsAdapter extends TiemposPort {
     try {
       console.log("📊 Finalizando tiempo en Google Sheets (background):", id_master);
       
-      const isRetenido = Boolean(supabaseResult?.retenido);
       const payload = {
         action: "finalizarTiempo",
         id_master: id_master,
-        fecha_finalizacion: supabaseResult?.fecha_finalizacion || new Date().toISOString(),
-        retenido: isRetenido,
-        motivo: supabaseResult?.motivo || ""
+        fecha_finalizacion: supabaseResult?.fecha_finalizacion || new Date().toISOString()
       };
 
-      if (supabaseResult?.fecha_liberacion) {
-        payload.fecha_liberacion = supabaseResult.fecha_liberacion;
-      }
-      if (supabaseResult?.liberado_por) {
-        payload.liberado_por = supabaseResult.liberado_por;
+      if (supabaseResult) {
+        if (supabaseResult.retenido !== undefined) {
+          payload.retenido = Boolean(supabaseResult.retenido);
+        }
+        if (supabaseResult.fecha_liberacion) {
+          payload.fecha_liberacion = supabaseResult.fecha_liberacion;
+        }
+        if (supabaseResult.liberado_por) {
+          payload.liberado_por = supabaseResult.liberado_por;
+        }
       }
       
       // Usar mode: 'no-cors' y NO esperar respuesta
@@ -273,13 +275,11 @@ export class GoogleSheetsAdapter extends TiemposPort {
         console.error("❌ Error en sincronización background con Google Sheets:", error);
       });
       
-      console.log("✅ Finalización de tiempo enviada a Sheets (fire-and-forget)");
+      console.log("✅ Finalización de tiempo enviada (fire-and-forget)");
       
       return new RegistroTiempo({
         id_master: id_master,
-        fecha_finalizacion: payload.fecha_finalizacion,
-        retenido: isRetenido,
-        motivo: payload.motivo
+        fecha_finalizacion: payload.fecha_finalizacion
       });
     } catch (error) {
       console.error("❌ Error en GoogleSheetsAdapter.finalizarTiempo:", error);

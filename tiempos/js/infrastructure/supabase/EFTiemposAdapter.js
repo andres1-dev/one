@@ -100,12 +100,8 @@ export class EFTiemposAdapter extends TiemposPort {
   /**
    * Finaliza el tiempo — identifica por id_master
    */
-  async finalizarTiempo(id_master, options = {}) {
-    const data = await this._call("finalizar_tiempo", { 
-      id_master,
-      retenido: Boolean(options?.retenido),
-      motivo: options?.motivo || null
-    });
+  async finalizarTiempo(id_master) {
+    const data = await this._call("finalizar_tiempo", { id_master });
     return new RegistroTiempo(data);
   }
 

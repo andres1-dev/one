@@ -766,12 +766,18 @@ export class TiemposListView {
       btnConfirm.disabled = true;
       btnConfirm.innerHTML = `<i class="codicon codicon-loading codicon-modifier-spin"></i> Finalizando...`;
       try {
-        const motivo = isRetained ? String(motivoSelect.value).trim() : null;
-        await this.finalizarTiempoUseCase.execute({ 
-          id_master,
-          retenido: isRetained,
-          motivo
-        });
+        await this.finalizarTiempoUseCase.execute({ id_master });
+
+        if (isRetained) {
+          const motivo = motivoSelect.value;
+          if (motivo) {
+            await this.cambiarRetencionUseCase.execute({
+              id_master,
+              nuevoEstadoRetenido: true,
+              motivo
+            });
+          }
+        }
         
         closeModal();
         await this.loadRecords();
