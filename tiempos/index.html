@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Tiempos</title>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="./css/style.css">
+  <!-- Codicons (VS Code Icons) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.35/dist/codicon.css">
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <div id="auth-view" style="display:none;"></div>
+
+  <!-- VS Code Layout -->
+  <div class="vscode-layout" id="vscode-workspace" style="display:none;">
+    
+    <!-- Activity Bar (Sidebar izquierdo con iconos) -->
+    <aside class="activity-bar">
+      <div class="activity-item active" title="Explorador" id="activity-explorer">
+        <i class="codicon codicon-files"></i>
+      </div>
+      <div class="activity-item" title="Búsqueda">
+        <i class="codicon codicon-search"></i>
+      </div>
+      <div class="activity-item" title="Configuración">
+        <i class="codicon codicon-settings-gear"></i>
+      </div>
+      <div class="activity-spacer"></div>
+      <div class="activity-item" title="Usuario" id="activity-user">
+        <i class="codicon codicon-account"></i>
+      </div>
+      <div class="activity-item" title="Cerrar Sesión" id="activity-logout">
+        <i class="codicon codicon-sign-out"></i>
+      </div>
+    </aside>
+
+
+
+    <!-- Área Principal -->
+    <main class="main-editor">
+      <!-- Header/Status Bar -->
+      <header class="editor-header">
+        <div class="header-left">
+          <div class="brand-title">
+            <i class="codicon codicon-history"></i>
+            <span>Control de Tiempos</span>
+          </div>
+        </div>
+        <div class="header-right" id="header-user-bar"></div>
+      </header>
+
+      <!-- Editor Content -->
+      <div class="editor-content">
+        <div id="tiempos-list-view"></div>
+      </div>
+
+      <!-- Panel Inferior (tipo terminal) -->
+      <section class="bottom-panel" id="bottom-panel">
+        <div class="panel-header">
+          <div class="panel-tabs">
+            <div class="panel-tab active" data-tab="status">
+              <i class="codicon codicon-terminal"></i>
+              <span>Estado</span>
+            </div>
+            <div class="panel-tab" data-tab="kpis">
+              <i class="codicon codicon-chart-line"></i>
+              <span>KPIs</span>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <button class="panel-action-btn" title="Cerrar panel">
+              <i class="codicon codicon-close"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-content" id="panel-status-content">
+          <!-- Contenido del panel inferior -->
+        </div>
+        <div class="panel-content" id="panel-kpis-content" style="display:none;">
+          <!-- Contenido de KPIs -->
+        </div>
+      </section>
+      
+      <!-- Botón para expandir panel cuando está colapsado -->
+      <button class="panel-expand-trigger" id="panel-expand-btn" title="Expandir panel">
+        <i class="codicon codicon-chevron-up"></i>
+      </button>
+    </main>
+  </div>
+
+  <div id="modal-container"></div>
+
+  <script type="module" src="./js/ui/app.js"></script>
+</body>
+</html>
