@@ -31,6 +31,45 @@ export class TiemposListView {
     this.timerInterval               = null;
   }
 
+  _isCurrentUserAdmin() {
+    const user = typeof this.getCurrentUser === "function" ? this.getCurrentUser() : null;
+    if (!user) return false;
+    const role = String(
+      user.role ||
+      user.user?.app_metadata?.role ||
+      user.user?.user_metadata?.role ||
+      user.user?.raw_app_meta_data?.role ||
+      user.user?.raw_user_meta_data?.role ||
+      ""
+    ).toUpperCase();
+    return role === "ADMIN" || role === "SUPERADMIN" || role === "COORDINADOR";
+  }
+
+  _isRecordOfCurrentUser(record) {
+    if (this._isCurrentUserAdmin()) return true;
+    const user = typeof this.getCurrentUser === "function" ? this.getCurrentUser() : null;
+    if (!user) return true;
+
+    const escaneadoPor = String(record.escaneado_por || "").toLowerCase().trim();
+    if (!escaneadoPor) return false;
+
+    const candidates = [
+      user.displayName,
+      user.fullName,
+      user.email,
+      user.cedula,
+      user.user?.email,
+      user.user?.user_metadata?.full_name,
+      user.user?.user_metadata?.cedula,
+      user.user?.user_metadata?.id_usuario
+    ]
+      .filter(Boolean)
+      .map(c => String(c).toLowerCase().trim())
+      .filter(c => c.length > 0);
+
+    return candidates.some(cand => escaneadoPor.includes(cand) || cand.includes(escaneadoPor));
+  }
+
   render() {
     this.container.innerHTML = `
       <div class="card">
@@ -445,10 +484,20 @@ export class TiemposListView {
     if (!tbody) return;
 
     try {
+      const isAdmin = this._isCurrentUserAdmin();
+
       if (this.mode === 'activos') {
-        this.records = await this.listarUltimosTiemposUseCase.execute(50);
+        const raw = await this.listarUltimosTiemposUseCase.execute(50);
+        // Excluir terminantemente registros finalizados o listos
+        // y restringir a los propios si no es admin
+        this.records = (raw || [])
+          .filter(r => !r.estaFinalizado() && !r.fecha_finalizacion)
+          .filter(r => this._isRecordOfCurrentUser(r));
       } else {
-        this.records = await this.listarHistoricosUseCase.execute(100);
+        const raw = await this.listarHistoricosUseCase.execute(100);
+        // En históricos, filtrar también según rol
+        this.records = (raw || [])
+          .filter(r => this._isRecordOfCurrentUser(r));
       }
 
       if (!this.records || this.records.length === 0) {
@@ -458,8 +507,8 @@ export class TiemposListView {
               <i class="codicon codicon-info" style="font-size: 24px; color: var(--text-dim); margin-bottom: 8px;"></i>
               <div style="font-weight: 500;">
                 ${this.mode === 'activos' 
-                  ? 'No hay registros activos en este momento.' 
-                  : 'No hay registros históricos en Google Sheets.'}
+                  ? (isAdmin ? 'No hay registros activos en este momento.' : 'No tienes registros activos en este momento.') 
+                  : (isAdmin ? 'No hay registros históricos en Google Sheets.' : 'No tienes registros históricos en Google Sheets.')}
               </div>
             </td>
           </tr>

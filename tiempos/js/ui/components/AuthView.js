@@ -121,7 +121,7 @@ export class AuthView {
 
     // Update activity bar user icon
     if (this.activityUser) {
-      this.activityUser.title = `${sessionData.displayName} - Clic para más opciones`;
+      this.activityUser.title = `${sessionData.displayName || 'Usuario'} - Clic para más opciones`;
       this.activityUser.style.cursor = 'pointer';
       
       // Añadir funcionalidad de clic en usuario
@@ -132,10 +132,11 @@ export class AuthView {
         userInfo.innerHTML = `
           <div class="user-popup-content">
             <div class="user-popup-header">
-              <i class="codicon codicon-account"></i>
-              <span>${sessionData.displayName}</span>
+              <i class="codicon codicon-account" style="color: var(--accent);"></i>
+              <span>${sessionData.displayName || 'Operario'}</span>
             </div>
             <div class="user-popup-email">${sessionData.email || ''}</div>
+            ${sessionData.fullName && sessionData.fullName !== sessionData.displayName ? `<div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px;">${sessionData.fullName}</div>` : ''}
             <button class="btn btn-outline btn-sm btn-block" id="popup-logout">
               <i class="codicon codicon-sign-out"></i> Cerrar Sesión
             </button>
