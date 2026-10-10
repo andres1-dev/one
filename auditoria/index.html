@@ -120,10 +120,11 @@
           </div>
         </div>
         <div class="header-actions">
-          <span id="userInfo" class="user-pill"><i class="fa-solid fa-user"></i> Usuario</span>
-          <button id="headerLogoutBtn" type="button" class="btn btn-ghost-danger"
-            style="padding:6px 12px;font-size:12px;">
-            <i class="fa-solid fa-arrow-right-from-bracket"></i> Cerrar sesión
+          <span id="userInfo" class="user-pill"><i class="fa-solid fa-user"></i> <span class="user-email-text">Usuario</span></span>
+          <button id="headerLogoutBtn" type="button" class="btn btn-ghost-danger btn-logout"
+            title="Cerrar sesión" aria-label="Cerrar sesión">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span class="logout-text">Cerrar sesión</span>
           </button>
         </div>
       </header>
@@ -228,8 +229,18 @@
       <!-- Tabla de Resultados -->
       <section class="panel">
         <div class="section-header">
-          <div class="section-title"><i class="fa-solid fa-table-list"></i> Registros Obtenidos</div>
-          <div id="summary" style="font-size:12px;color:var(--text-muted);">Sin consultas previas</div>
+          <div class="section-title" id="resultsPanelTitle"><i class="fa-solid fa-table-list"></i> Registros Obtenidos</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div id="summary" style="font-size:12px;color:var(--text-muted);">Sin consultas previas</div>
+            <div class="view-toggle-group" id="viewToggleGroup" style="display:none;">
+              <button id="viewTableBtn" class="view-toggle-btn active" title="Ver tabla" aria-label="Vista tabla">
+                <i class="fa-solid fa-table-list"></i><span>Tabla</span>
+              </button>
+              <button id="viewTreeBtn" class="view-toggle-btn" title="Ver árbol" aria-label="Vista árbol de descomposición">
+                <i class="fa-solid fa-sitemap"></i><span>Árbol</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="table-controls">
@@ -339,6 +350,11 @@
               Siguiente <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
+        </div>
+
+        <!-- Árbol de Descomposición estilo Power BI -->
+        <div id="decompSection" hidden style="margin-top: 10px;">
+          <div id="decompTree" class="pbi-tree-container"></div>
         </div>
       </section>
 

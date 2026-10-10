@@ -1,0 +1,157 @@
+/* ── Botones Profesionales Refinados ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #27272a 0%, #18181b 100%);
+  color: #ffffff;
+  border: 1px solid #18181b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #27272a;
+  border-color: #3f3f46;
+}
+
+.btn-primary:active:not(:disabled) {
+  background: #09090b;
+  border-color: #09090b;
+  box-shadow: 0 0 0 2px rgba(24, 24, 27, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.25);
+  transform: translateY(1px);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid #52525b;
+  outline-offset: 2px;
+}
+
+/* ── Botón Outline (Solo borde sutil hasta usarse) ── */
+.btn-outline-primary {
+  background: #ffffff;
+  color: #27272a;
+  border: 1px solid #d4d4d8;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.btn-outline-primary:hover:not(:disabled) {
+  background: #fafafa;
+  color: #18181b;
+  border-color: #a1a1aa;
+}
+
+.btn-outline-primary:active:not(:disabled),
+.btn-outline-primary:focus:not(:disabled) {
+  background: #18181b;
+  color: #ffffff;
+  border-color: #18181b;
+  box-shadow: 0 0 0 2px rgba(24, 24, 27, 0.15);
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #27272a;
+  border: 1px solid #d4d4d8;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #fafafa;
+  border-color: #a1a1aa;
+}
+
+/* ── Botón Rojo Inline (Cerrar sesión / Limpiar filtros) ── */
+.btn-ghost-danger {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.btn-ghost-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.btn-ghost-danger:active:not(:disabled) {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Toggle vista tabla / árbol ── */
+.view-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.view-toggle-btn i {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.view-toggle-btn span {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.view-toggle-btn:hover {
+  background: #e4e4e7;
+  color: var(--text-main);
+}
+
+.view-toggle-btn.active {
+  background: #18181b;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}

@@ -3,13 +3,26 @@
  * Estrategia de caché para funcionamiento offline y rendimiento óptimo.
  */
 
-const CACHE_NAME = 'auditoria-pwa-v1';
+const CACHE_NAME = 'auditoria-pwa-v3';
 
 const STATIC_ASSETS = [
+  /*
   './',
   './index.html',
   './manifest.json',
   './assets/css/styles.css',
+  './assets/css/base/variables.css',
+  './assets/css/base/base.css',
+  './assets/css/components/header.css',
+  './assets/css/components/buttons.css',
+  './assets/css/components/forms.css',
+  './assets/css/components/kpi.css',
+  './assets/css/components/table.css',
+  './assets/css/components/filters.css',
+  './assets/css/components/notifications.css',
+  './assets/css/components/decomp-tree.css',
+  './assets/css/pages/auth.css',
+  './assets/css/layout/responsive.css',
   './assets/icons/favicon.png',
   './assets/icons/favicon.svg',
   './assets/icons/apple-touch-icon.svg',
@@ -37,8 +50,10 @@ const STATIC_ASSETS = [
   './src/presentation/components/FilterPanel.js',
   './src/presentation/components/TableView.js',
   './src/presentation/components/ScopeView.js',
+  './src/presentation/components/DecompositionTreeView.js',
   './src/presentation/components/GeometricParticles.js',
   './src/presentation/controllers/AppController.js'
+  */
 ];
 
 // Instalación: Precarga de recursos estáticos
@@ -82,7 +97,7 @@ self.addEventListener('fetch', event => {
           if (networkResponse && networkResponse.status === 200) {
             caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse));
           }
-        }).catch(() => {});
+        }).catch(() => { });
         return cachedResponse;
       }
 

@@ -1,0 +1,103 @@
+/* ── Panel de Filtros de Columna ── */
+#filterPanel {
+  display: none;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+}
+
+#filterPanel.visible {
+  display: flex;
+}
+
+.filter-group {
+  display: flex;
+  min-width: 145px;
+  flex: 1;
+}
+
+.select-with-icon {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.select-with-icon i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a1a1aa;
+  font-size: 13px;
+  pointer-events: none;
+  transition: color 0.15s ease;
+  z-index: 2;
+}
+
+.filter-select {
+  width: 100%;
+  height: 38px;
+  padding: 0 32px 0 34px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text-main);
+  background: #ffffff;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.filter-select.is-placeholder {
+  color: #71717a;
+  font-weight: 500;
+}
+
+.filter-select:hover {
+  border-color: #a1a1aa;
+}
+
+.select-with-icon:hover i {
+  color: #71717a;
+}
+
+.filter-select:focus {
+  border-color: #71717a;
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.06);
+}
+
+.filter-select.active {
+  border-color: #18181b;
+  background-color: #f4f4f5;
+  color: #18181b;
+  font-weight: 600;
+}
+
+.select-with-icon:has(.filter-select.active) i,
+.filter-select.active ~ i {
+  color: #18181b;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#filterToggleBtn.has-filters {
+  background: #18181b;
+  color: #ffffff;
+  border-color: #18181b;
+}

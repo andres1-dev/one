@@ -1,0 +1,160 @@
+/* ── Estilos Universales de Inputs y Formularios ── */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"] {
+  display: block;
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-main);
+  background-color: #ffffff;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  outline: none;
+  transition: all 0.15s ease-in-out;
+}
+
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="password"]:hover,
+input[type="search"]:hover {
+  border-color: #a1a1aa;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus {
+  border-color: #71717a;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.06);
+}
+
+input::placeholder {
+  color: #a1a1aa;
+  font-size: 12.5px;
+}
+
+/* ── Input con Icono Interior ── */
+.input-with-icon {
+  position: relative;
+  width: 280px;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon i {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #71717a;
+  font-size: 14px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  transition: color 0.15s ease;
+}
+
+.input-with-icon:focus-within i {
+  color: #18181b;
+}
+
+.input-with-icon input {
+  padding-left: 38px !important;
+}
+
+/* ── Formulario de Búsqueda Compacto ── */
+.query-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.query-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.query-right {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Ventana Operativa (Chip Interactivo de Rango) ── */
+.scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+  user-select: none;
+}
+
+.scope-chip:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.scope-chip-icon {
+  color: #71717a;
+  font-size: 13px;
+  transition: color 0.15s ease;
+}
+
+.scope-chip:hover .scope-chip-icon {
+  color: var(--primary);
+}
+
+.scope-chip-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scope-chip-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.scope-chip-dates {
+  color: var(--text-main);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.scope-chip-badge {
+  background: #f4f4f5;
+  color: #3f3f46;
+  border: 1px solid #e4e4e7;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.02em;
+  transition: all 0.15s ease;
+}
+
+.scope-chip:hover .scope-chip-badge {
+  background: #18181b;
+  color: #ffffff;
+  border-color: #18181b;
+}

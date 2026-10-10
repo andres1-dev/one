@@ -17,6 +17,7 @@ export class AppController {
     filterPanel,
     tableView,
     scopeView,
+    decompositionTree,
     particles
   }) {
     this.store = store;
@@ -31,6 +32,7 @@ export class AppController {
     this.filterPanel = filterPanel;
     this.tableView = tableView;
     this.scopeView = scopeView;
+    this.decompositionTree = decompositionTree ?? null;
     this.particles = particles;
 
     this.elements = {
@@ -111,8 +113,9 @@ export class AppController {
 
     if (this.elements.userInfo) {
       const email = session?.user?.email || "Usuario";
+      this.elements.userInfo.title = isAuth ? email : "";
       this.elements.userInfo.innerHTML = isAuth
-        ? `<i class="fa-solid fa-user"></i> ${email}`
+        ? `<i class="fa-solid fa-user"></i> <span class="user-email-text">${email}</span>`
         : "";
     }
   }
@@ -170,7 +173,8 @@ export class AppController {
     this.setBusy(true);
 
     try {
-      const rows = await this.queryOperationsUseCase.execute(id);
+      // Ejecutar consulta principal (retorna registros y la ventana real usada por la RPC)
+      const { rows, range } = await this.queryOperationsUseCase.execute(id);
 
       this.store.setState({
         allRows: rows,
@@ -189,6 +193,23 @@ export class AppController {
 
       this.filterPanel.populateOptions(rows);
       this.filterPanel.updateState(this.store.getState().columnFilters);
+
+      // Actualizar ScopeView con la ventana operativa real usada por la RPC
+      if (!id) {
+        if (range && range.fecha_desde) {
+          this.scopeView.render({
+            fecha_desde: range.fecha_desde,
+            fecha_hasta: range.fecha_hasta || new Date().toISOString().slice(0, 10)
+          });
+        } else {
+          this.scopeView.render();
+        }
+      }
+
+      // Renderizar árbol de descomposición si existe
+      if (this.decompositionTree) {
+        this.decompositionTree.render(rows);
+      }
 
       this.notification.show(
         rows.length

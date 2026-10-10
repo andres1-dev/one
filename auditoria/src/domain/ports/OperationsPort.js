@@ -6,4 +6,8 @@ export class OperationsPort {
   async fetchOperations(id = null) {
     throw new Error("OperationsPort.fetchOperations no ha sido implementado.");
   }
+
+  async fetchOperationalRange() {
+    return null;
+  }
 }

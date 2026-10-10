@@ -40,6 +40,7 @@ export const RECORD_HEADERS = [
 export class Record {
   constructor(data = {}) {
     this.id_ingreso = data.id_ingreso ?? null;
+    this.fecha_ingreso = data.fecha_ingreso ?? null;
     this.referencia = data.referencia ?? "";
     this.refprov = data.refprov ?? "";
     this.cantidad = Number(data.cantidad) || 0;
@@ -51,7 +52,17 @@ export class Record {
     this.estado_entrega = data.estado_entrega ?? "";
     this.nro_factura = data.nro_factura ?? null;
     this.cliente = data.cliente ?? "";
-    this.productora = data.productora ?? "";
+
+    const rawProd = String(data.productora ?? "").trim();
+    const cleanDigits = rawProd.replace(/\D/g, "");
+    if (cleanDigits === "900616124" || /UNIVERSO/i.test(rawProd)) {
+      this.productora = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
+    } else if (cleanDigits === "900692469" || /ANGELES/i.test(rawProd)) {
+      this.productora = "TEXTILES Y CREACIONES LOS ANGELES SAS";
+    } else {
+      this.productora = rawProd || "Sin productora";
+    }
+
     this.alerta_cantidad = data.alerta_cantidad ?? null;
   }
 

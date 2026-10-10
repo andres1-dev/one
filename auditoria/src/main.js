@@ -24,6 +24,7 @@ import { FilterPanel } from "./presentation/components/FilterPanel.js";
 import { TableView } from "./presentation/components/TableView.js";
 import { ScopeView } from "./presentation/components/ScopeView.js";
 import { GeometricParticles } from "./presentation/components/GeometricParticles.js";
+import { DecompositionTreeView } from "./presentation/components/DecompositionTreeView.js";
 import { AppController } from "./presentation/controllers/AppController.js";
 
 function bootstrap() {
@@ -79,6 +80,12 @@ function bootstrap() {
     onExportCsv: () => appController.handleExportCsv()
   });
 
+  // Árbol de descomposición estilo PowerBI
+  const decompositionTree = new DecompositionTreeView({
+    containerId: "decompTree",
+    sectionId: "decompSection"
+  });
+
   // Inicialización del Controlador Primario (Driving Adapter)
   appController = new AppController({
     store,
@@ -92,10 +99,66 @@ function bootstrap() {
     filterPanel,
     tableView,
     scopeView,
+    decompositionTree,
     particles
   });
 
   appController.init();
+
+  // ── Toggle vista tabla / árbol ────────────────────────────────────────
+  const viewToggleGroup = document.getElementById("viewToggleGroup");
+  const viewTableBtn = document.getElementById("viewTableBtn");
+  const viewTreeBtn  = document.getElementById("viewTreeBtn");
+
+  const tableSection = document.querySelector(".table-container");
+  const paginationBar = document.querySelector(".pagination-bar");
+  const tableControls = document.querySelector(".table-controls");
+  const filterPanel2  = document.getElementById("filterPanel");
+  const decompSection = document.getElementById("decompSection");
+
+  const resultsPanelTitle = document.getElementById("resultsPanelTitle");
+
+  function setView(view) {
+    const showTable = view === "table";
+    if (tableSection)   tableSection.style.display  = showTable ? "" : "none";
+    if (paginationBar)  paginationBar.style.display  = showTable ? "" : "none";
+    if (tableControls)  tableControls.style.display  = showTable ? "" : "none";
+    if (filterPanel2)   filterPanel2.style.display   = showTable ? "" : "none";
+    // decompSection: oculto cuando mostramos tabla, visible cuando mostramos árbol
+    if (decompSection)  decompSection.hidden         = showTable;
+    if (viewTableBtn) viewTableBtn.classList.toggle("active", showTable);
+    if (viewTreeBtn)  viewTreeBtn.classList.toggle("active", !showTable);
+
+    if (resultsPanelTitle) {
+      resultsPanelTitle.innerHTML = showTable
+        ? '<i class="fa-solid fa-table-list"></i> Registros Obtenidos'
+        : '<i class="fa-solid fa-sitemap"></i> Árbol de Descomposición';
+    }
+
+    if (showTable && decompositionTree) {
+      decompositionTree.exitFullscreen();
+    }
+
+    if (!showTable && decompositionTree) {
+      requestAnimationFrame(() => {
+        decompositionTree.onResize();
+      });
+    }
+  }
+
+  if (viewTableBtn) {
+    viewTableBtn.addEventListener("click", () => setView("table"));
+  }
+  if (viewTreeBtn) {
+    viewTreeBtn.addEventListener("click", () => setView("tree"));
+  }
+
+  // Mostrar el toggle cuando haya datos
+  store.subscribe(state => {
+    if (viewToggleGroup && state.allRows && state.allRows.length > 0) {
+      viewToggleGroup.style.display = "flex";
+    }
+  });
 }
 
 // Inicializar al cargar el DOM
