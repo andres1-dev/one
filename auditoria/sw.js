@@ -3,7 +3,7 @@
  * Estrategia de caché para funcionamiento offline y rendimiento óptimo.
  */
 
-const CACHE_NAME = 'auditoria-pwa-v3';
+const CACHE_NAME = 'auditoria-pwa-v5';
 
 const STATIC_ASSETS = [
   /*

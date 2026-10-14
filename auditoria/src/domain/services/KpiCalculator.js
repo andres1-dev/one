@@ -10,6 +10,7 @@ export const KPI_PREDICATES = {
   totalFacturado: r => r.estado_factura === 'Aprobadas',
   listoEntregar: r => r.estado_separacion === 'FINALIZADO' && r.estado_factura === 'Aprobadas',
   errorCantidad: r => r.alerta_cantidad != null && r.alerta_cantidad !== '',
+  errorOp: r => r.alerta_op != null && r.alerta_op !== '',
 };
 
 export class KpiCalculator {
@@ -26,7 +27,8 @@ export class KpiCalculator {
       pendienteFactura: this.sumQuantity(rows.filter(KPI_PREDICATES.pendienteFactura)),
       totalFacturado: this.sumQuantity(rows.filter(KPI_PREDICATES.totalFacturado)),
       listoEntregar: this.sumQuantity(rows.filter(KPI_PREDICATES.listoEntregar)),
-      errorCantidad: rows.filter(KPI_PREDICATES.errorCantidad).length
+      errorCantidad: rows.filter(KPI_PREDICATES.errorCantidad).length,
+      errorOp: rows.filter(KPI_PREDICATES.errorOp).length
     };
   }
 }

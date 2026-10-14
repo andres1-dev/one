@@ -1,11 +1,17 @@
 /* ── Indicadores KPI ── */
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 12px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
+  .kpi-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 990px) {
   .kpi-row {
     grid-template-columns: repeat(3, 1fr);
   }

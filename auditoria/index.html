@@ -217,11 +217,20 @@
 
           <div class="kpi-card" data-kpi="errorCantidad" title="Filtrar: Discrepancias de cantidad">
             <div class="kpi-head">
-              <span class="kpi-name">Discrepancias</span>
+              <span class="kpi-name">Discrep. Cant.</span>
               <div class="kpi-metric" id="kpiErrorCantidad">—</div>
               <div class="kpi-hint">Facturado ≠ Ingreso</div>
             </div>
             <i class="fa-solid fa-triangle-exclamation kpi-watermark"></i>
+          </div>
+
+          <div class="kpi-card" data-kpi="errorOp" title="Filtrar: Discrepancias de OP">
+            <div class="kpi-head">
+              <span class="kpi-name">Discrep. OP</span>
+              <div class="kpi-metric" id="kpiErrorOp">—</div>
+              <div class="kpi-hint">OP Factura ≠ Ingreso</div>
+            </div>
+            <i class="fa-solid fa-file-circle-exclamation kpi-watermark"></i>
           </div>
         </div>
       </section>
@@ -314,6 +323,8 @@
             <thead>
               <tr>
                 <th>ID Ingreso</th>
+                <th>Fecha Ingreso</th>
+                <th>OP</th>
                 <th>Referencia</th>
                 <th>Ref. Proveedor</th>
                 <th>Cantidad</th>
@@ -326,12 +337,13 @@
                 <th>Nro. Factura</th>
                 <th>Cliente</th>
                 <th>Productora</th>
-                <th>Discrepancia</th>
+                <th>Discrep. Cant.</th>
+                <th>Discrep. OP</th>
               </tr>
             </thead>
             <tbody id="results">
               <tr>
-                <td colspan="14" style="text-align:center;padding:36px;color:var(--text-muted);">No se ha realizado
+                <td colspan="17" style="text-align:center;padding:36px;color:var(--text-muted);">No se ha realizado
                   ninguna consulta todavía.</td>
               </tr>
             </tbody>

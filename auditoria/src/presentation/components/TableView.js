@@ -85,8 +85,25 @@ export class TableView {
 
         if (f === "alerta_cantidad") {
           return rawVal
-            ? `<td><span class="badge badge-warning"><i class="fa-solid fa-triangle-exclamation"></i> ${val}</span></td>`
+            ? `<td><span class="badge badge-warning" title="${val}"><i class="fa-solid fa-triangle-exclamation"></i> ${val}</span></td>`
             : `<td><span class="null-val">NULL</span></td>`;
+        }
+
+        if (f === "alerta_op") {
+          return rawVal
+            ? `<td><span class="badge badge-warning" style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;" title="${val}"><i class="fa-solid fa-file-circle-exclamation"></i> ${val}</span></td>`
+            : `<td><span class="null-val">NULL</span></td>`;
+        }
+
+        if (f === "fecha_ingreso") {
+          const isNull = !rawVal || rawVal === '—' || rawVal === 'NULL';
+          const formatted = !isNull ? String(rawVal).slice(0, 10) : '';
+          return isNull ? `<td><span class="null-val">NULL</span></td>` : `<td><span style="font-variant-numeric:tabular-nums;color:var(--text-muted);font-size:12px;">${formatted}</span></td>`;
+        }
+
+        if (f === "op") {
+          const isNull = !rawVal || rawVal === '—' || rawVal === 'NULL';
+          return isNull ? `<td><span class="null-val">NULL</span></td>` : `<td><span style="font-weight:600;font-variant-numeric:tabular-nums;">${val}</span></td>`;
         }
 
         if (f === "nro_factura") {
@@ -153,8 +170,18 @@ export class TableView {
   renderSummary({ total, baseTotal, activeKpi, hasColumnFilters }) {
     if (!this.summaryEl) return;
     const filterDesc = hasColumnFilters ? " (con filtros activos)" : "";
+    const KPI_LABELS = {
+      porSeparar: "Por separar",
+      facturadoPorSeparar: "Facturado por separar",
+      pendienteFactura: "Pendiente factura",
+      totalFacturado: "Total facturado",
+      listoEntregar: "Listo para entregar",
+      errorCantidad: "Discrepancias de cantidad",
+      errorOp: "Discrepancias de OP"
+    };
+    const kpiName = KPI_LABELS[activeKpi] || activeKpi;
     this.summaryEl.textContent = activeKpi
-      ? `Filtrando por "${activeKpi}"${filterDesc}: ${total} de ${baseTotal} registros`
+      ? `Filtrando por "${kpiName}"${filterDesc}: ${total} de ${baseTotal} registros`
       : `Total${filterDesc}: ${baseTotal} registro${baseTotal !== 1 ? "s" : ""}`;
   }
 

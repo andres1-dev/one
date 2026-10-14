@@ -132,10 +132,16 @@ export class DecompositionTreeView {
         calc: rows => rows.reduce((s, r) => s + (r.estado_factura === "Aprobadas" ? (Number(r.cantidad) || 0) : 0), 0)
       },
       discrepancias: {
-        label: "Discrepancias",
+        label: "Discrep. Cant.",
         icon: "fa-triangle-exclamation",
         hint: "Prendas con alerta de cantidad",
         calc: rows => rows.reduce((s, r) => s + (r.alerta_cantidad ? (Number(r.cantidad) || 0) : 0), 0)
+      },
+      discrepanciasOp: {
+        label: "Discrep. OP",
+        icon: "fa-file-circle-exclamation",
+        hint: "Prendas con discrepancia en OP",
+        calc: rows => rows.reduce((s, r) => s + (r.alerta_op ? (Number(r.cantidad) || 0) : 0), 0)
       },
       registros: {
         label: "Registros",

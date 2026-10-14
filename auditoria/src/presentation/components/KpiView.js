@@ -17,7 +17,8 @@ export class KpiView {
       pendienteFactura: document.getElementById("kpiPendienteFactura"),
       totalFacturado: document.getElementById("kpiTotalFacturado"),
       listoEntregar: document.getElementById("kpiListoEntregar"),
-      errorCantidad: document.getElementById("kpiErrorCantidad")
+      errorCantidad: document.getElementById("kpiErrorCantidad"),
+      errorOp: document.getElementById("kpiErrorOp")
     };
 
     this.cards = document.querySelectorAll(".kpi-card[data-kpi]");
@@ -68,6 +69,7 @@ export class KpiView {
     this.setMetric(this.elements.totalFacturado, fmt(metrics.totalFacturado));
     this.setMetric(this.elements.listoEntregar, fmt(metrics.listoEntregar));
     this.setMetric(this.elements.errorCantidad, String(metrics.errorCantidad));
+    this.setMetric(this.elements.errorOp, String(metrics.errorOp));
 
     if (this.container) this.container.hidden = false;
 

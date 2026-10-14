@@ -24,7 +24,15 @@ export class BrowserCsvExporterAdapter extends ExporterPort {
       const isNull = !row[field] || row[field] === "—" || row[field] === "Sin productora" || row[field] === "NULL";
       return isNull ? "NULL" : String(row[field]);
     }
-    if (field === "alerta_cantidad") {
+    if (field === "alerta_cantidad" || field === "alerta_op") {
+      const isNull = !row[field] || row[field] === "—" || row[field] === "NULL";
+      return isNull ? "NULL" : String(row[field]);
+    }
+    if (field === "fecha_ingreso") {
+      const isNull = !row[field] || row[field] === "—" || row[field] === "NULL";
+      return isNull ? "NULL" : String(row[field]).slice(0, 10);
+    }
+    if (field === "op") {
       const isNull = !row[field] || row[field] === "—" || row[field] === "NULL";
       return isNull ? "NULL" : String(row[field]);
     }
