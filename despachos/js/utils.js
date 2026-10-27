@@ -14,13 +14,18 @@ export function parseNumber(val) {
     if (typeof val === 'number') return val;
     let clean = String(val).replace(/[$]/g, '').trim();
     if (clean.includes(',') && clean.includes('.')) {
+        // Si tiene ambos, el último de los dos es el separador decimal
         if (clean.lastIndexOf('.') > clean.lastIndexOf(',')) {
+            // Formato: 1,234.56 (coma = miles, punto = decimal)
             clean = clean.replace(/,/g, '');
         } else {
+            // Formato: 1.234,56 (punto = miles, coma = decimal)
             clean = clean.replace(/\./g, '').replace(',', '.');
         }
     } else if (clean.includes(',')) {
-        clean = clean.replace(',', '.');
+        // Si solo tiene comas, en formato colombiano son separadores de miles
+        // Ejemplo: 1,234 -> 1234
+        clean = clean.replace(/,/g, '');
     }
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : num;
