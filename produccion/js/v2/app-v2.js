@@ -56,6 +56,8 @@ function calcularDias(fechaSiesa, entregas) {
     return gridjs.html(`<span class="dias-badge ${className}">${dias} día${dias !== 1 ? 's' : ''}</span>`);
 }
 
+window._filterCache = { clientes: [], proveedores: [], estados: [], tipos: [] };
+
 // Poblar filtros desde la PCR ligera — con rango de fechas activo
 async function inicializarFiltrosDesdePCR() {
     try {
@@ -64,6 +66,7 @@ async function inicializarFiltrosDesdePCR() {
         const resp = await ApiClientV2.fetchFilterOptions({ fechaInicio: inicio, fechaFin: fin });
         if (resp && resp.success && resp.data) {
             const { clientes, proveedores, estados, tipos } = resp.data;
+            window._filterCache = { clientes: clientes || [], proveedores: proveedores || [], estados: estados || [], tipos: tipos || [] };
             poblarFiltrosConOpciones(clientes || [], proveedores || [], estados || [], tipos || []);
         }
     } catch (e) {
@@ -80,6 +83,7 @@ async function refrescarFiltrosDesdePCR() {
         const resp = await ApiClientV2.fetchFilterOptions({ fechaInicio: inicio, fechaFin: fin });
         if (resp && resp.success && resp.data) {
             const { clientes, proveedores, estados, tipos } = resp.data;
+            window._filterCache = { clientes: clientes || [], proveedores: proveedores || [], estados: estados || [], tipos: tipos || [] };
             poblarFiltrosConOpciones(clientes || [], proveedores || [], estados || [], tipos || []);
         }
     } catch (e) {
@@ -88,15 +92,20 @@ async function refrescarFiltrosDesdePCR() {
 }
 
 function poblarFiltrosConOpciones(clientes, proveedores, estados, tipos) {
-    $('#filtroCliente').html('<option value="">Todos</option>' + clientes.map(c => `<option value="${c}">${c}</option>`).join(''));
-    $('#filtroProveedor').html('<option value="">Todos</option>' + proveedores.map(p => `<option value="${p}">${p}</option>`).join(''));
+    const prevCliente = $('#filtroCliente').val();
+    const prevProveedor = $('#filtroProveedor').val();
+    const prevEstados = $('#filtroEstadoDropdown input:checked').map(function() { return this.value; }).get();
+    const prevTipos = $('#filtroTipoDropdown input:checked').map(function() { return this.value; }).get();
+
+    $('#filtroCliente').html('<option value="">Todos</option>' + clientes.map(c => `<option value="${c}" ${c === prevCliente ? 'selected' : ''}>${c}</option>`).join(''));
+    $('#filtroProveedor').html('<option value="">Todos</option>' + proveedores.map(p => `<option value="${p}" ${p === prevProveedor ? 'selected' : ''}>${p}</option>`).join(''));
     
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const canSeeAnuladas = user.rol === 'OWNER' || user.rol === 'ADMIN';
     const estadosFiltrados = canSeeAnuladas ? estados : estados.filter(e => e !== 'Anuladas');
     
     const estadoCheckboxes = estadosFiltrados.map(e => {
-        const checked = e === 'Aprobadas' ? 'checked' : '';
+        const checked = prevEstados.length > 0 ? (prevEstados.includes(e) ? 'checked' : '') : (e === 'Aprobadas' ? 'checked' : '');
         return `<label class="filtro-estado-item"><input type="checkbox" value="${e}" ${checked}> ${e}</label>`;
     }).join('');
     $('#filtroEstadoDropdown').html(estadoCheckboxes);
@@ -105,7 +114,8 @@ function poblarFiltrosConOpciones(clientes, proveedores, estados, tipos) {
     const canSeeAllTipos = user.rol === 'OWNER' || user.rol === 'ADMIN';
     const DEFAULT_TIPOS_UPPER = canSeeAllTipos ? ['REMISION', 'OFICAL', 'OFICIAL'] : null;
     const tipoCheckboxes = tipos.map(t => {
-        const checked = (DEFAULT_TIPOS_UPPER === null || DEFAULT_TIPOS_UPPER.includes(t.toUpperCase())) ? 'checked' : '';
+        const isDefault = DEFAULT_TIPOS_UPPER === null || DEFAULT_TIPOS_UPPER.includes(t.toUpperCase());
+        const checked = prevTipos.length > 0 ? (prevTipos.includes(t) ? 'checked' : '') : (isDefault ? 'checked' : '');
         return `<label class="filtro-tipo-item"><input type="checkbox" value="${t}" ${checked}> ${t}</label>`;
     }).join('');
     $('#filtroTipoDropdown').html(tipoCheckboxes);
@@ -702,6 +712,9 @@ function initSpotlight() {
 
     // ── Render menú principal o submenú de opciones ───────────
     function renderResults(query) {
+        results.show();
+        $('#spotlightDateContainer').removeClass('active');
+
         if (window.spotlightActiveFilter) {
             renderFilterItems(window.spotlightActiveFilter, query);
             return;
@@ -730,23 +743,29 @@ function initSpotlight() {
         window._currentSpotlightList = listToRender;
     }
 
-    // ── Opciones del filtro leídas del DOM (poblado por la PCR real) ──
+    // ── Opciones del filtro leídas de la PCR real ──
     function renderFilterItems(filterType, query) {
         results.empty();
         let items = [];
 
         if (filterType === 'cliente') {
-            items = Array.from(document.querySelectorAll('#filtroCliente option'))
-                        .map(o => o.value).filter(v => v);
+            items = (window._filterCache && window._filterCache.clientes && window._filterCache.clientes.length > 0)
+                ? window._filterCache.clientes
+                : Array.from(document.querySelectorAll('#filtroCliente option')).map(o => o.value).filter(v => v);
         } else if (filterType === 'proveedor') {
-            items = Array.from(document.querySelectorAll('#filtroProveedor option'))
-                        .map(o => o.value).filter(v => v);
+            items = (window._filterCache && window._filterCache.proveedores && window._filterCache.proveedores.length > 0)
+                ? window._filterCache.proveedores
+                : Array.from(document.querySelectorAll('#filtroProveedor option')).map(o => o.value).filter(v => v);
         } else if (filterType === 'estado') {
-            items = Array.from(document.querySelectorAll('#filtroEstadoDropdown input[type=checkbox]'))
-                        .map(cb => cb.value);
+            items = Array.from(document.querySelectorAll('#filtroEstadoDropdown input[type=checkbox]')).map(cb => cb.value);
+            if (items.length === 0 && window._filterCache && window._filterCache.estados) {
+                items = window._filterCache.estados;
+            }
         } else if (filterType === 'tipo') {
-            items = Array.from(document.querySelectorAll('#filtroTipoDropdown input[type=checkbox]'))
-                        .map(cb => cb.value);
+            items = Array.from(document.querySelectorAll('#filtroTipoDropdown input[type=checkbox]')).map(cb => cb.value);
+            if (items.length === 0 && window._filterCache && window._filterCache.tipos) {
+                items = window._filterCache.tipos;
+            }
         } else if (filterType === 'confirmacion') {
             items = ['ENTREGADO', 'PENDIENTE'];
         }
@@ -756,6 +775,7 @@ function initSpotlight() {
 
         if (filteredItems.length === 0) {
             results.append('<div class="p-4 text-center text-muted small">No se encontraron opciones</div>');
+            window._currentSpotlightList = [];
             return;
         }
 
@@ -775,6 +795,7 @@ function initSpotlight() {
             results.append(item);
         });
 
+        selectedIndex = 0;
         window._currentSpotlightList = filteredItems.map(it => ({ value: it, isFilterItem: true }));
     }
 
@@ -782,75 +803,105 @@ function initSpotlight() {
         if (type === 'cliente')      return $('#filtroCliente').val() === value;
         if (type === 'proveedor')    return $('#filtroProveedor').val() === value;
         if (type === 'confirmacion') return $('#filtroConfirmacion').val() === value;
-        if (type === 'estado')       return $(`#filtroEstadoDropdown input[value="${value}"]`).is(':checked');
-        if (type === 'tipo')         return $(`#filtroTipoDropdown input[value="${value}"]`).is(':checked');
+        if (type === 'estado') {
+            const cb = Array.from(document.querySelectorAll('#filtroEstadoDropdown input')).find(el => el.value === value);
+            return cb ? cb.checked : false;
+        }
+        if (type === 'tipo') {
+            const cb = Array.from(document.querySelectorAll('#filtroTipoDropdown input')).find(el => el.value === value);
+            return cb ? cb.checked : false;
+        }
         return false;
     }
 
     function applyFilterFromSpotlight(filterType, value) {
         if (filterType === 'cliente') {
-            $('#filtroCliente').val($('#filtroCliente').val() === value ? '' : value);
+            const current = $('#filtroCliente').val();
+            $('#filtroCliente').val(current === value ? '' : value);
             aplicarFiltros();
             closeSpotlight();
         } else if (filterType === 'proveedor') {
-            $('#filtroProveedor').val($('#filtroProveedor').val() === value ? '' : value);
+            const current = $('#filtroProveedor').val();
+            $('#filtroProveedor').val(current === value ? '' : value);
             aplicarFiltros();
             closeSpotlight();
         } else if (filterType === 'confirmacion') {
-            $('#filtroConfirmacion').val($('#filtroConfirmacion').val() === value ? '' : value);
+            const current = $('#filtroConfirmacion').val();
+            $('#filtroConfirmacion').val(current === value ? '' : value);
             aplicarFiltros();
             closeSpotlight();
         } else if (filterType === 'estado') {
-            const cb = document.querySelector(`#filtroEstadoDropdown input[value="${value}"]`);
-            if (cb) cb.checked = !cb.checked;
-            actualizarLabelEstado();
-            aplicarFiltros();
-            // Mantener submenú abierto (multi-selección)
-            renderFilterItems(filterType, input.val().trim());
+            const cb = Array.from(document.querySelectorAll('#filtroEstadoDropdown input')).find(el => el.value === value);
+            if (cb) {
+                cb.checked = !cb.checked;
+                actualizarLabelEstado();
+                aplicarFiltros();
+            }
             renderActiveFiltersInSpotlight();
+            renderFilterItems(filterType, input.val().trim());
         } else if (filterType === 'tipo') {
-            const cb = document.querySelector(`#filtroTipoDropdown input[value="${value}"]`);
-            if (cb) cb.checked = !cb.checked;
-            actualizarLabelTipo();
-            aplicarFiltros();
-            renderFilterItems(filterType, input.val().trim());
+            const cb = Array.from(document.querySelectorAll('#filtroTipoDropdown input')).find(el => el.value === value);
+            if (cb) {
+                cb.checked = !cb.checked;
+                actualizarLabelTipo();
+                aplicarFiltros();
+            }
             renderActiveFiltersInSpotlight();
+            renderFilterItems(filterType, input.val().trim());
         }
     }
 
-    // ── Tags de filtros activos (gris, con × para quitar) ────────
+    // ── Tags de filtros activos (gris, con × para quitar y clic para editar) ────
     function renderActiveFiltersInSpotlight() {
         const container = $('#spotlightActiveFilters').empty();
 
         if (window._spotlightQuery) {
-            addTag(container, 'Búsqueda', `"${window._spotlightQuery}"`, () => {
-                window._spotlightQuery = '';
-                input.val('');
-                aplicarFiltros();
-                renderActiveFiltersInSpotlight();
-                renderResults('');
-            });
+            addTag(container, 'Búsqueda', `"${window._spotlightQuery}"`,
+                () => {
+                    window._spotlightQuery = '';
+                    input.val('');
+                    aplicarFiltros();
+                    renderActiveFiltersInSpotlight();
+                    renderResults('');
+                },
+                () => {
+                    input.val(window._spotlightQuery).focus();
+                }
+            );
         }
 
         if (window.activeColumnSearch && window.activeColumnSearch.text) {
-            addTag(container, window.activeColumnSearch.column, `"${window.activeColumnSearch.text}"`, () => {
-                window.activeColumnSearch = null;
-                aplicarFiltros();
-                renderActiveFiltersInSpotlight();
-                renderResults('');
-            });
+            addTag(container, window.activeColumnSearch.column, `"${window.activeColumnSearch.text}"`,
+                () => {
+                    window.activeColumnSearch = null;
+                    aplicarFiltros();
+                    renderActiveFiltersInSpotlight();
+                    renderResults('');
+                },
+                () => {
+                    input.val(window.activeColumnSearch.text).focus();
+                }
+            );
         }
 
         const cliente = $('#filtroCliente').val();
         if (cliente) addTag(container, 'Cliente', cliente,
             () => { $('#filtroCliente').val(''); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
-            () => { window.spotlightActiveFilter = 'cliente'; input.val('').attr('placeholder','Filtrar por Cliente...'); renderResults(''); }
+            () => {
+                window.spotlightActiveFilter = 'cliente';
+                input.val('').attr('placeholder','Filtrar por Cliente...').focus();
+                renderResults('');
+            }
         );
 
         const proveedor = $('#filtroProveedor').val();
         if (proveedor) addTag(container, 'Proveedor', proveedor,
             () => { $('#filtroProveedor').val(''); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
-            () => { window.spotlightActiveFilter = 'proveedor'; input.val('').attr('placeholder','Filtrar por Proveedor...'); renderResults(''); }
+            () => {
+                window.spotlightActiveFilter = 'proveedor';
+                input.val('').attr('placeholder','Filtrar por Proveedor...').focus();
+                renderResults('');
+            }
         );
 
         // Estados (solo muestra tag si no es el estado por defecto)
@@ -858,8 +909,18 @@ function initSpotlight() {
         const esDefaultEstado = (estados.length === 1 && estados[0] === 'Aprobadas');
         if (estados.length > 0 && !esDefaultEstado) {
             addTag(container, 'Estados', estados.length,
-                () => { $('#filtroEstadoDropdown input').prop('checked', false); $('#filtroEstadoDropdown input[value="Aprobadas"]').prop('checked', true); actualizarLabelEstado(); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
-                () => { window.spotlightActiveFilter = 'estado'; input.val('').attr('placeholder','Filtrar por Estado...'); renderResults(''); }
+                () => {
+                    $('#filtroEstadoDropdown input').prop('checked', false);
+                    $('#filtroEstadoDropdown input[value="Aprobadas"]').prop('checked', true);
+                    actualizarLabelEstado();
+                    aplicarFiltros();
+                    renderActiveFiltersInSpotlight();
+                },
+                () => {
+                    window.spotlightActiveFilter = 'estado';
+                    input.val('').attr('placeholder','Filtrar por Estado...').focus();
+                    renderResults('');
+                }
             );
         }
 
@@ -874,15 +935,34 @@ function initSpotlight() {
 
         if (tiposChecked.length > 0 && !esDefaultTipo) {
             addTag(container, 'Tipos', tiposChecked.length,
-                () => { if (canSeeAllTipos) { $('#filtroTipoDropdown input').each(function() { $(this).prop('checked', defaultTipos.includes(this.value.toUpperCase())); }); } else { $('#filtroTipoDropdown input').prop('checked', true); } actualizarLabelTipo(); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
-                () => { window.spotlightActiveFilter = 'tipo'; input.val('').attr('placeholder','Filtrar por Tipo...'); renderResults(''); }
+                () => {
+                    if (canSeeAllTipos) {
+                        $('#filtroTipoDropdown input').each(function() {
+                            $(this).prop('checked', defaultTipos.includes(this.value.toUpperCase()));
+                        });
+                    } else {
+                        $('#filtroTipoDropdown input').prop('checked', true);
+                    }
+                    actualizarLabelTipo();
+                    aplicarFiltros();
+                    renderActiveFiltersInSpotlight();
+                },
+                () => {
+                    window.spotlightActiveFilter = 'tipo';
+                    input.val('').attr('placeholder','Filtrar por Tipo...').focus();
+                    renderResults('');
+                }
             );
         }
 
         const conf = $('#filtroConfirmacion').val();
         if (conf) addTag(container, 'Conf.', conf,
             () => { $('#filtroConfirmacion').val(''); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
-            () => { window.spotlightActiveFilter = 'confirmacion'; input.val('').attr('placeholder','Filtrar por Confirmación...'); renderResults(''); }
+            () => {
+                window.spotlightActiveFilter = 'confirmacion';
+                input.val('').attr('placeholder','Filtrar por Confirmación...').focus();
+                renderResults('');
+            }
         );
 
         // Fecha (solo si no es el rango por defecto del mes)
@@ -895,27 +975,36 @@ function initSpotlight() {
             if (!esDefaultFecha) {
                 const fmtD = d => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
                 const label = isEntregaMode ? 'F. Entrega' : 'Fecha';
-                addTag(container, label, `${fmtD(glassCalState.startDate)} - ${fmtD(glassCalState.endDate)}`, () => {
-                    glassCalState.startDate = primerDia;
-                    glassCalState.endDate = hoy;
-                    glassCalState.dateFilterMode = 'documento';
-                    KpiLoaderV2.cargarConFiltrosActivos();
-                    SearchEngineV2.buscar(1);
-                    renderActiveFiltersInSpotlight();
-                });
+                addTag(container, label, `${fmtD(glassCalState.startDate)} - ${fmtD(glassCalState.endDate)}`,
+                    async () => {
+                        glassCalState.startDate = primerDia;
+                        glassCalState.endDate = hoy;
+                        glassCalState.dateFilterMode = 'documento';
+                        await refrescarFiltrosDesdePCR();
+                        await KpiLoaderV2.cargarConFiltrosActivos();
+                        SearchEngineV2.buscar(1);
+                        renderActiveFiltersInSpotlight();
+                    },
+                    () => {
+                        selectedIndex = -1;
+                        results.hide();
+                        $('#spotlightDateContainer').addClass('active');
+                        initGlassCalendarV2();
+                    }
+                );
             }
         }
     }
 
     function addTag(parent, label, value, onRemove, onEdit) {
         const tag = $(`
-            <div class="filter-tag" style="${onEdit ? 'cursor:pointer' : ''}">
+            <div class="filter-tag" style="${onEdit ? 'cursor:pointer;' : ''}">
                 <span class="tag-label">${label}:</span>
                 <span class="tag-value">${value}</span>
                 <div class="tag-remove" title="Quitar filtro"><i class="fa-solid fa-xmark"></i></div>
             </div>
         `);
-        // Tocar el tag (no la ×) abre el submenú de edición
+        // Tocar el cuerpo del tag abre el submenú de edición
         if (onEdit) {
             tag.on('click', e => { e.stopPropagation(); onEdit(); });
         }
@@ -978,6 +1067,7 @@ function initSpotlight() {
         $('#glassCalApply').off('click').on('click', async () => {
             if (glassCalState.startDate && glassCalState.endDate) {
                 closeSpotlight();
+                await refrescarFiltrosDesdePCR();
                 await KpiLoaderV2.cargarConFiltrosActivos();
                 SearchEngineV2.buscar(1);
             }
@@ -1025,22 +1115,67 @@ function initSpotlight() {
         $('#glassCalApply').prop('disabled', !(startDate && endDate));
     }
 
-    // ── Keyboard shortcut y eventos ───────────────────────────
+    // ── Keyboard shortcut y navegación completa por teclado ────
     $(document).on('keydown', e => {
         if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
             e.preventDefault();
+            e.stopImmediatePropagation();
             openSpotlight();
+            return false;
         }
-        if (overlay.hasClass('active') && e.key === 'Escape') {
-            if (window.spotlightActiveFilter) {
-                window.spotlightActiveFilter = null;
-                input.val('').attr('placeholder', 'Buscar por documento, OP o referencia...');
-                renderResults('');
-            } else {
-                closeSpotlight();
+
+        if (overlay.hasClass('active')) {
+            const currentList = window._currentSpotlightList || options;
+
+            if (e.key === 'Escape') {
+                if (window.spotlightActiveFilter) {
+                    window.spotlightActiveFilter = null;
+                    input.val('').attr('placeholder', 'Buscar por documento, OP o referencia...').focus();
+                    renderResults('');
+                } else {
+                    closeSpotlight();
+                }
+                return;
+            }
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (currentList.length > 0) {
+                    selectedIndex = (selectedIndex + 1) % currentList.length;
+                    updateSelection();
+                }
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (currentList.length > 0) {
+                    selectedIndex = (selectedIndex - 1 + currentList.length) % currentList.length;
+                    updateSelection();
+                }
+            }
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const selected = currentList[selectedIndex];
+                if (selected) {
+                    if (selected.isFilterItem) {
+                        applyFilterFromSpotlight(window.spotlightActiveFilter, selected.value);
+                    } else {
+                        selectOption(selected);
+                    }
+                }
             }
         }
     });
+
+    function updateSelection() {
+        results.find('.spotlight-result-item').removeClass('selected');
+        results.find(`.spotlight-result-item[data-index="${selectedIndex}"]`).addClass('selected');
+        const selectedItem = results.find('.selected')[0];
+        if (selectedItem) {
+            selectedItem.scrollIntoView({ block: 'nearest' });
+        }
+    }
 
     input.on('input', () => renderResults(input.val().trim()));
     overlay.on('click', e => { if (e.target === overlay[0]) closeSpotlight(); });
