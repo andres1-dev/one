@@ -10,7 +10,9 @@ const SiesaApp = {
   init() {
     this.setupEventListeners();
     this.setupDragAndDrop();
-    UIController.showConnected();
+    if (typeof UIController !== 'undefined' && UIController.showConnected) {
+      UIController.showConnected();
+    }
   },
   
   /**

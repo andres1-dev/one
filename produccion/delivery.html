@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIESA - Delivery</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 131'%3E%3Cpath fill='%230D79FE' d='M54.0885 77.4585C52.9804 77.5151 51.5096 77.816 50.8263 76.8696C51.1423 75.4882 61.1996 65.7501 62.8917 64.0589L80.8212 46.1482C95.6043 31.2335 110.49 16.4207 125.476 1.71068C125.971 43.6277 125.206 85.8427 125.589 127.802C122.752 127.306 112.019 127.497 108.572 127.498L74.8898 127.501C80.1007 120.665 124.094 78.9847 124.522 77.4939L124.033 77.3323C122.197 76.7636 113.63 76.9482 111.19 76.9423L76.9975 77.1301C73.1869 77.1448 56.6551 76.5777 54.0885 77.4585Z'/%3E%3Cpath fill='%230D79FE' d='M0 2.17052C13.6376 2.42363 27.7398 2.20769 41.4404 2.22138C52.2739 2.2322 64.4626 2.4734 75.2426 2.10371C73.2957 4.7616 69.3827 8.62415 67.0259 10.9976L54.8423 23.1794L14.7953 63.1608C11.4804 66.4573 8.14266 69.7306 4.78223 72.9806C3.85777 73.8727 0.534885 76.9225 0 77.6905C2.62525 76.8567 12.0471 77.2657 15.4544 77.1869C26.7037 76.9267 38.852 77.5799 50.0359 77.1352C44.8505 83.2294 39.74 88.2326 34.0686 93.8928L15.0791 112.822L5.36868 122.553C4.42993 123.492 0.973236 126.999 0 127.632L0 2.17052Z'/%3E%3C/svg%3E">
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css">
@@ -804,7 +805,7 @@
         </div>
     </div>
 
-    <div id="loading" class="loading">
+    <div id="loading" class="loading" style="display: none;">
 
         <div class="logo-loader">
             <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 128 131">
@@ -1028,9 +1029,12 @@
             
             window.appScriptsLoaded = true
             
-            // Cargar scripts de la aplicación
+            // Cargar scripts de la aplicación v2 (100% on-demand)
             const scripts = [
-                'js/app.js',
+                'js/v2/api-client-v2.js',
+                'js/v2/kpi-loader-v2.js',
+                'js/v2/search-engine-v2.js',
+                'js/v2/app-v2.js',
                 'upload/js/utils/formatters.js',
                 'upload/js/utils/validators.js',
                 'upload/js/utils/file-reader.js',
@@ -1046,6 +1050,7 @@
             scripts.forEach(src => {
                 const script = document.createElement('script')
                 script.src = src
+                script.async = false
                 document.body.appendChild(script)
             })
         }
