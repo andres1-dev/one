@@ -56,18 +56,34 @@ function calcularDias(fechaSiesa, entregas) {
     return gridjs.html(`<span class="dias-badge ${className}">${dias} día${dias !== 1 ? 's' : ''}</span>`);
 }
 
-// Poblar filtros desde la PCR ligera (sin descargar documentos)
+// Poblar filtros desde la PCR ligera — con rango de fechas activo
 async function inicializarFiltrosDesdePCR() {
     try {
-        const resp = await ApiClientV2.fetchFilterOptions();
+        const inicio = formatearFecha(primerDia);
+        const fin    = formatearFecha(hoy);
+        const resp = await ApiClientV2.fetchFilterOptions({ fechaInicio: inicio, fechaFin: fin });
         if (resp && resp.success && resp.data) {
             const { clientes, proveedores, estados, tipos } = resp.data;
             poblarFiltrosConOpciones(clientes || [], proveedores || [], estados || [], tipos || []);
         }
     } catch (e) {
         console.warn('⚠️ No se pudieron obtener filtros por PCR, usando fallback estático:', e.message);
-        // Fallback básico si aún no se ha desplegado la PCR
         poblarFiltrosConOpciones([], [], ['Aprobadas', 'En elaboración', 'Anuladas'], ['REMISION', 'OFICIAL', 'NOTAS', 'DEVOLUCION']);
+    }
+}
+
+// Refrescar opciones de filtros con el rango de fecha actual del calendario
+async function refrescarFiltrosDesdePCR() {
+    try {
+        const inicio = glassCalState.startDate ? formatearFecha(glassCalState.startDate) : null;
+        const fin    = glassCalState.endDate   ? formatearFecha(glassCalState.endDate)   : null;
+        const resp = await ApiClientV2.fetchFilterOptions({ fechaInicio: inicio, fechaFin: fin });
+        if (resp && resp.success && resp.data) {
+            const { clientes, proveedores, estados, tipos } = resp.data;
+            poblarFiltrosConOpciones(clientes || [], proveedores || [], estados || [], tipos || []);
+        }
+    } catch (e) {
+        console.warn('⚠️ Error al refrescar filtros:', e.message);
     }
 }
 
@@ -558,7 +574,8 @@ function descargarCSV() {
 
 // ========== INICIALIZACIÓN V2 ==========
 $(document).ready(async function() {
-    $('#loading').hide();
+    // NO ocultar el loading aquí: SearchEngineV2 lo oculta en su propio finally
+    // cuando termina la carga inicial de datos.
     inicializarGrid();
     
     // Contenedor de paginación para v2
@@ -581,14 +598,9 @@ $(document).ready(async function() {
     }
     
     // 3. Cargar automáticamente la Página 1 (los 50 registros más recientes)
-    // Consume solo ~35 KB y le da al usuario una vista viva e interactiva de inmediato.
-    try {
-        SearchEngineV2.buscar(1);
-    } catch (e) {
-        console.warn('Carga inicial de página 1:', e.message);
-    } finally {
-        $('#loading').hide();
-    }
+    // SearchEngineV2.buscar es async internamente y oculta #loading en su finally.
+    // No usar try/finally aquí para no ocultar el loading antes de tiempo.
+    SearchEngineV2.buscar(1);
 
     // Event listeners de filtros
     $('#filtroCliente, #filtroProveedor, #filtroConfirmacion').on('change', aplicarFiltros);
@@ -642,6 +654,7 @@ $(document).ready(async function() {
 
 // Spotlight integrado con SearchEngineV2
 window.activeColumnSearch = null;
+window.spotlightActiveFilter = null;
 window.glassCalState = {
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
@@ -657,47 +670,55 @@ function initSpotlight() {
     let selectedIndex = -1;
 
     const options = [
-        { id: 'general', title: 'Búsqueda General', subtitle: 'En todas las columnas', icon: 'fa-magnifying-glass', column: null },
-        { id: 'factura', title: 'Por Factura', subtitle: 'Buscar en Documento', icon: 'fa-file-invoice-dollar', column: 'Nro documento' },
-        { id: 'op', title: 'Por Orden de Producción', subtitle: 'Buscar en OP', icon: 'fa-gears', column: 'op' },
-        { id: 'referencia', title: 'Por Referencia', subtitle: 'Buscar en Referencia', icon: 'fa-barcode', column: 'Referencia' },
-        { id: 'fecha', title: 'Filtrar por Fecha', subtitle: 'Rango de fechas', icon: 'fa-calendar-days', action: 'date' },
-        { id: 'cliente', title: 'Filtrar por Cliente', subtitle: 'Seleccionar razón social', icon: 'fa-user-tie', action: 'filter', filterType: 'cliente' },
-        { id: 'proveedor', title: 'Filtrar por Proveedor', subtitle: 'Seleccionar proveedor', icon: 'fa-truck', action: 'filter', filterType: 'proveedor' },
-        { id: 'estado', title: 'Filtrar por Estado', subtitle: 'Seleccionar estado factura', icon: 'fa-list-check', action: 'filter', filterType: 'estado' },
-        { id: 'tipo', title: 'Filtrar por Tipo', subtitle: 'Seleccionar tipo de documento', icon: 'fa-tags', action: 'filter', filterType: 'tipo' },
-        { id: 'confirmacion', title: 'Confirmación', subtitle: 'Filtrar por entregado/pendiente', icon: 'fa-circle-check', action: 'filter', filterType: 'confirmacion' },
-        { id: 'limpiar', title: 'Limpiar Filtros', subtitle: 'Restablecer todos los valores', icon: 'fa-trash-can', action: 'clear' }
+        { id: 'general',      title: 'Búsqueda General',          subtitle: 'En todas las columnas',           icon: 'fa-magnifying-glass',    column: null },
+        { id: 'factura',      title: 'Por Factura',               subtitle: 'Buscar en Documento',             icon: 'fa-file-invoice-dollar',  column: 'Nro documento' },
+        { id: 'op',           title: 'Por Orden de Producción',   subtitle: 'Buscar en OP',                    icon: 'fa-gears',                column: 'op' },
+        { id: 'referencia',   title: 'Por Referencia',            subtitle: 'Buscar en Referencia',            icon: 'fa-barcode',              column: 'Referencia' },
+        { id: 'fecha',        title: 'Filtrar por Fecha',         subtitle: 'Rango de fechas',                 icon: 'fa-calendar-days',        action: 'date' },
+        { id: 'cliente',      title: 'Filtrar por Cliente',       subtitle: 'Seleccionar razón social',        icon: 'fa-user-tie',             action: 'filter', filterType: 'cliente' },
+        { id: 'proveedor',    title: 'Filtrar por Proveedor',     subtitle: 'Seleccionar proveedor',           icon: 'fa-truck',                action: 'filter', filterType: 'proveedor' },
+        { id: 'estado',       title: 'Filtrar por Estado',        subtitle: 'Seleccionar estado factura',      icon: 'fa-list-check',           action: 'filter', filterType: 'estado' },
+        { id: 'tipo',         title: 'Filtrar por Tipo',          subtitle: 'Seleccionar tipo de documento',   icon: 'fa-tags',                 action: 'filter', filterType: 'tipo' },
+        { id: 'confirmacion', title: 'Confirmación',              subtitle: 'Filtrar por entregado/pendiente', icon: 'fa-circle-check',         action: 'filter', filterType: 'confirmacion' },
+        { id: 'limpiar',      title: 'Limpiar Filtros',           subtitle: 'Restablecer todos los valores',   icon: 'fa-trash-can',            action: 'clear' }
     ];
 
+    // ── Abrir / cerrar ────────────────────────────────────────
     function openSpotlight() {
+        window.spotlightActiveFilter = null;
         overlay.addClass('active');
         results.show();
         $('#spotlightDateContainer').removeClass('active');
         input.val('').attr('placeholder', 'Buscar por documento, OP o referencia...').focus();
         renderResults('');
+        renderActiveFiltersInSpotlight();
     }
 
     function closeSpotlight() {
+        window.spotlightActiveFilter = null;
         overlay.removeClass('active');
         selectedIndex = -1;
     }
 
+    // ── Render menú principal o submenú de opciones ───────────
     function renderResults(query) {
+        if (window.spotlightActiveFilter) {
+            renderFilterItems(window.spotlightActiveFilter, query);
+            return;
+        }
         results.empty();
         selectedIndex = 0;
-        const filteredOptions = options.filter(o => 
-            o.title.toLowerCase().includes(query.toLowerCase()) || 
+        const filtered = options.filter(o =>
+            o.title.toLowerCase().includes(query.toLowerCase()) ||
             o.subtitle.toLowerCase().includes(query.toLowerCase())
         );
-        const listToRender = filteredOptions.length > 0 ? filteredOptions : options;
+        const listToRender = filtered.length > 0 ? filtered : options;
         listToRender.forEach((opt, index) => {
-            const isSelected = index === 0;
             const item = $(`
-                <div class="spotlight-result-item ${isSelected ? 'selected' : ''}" data-index="${index}">
+                <div class="spotlight-result-item ${index === 0 ? 'selected' : ''}" data-index="${index}">
                     <div class="item-icon"><i class="fa-solid ${opt.icon}"></i></div>
                     <div class="item-content">
-                        <div class="item-title">${opt.title} ${query && !opt.action && !opt.column ? `"${query}"` : ''}</div>
+                        <div class="item-title">${opt.title}${query && !opt.action && !opt.column ? ` "${query}"` : ''}</div>
                         <div class="item-subtitle">${opt.subtitle}</div>
                     </div>
                     <div class="item-shortcut">↵ Seleccionar</div>
@@ -709,23 +730,227 @@ function initSpotlight() {
         window._currentSpotlightList = listToRender;
     }
 
+    // ── Opciones del filtro leídas del DOM (poblado por la PCR real) ──
+    function renderFilterItems(filterType, query) {
+        results.empty();
+        let items = [];
+
+        if (filterType === 'cliente') {
+            items = Array.from(document.querySelectorAll('#filtroCliente option'))
+                        .map(o => o.value).filter(v => v);
+        } else if (filterType === 'proveedor') {
+            items = Array.from(document.querySelectorAll('#filtroProveedor option'))
+                        .map(o => o.value).filter(v => v);
+        } else if (filterType === 'estado') {
+            items = Array.from(document.querySelectorAll('#filtroEstadoDropdown input[type=checkbox]'))
+                        .map(cb => cb.value);
+        } else if (filterType === 'tipo') {
+            items = Array.from(document.querySelectorAll('#filtroTipoDropdown input[type=checkbox]'))
+                        .map(cb => cb.value);
+        } else if (filterType === 'confirmacion') {
+            items = ['ENTREGADO', 'PENDIENTE'];
+        }
+
+        const q = (query || '').toLowerCase();
+        const filteredItems = q ? items.filter(it => it.toLowerCase().includes(q)) : items;
+
+        if (filteredItems.length === 0) {
+            results.append('<div class="p-4 text-center text-muted small">No se encontraron opciones</div>');
+            return;
+        }
+
+        filteredItems.forEach((it, index) => {
+            const isChecked = isItemSelected(filterType, it);
+            const item = $(`
+                <div class="spotlight-result-item ${index === 0 ? 'selected' : ''}" data-index="${index}">
+                    <div class="item-icon">
+                        <i class="fa-solid fa-check" style="opacity:${isChecked ? 1 : 0.2}; color:#0D79FE"></i>
+                    </div>
+                    <div class="item-content">
+                        <div class="item-title">${it}</div>
+                    </div>
+                </div>
+            `);
+            item.on('click', () => applyFilterFromSpotlight(filterType, it));
+            results.append(item);
+        });
+
+        window._currentSpotlightList = filteredItems.map(it => ({ value: it, isFilterItem: true }));
+    }
+
+    function isItemSelected(type, value) {
+        if (type === 'cliente')      return $('#filtroCliente').val() === value;
+        if (type === 'proveedor')    return $('#filtroProveedor').val() === value;
+        if (type === 'confirmacion') return $('#filtroConfirmacion').val() === value;
+        if (type === 'estado')       return $(`#filtroEstadoDropdown input[value="${value}"]`).is(':checked');
+        if (type === 'tipo')         return $(`#filtroTipoDropdown input[value="${value}"]`).is(':checked');
+        return false;
+    }
+
+    function applyFilterFromSpotlight(filterType, value) {
+        if (filterType === 'cliente') {
+            $('#filtroCliente').val($('#filtroCliente').val() === value ? '' : value);
+            aplicarFiltros();
+            closeSpotlight();
+        } else if (filterType === 'proveedor') {
+            $('#filtroProveedor').val($('#filtroProveedor').val() === value ? '' : value);
+            aplicarFiltros();
+            closeSpotlight();
+        } else if (filterType === 'confirmacion') {
+            $('#filtroConfirmacion').val($('#filtroConfirmacion').val() === value ? '' : value);
+            aplicarFiltros();
+            closeSpotlight();
+        } else if (filterType === 'estado') {
+            const cb = document.querySelector(`#filtroEstadoDropdown input[value="${value}"]`);
+            if (cb) cb.checked = !cb.checked;
+            actualizarLabelEstado();
+            aplicarFiltros();
+            // Mantener submenú abierto (multi-selección)
+            renderFilterItems(filterType, input.val().trim());
+            renderActiveFiltersInSpotlight();
+        } else if (filterType === 'tipo') {
+            const cb = document.querySelector(`#filtroTipoDropdown input[value="${value}"]`);
+            if (cb) cb.checked = !cb.checked;
+            actualizarLabelTipo();
+            aplicarFiltros();
+            renderFilterItems(filterType, input.val().trim());
+            renderActiveFiltersInSpotlight();
+        }
+    }
+
+    // ── Tags de filtros activos (gris, con × para quitar) ────────
+    function renderActiveFiltersInSpotlight() {
+        const container = $('#spotlightActiveFilters').empty();
+
+        if (window._spotlightQuery) {
+            addTag(container, 'Búsqueda', `"${window._spotlightQuery}"`, () => {
+                window._spotlightQuery = '';
+                input.val('');
+                aplicarFiltros();
+                renderActiveFiltersInSpotlight();
+                renderResults('');
+            });
+        }
+
+        if (window.activeColumnSearch && window.activeColumnSearch.text) {
+            addTag(container, window.activeColumnSearch.column, `"${window.activeColumnSearch.text}"`, () => {
+                window.activeColumnSearch = null;
+                aplicarFiltros();
+                renderActiveFiltersInSpotlight();
+                renderResults('');
+            });
+        }
+
+        const cliente = $('#filtroCliente').val();
+        if (cliente) addTag(container, 'Cliente', cliente,
+            () => { $('#filtroCliente').val(''); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
+            () => { window.spotlightActiveFilter = 'cliente'; input.val('').attr('placeholder','Filtrar por Cliente...'); renderResults(''); }
+        );
+
+        const proveedor = $('#filtroProveedor').val();
+        if (proveedor) addTag(container, 'Proveedor', proveedor,
+            () => { $('#filtroProveedor').val(''); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
+            () => { window.spotlightActiveFilter = 'proveedor'; input.val('').attr('placeholder','Filtrar por Proveedor...'); renderResults(''); }
+        );
+
+        // Estados (solo muestra tag si no es el estado por defecto)
+        const estados = $('#filtroEstadoDropdown input:checked').map(function() { return this.value; }).get();
+        const esDefaultEstado = (estados.length === 1 && estados[0] === 'Aprobadas');
+        if (estados.length > 0 && !esDefaultEstado) {
+            addTag(container, 'Estados', estados.length,
+                () => { $('#filtroEstadoDropdown input').prop('checked', false); $('#filtroEstadoDropdown input[value="Aprobadas"]').prop('checked', true); actualizarLabelEstado(); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
+                () => { window.spotlightActiveFilter = 'estado'; input.val('').attr('placeholder','Filtrar por Estado...'); renderResults(''); }
+            );
+        }
+
+        // Tipos (solo muestra tag si no es la selección por defecto)
+        const tiposChecked = $('#filtroTipoDropdown input:checked').map(function() { return this.value; }).get();
+        const userRole = (JSON.parse(localStorage.getItem('user') || '{}')).rol || '';
+        const canSeeAllTipos = userRole === 'OWNER' || userRole === 'ADMIN';
+        const defaultTipos = ['REMISION', 'OFICAL', 'OFICIAL'];
+        const esDefaultTipo = canSeeAllTipos
+            ? (tiposChecked.length === 3 && tiposChecked.every(t => defaultTipos.includes(t.toUpperCase())))
+            : (tiposChecked.length === $('#filtroTipoDropdown input').length);
+
+        if (tiposChecked.length > 0 && !esDefaultTipo) {
+            addTag(container, 'Tipos', tiposChecked.length,
+                () => { if (canSeeAllTipos) { $('#filtroTipoDropdown input').each(function() { $(this).prop('checked', defaultTipos.includes(this.value.toUpperCase())); }); } else { $('#filtroTipoDropdown input').prop('checked', true); } actualizarLabelTipo(); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
+                () => { window.spotlightActiveFilter = 'tipo'; input.val('').attr('placeholder','Filtrar por Tipo...'); renderResults(''); }
+            );
+        }
+
+        const conf = $('#filtroConfirmacion').val();
+        if (conf) addTag(container, 'Conf.', conf,
+            () => { $('#filtroConfirmacion').val(''); aplicarFiltros(); renderActiveFiltersInSpotlight(); },
+            () => { window.spotlightActiveFilter = 'confirmacion'; input.val('').attr('placeholder','Filtrar por Confirmación...'); renderResults(''); }
+        );
+
+        // Fecha (solo si no es el rango por defecto del mes)
+        if (glassCalState.startDate && glassCalState.endDate) {
+            const isEntregaMode = glassCalState.dateFilterMode === 'entrega';
+            const esDefaultFecha = !isEntregaMode && (
+                glassCalState.startDate.getTime() === primerDia.getTime() &&
+                glassCalState.endDate.getTime() === hoy.getTime()
+            );
+            if (!esDefaultFecha) {
+                const fmtD = d => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+                const label = isEntregaMode ? 'F. Entrega' : 'Fecha';
+                addTag(container, label, `${fmtD(glassCalState.startDate)} - ${fmtD(glassCalState.endDate)}`, () => {
+                    glassCalState.startDate = primerDia;
+                    glassCalState.endDate = hoy;
+                    glassCalState.dateFilterMode = 'documento';
+                    KpiLoaderV2.cargarConFiltrosActivos();
+                    SearchEngineV2.buscar(1);
+                    renderActiveFiltersInSpotlight();
+                });
+            }
+        }
+    }
+
+    function addTag(parent, label, value, onRemove, onEdit) {
+        const tag = $(`
+            <div class="filter-tag" style="${onEdit ? 'cursor:pointer' : ''}">
+                <span class="tag-label">${label}:</span>
+                <span class="tag-value">${value}</span>
+                <div class="tag-remove" title="Quitar filtro"><i class="fa-solid fa-xmark"></i></div>
+            </div>
+        `);
+        // Tocar el tag (no la ×) abre el submenú de edición
+        if (onEdit) {
+            tag.on('click', e => { e.stopPropagation(); onEdit(); });
+        }
+        tag.find('.tag-remove').on('click', e => { e.stopPropagation(); onRemove(); });
+        parent.append(tag);
+    }
+
+    // ── Selección de opción principal ─────────────────────────
     function selectOption(opt) {
         const query = input.val().trim();
+
         if (opt.action === 'date') {
             results.hide();
             $('#spotlightDateContainer').addClass('active');
             initGlassCalendarV2();
             return;
         }
+
         if (opt.action === 'clear') {
             $('#btnLimpiarFiltros').trigger('click');
             closeSpotlight();
             return;
         }
+
+        if (opt.action === 'filter') {
+            window.spotlightActiveFilter = opt.filterType;
+            input.val('').attr('placeholder', `Filtrar por ${opt.title.replace('Filtrar por ', '')}...`).focus();
+            renderResults('');
+            return;
+        }
+
         if (opt.column) {
             window.activeColumnSearch = { column: opt.column, text: query };
             window._spotlightQuery = '';
-        } else {
+        } else if (!opt.action) {
             window._spotlightQuery = query;
             window.activeColumnSearch = null;
         }
@@ -733,25 +958,21 @@ function initSpotlight() {
         SearchEngineV2.buscar(1);
     }
 
-    // Glass Calendar V2
+    // ── Glass Calendar V2 ─────────────────────────────────────
     function initGlassCalendarV2() {
         renderGlassCalendarV2();
         $('#glassCalModeDoc').off('click').on('click', () => {
-            glassCalState.dateFilterMode = 'documento';
-            renderGlassCalendarV2();
+            glassCalState.dateFilterMode = 'documento'; renderGlassCalendarV2();
         });
         $('#glassCalModeEntrega').off('click').on('click', () => {
-            glassCalState.dateFilterMode = 'entrega';
-            renderGlassCalendarV2();
+            glassCalState.dateFilterMode = 'entrega'; renderGlassCalendarV2();
         });
         $('#glassCalPrev').off('click').on('click', () => {
-            glassCalState.month--;
-            if (glassCalState.month < 0) { glassCalState.month = 11; glassCalState.year--; }
+            if (--glassCalState.month < 0) { glassCalState.month = 11; glassCalState.year--; }
             renderGlassCalendarV2();
         });
         $('#glassCalNext').off('click').on('click', () => {
-            glassCalState.month++;
-            if (glassCalState.month > 11) { glassCalState.month = 0; glassCalState.year++; }
+            if (++glassCalState.month > 11) { glassCalState.month = 0; glassCalState.year++; }
             renderGlassCalendarV2();
         });
         $('#glassCalApply').off('click').on('click', async () => {
@@ -779,21 +1000,18 @@ function initSpotlight() {
 
         for (let d = 1; d <= lastDay.getDate(); d++) {
             const date = new Date(year, month, d);
-            date.setHours(0,0,0,0);
-            let classes = 'glass-day';
-            if (startDate && date.getTime() === new Date(startDate).setHours(0,0,0,0)) classes += ' start';
-            if (endDate && date.getTime() === new Date(endDate).setHours(0,0,0,0)) classes += ' end';
-            if (startDate && endDate && date > startDate && date < endDate) classes += ' in-range';
-            
-            const cell = $(`<div class="${classes}">${d}</div>`);
+            date.setHours(0, 0, 0, 0);
+            let cls = 'glass-day';
+            if (startDate && date.getTime() === new Date(startDate).setHours(0,0,0,0)) cls += ' start';
+            if (endDate   && date.getTime() === new Date(endDate).setHours(0,0,0,0))   cls += ' end';
+            if (startDate && endDate && date > startDate && date < endDate)             cls += ' in-range';
+            const cell = $(`<div class="${cls}">${d}</div>`);
             cell.on('click', () => {
                 if (!glassCalState.startDate || (glassCalState.startDate && glassCalState.endDate)) {
-                    glassCalState.startDate = date;
-                    glassCalState.endDate = null;
+                    glassCalState.startDate = date; glassCalState.endDate = null;
                 } else {
                     if (date < glassCalState.startDate) {
-                        glassCalState.endDate = glassCalState.startDate;
-                        glassCalState.startDate = date;
+                        glassCalState.endDate = glassCalState.startDate; glassCalState.startDate = date;
                     } else {
                         glassCalState.endDate = date;
                     }
@@ -802,21 +1020,29 @@ function initSpotlight() {
             });
             container.append(cell);
         }
-
-        const fmt = d => d ? d.toLocaleDateString('es-CO', { day:'2-digit', month:'short' }) : '';
+        const fmt = d => d ? d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }) : '';
         $('#glassCalLabel').text(startDate && endDate ? `${fmt(startDate)} → ${fmt(endDate)}` : 'Selecciona rango');
         $('#glassCalApply').prop('disabled', !(startDate && endDate));
     }
 
-    $(document).on('keydown', (e) => {
+    // ── Keyboard shortcut y eventos ───────────────────────────
+    $(document).on('keydown', e => {
         if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
             e.preventDefault();
             openSpotlight();
         }
-        if (overlay.hasClass('active') && e.key === 'Escape') closeSpotlight();
+        if (overlay.hasClass('active') && e.key === 'Escape') {
+            if (window.spotlightActiveFilter) {
+                window.spotlightActiveFilter = null;
+                input.val('').attr('placeholder', 'Buscar por documento, OP o referencia...');
+                renderResults('');
+            } else {
+                closeSpotlight();
+            }
+        }
     });
 
     input.on('input', () => renderResults(input.val().trim()));
-    overlay.on('click', (e) => { if (e.target === overlay[0]) closeSpotlight(); });
-    $('#btnSpotlight').on('click', () => openSpotlight());
+    overlay.on('click', e => { if (e.target === overlay[0]) closeSpotlight(); });
+    $('#btnSpotlight').on('click', openSpotlight);
 }

@@ -102,11 +102,19 @@ const ApiClientV2 = (() => {
     },
 
     /**
-     * Obtiene los valores únicos para poblar los filtros sin descargar datos de facturas
-     * @returns {Promise<Object>} { success, data: { clientes: [], proveedores: [], estados: [], tipos: [] } }
+     * Obtiene los valores únicos para poblar los filtros.
+     * Acepta fechaInicio/fechaFin para retornar solo opciones del rango activo.
+     * @param {Object} [opts]
+     * @param {string} [opts.fechaInicio] - YYYY-MM-DD
+     * @param {string} [opts.fechaFin]    - YYYY-MM-DD
+     * @returns {Promise<Object>} { success, data: { clientes, proveedores, estados, tipos } }
      */
-    async fetchFilterOptions() {
-      return get(SEARCH_ENDPOINT, { action: 'filters' })
+    async fetchFilterOptions({ fechaInicio = null, fechaFin = null } = {}) {
+      return get(SEARCH_ENDPOINT, {
+        action: 'filters',
+        ...(fechaInicio ? { fechaInicio } : {}),
+        ...(fechaFin    ? { fechaFin    } : {}),
+      })
     },
 
     /**
